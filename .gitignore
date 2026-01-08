@@ -1,0 +1,44 @@
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+
+# Build output
+/bin/
+/build/
+/dist/
+/out/
+
+# Coverage, profiling, test output
+*.coverprofile
+*.prof
+*.out
+
+# Dependency directories (uncomment if you vendor dependencies and don't commit them)
+# /vendor/
+
+# Go module cache
+/pkg/mod/
+
+# Generated files
+*.pb.go
+
+# IDEs and editors
+.vscode/
+.idea/
+*.iml
+*.suo
+*.swp
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
+
+# Environment variables file
+.env
