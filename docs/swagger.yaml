@@ -1,0 +1,132 @@
+definitions:
+  pkg.Response:
+    properties:
+      data: {}
+      message:
+        type: string
+      status:
+        type: integer
+      validation:
+        additionalProperties:
+          type: string
+        type: object
+    type: object
+  request.UserLoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  request.UserRegisterRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+info:
+  contact: {}
+paths:
+  /admin/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login Admin
+      parameters:
+      - description: Login Admin
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/request.UserLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Login Admin
+      tags:
+      - Auth-Admin
+  /superadmin/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login Superadmin
+      parameters:
+      - description: Login Superadmin
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/request.UserLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Login Superadmin
+      tags:
+      - Auth-Superadmin
+  /user/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login User
+      parameters:
+      - description: Login User
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/request.UserLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Login User
+      tags:
+      - Auth-User
+  /user/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register User
+      parameters:
+      - description: Register User
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/request.UserRegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Register User
+      tags:
+      - Auth-User
+swagger: "2.0"
