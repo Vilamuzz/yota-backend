@@ -20,12 +20,12 @@ func (h *routeSuperadmin) handleAuthRoute(path string) {
 // @Tags Auth-Superadmin
 // @Accept json
 // @Produce json
-// @Param payload body request.UserLoginRequest true "Login Superadmin"
+// @Param payload body request.LoginRequest true "Login Superadmin"
 // @Success 200 {object} pkg.Response
-// @Router /superadmin/auth/login [post]
+// @Router /api/superadmin/auth/login [post]
 func (h *routeSuperadmin) Login(c *gin.Context) {
 	ctx := c.Request.Context()
-	req := request.UserLoginRequest{}
+	req := request.LoginRequest{}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
 		return

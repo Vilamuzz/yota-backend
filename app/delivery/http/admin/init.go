@@ -12,10 +12,10 @@ type routeAdmin struct {
 	middleware middleware.AppMiddleware
 }
 
-func NewRouteAdmin(usecase domain.AdminAppUsecase, ginEngine *gin.Engine, middleware middleware.AppMiddleware) {
+func NewRouteAdmin(usecase domain.AdminAppUsecase, router *gin.RouterGroup, middleware middleware.AppMiddleware) {
 	handler := &routeAdmin{
 		usecase:    usecase,
-		route:      ginEngine.Group("/admin"),
+		route:      router.Group("/admin"),
 		middleware: middleware,
 	}
 	handler.handleAuthRoute("/auth")

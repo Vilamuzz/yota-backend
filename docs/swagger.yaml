@@ -11,7 +11,14 @@ definitions:
           type: string
         type: object
     type: object
-  request.UserLoginRequest:
+  request.ForgetPasswordRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  request.LoginRequest:
     properties:
       email:
         type: string
@@ -22,7 +29,7 @@ definitions:
     - email
     - password
     type: object
-  request.UserRegisterRequest:
+  request.RegisterRequest:
     properties:
       email:
         type: string
@@ -38,10 +45,21 @@ definitions:
     - password
     - username
     type: object
+  request.ResetPasswordRequest:
+    properties:
+      new_password:
+        minLength: 6
+        type: string
+      token:
+        type: string
+    required:
+    - new_password
+    - token
+    type: object
 info:
   contact: {}
 paths:
-  /admin/auth/login:
+  /api/admin/auth/login:
     post:
       consumes:
       - application/json
@@ -52,7 +70,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/request.UserLoginRequest'
+          $ref: '#/definitions/request.LoginRequest'
       produces:
       - application/json
       responses:
@@ -63,7 +81,7 @@ paths:
       summary: Login Admin
       tags:
       - Auth-Admin
-  /superadmin/auth/login:
+  /api/superadmin/auth/login:
     post:
       consumes:
       - application/json
@@ -74,7 +92,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/request.UserLoginRequest'
+          $ref: '#/definitions/request.LoginRequest'
       produces:
       - application/json
       responses:
@@ -85,7 +103,29 @@ paths:
       summary: Login Superadmin
       tags:
       - Auth-Superadmin
-  /user/auth/login:
+  /api/user/auth/forget-password:
+    post:
+      consumes:
+      - application/json
+      description: Send password reset email
+      parameters:
+      - description: Forget Password
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/request.ForgetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Forget Password
+      tags:
+      - Auth-User
+  /api/user/auth/login:
     post:
       consumes:
       - application/json
@@ -96,7 +136,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/request.UserLoginRequest'
+          $ref: '#/definitions/request.LoginRequest'
       produces:
       - application/json
       responses:
@@ -107,7 +147,7 @@ paths:
       summary: Login User
       tags:
       - Auth-User
-  /user/auth/register:
+  /api/user/auth/register:
     post:
       consumes:
       - application/json
@@ -118,7 +158,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/request.UserRegisterRequest'
+          $ref: '#/definitions/request.RegisterRequest'
       produces:
       - application/json
       responses:
@@ -127,6 +167,28 @@ paths:
           schema:
             $ref: '#/definitions/pkg.Response'
       summary: Register User
+      tags:
+      - Auth-User
+  /api/user/auth/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Reset password using token
+      parameters:
+      - description: Reset Password
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/request.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Reset Password
       tags:
       - Auth-User
 swagger: "2.0"

@@ -12,10 +12,10 @@ type routeUser struct {
 	Middleware middleware.AppMiddleware
 }
 
-func NewRouteUser(usecase domain.UserAppUsecase, ginEngine *gin.Engine, middleware middleware.AppMiddleware) {
+func NewRouteUser(usecase domain.UserAppUsecase, router *gin.RouterGroup, middleware middleware.AppMiddleware) {
 	handler := &routeUser{
 		Usecase:    usecase,
-		Route:      ginEngine.Group("/user"),
+		Route:      router.Group("/user"),
 		Middleware: middleware,
 	}
 

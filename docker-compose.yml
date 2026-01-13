@@ -38,6 +38,11 @@ services:
       - JWT_TTL=3600
       - TIMEOUT=5
       - LOG_TO_STDOUT=true
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USERNAME=your-email@gmail.com
+      - SMTP_PASSWORD=your-app-password
+      - SMTP_FROM=noreply@yourdomain.com
     depends_on:
       postgres:
         condition: service_healthy

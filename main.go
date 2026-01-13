@@ -37,12 +37,16 @@ func main() {
 	if appName == "" {
 		appName = "Yota Backend"
 	}
+	scheme := "http"
+	if os.Getenv("APP_ENV") == "production" {
+		scheme = "https"
+	}
 	docs.SwaggerInfo.Title = appName
 	docs.SwaggerInfo.Description = "API Documentations"
 	docs.SwaggerInfo.Version = "1.0"
 	docs.SwaggerInfo.Host = os.Getenv("SWAGGER_HOST")
 	docs.SwaggerInfo.BasePath = "/"
-	docs.SwaggerInfo.Schemes = []string{"http", "https"}
+	docs.SwaggerInfo.Schemes = []string{scheme}
 
 	timeoutStr := os.Getenv("TIMEOUT")
 	if timeoutStr == "" {
@@ -100,9 +104,12 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	superadmin_http.NewRouteSuperadmin(superadminUsecase, ginEngine, middleware)
-	admin_http.NewRouteAdmin(adminUsecase, ginEngine, middleware)
-	user_http.NewRouteUser(userUsecase, ginEngine, middleware)
+	// Create API group with /api prefix
+	apiGroup := ginEngine.Group("/api")
+
+	superadmin_http.NewRouteSuperadmin(superadminUsecase, apiGroup, middleware)
+	admin_http.NewRouteAdmin(adminUsecase, apiGroup, middleware)
+	user_http.NewRouteUser(userUsecase, apiGroup, middleware)
 
 	// Gin initialization
 	ginEngine.GET("/", func(c *gin.Context) {
