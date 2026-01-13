@@ -2,6 +2,8 @@ package user_usecase
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"net/http"
 	"time"
 
@@ -16,7 +18,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func (u *userAppUsecase) RegisterUser(ctx context.Context, req request.UserRegisterRequest) pkg.Response {
+func (u *userAppUsecase) RegisterUser(ctx context.Context, req request.RegisterRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, u.contextTimeout)
 	defer cancel()
 	errValidation := make(map[string]string)
@@ -71,7 +73,7 @@ func (u *userAppUsecase) RegisterUser(ctx context.Context, req request.UserRegis
 	return pkg.NewResponse(http.StatusCreated, "User registered successfully", nil, user)
 }
 
-func (u *userAppUsecase) LoginUser(ctx context.Context, req request.UserLoginRequest) pkg.Response {
+func (u *userAppUsecase) LoginUser(ctx context.Context, req request.LoginRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, u.contextTimeout)
 	defer cancel()
 
@@ -117,4 +119,106 @@ func (u *userAppUsecase) LoginUser(ctx context.Context, req request.UserLoginReq
 
 	data := map[string]interface{}{"token": token, "expired_at": expiredAt, "user": user}
 	return pkg.NewResponse(http.StatusOK, "Login successful", nil, data)
+}
+
+func (u *userAppUsecase) ForgetPassword(ctx context.Context, req request.ForgetPasswordRequest) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, u.contextTimeout)
+	defer cancel()
+
+	errValidation := make(map[string]string)
+	if req.Email == "" {
+		errValidation["email"] = "Email is required"
+	}
+	if len(errValidation) > 0 {
+		return pkg.NewResponse(http.StatusUnprocessableEntity, "Validation Error", errValidation, nil)
+	}
+
+	// Find user by email
+	user, err := u.postgreDbRepo.FetchOneUser(ctx, map[string]interface{}{"email": req.Email})
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return pkg.NewResponse(http.StatusInternalServerError, err.Error(), nil, nil)
+	}
+
+	// Always return success to prevent email enumeration
+	if user == nil {
+		return pkg.NewResponse(http.StatusOK, "If the account exists, a reset email has been sent.", nil, nil)
+	}
+
+	// Generate reset token
+	tokenBytes := make([]byte, 32)
+	if _, err := rand.Read(tokenBytes); err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to generate reset token", nil, nil)
+	}
+	resetToken := hex.EncodeToString(tokenBytes)
+
+	// Save token to database
+	now := time.Now()
+	passwordResetToken := &postgre_model.PasswordResetToken{
+		ID:        uuid.New(),
+		UserID:    user.ID,
+		Token:     resetToken,
+		ExpiresAt: now.Add(1 * time.Hour), // Token expires in 1 hour
+		Used:      false,
+		CreatedAt: now,
+	}
+
+	if err := u.postgreDbRepo.CreatePasswordResetToken(ctx, passwordResetToken); err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create reset token", nil, nil)
+	}
+
+	// Send email
+	emailService := pkg.NewEmailService()
+	if err := emailService.SendPasswordResetEmail(user.Email, resetToken); err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to send reset email", nil, nil)
+	}
+
+	return pkg.NewResponse(http.StatusOK, "If the account exists, a reset email has been sent.", nil, nil)
+}
+
+func (u *userAppUsecase) ResetPassword(ctx context.Context, req request.ResetPasswordRequest) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, u.contextTimeout)
+	defer cancel()
+
+	errValidation := make(map[string]string)
+	if req.Token == "" {
+		errValidation["token"] = "Token is required"
+	}
+	if req.NewPassword == "" {
+		errValidation["new_password"] = "New password is required"
+	} else {
+		if !pkg.IsValidLengthPassword(req.NewPassword) {
+			errValidation["new_password"] = "Password must be at least 8 characters long"
+		}
+		if !pkg.IsStrongPassword(req.NewPassword) {
+			errValidation["new_password"] = "Password must contain at least one uppercase letter, one lowercase letter, and one digit"
+		}
+	}
+	if len(errValidation) > 0 {
+		return pkg.NewResponse(http.StatusUnprocessableEntity, "Validation Error", errValidation, nil)
+	}
+
+	// Verify reset token
+	resetToken, err := u.postgreDbRepo.FetchPasswordResetToken(ctx, req.Token)
+	if err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Invalid or expired reset token", nil, nil)
+	}
+
+	// Hash new password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to hash password", nil, nil)
+	}
+
+	// Update user password
+	if err := u.postgreDbRepo.UpdateUserPassword(ctx, resetToken.UserID, string(hashedPassword)); err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update password", nil, nil)
+	}
+
+	// Mark token as used
+	resetToken.Used = true
+	if err := u.postgreDbRepo.UpdatePasswordResetToken(ctx, resetToken); err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update token", nil, nil)
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Password reset successfully", nil, nil)
 }

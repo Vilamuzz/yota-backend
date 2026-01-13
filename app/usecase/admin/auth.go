@@ -15,7 +15,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (u *adminAppUsecase) LoginAdmin(ctx context.Context, req request.UserLoginRequest) pkg.Response {
+func (u *adminAppUsecase) LoginAdmin(ctx context.Context, req request.LoginRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, u.contextTimeout)
 	defer cancel()
 

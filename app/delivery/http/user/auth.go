@@ -12,6 +12,8 @@ func (h *routeUser) handleAuthRoute(prefix string) {
 	api := h.Route.Group(prefix)
 	api.POST("/login", h.Login)
 	api.POST("/register", h.Register)
+	api.POST("/forget-password", h.ForgetPassword)
+	api.POST("/reset-password", h.ResetPassword)
 }
 
 // Register
@@ -21,12 +23,12 @@ func (h *routeUser) handleAuthRoute(prefix string) {
 // @Tags Auth-User
 // @Accept json
 // @Produce json
-// @Param payload body request.UserRegisterRequest true "Register User"
+// @Param payload body request.RegisterRequest true "Register User"
 // @Success 201 {object} pkg.Response
-// @Router /user/auth/register [post]
+// @Router /api/user/auth/register [post]
 func (h *routeUser) Register(c *gin.Context) {
 	ctx := c.Request.Context()
-	req := request.UserRegisterRequest{}
+	req := request.RegisterRequest{}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
 		return
@@ -42,17 +44,61 @@ func (h *routeUser) Register(c *gin.Context) {
 // @Tags Auth-User
 // @Accept json
 // @Produce json
-// @Param payload body request.UserLoginRequest true "Login User"
+// @Param payload body request.LoginRequest true "Login User"
 // @Success 200 {object} pkg.Response
-// @Router /user/auth/login [post]
+// @Router /api/user/auth/login [post]
 func (h *routeUser) Login(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	req := request.UserLoginRequest{}
+	req := request.LoginRequest{}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
 		return
 	}
 	res := h.Usecase.LoginUser(ctx, req)
+	c.JSON(res.Status, res)
+}
+
+// ForgetPassword
+//
+// @Summary Forget Password
+// @Description Send password reset email
+// @Tags Auth-User
+// @Accept json
+// @Produce json
+// @Param payload body request.ForgetPasswordRequest true "Forget Password"
+// @Success 200 {object} pkg.Response
+// @Router /api/user/auth/forget-password [post]
+func (h *routeUser) ForgetPassword(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	req := request.ForgetPasswordRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
+		return
+	}
+	res := h.Usecase.ForgetPassword(ctx, req)
+	c.JSON(res.Status, res)
+}
+
+// ResetPassword
+//
+// @Summary Reset Password
+// @Description Reset password using token
+// @Tags Auth-User
+// @Accept json
+// @Produce json
+// @Param payload body request.ResetPasswordRequest true "Reset Password"
+// @Success 200 {object} pkg.Response
+// @Router /api/user/auth/reset-password [post]
+func (h *routeUser) ResetPassword(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	req := request.ResetPasswordRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
+		return
+	}
+	res := h.Usecase.ResetPassword(ctx, req)
 	c.JSON(res.Status, res)
 }

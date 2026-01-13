@@ -20,12 +20,12 @@ func (h *routeAdmin) handleAuthRoute(path string) {
 // @Tags Auth-Admin
 // @Accept json
 // @Produce json
-// @Param payload body request.UserLoginRequest true "Login Admin"
+// @Param payload body request.LoginRequest true "Login Admin"
 // @Success 200 {object} pkg.Response
-// @Router /admin/auth/login [post]
+// @Router /api/admin/auth/login [post]
 func (h *routeAdmin) Login(c *gin.Context) {
 	ctx := c.Request.Context()
-	req := request.UserLoginRequest{}
+	req := request.LoginRequest{}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
 		return

@@ -15,7 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/admin/auth/login": {
+        "/api/admin/auth/login": {
             "post": {
                 "description": "Login Admin",
                 "consumes": [
@@ -35,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/request.UserLoginRequest"
+                            "$ref": "#/definitions/request.LoginRequest"
                         }
                     }
                 ],
@@ -49,7 +49,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/superadmin/auth/login": {
+        "/api/superadmin/auth/login": {
             "post": {
                 "description": "Login Superadmin",
                 "consumes": [
@@ -69,7 +69,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/request.UserLoginRequest"
+                            "$ref": "#/definitions/request.LoginRequest"
                         }
                     }
                 ],
@@ -83,7 +83,41 @@ const docTemplate = `{
                 }
             }
         },
-        "/user/auth/login": {
+        "/api/user/auth/forget-password": {
+            "post": {
+                "description": "Send password reset email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth-User"
+                ],
+                "summary": "Forget Password",
+                "parameters": [
+                    {
+                        "description": "Forget Password",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.ForgetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/auth/login": {
             "post": {
                 "description": "Login User",
                 "consumes": [
@@ -103,7 +137,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/request.UserLoginRequest"
+                            "$ref": "#/definitions/request.LoginRequest"
                         }
                     }
                 ],
@@ -117,7 +151,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/user/auth/register": {
+        "/api/user/auth/register": {
             "post": {
                 "description": "Register User",
                 "consumes": [
@@ -137,13 +171,47 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/request.UserRegisterRequest"
+                            "$ref": "#/definitions/request.RegisterRequest"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
                         "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/auth/reset-password": {
+            "post": {
+                "description": "Reset password using token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth-User"
+                ],
+                "summary": "Reset Password",
+                "parameters": [
+                    {
+                        "description": "Reset Password",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/pkg.Response"
                         }
@@ -171,7 +239,18 @@ const docTemplate = `{
                 }
             }
         },
-        "request.UserLoginRequest": {
+        "request.ForgetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "request.LoginRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -187,7 +266,7 @@ const docTemplate = `{
                 }
             }
         },
-        "request.UserRegisterRequest": {
+        "request.RegisterRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -206,6 +285,22 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 50,
                     "minLength": 3
+                }
+            }
+        },
+        "request.ResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "new_password",
+                "token"
+            ],
+            "properties": {
+                "new_password": {
+                    "type": "string",
+                    "minLength": 6
+                },
+                "token": {
+                    "type": "string"
                 }
             }
         }
