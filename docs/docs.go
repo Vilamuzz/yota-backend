@@ -15,75 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/admin/auth/login": {
-            "post": {
-                "description": "Login Admin",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth-Admin"
-                ],
-                "summary": "Login Admin",
-                "parameters": [
-                    {
-                        "description": "Login Admin",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/request.LoginRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/superadmin/auth/login": {
-            "post": {
-                "description": "Login Superadmin",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth-Superadmin"
-                ],
-                "summary": "Login Superadmin",
-                "parameters": [
-                    {
-                        "description": "Login Superadmin",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/request.LoginRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/user/auth/forget-password": {
+        "/api/auth/forget-password": {
             "post": {
                 "description": "Send password reset email",
                 "consumes": [
@@ -93,7 +25,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Auth-User"
+                    "Auth"
                 ],
                 "summary": "Forget Password",
                 "parameters": [
@@ -103,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/request.ForgetPasswordRequest"
+                            "$ref": "#/definitions/auth.ForgetPasswordRequest"
                         }
                     }
                 ],
@@ -117,9 +49,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/user/auth/login": {
+        "/api/auth/login": {
             "post": {
-                "description": "Login User",
+                "description": "Login to user account",
                 "consumes": [
                     "application/json"
                 ],
@@ -127,7 +59,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Auth-User"
+                    "Auth"
                 ],
                 "summary": "Login User",
                 "parameters": [
@@ -137,7 +69,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/request.LoginRequest"
+                            "$ref": "#/definitions/auth.LoginRequest"
                         }
                     }
                 ],
@@ -151,9 +83,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/user/auth/register": {
+        "/api/auth/register": {
             "post": {
-                "description": "Register User",
+                "description": "Register a new user account",
                 "consumes": [
                     "application/json"
                 ],
@@ -161,7 +93,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Auth-User"
+                    "Auth"
                 ],
                 "summary": "Register User",
                 "parameters": [
@@ -171,7 +103,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/request.RegisterRequest"
+                            "$ref": "#/definitions/auth.RegisterRequest"
                         }
                     }
                 ],
@@ -185,7 +117,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/user/auth/reset-password": {
+        "/api/auth/reset-password": {
             "post": {
                 "description": "Reset password using token",
                 "consumes": [
@@ -195,7 +127,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Auth-User"
+                    "Auth"
                 ],
                 "summary": "Reset Password",
                 "parameters": [
@@ -205,7 +137,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/request.ResetPasswordRequest"
+                            "$ref": "#/definitions/auth.ResetPasswordRequest"
                         }
                     }
                 ],
@@ -221,25 +153,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "pkg.Response": {
-            "type": "object",
-            "properties": {
-                "data": {},
-                "message": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "integer"
-                },
-                "validation": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "request.ForgetPasswordRequest": {
+        "auth.ForgetPasswordRequest": {
             "type": "object",
             "required": [
                 "email"
@@ -250,7 +164,7 @@ const docTemplate = `{
                 }
             }
         },
-        "request.LoginRequest": {
+        "auth.LoginRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -266,7 +180,7 @@ const docTemplate = `{
                 }
             }
         },
-        "request.RegisterRequest": {
+        "auth.RegisterRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -288,7 +202,7 @@ const docTemplate = `{
                 }
             }
         },
-        "request.ResetPasswordRequest": {
+        "auth.ResetPasswordRequest": {
             "type": "object",
             "required": [
                 "new_password",
@@ -301,6 +215,24 @@ const docTemplate = `{
                 },
                 "token": {
                     "type": "string"
+                }
+            }
+        },
+        "pkg.Response": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "validation": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 }
             }
         }

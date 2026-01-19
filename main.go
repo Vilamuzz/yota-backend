@@ -7,19 +7,14 @@ import (
 	"strconv"
 	"time"
 
-	admin_http "github.com/Vilamuzz/yota-backend/app/delivery/http/admin"
-	"github.com/Vilamuzz/yota-backend/app/delivery/http/middleware"
-	superadmin_http "github.com/Vilamuzz/yota-backend/app/delivery/http/superadmin"
-	user_http "github.com/Vilamuzz/yota-backend/app/delivery/http/user"
-	postgre_repository "github.com/Vilamuzz/yota-backend/app/repository/postgre"
-	admin_usecase "github.com/Vilamuzz/yota-backend/app/usecase/admin"
-	superadmin_usecase "github.com/Vilamuzz/yota-backend/app/usecase/superadmin"
-	user_usecase "github.com/Vilamuzz/yota-backend/app/usecase/user"
+	"github.com/Vilamuzz/yota-backend/app/auth"
+	"github.com/Vilamuzz/yota-backend/app/middleware"
+	"github.com/Vilamuzz/yota-backend/app/router"
+	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/config"
 	"github.com/Vilamuzz/yota-backend/docs"
 	_ "github.com/Vilamuzz/yota-backend/docs"
-	"github.com/Vilamuzz/yota-backend/domain"
-	"github.com/Vilamuzz/yota-backend/pkg"
+	postgre_pkg "github.com/Vilamuzz/yota-backend/pkg/postgre"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -68,32 +63,29 @@ func main() {
 	gin.DefaultWriter = logrus.StandardLogger().Writer()
 
 	postgre := config.ConnectDB()
-	pkg.AutoMigrateDB(postgre, domain.GetAllModels()...)
-	postgreDbRepo := postgre_repository.NewPostgreDBRepo(postgre)
+	postgre_pkg.AutoMigrateDB(postgre, postgre_pkg.GetAllModels()...)
 
-	superadminUsecase := superadmin_usecase.NewSuperadminAppUsecase(&superadmin_usecase.RepoInjection{
-		PostgreDBRepo: postgreDbRepo,
-	}, timeoutContext)
+	// Initialize repositories
+	userRepo := user.NewPostgreRepository(postgre)
+	authRepo := auth.NewRepository(postgre)
 
-	adminUsecase := admin_usecase.NewAdminAppUsecase(&admin_usecase.RepoInjection{
-		PostgreDBRepo: postgreDbRepo,
-	}, timeoutContext)
+	// Initialize services
+	authService := auth.NewService(userRepo, authRepo, timeoutContext)
 
-	userUsecase := user_usecase.NewUserAppUsecase(&user_usecase.RepoInjection{
-		PostgreDBRepo: postgreDbRepo,
-	}, timeoutContext)
+	// Initialize handlers
+	authHandler := auth.NewHandler(authService)
 
-	middleware := middleware.NewAppMiddleware()
+	// Initialize middleware
+	appMiddleware := middleware.NewAppMiddleware()
+
 	if os.Getenv("APP_ENV") == "production" || os.Getenv("APP_ENV") == "prod" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	ginEngine := gin.New()
 
-	// panic recovery
-	ginEngine.Use(middleware.Recovery())
-
-	// logger
-	ginEngine.Use(middleware.Logger(io.MultiWriter(writers...)))
+	// Apply middleware
+	ginEngine.Use(appMiddleware.RecoveryHandler())
+	ginEngine.Use(appMiddleware.LoggerHandler(io.MultiWriter(writers...)))
 
 	ginEngine.Use(cors.New(cors.Config{
 		AllowAllOrigins:  true,
@@ -104,17 +96,14 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	// Create API group with /api prefix
-	apiGroup := ginEngine.Group("/api")
+	// Initialize router
+	appRouter := router.NewRouter(authHandler, appMiddleware)
+	appRouter.SetupRoutes(ginEngine)
 
-	superadmin_http.NewRouteSuperadmin(superadminUsecase, apiGroup, middleware)
-	admin_http.NewRouteAdmin(adminUsecase, apiGroup, middleware)
-	user_http.NewRouteUser(userUsecase, apiGroup, middleware)
-
-	// Gin initialization
+	// Basic routes
 	ginEngine.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, map[string]any{
-			"message": "Welcome",
+			"message": "Welcome to Yota Backend",
 		})
 	})
 	ginEngine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

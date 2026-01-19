@@ -5,16 +5,8 @@ import (
 	"strconv"
 )
 
-func GetJWTSecretKeySuperadmin() string {
-	return os.Getenv("JWT_SECRET_KEY_SUPERADMIN")
-}
-
-func GetJWTSecretKeyAdmin() string {
-	return os.Getenv("JWT_SECRET_KEY_ADMIN")
-}
-
-func GetJWTSecretKeyUser() string {
-	return os.Getenv("JWT_SECRET_KEY_USER")
+func GetJWTSecretKey() string {
+	return os.Getenv("JWT_SECRET_KEY")
 }
 
 func GetJWTTTL() int {

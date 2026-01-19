@@ -1,24 +1,12 @@
 definitions:
-  pkg.Response:
-    properties:
-      data: {}
-      message:
-        type: string
-      status:
-        type: integer
-      validation:
-        additionalProperties:
-          type: string
-        type: object
-    type: object
-  request.ForgetPasswordRequest:
+  auth.ForgetPasswordRequest:
     properties:
       email:
         type: string
     required:
     - email
     type: object
-  request.LoginRequest:
+  auth.LoginRequest:
     properties:
       email:
         type: string
@@ -29,7 +17,7 @@ definitions:
     - email
     - password
     type: object
-  request.RegisterRequest:
+  auth.RegisterRequest:
     properties:
       email:
         type: string
@@ -45,7 +33,7 @@ definitions:
     - password
     - username
     type: object
-  request.ResetPasswordRequest:
+  auth.ResetPasswordRequest:
     properties:
       new_password:
         minLength: 6
@@ -56,54 +44,22 @@ definitions:
     - new_password
     - token
     type: object
+  pkg.Response:
+    properties:
+      data: {}
+      message:
+        type: string
+      status:
+        type: integer
+      validation:
+        additionalProperties:
+          type: string
+        type: object
+    type: object
 info:
   contact: {}
 paths:
-  /api/admin/auth/login:
-    post:
-      consumes:
-      - application/json
-      description: Login Admin
-      parameters:
-      - description: Login Admin
-        in: body
-        name: payload
-        required: true
-        schema:
-          $ref: '#/definitions/request.LoginRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      summary: Login Admin
-      tags:
-      - Auth-Admin
-  /api/superadmin/auth/login:
-    post:
-      consumes:
-      - application/json
-      description: Login Superadmin
-      parameters:
-      - description: Login Superadmin
-        in: body
-        name: payload
-        required: true
-        schema:
-          $ref: '#/definitions/request.LoginRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      summary: Login Superadmin
-      tags:
-      - Auth-Superadmin
-  /api/user/auth/forget-password:
+  /api/auth/forget-password:
     post:
       consumes:
       - application/json
@@ -114,7 +70,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/request.ForgetPasswordRequest'
+          $ref: '#/definitions/auth.ForgetPasswordRequest'
       produces:
       - application/json
       responses:
@@ -124,19 +80,19 @@ paths:
             $ref: '#/definitions/pkg.Response'
       summary: Forget Password
       tags:
-      - Auth-User
-  /api/user/auth/login:
+      - Auth
+  /api/auth/login:
     post:
       consumes:
       - application/json
-      description: Login User
+      description: Login to user account
       parameters:
       - description: Login User
         in: body
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/request.LoginRequest'
+          $ref: '#/definitions/auth.LoginRequest'
       produces:
       - application/json
       responses:
@@ -146,19 +102,19 @@ paths:
             $ref: '#/definitions/pkg.Response'
       summary: Login User
       tags:
-      - Auth-User
-  /api/user/auth/register:
+      - Auth
+  /api/auth/register:
     post:
       consumes:
       - application/json
-      description: Register User
+      description: Register a new user account
       parameters:
       - description: Register User
         in: body
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/request.RegisterRequest'
+          $ref: '#/definitions/auth.RegisterRequest'
       produces:
       - application/json
       responses:
@@ -168,8 +124,8 @@ paths:
             $ref: '#/definitions/pkg.Response'
       summary: Register User
       tags:
-      - Auth-User
-  /api/user/auth/reset-password:
+      - Auth
+  /api/auth/reset-password:
     post:
       consumes:
       - application/json
@@ -180,7 +136,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/request.ResetPasswordRequest'
+          $ref: '#/definitions/auth.ResetPasswordRequest'
       produces:
       - application/json
       responses:
@@ -190,5 +146,5 @@ paths:
             $ref: '#/definitions/pkg.Response'
       summary: Reset Password
       tags:
-      - Auth-User
+      - Auth
 swagger: "2.0"
