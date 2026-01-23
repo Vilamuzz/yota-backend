@@ -32,9 +32,7 @@ services:
       - DEBUG=true
       - DB=host=postgres user=postgres password=password dbname=yota_db port=5432 sslmode=disable
       - SWAGGER_HOST=localhost:8080
-      - JWT_SECRET_KEY_SUPERADMIN=supersecret
-      - JWT_SECRET_KEY_ADMIN=adminsecret
-      - JWT_SECRET_KEY_USER=usersecret
+      - JWT_SECRET_KEY=your_secret_key
       - JWT_TTL=3600
       - TIMEOUT=5
       - LOG_TO_STDOUT=true
