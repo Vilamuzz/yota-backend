@@ -1,17 +1,28 @@
 package donation
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/Vilamuzz/yota-backend/app/middleware"
+	"github.com/gin-gonic/gin"
+)
 
-type Handler struct {
-	service Service
+type handler struct {
+	service    Service
+	middleware middleware.AppMiddleware
 }
 
-func NewHandler(s Service) *Handler {
-	return &Handler{
-		service: s,
+func NewHandler(s Service, r *gin.RouterGroup, m middleware.AppMiddleware) {
+	handler := &handler{
+		service:    s,
+		middleware: m,
 	}
+	handler.RegisterRoutes(r)
 }
 
-func (h *Handler) GetAllDonations(c *gin.Context) {
+func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
+	api := r.Group("/donations")
+	api.GET("/", h.GetAllDonations)
+}
+
+func (h *handler) GetAllDonations(c *gin.Context) {
 	c.JSON(200, "Donations")
 }

@@ -3,18 +3,32 @@ package auth
 import (
 	"net/http"
 
+	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/gin-gonic/gin"
 )
 
-type Handler struct {
-	service Service
+type handler struct {
+	service    Service
+	middleware middleware.AppMiddleware
 }
 
-func NewHandler(s Service) *Handler {
-	return &Handler{
-		service: s,
+func NewHandler(s Service, r *gin.RouterGroup, m middleware.AppMiddleware) {
+	handler := &handler{
+		service:    s,
+		middleware: m,
 	}
+	handler.RegisterRoutes(r)
+}
+
+func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
+	api := r.Group("/auth")
+
+	api.POST("/register", h.Register)
+	api.POST("/login", h.Login)
+	api.POST("/forget-password", h.ForgetPassword)
+	api.POST("/reset-password", h.ResetPassword)
+
 }
 
 // Register
@@ -27,7 +41,7 @@ func NewHandler(s Service) *Handler {
 // @Param payload body RegisterRequest true "Register User"
 // @Success 201 {object} pkg.Response
 // @Router /api/auth/register [post]
-func (h *Handler) Register(c *gin.Context) {
+func (h *handler) Register(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var req RegisterRequest
@@ -50,7 +64,7 @@ func (h *Handler) Register(c *gin.Context) {
 // @Param payload body LoginRequest true "Login User"
 // @Success 200 {object} pkg.Response
 // @Router /api/auth/login [post]
-func (h *Handler) Login(c *gin.Context) {
+func (h *handler) Login(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var req LoginRequest
@@ -73,7 +87,7 @@ func (h *Handler) Login(c *gin.Context) {
 // @Param payload body ForgetPasswordRequest true "Forget Password"
 // @Success 200 {object} pkg.Response
 // @Router /api/auth/forget-password [post]
-func (h *Handler) ForgetPassword(c *gin.Context) {
+func (h *handler) ForgetPassword(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var req ForgetPasswordRequest
@@ -96,7 +110,7 @@ func (h *Handler) ForgetPassword(c *gin.Context) {
 // @Param payload body ResetPasswordRequest true "Reset Password"
 // @Success 200 {object} pkg.Response
 // @Router /api/auth/reset-password [post]
-func (h *Handler) ResetPassword(c *gin.Context) {
+func (h *handler) ResetPassword(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var req ResetPasswordRequest

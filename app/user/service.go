@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 )
@@ -13,12 +14,14 @@ type Service interface {
 }
 
 type service struct {
-	repo Repository
+	repo    Repository
+	timeout time.Duration
 }
 
-func NewService(r Repository) Service {
+func NewService(r Repository, timeout time.Duration) Service {
 	return &service{
-		repo: r,
+		repo:    r,
+		timeout: timeout,
 	}
 }
 

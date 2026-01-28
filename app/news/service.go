@@ -1,17 +1,21 @@
 package news
 
+import "time"
+
 type Service interface {
 	FetchAllNews() ([]News, error)
 	Create(news *News) error
 }
 
 type service struct {
-	repo Repository
+	repo    Repository
+	timeout time.Duration
 }
 
-func NewService(repo Repository) Service {
+func NewService(repo Repository, timeout time.Duration) Service {
 	return &service{
-		repo: repo,
+		repo:    repo,
+		timeout: timeout,
 	}
 }
 
