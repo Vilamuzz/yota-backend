@@ -120,5 +120,3 @@ func (m *JWTMiddleware) extractAndValidateToken(c *gin.Context) (*jwt_pkg.UserJW
 
 	return claims, nil
 }
-
-// Role constants

@@ -17,7 +17,7 @@ type repository struct {
 	Conn *gorm.DB
 }
 
-func NewPostgreRepository(conn *gorm.DB) Repository {
+func NewRepository(conn *gorm.DB) Repository {
 	return &repository{Conn: conn}
 }
 

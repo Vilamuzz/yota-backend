@@ -22,11 +22,10 @@ type Role string
 const (
 	RoleUser               Role = "user"
 	RoleChairman           Role = "chairman"
-	RoleEventManager       Role = "event_manager"
+	RoleSocialManager      Role = "social_manager"
 	RoleFinance            Role = "finance"
 	RoleAmbulanceManager   Role = "ambulance_manager"
 	RolePublicationManager Role = "publication_manager"
-	RoleCaseManager        Role = "case_manager"
 	RoleSuperadmin         Role = "superadmin"
 )
 
@@ -34,5 +33,5 @@ type Status string
 
 const (
 	StatusActive Status = "active"
-	StatusBanned Status = "banned"
+	StatusBanned Status = "nonactive"
 )

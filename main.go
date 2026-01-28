@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/app/auth"
+	"github.com/Vilamuzz/yota-backend/app/donation"
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/app/router"
 	"github.com/Vilamuzz/yota-backend/app/user"
@@ -66,14 +67,17 @@ func main() {
 	postgre_pkg.AutoMigrateDB(postgre, postgre_pkg.GetAllModels()...)
 
 	// Initialize repositories
-	userRepo := user.NewPostgreRepository(postgre)
+	userRepo := user.NewRepository(postgre)
 	authRepo := auth.NewRepository(postgre)
+	donationRepo := donation.NewRepository(postgre)
 
 	// Initialize services
 	authService := auth.NewService(userRepo, authRepo, timeoutContext)
+	donationService := donation.NewService(donationRepo, timeoutContext)
 
 	// Initialize handlers
 	authHandler := auth.NewHandler(authService)
+	donationHandler := donation.NewHandler(donationService)
 
 	// Initialize middleware
 	appMiddleware := middleware.NewAppMiddleware()
@@ -97,8 +101,8 @@ func main() {
 	}))
 
 	// Initialize router
-	appRouter := router.NewRouter(authHandler, appMiddleware)
-	appRouter.SetupRoutes(ginEngine)
+	appRouter := router.NewRouter(authHandler, donationHandler, appMiddleware)
+	appRouter.Routes(ginEngine)
 
 	// Basic routes
 	ginEngine.GET("/", func(c *gin.Context) {
