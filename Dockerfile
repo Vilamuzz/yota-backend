@@ -1,27 +1,45 @@
-# Use a stable Go version (adjust to 1.21 or 1.22 if needed for compatibility)
-FROM golang:1.25-alpine AS builder
+# Build stage
+FROM golang:1.24-alpine AS builder
 
-# Set destination for COPY
+# Install build dependencies
+RUN apk add --no-cache git
+
+# Set working directory
 WORKDIR /app
 
-# Copy go.mod and go.sum first for better caching
+# Copy go mod files
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy the entire source code (including subdirectories)
-COPY . ./
+# Copy source code
+COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o main .
+# Build the application from cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/server
 
-# Use a minimal runtime image for the final stage (optional but recommended for security/smaller size)
+# Runtime stage
 FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-WORKDIR /root/
+
+# Install ca-certificates for HTTPS
+RUN apk --no-cache add ca-certificates tzdata
+
+# Create non-root user
+RUN addgroup -g 1000 appuser && \
+    adduser -D -u 1000 -G appuser appuser
+
+WORKDIR /app
+
+# Copy binary from builder
 COPY --from=builder /app/main .
 
-# Expose the default port (matches your app's default)
+# Change ownership
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
 EXPOSE 8080
 
-# Run the binary
+# Run the application
 CMD ["./main"]

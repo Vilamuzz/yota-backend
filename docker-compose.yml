@@ -17,6 +17,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - yota-network
 
   app:
     build:
@@ -32,7 +34,7 @@ services:
       - DEBUG=true
       - DB=host=postgres user=postgres password=password dbname=yota_db port=5432 sslmode=disable
       - SWAGGER_HOST=localhost:8080
-      - JWT_SECRET_KEY=your_secret_key
+      - JWT_SECRET_KEY=your_secret_key_change_in_production
       - JWT_TTL=3600
       - TIMEOUT=5
       - LOG_TO_STDOUT=true
@@ -45,6 +47,27 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - yota-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   postgres_data:
+    driver: local
+
+networks:
+  yota-network:
+    driver: bridge
