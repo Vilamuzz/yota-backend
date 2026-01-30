@@ -11,7 +11,6 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/news"
 	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/config"
-	postgre_pkg "github.com/Vilamuzz/yota-backend/pkg/postgre"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -69,7 +68,6 @@ func NewContainer() (*Container, func(), error) {
 func (c *Container) initInfrastructure() error {
 	// Database
 	db := config.ConnectDB()
-	postgre_pkg.AutoMigrateDB(db, postgre_pkg.GetAllModels()...)
 	c.DB = db
 
 	// Timeout

@@ -20,7 +20,29 @@ permissions:
   packages: write
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: go test -v ./...
+
+      - name: Run go vet
+        run: go vet ./...
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     outputs:
       image-name: ${{ steps.image.outputs.name }}
@@ -61,6 +83,7 @@ jobs:
           images: ${{ steps.image.outputs.name }}
           tags: |
             type=raw,value=${{ steps.imagetag.outputs.tag }}
+            type=raw,value=latest
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -73,6 +96,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            GO_VERSION=1.24
 
       - name: Validate image name
         run: |
@@ -80,6 +105,7 @@ jobs:
             echo "Image name is empty."
             exit 1
           fi
+          echo "Built image: ${{ steps.image.outputs.name }}:${{ steps.imagetag.outputs.tag }}"
 
   deploy:
     needs: build
@@ -116,6 +142,7 @@ jobs:
             echo "Image updated successfully"
           else
             echo "Failed to update image"
+            echo "Response body: $BODY"
             exit 1
           fi
 
@@ -123,8 +150,16 @@ jobs:
         run: |
           echo "Triggering deployment webhook..."
 
-          curl -X POST "${{ env.DOKPLOY_WEBHOOK_URL }}" \
-            --fail --show-error --silent --output /dev/null && echo "Deployment webhook triggered successfully" || echo "Deployment webhook failed"
+          HTTP_CODE=$(curl -X POST "${{ env.DOKPLOY_WEBHOOK_URL }}" \
+            --silent --output /dev/null --write-out "%{http_code}")
+
+          if [ "$HTTP_CODE" -eq 200 ] || [ "$HTTP_CODE" -eq 201 ] || [ "$HTTP_CODE" -eq 204 ]; then
+            echo "Deployment webhook triggered successfully (HTTP $HTTP_CODE)"
+          else
+            echo "Deployment webhook failed with HTTP code: $HTTP_CODE"
+            exit 1
+          fi
 
           echo "Deployed commit: ${{ github.sha }}"
           echo "Deployed by: ${{ github.actor }}"
+          echo "Deployed at: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"

@@ -16,7 +16,7 @@ type SMTPConfig struct {
 func GetSMTPConfig() SMTPConfig {
 	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
 	if port == 0 {
-		port = 587 // default SMTP port
+		port = 587
 	}
 
 	return SMTPConfig{
