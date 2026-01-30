@@ -43,6 +43,7 @@ services:
       - SMTP_USERNAME=your-email@gmail.com
       - SMTP_PASSWORD=your-app-password
       - SMTP_FROM=noreply@yourdomain.com
+      - CORS_ALLOW_ORIGIN=*
     depends_on:
       postgres:
         condition: service_healthy
