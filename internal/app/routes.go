@@ -8,6 +8,7 @@ import (
 
 func (a *App) setupRoutes(engine *gin.Engine) {
 	// Apply global middleware
+	engine.Use(a.container.Middleware.CORSHandler())
 	engine.Use(a.container.Middleware.LoggerHandler(gin.DefaultWriter))
 	engine.Use(a.container.Middleware.RecoveryHandler())
 

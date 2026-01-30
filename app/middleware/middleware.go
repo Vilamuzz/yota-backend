@@ -3,6 +3,7 @@ package middleware
 import (
 	"io"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -10,6 +11,7 @@ type AppMiddleware struct {
 	Logger   *LoggerMiddleware
 	Recovery *RecoveryMiddleware
 	JWT      *JWTMiddleware
+	CORS     *CORSMiddleware
 }
 
 func NewAppMiddleware() *AppMiddleware {
@@ -17,6 +19,7 @@ func NewAppMiddleware() *AppMiddleware {
 		Logger:   NewLoggerMiddleware(),
 		Recovery: NewRecoveryMiddleware(),
 		JWT:      NewJWTMiddleware(),
+		CORS:     NewCORSMiddleware(),
 	}
 }
 
@@ -35,4 +38,24 @@ func (m *AppMiddleware) AuthRequired() gin.HandlerFunc {
 
 func (m *AppMiddleware) RequireRoles(roles ...string) gin.HandlerFunc {
 	return m.JWT.RequireRoles(roles...)
+}
+
+func (m *AppMiddleware) CORSHandler() gin.HandlerFunc {
+	return m.CORS.CORS()
+}
+
+type CORSMiddleware struct{}
+
+func NewCORSMiddleware() *CORSMiddleware {
+	return &CORSMiddleware{}
+}
+
+func (m *CORSMiddleware) CORS() gin.HandlerFunc {
+	return cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	})
 }
