@@ -28,6 +28,7 @@ type Container struct {
 
 	// Services
 	AuthService     auth.Service
+	UserService     user.Service
 	DonationService donation.Service
 	NewsService     news.Service
 
@@ -90,6 +91,7 @@ func (c *Container) initRepositories() {
 
 func (c *Container) initServices() {
 	c.AuthService = auth.NewService(c.UserRepo, c.AuthRepo, c.Timeout)
+	c.UserService = user.NewService(c.UserRepo, c.Timeout)
 	c.DonationService = donation.NewService(c.DonationRepo, c.Timeout)
 	c.NewsService = news.NewService(c.NewsRepo, c.Timeout)
 }
@@ -100,7 +102,7 @@ func (c *Container) initMiddleware() {
 
 // RegisterHandlers registers all handlers with their routes
 func (c *Container) RegisterHandlers(router *gin.RouterGroup) {
-	auth.NewHandler(c.AuthService, router, *c.Middleware)
-	donation.NewHandler(c.DonationService, router, *c.Middleware)
-	news.NewHandler(c.NewsService, router, *c.Middleware)
+	auth.NewHandler(router, c.AuthService, c.UserService, *c.Middleware)
+	donation.NewHandler(router, c.DonationService, *c.Middleware)
+	news.NewHandler(router, c.NewsService, *c.Middleware)
 }
