@@ -10,7 +10,7 @@ type handler struct {
 	middleware middleware.AppMiddleware
 }
 
-func NewHandler(s Service, r *gin.RouterGroup, m middleware.AppMiddleware) {
+func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 	handler := &handler{
 		service:    s,
 		middleware: m,

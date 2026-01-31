@@ -4,19 +4,23 @@ import (
 	"net/http"
 
 	"github.com/Vilamuzz/yota-backend/app/middleware"
+	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/pkg"
+	jwt_pkg "github.com/Vilamuzz/yota-backend/pkg/jwt"
 	"github.com/gin-gonic/gin"
 )
 
 type handler struct {
-	service    Service
-	middleware middleware.AppMiddleware
+	service     Service
+	userService user.Service
+	middleware  middleware.AppMiddleware
 }
 
-func NewHandler(s Service, r *gin.RouterGroup, m middleware.AppMiddleware) {
+func NewHandler(r *gin.RouterGroup, s Service, u user.Service, m middleware.AppMiddleware) {
 	handler := &handler{
-		service:    s,
-		middleware: m,
+		service:     s,
+		userService: u,
+		middleware:  m,
 	}
 	handler.RegisterRoutes(r)
 }
@@ -28,7 +32,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	api.POST("/login", h.Login)
 	api.POST("/forget-password", h.ForgetPassword)
 	api.POST("/reset-password", h.ResetPassword)
-
+	api.GET("/me", h.middleware.AuthRequired(), h.GetMe)
 }
 
 // Register
@@ -120,5 +124,37 @@ func (h *handler) ResetPassword(c *gin.Context) {
 	}
 
 	res := h.service.ResetPassword(ctx, req)
+	c.JSON(res.Status, res)
+}
+
+// GetMe
+//
+// @Summary Get Current User
+// @Description Get details of the currently authenticated user
+// @Tags Auth
+// @Security Bearer
+// @Accept json
+// @Produce json
+// @Success 200 {object} pkg.Response
+// @Router /api/auth/me [get]
+func (h *handler) GetMe(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Get user claims from context
+	userData, exists := c.Get("user_data")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "User not authenticated", nil, nil))
+		return
+	}
+
+	// Type assert to UserJWTClaims
+	claims, ok := userData.(jwt_pkg.UserJWTClaims)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Invalid user data", nil, nil))
+		return
+	}
+
+	// Get user details using the UserID from claims
+	res := h.userService.GetUserDetail(ctx, claims.UserID)
 	c.JSON(res.Status, res)
 }
