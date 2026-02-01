@@ -3,6 +3,7 @@ package pkg
 import (
 	"fmt"
 	"net/smtp"
+	"os"
 
 	"github.com/Vilamuzz/yota-backend/config"
 )
@@ -33,7 +34,7 @@ func (e *EmailService) SendEmail(to, subject, body string) error {
 }
 
 func (e *EmailService) SendPasswordResetEmail(to, resetToken string) error {
-	resetURL := fmt.Sprintf("%s/reset-password?token=%s", "http://localhost:8080", resetToken)
+	resetURL := fmt.Sprintf("%s/reset-password?token=%s", os.Getenv("FE_URL"), resetToken)
 
 	subject := "Password Reset Request"
 	body := fmt.Sprintf(`
