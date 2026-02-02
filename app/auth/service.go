@@ -47,19 +47,33 @@ func (s *service) Register(ctx context.Context, req RegisterRequest) pkg.Respons
 	ctx, cancel := context.WithTimeout(ctx, s.contextTimeout)
 	defer cancel()
 
+	errValidation := make(map[string]string)
+	if req.Email == "" {
+		errValidation["email"] = "Email is required"
+	}
+	if req.Username == "" {
+		errValidation["username"] = "Username is required"
+	}
+	if req.Password == "" {
+		errValidation["password"] = "Password is required"
+	}
 	// Validate email format
 	if !pkg.IsValidEmail(req.Email) {
-		return pkg.NewResponse(http.StatusBadRequest, "Invalid email format", nil, nil)
+		errValidation["email"] = "Invalid email format"
 	}
 
 	// Validate password length
 	if !pkg.IsValidLengthPassword(req.Password) {
-		return pkg.NewResponse(http.StatusBadRequest, "Password must be at least 8 characters", nil, nil)
+		errValidation["password"] = "Password must be at least 8 characters"
 	}
 
 	// Validate password strength
 	if !pkg.IsStrongPassword(req.Password) {
-		return pkg.NewResponse(http.StatusBadRequest, "Password must contain uppercase, lowercase, and number", nil, nil)
+		errValidation["password"] = "Password must contain uppercase, lowercase, and number"
+	}
+
+	if len(errValidation) > 0 {
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
 
 	// Check if email already exists
@@ -172,12 +186,6 @@ func (s *service) Login(ctx context.Context, req LoginRequest) pkg.Response {
 
 	loginResponse := AuthResponse{
 		Token: token,
-		User: user.UserProfile{
-			ID:       existingUser.ID.String(),
-			Username: existingUser.Username,
-			Email:    existingUser.Email,
-			Role:     string(existingUser.Role),
-		},
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Login successful", nil, loginResponse)
@@ -228,28 +236,36 @@ func (s *service) ResetPassword(ctx context.Context, req ResetPasswordRequest) p
 	defer cancel()
 
 	// Validate new password
+	errValidation := make(map[string]string)
+	if req.NewPassword == "" {
+		errValidation["new_password"] = "New password is required"
+	}
+
 	if !pkg.IsValidLengthPassword(req.NewPassword) {
-		return pkg.NewResponse(http.StatusBadRequest, "Password must be at least 8 characters", nil, nil)
+		errValidation["new_password"] = "Password must be at least 8 characters"
 	}
 
 	if !pkg.IsStrongPassword(req.NewPassword) {
-		return pkg.NewResponse(http.StatusBadRequest, "Password must contain uppercase, lowercase, and number", nil, nil)
+		errValidation["new_password"] = "Password must contain uppercase, lowercase, and number"
 	}
 
 	// Fetch reset token
 	resetToken, err := s.resetTokenRepo.FetchPasswordResetToken(ctx, req.Token)
 	if err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Invalid or expired reset token", nil, nil)
+		errValidation["token"] = "Invalid or expired reset token"
 	}
 
 	// Check if token is used
 	if resetToken.Used {
-		return pkg.NewResponse(http.StatusBadRequest, "Reset token already used", nil, nil)
+		errValidation["token"] = "Reset token already used"
 	}
 
 	// Check if token is expired
 	if time.Now().After(resetToken.ExpiresAt) {
-		return pkg.NewResponse(http.StatusBadRequest, "Reset token has expired", nil, nil)
+		errValidation["token"] = "Reset token has expired"
+	}
+	if len(errValidation) > 0 {
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
 
 	// Hash new password
@@ -330,12 +346,6 @@ func (s *service) OAuthLogin(ctx context.Context, provider string, gothUser goth
 
 	authResponse := AuthResponse{
 		Token: token,
-		User: user.UserProfile{
-			ID:       currentUser.ID.String(),
-			Username: currentUser.Username,
-			Email:    currentUser.Email,
-			Role:     string(currentUser.Role),
-		},
 	}
 
 	return pkg.NewResponse(http.StatusOK, "OAuth login successful", nil, authResponse)
@@ -346,19 +356,24 @@ func (s *service) VerifyEmail(ctx context.Context, token string) pkg.Response {
 	defer cancel()
 
 	// Fetch verification token
+	errValidation := make(map[string]string)
 	verificationToken, err := s.resetTokenRepo.FetchEmailVerificationToken(ctx, token)
 	if err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Invalid or expired verification token", nil, nil)
+		errValidation["token"] = "Invalid or expired verification token"
 	}
 
 	// Check if token is already used
 	if verificationToken.Used {
-		return pkg.NewResponse(http.StatusBadRequest, "Verification token already used", nil, nil)
+		errValidation["token"] = "Verification token already used"
 	}
 
 	// Check if token is expired
 	if time.Now().After(verificationToken.ExpiresAt) {
-		return pkg.NewResponse(http.StatusBadRequest, "Verification token has expired", nil, nil)
+		errValidation["token"] = "Verification token has expired"
+	}
+
+	if len(errValidation) > 0 {
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
 
 	// Verify user email
@@ -387,7 +402,7 @@ func (s *service) ResendVerificationEmail(ctx context.Context, email string) pkg
 
 	// Check if already verified
 	if existingUser.EmailVerified {
-		return pkg.NewResponse(http.StatusBadRequest, "Email already verified", nil, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"email": "Email already verified"}, nil)
 	}
 
 	// Generate new verification token

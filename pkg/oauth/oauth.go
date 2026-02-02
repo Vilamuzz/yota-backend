@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/Vilamuzz/yota-backend/config"
 	"github.com/gorilla/sessions"
@@ -21,8 +22,8 @@ func InitOAuth() {
 	store.MaxAge(maxAge)
 	store.Options.Path = "/"
 	store.Options.HttpOnly = true
-	store.Options.Secure = false                  // Must be false for localhost HTTP
-	store.Options.SameSite = http.SameSiteLaxMode // Critical for OAuth flow
+	store.Options.Secure = os.Getenv("APP_ENV") == "production"
+	store.Options.SameSite = http.SameSiteLaxMode
 
 	gothic.Store = store
 
