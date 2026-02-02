@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 )
 
 type AppMiddleware struct {
@@ -15,13 +16,13 @@ type AppMiddleware struct {
 	RateLimit *RateLimitMiddleware
 }
 
-func NewAppMiddleware() *AppMiddleware {
+func NewAppMiddleware(redisClient *redis.Client) *AppMiddleware {
 	return &AppMiddleware{
 		Logger:    NewLoggerMiddleware(),
 		Recovery:  NewRecoveryMiddleware(),
 		JWT:       NewJWTMiddleware(),
 		CORS:      NewCORSMiddleware(),
-		RateLimit: NewRateLimitMiddleware(),
+		RateLimit: NewRateLimitMiddleware(redisClient),
 	}
 }
 

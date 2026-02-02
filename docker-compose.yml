@@ -20,6 +20,22 @@ services:
     networks:
       - yota-network
 
+  redis:
+    image: redis:7-alpine
+    container_name: yota-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - yota-network
+
   app:
     build:
       context: .
@@ -44,8 +60,17 @@ services:
       - SMTP_PASSWORD=your-app-password
       - SMTP_FROM=noreply@yourdomain.com
       - CORS_ALLOW_ORIGIN=*
+      - REDIS_ENABLED=true
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=0
+      - RATE_LIMIT_ENABLED=true
+      - RATE_LIMIT_PER_MINUTE=60
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -67,6 +92,8 @@ services:
 
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
     driver: local
 
 networks:

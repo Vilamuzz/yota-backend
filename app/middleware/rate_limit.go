@@ -8,19 +8,47 @@ import (
 	"github.com/Vilamuzz/yota-backend/config"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"github.com/ulule/limiter/v3"
 	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
 	"github.com/ulule/limiter/v3/drivers/store/memory"
+	limiter_redis "github.com/ulule/limiter/v3/drivers/store/redis"
 )
 
 type RateLimitMiddleware struct {
-	config config.RateLimitConfig
+	config      config.RateLimitConfig
+	redisClient *redis.Client
+	store       limiter.Store
 }
 
-func NewRateLimitMiddleware() *RateLimitMiddleware {
-	return &RateLimitMiddleware{
-		config: config.GetRateLimitConfig(),
+func NewRateLimitMiddleware(redisClient *redis.Client) *RateLimitMiddleware {
+	middleware := &RateLimitMiddleware{
+		config:      config.GetRateLimitConfig(),
+		redisClient: redisClient,
 	}
+
+	// Initialize store once during creation
+	if redisClient != nil {
+		store, err := limiter_redis.NewStoreWithOptions(redisClient, limiter.StoreOptions{
+			Prefix:          "rate_limit",
+			CleanUpInterval: time.Hour,
+		})
+		if err != nil {
+			fmt.Printf("Warning: Failed to create Redis store: %v. Falling back to memory store.\n", err)
+			middleware.store = memory.NewStore()
+		} else {
+			middleware.store = store
+		}
+	} else {
+		middleware.store = memory.NewStore()
+	}
+
+	return middleware
+}
+
+// getStore returns the configured store (Redis or memory)
+func (m *RateLimitMiddleware) getStore() limiter.Store {
+	return m.store
 }
 
 // RateLimit applies rate limiting based on IP address
@@ -31,19 +59,13 @@ func (m *RateLimitMiddleware) RateLimit() gin.HandlerFunc {
 		}
 	}
 
-	// Define rate: requests per minute
 	rate := limiter.Rate{
 		Period: 1 * time.Minute,
 		Limit:  m.config.RequestsPerMinute,
 	}
 
-	// Create a new memory store
-	store := memory.NewStore()
-
-	// Create limiter instance
+	store := m.getStore()
 	instance := limiter.New(store, rate)
-
-	// Create middleware
 	middleware := mgin.NewMiddleware(instance)
 
 	return func(c *gin.Context) {
@@ -64,7 +86,7 @@ func (m *RateLimitMiddleware) RateLimitWithCustomRate(requests int64, period tim
 		Limit:  requests,
 	}
 
-	store := memory.NewStore()
+	store := m.getStore()
 	instance := limiter.New(store, rate)
 	middleware := mgin.NewMiddleware(instance)
 
@@ -86,14 +108,12 @@ func (m *RateLimitMiddleware) StrictRateLimit() gin.HandlerFunc {
 		Limit:  m.config.RequestsPerMinute,
 	}
 
-	store := memory.NewStore()
+	store := m.getStore()
 	instance := limiter.New(store, rate)
 
 	return func(c *gin.Context) {
-		// Get client IP
 		clientIP := c.ClientIP()
 
-		// Get current context from limiter
 		context, err := instance.Get(c, clientIP)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, pkg.NewResponse(
@@ -105,12 +125,10 @@ func (m *RateLimitMiddleware) StrictRateLimit() gin.HandlerFunc {
 			return
 		}
 
-		// Set rate limit headers
 		c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", context.Limit))
 		c.Header("X-RateLimit-Remaining", fmt.Sprintf("%d", context.Remaining))
 		c.Header("X-RateLimit-Reset", fmt.Sprintf("%d", context.Reset))
 
-		// Check if limit is reached
 		if context.Reached {
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, pkg.NewResponse(
 				http.StatusTooManyRequests,
@@ -131,10 +149,10 @@ func (m *RateLimitMiddleware) StrictRateLimit() gin.HandlerFunc {
 
 // AuthRateLimit applies rate limiting for authentication endpoints (stricter)
 func (m *RateLimitMiddleware) AuthRateLimit() gin.HandlerFunc {
-	return m.RateLimitWithCustomRate(10, 1*time.Minute) // 10 requests per minute for auth
+	return m.RateLimitWithCustomRate(10, 1*time.Minute)
 }
 
 // APIRateLimit applies rate limiting for general API endpoints
 func (m *RateLimitMiddleware) APIRateLimit() gin.HandlerFunc {
-	return m.RateLimitWithCustomRate(100, 1*time.Minute) // 100 requests per minute for API
+	return m.RateLimitWithCustomRate(100, 1*time.Minute)
 }
