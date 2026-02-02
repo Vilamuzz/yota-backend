@@ -2,23 +2,26 @@ package middleware
 
 import (
 	"io"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 type AppMiddleware struct {
-	Logger   *LoggerMiddleware
-	Recovery *RecoveryMiddleware
-	JWT      *JWTMiddleware
-	CORS     *CORSMiddleware
+	Logger    *LoggerMiddleware
+	Recovery  *RecoveryMiddleware
+	JWT       *JWTMiddleware
+	CORS      *CORSMiddleware
+	RateLimit *RateLimitMiddleware
 }
 
 func NewAppMiddleware() *AppMiddleware {
 	return &AppMiddleware{
-		Logger:   NewLoggerMiddleware(),
-		Recovery: NewRecoveryMiddleware(),
-		JWT:      NewJWTMiddleware(),
-		CORS:     NewCORSMiddleware(),
+		Logger:    NewLoggerMiddleware(),
+		Recovery:  NewRecoveryMiddleware(),
+		JWT:       NewJWTMiddleware(),
+		CORS:      NewCORSMiddleware(),
+		RateLimit: NewRateLimitMiddleware(),
 	}
 }
 
@@ -41,4 +44,20 @@ func (m *AppMiddleware) RequireRoles(roles ...string) gin.HandlerFunc {
 
 func (m *AppMiddleware) CORSHandler() gin.HandlerFunc {
 	return m.CORS.CORS()
+}
+
+func (m *AppMiddleware) RateLimitHandler() gin.HandlerFunc {
+	return m.RateLimit.StrictRateLimit()
+}
+
+func (m *AppMiddleware) AuthRateLimitHandler() gin.HandlerFunc {
+	return m.RateLimit.AuthRateLimit()
+}
+
+func (m *AppMiddleware) APIRateLimitHandler() gin.HandlerFunc {
+	return m.RateLimit.APIRateLimit()
+}
+
+func (m *AppMiddleware) CustomRateLimitHandler(requests int64, period time.Duration) gin.HandlerFunc {
+	return m.RateLimit.RateLimitWithCustomRate(requests, period)
 }

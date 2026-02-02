@@ -12,6 +12,9 @@ func (a *App) setupRoutes(engine *gin.Engine) {
 	engine.Use(a.container.Middleware.LoggerHandler(gin.DefaultWriter))
 	engine.Use(a.container.Middleware.RecoveryHandler())
 
+	// Apply global rate limiting (optional)
+	engine.Use(a.container.Middleware.RateLimitHandler())
+
 	// Health check endpoint
 	engine.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -23,7 +26,7 @@ func (a *App) setupRoutes(engine *gin.Engine) {
 	// Swagger documentation
 	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// API routes - just register all handlers at once
+	// API routes
 	api := engine.Group("/api")
 	a.container.RegisterHandlers(api)
 }

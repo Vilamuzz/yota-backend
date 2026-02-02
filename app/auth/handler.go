@@ -3,8 +3,8 @@ package auth
 import (
 	"fmt"
 	"net/http"
-
 	"os"
+	"time"
 
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/app/user"
@@ -32,14 +32,17 @@ func NewHandler(r *gin.RouterGroup, s Service, u user.Service, m middleware.AppM
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	api := r.Group("/auth")
 
-	api.POST("/register", h.Register)
-	api.POST("/login", h.Login)
-	api.POST("/forget-password", h.ForgetPassword)
-	api.POST("/reset-password", h.ResetPassword)
+	// Apply strict rate limiting to auth endpoints
+	authRateLimit := h.middleware.AuthRateLimitHandler()
+
+	api.POST("/register", authRateLimit, h.Register)
+	api.POST("/login", authRateLimit, h.Login)
+	api.POST("/forget-password", h.middleware.CustomRateLimitHandler(5, 1*time.Minute), h.ForgetPassword) // 5 requests per minute
+	api.POST("/reset-password", authRateLimit, h.ResetPassword)
 	api.GET("/me", h.middleware.AuthRequired(), h.GetMe)
 
-	// OAuth routes
-	api.GET("/oauth/:provider", h.OAuthLogin)
+	// OAuth routes with rate limiting
+	api.GET("/oauth/:provider", h.middleware.CustomRateLimitHandler(10, 1*time.Minute), h.OAuthLogin)
 	api.GET("/oauth/:provider/callback", h.OAuthCallback)
 }
 
