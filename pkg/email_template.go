@@ -17,3 +17,19 @@ func PasswordResetTemplate(recipientName, resetURL string) string {
 		</html>
 	`, recipientName, resetURL)
 }
+
+// EmailVerificationTemplate generates the HTML body for email verification.
+func EmailVerificationTemplate(recipientName, verificationURL string) string {
+	return fmt.Sprintf(`
+        <html>
+        <body>
+            <h2>Email Verification</h2>
+            <p>Hi %s,</p>
+            <p>Thank you for registering! Please verify your email address by clicking the link below:</p>
+            <p><a href="%s">Verify Email</a></p>
+            <p>This link will expire in 24 hours.</p>
+            <p>If you did not create an account, please ignore this email.</p>
+        </body>
+        </html>
+    `, recipientName, verificationURL)
+}

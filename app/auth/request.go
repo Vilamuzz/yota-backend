@@ -25,3 +25,11 @@ type OAuthCallbackRequest struct {
 	Code     string `json:"code" binding:"required"`
 	State    string `json:"state" binding:"required"`
 }
+
+type VerifyEmailRequest struct {
+	Token string `json:"token" binding:"required"`
+}
+
+type ResendVerificationRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}

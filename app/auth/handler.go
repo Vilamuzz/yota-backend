@@ -37,9 +37,11 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 
 	api.POST("/register", authRateLimit, h.Register)
 	api.POST("/login", authRateLimit, h.Login)
-	api.POST("/forget-password", h.middleware.CustomRateLimitHandler(5, 1*time.Minute), h.ForgetPassword) // 5 requests per minute
+	api.POST("/forget-password", h.middleware.CustomRateLimitHandler(5, 1*time.Minute), h.ForgetPassword)
 	api.POST("/reset-password", authRateLimit, h.ResetPassword)
 	api.GET("/me", h.middleware.AuthRequired(), h.GetMe)
+	api.POST("/verify-email", h.VerifyEmail)
+	api.POST("/resend-verification", h.middleware.CustomRateLimitHandler(3, 1*time.Minute), h.ResendVerification)
 
 	// OAuth routes with rate limiting
 	api.GET("/oauth/:provider", h.middleware.CustomRateLimitHandler(10, 1*time.Minute), h.OAuthLogin)
@@ -222,5 +224,51 @@ func (h *handler) OAuthCallback(c *gin.Context) {
 		return
 	}
 
+	c.JSON(res.Status, res)
+}
+
+// VerifyEmail
+//
+// @Summary Verify Email
+// @Description Verify user email with token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param payload body VerifyEmailRequest true "Verify Email"
+// @Success 200 {object} pkg.Response
+// @Router /api/auth/verify-email [post]
+func (h *handler) VerifyEmail(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var req VerifyEmailRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
+		return
+	}
+
+	res := h.service.VerifyEmail(ctx, req.Token)
+	c.JSON(res.Status, res)
+}
+
+// ResendVerification
+//
+// @Summary Resend Verification Email
+// @Description Resend email verification link
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param payload body ResendVerificationRequest true "Resend Verification"
+// @Success 200 {object} pkg.Response
+// @Router /api/auth/resend-verification [post]
+func (h *handler) ResendVerification(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var req ResendVerificationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
+		return
+	}
+
+	res := h.service.ResendVerificationEmail(ctx, req.Email)
 	c.JSON(res.Status, res)
 }

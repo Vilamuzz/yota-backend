@@ -51,3 +51,12 @@ func (e *EmailService) SendPasswordResetEmail(to, resetToken string) error {
 
 	return e.SendEmail(to, subject, body)
 }
+
+func (e *EmailService) SendEmailVerification(to, username, verificationToken string) error {
+	verificationURL := fmt.Sprintf("%s/verify-email?token=%s", os.Getenv("FE_URL"), verificationToken)
+
+	subject := "Email Verification"
+	body := EmailVerificationTemplate(username, verificationURL)
+
+	return e.SendEmail(to, subject, body)
+}

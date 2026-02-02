@@ -33,6 +33,13 @@ definitions:
     - password
     - username
     type: object
+  auth.ResendVerificationRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
   auth.ResetPasswordRequest:
     properties:
       newPassword:
@@ -42,6 +49,13 @@ definitions:
         type: string
     required:
     - newPassword
+    - token
+    type: object
+  auth.VerifyEmailRequest:
+    properties:
+      token:
+        type: string
+    required:
     - token
     type: object
   pkg.Response:
@@ -180,6 +194,28 @@ paths:
       summary: Register User
       tags:
       - Auth
+  /api/auth/resend-verification:
+    post:
+      consumes:
+      - application/json
+      description: Resend email verification link
+      parameters:
+      - description: Resend Verification
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/auth.ResendVerificationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Resend Verification Email
+      tags:
+      - Auth
   /api/auth/reset-password:
     post:
       consumes:
@@ -200,6 +236,28 @@ paths:
           schema:
             $ref: '#/definitions/pkg.Response'
       summary: Reset Password
+      tags:
+      - Auth
+  /api/auth/verify-email:
+    post:
+      consumes:
+      - application/json
+      description: Verify user email with token
+      parameters:
+      - description: Verify Email
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/auth.VerifyEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Verify Email
       tags:
       - Auth
   /api/news/:
