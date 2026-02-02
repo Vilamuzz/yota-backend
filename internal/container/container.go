@@ -1,6 +1,7 @@
 package container
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -11,14 +12,17 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/news"
 	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/config"
+	redis_pkg "github.com/Vilamuzz/yota-backend/pkg/redis"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 type Container struct {
 	// Infrastructure
-	DB      *gorm.DB
-	Timeout time.Duration
+	DB          *gorm.DB
+	RedisClient *redis_pkg.Client
+	Timeout     time.Duration
 
 	// Repositories
 	UserRepo     user.Repository
@@ -61,6 +65,9 @@ func NewContainer() (*Container, func(), error) {
 				sqlDB.Close()
 			}
 		}
+		if c.RedisClient != nil {
+			c.RedisClient.Close()
+		}
 	}
 
 	return c, cleanup, nil
@@ -70,6 +77,15 @@ func (c *Container) initInfrastructure() error {
 	// Database
 	db := config.ConnectDB()
 	c.DB = db
+
+	// Redis
+	redisClient, err := redis_pkg.NewClient()
+	if err != nil {
+		fmt.Printf("Warning: Redis connection failed: %v. Falling back to memory store.\n", err)
+		c.RedisClient = nil
+	} else {
+		c.RedisClient = redisClient
+	}
 
 	// Timeout
 	timeoutStr := os.Getenv("TIMEOUT")
@@ -97,7 +113,11 @@ func (c *Container) initServices() {
 }
 
 func (c *Container) initMiddleware() {
-	c.Middleware = middleware.NewAppMiddleware()
+	var redisClient *redis.Client
+	if c.RedisClient != nil {
+		redisClient = c.RedisClient.GetClient()
+	}
+	c.Middleware = middleware.NewAppMiddleware(redisClient)
 }
 
 // RegisterHandlers registers all handlers with their routes

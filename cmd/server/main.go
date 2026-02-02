@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/Vilamuzz/yota-backend/internal/app"
+	"github.com/Vilamuzz/yota-backend/pkg/oauth"
 	"github.com/joho/godotenv"
 )
 
@@ -21,6 +22,9 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
+
+	// Initialize OAuth
+	oauth.InitOAuth()
 
 	application, cleanup, err := app.NewApp()
 	if err != nil {

@@ -13,6 +13,7 @@ func GetAllModels() []interface{} {
 	return []interface{}{
 		&user.User{},
 		&auth.PasswordResetToken{},
+		&auth.EmailVerificationToken{},
 		&donation.Donation{},
 		&news.News{},
 		&image.Image{},

@@ -17,5 +17,19 @@ type ForgetPasswordRequest struct {
 
 type ResetPasswordRequest struct {
 	Token       string `json:"token" binding:"required"`
-	NewPassword string `json:"new_password" binding:"required,min=6"`
+	NewPassword string `json:"newPassword" binding:"required,min=6"`
+}
+
+type OAuthCallbackRequest struct {
+	Provider string `json:"provider" binding:"required"`
+	Code     string `json:"code" binding:"required"`
+	State    string `json:"state" binding:"required"`
+}
+
+type VerifyEmailRequest struct {
+	Token string `json:"token" binding:"required"`
+}
+
+type ResendVerificationRequest struct {
+	Email string `json:"email" binding:"required,email"`
 }

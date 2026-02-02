@@ -11,6 +11,7 @@ type Repository interface {
 	CreateOneUser(ctx context.Context, user *User) error
 	FetchOneUser(ctx context.Context, options map[string]interface{}) (*User, error)
 	UpdateUserPassword(ctx context.Context, userID uuid.UUID, hashedPassword string) error
+	VerifyUserEmail(ctx context.Context, userID uuid.UUID) error
 }
 
 type repository struct {
@@ -35,4 +36,8 @@ func (r *repository) FetchOneUser(ctx context.Context, options map[string]interf
 
 func (r *repository) UpdateUserPassword(ctx context.Context, userID uuid.UUID, hashedPassword string) error {
 	return r.Conn.WithContext(ctx).Model(&User{}).Where("id = ?", userID).Update("password", hashedPassword).Error
+}
+
+func (r *repository) VerifyUserEmail(ctx context.Context, userID uuid.UUID) error {
+	return r.Conn.WithContext(ctx).Model(&User{}).Where("id = ?", userID).Update("email_verified", true).Error
 }

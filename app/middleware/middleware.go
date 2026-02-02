@@ -2,25 +2,27 @@ package middleware
 
 import (
 	"io"
-	"os"
+	"time"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 )
 
 type AppMiddleware struct {
-	Logger   *LoggerMiddleware
-	Recovery *RecoveryMiddleware
-	JWT      *JWTMiddleware
-	CORS     *CORSMiddleware
+	Logger    *LoggerMiddleware
+	Recovery  *RecoveryMiddleware
+	JWT       *JWTMiddleware
+	CORS      *CORSMiddleware
+	RateLimit *RateLimitMiddleware
 }
 
-func NewAppMiddleware() *AppMiddleware {
+func NewAppMiddleware(redisClient *redis.Client) *AppMiddleware {
 	return &AppMiddleware{
-		Logger:   NewLoggerMiddleware(),
-		Recovery: NewRecoveryMiddleware(),
-		JWT:      NewJWTMiddleware(),
-		CORS:     NewCORSMiddleware(),
+		Logger:    NewLoggerMiddleware(),
+		Recovery:  NewRecoveryMiddleware(),
+		JWT:       NewJWTMiddleware(),
+		CORS:      NewCORSMiddleware(),
+		RateLimit: NewRateLimitMiddleware(redisClient),
 	}
 }
 
@@ -45,18 +47,18 @@ func (m *AppMiddleware) CORSHandler() gin.HandlerFunc {
 	return m.CORS.CORS()
 }
 
-type CORSMiddleware struct{}
-
-func NewCORSMiddleware() *CORSMiddleware {
-	return &CORSMiddleware{}
+func (m *AppMiddleware) RateLimitHandler() gin.HandlerFunc {
+	return m.RateLimit.StrictRateLimit()
 }
 
-func (m *CORSMiddleware) CORS() gin.HandlerFunc {
-	return cors.New(cors.Config{
-		AllowOrigins:     []string{os.Getenv("CORS_ALLOW_ORIGIN")},
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-	})
+func (m *AppMiddleware) AuthRateLimitHandler() gin.HandlerFunc {
+	return m.RateLimit.AuthRateLimit()
+}
+
+func (m *AppMiddleware) APIRateLimitHandler() gin.HandlerFunc {
+	return m.RateLimit.APIRateLimit()
+}
+
+func (m *AppMiddleware) CustomRateLimitHandler(requests int64, period time.Duration) gin.HandlerFunc {
+	return m.RateLimit.RateLimitWithCustomRate(requests, period)
 }

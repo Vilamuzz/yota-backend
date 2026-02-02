@@ -1,13 +1,17 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	jwt_pkg "github.com/Vilamuzz/yota-backend/pkg/jwt"
 	"github.com/gin-gonic/gin"
+	"github.com/markbates/goth/gothic"
 )
 
 type handler struct {
@@ -28,11 +32,20 @@ func NewHandler(r *gin.RouterGroup, s Service, u user.Service, m middleware.AppM
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	api := r.Group("/auth")
 
-	api.POST("/register", h.Register)
-	api.POST("/login", h.Login)
-	api.POST("/forget-password", h.ForgetPassword)
-	api.POST("/reset-password", h.ResetPassword)
+	// Apply strict rate limiting to auth endpoints
+	authRateLimit := h.middleware.AuthRateLimitHandler()
+
+	api.POST("/register", authRateLimit, h.Register)
+	api.POST("/login", authRateLimit, h.Login)
+	api.POST("/forget-password", h.middleware.CustomRateLimitHandler(5, 1*time.Minute), h.ForgetPassword)
+	api.POST("/reset-password", authRateLimit, h.ResetPassword)
 	api.GET("/me", h.middleware.AuthRequired(), h.GetMe)
+	api.POST("/verify-email", h.VerifyEmail)
+	api.POST("/resend-verification", h.middleware.CustomRateLimitHandler(3, 1*time.Minute), h.ResendVerification)
+
+	// OAuth routes with rate limiting
+	api.GET("/oauth/:provider", h.middleware.CustomRateLimitHandler(10, 1*time.Minute), h.OAuthLogin)
+	api.GET("/oauth/:provider/callback", h.OAuthCallback)
 }
 
 // Register
@@ -156,5 +169,106 @@ func (h *handler) GetMe(c *gin.Context) {
 
 	// Get user details using the UserID from claims
 	res := h.userService.GetUserDetail(ctx, claims.UserID)
+	c.JSON(res.Status, res)
+}
+
+// OAuthLogin
+//
+// @Summary OAuth Login
+// @Description Initiate OAuth login with Provider
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param provider path string true "OAuth Provider"
+// @Router /api/auth/oauth/{provider} [get]
+func (h *handler) OAuthLogin(c *gin.Context) {
+	provider := c.Param("provider")
+	q := c.Request.URL.Query()
+	q.Add("provider", provider)
+	c.Request.URL.RawQuery = q.Encode()
+
+	gothic.BeginAuthHandler(c.Writer, c.Request)
+}
+
+// OAuthCallback
+//
+// @Summary OAuth Callback
+// @Description Handle OAuth callback from Provider
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param provider path string true "OAuth Provider"
+// @Success 200 {object} pkg.Response
+// @Router /api/auth/oauth/{provider}/callback [get]
+func (h *handler) OAuthCallback(c *gin.Context) {
+	ctx := c.Request.Context()
+	provider := c.Param("provider")
+
+	q := c.Request.URL.Query()
+	q.Add("provider", provider)
+	c.Request.URL.RawQuery = q.Encode()
+
+	gothUser, err := gothic.CompleteUserAuth(c.Writer, c.Request)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "OAuth authentication failed", nil, nil))
+		return
+	}
+
+	res := h.service.OAuthLogin(ctx, provider, gothUser)
+
+	// Redirect to frontend with token
+	if res.Status == http.StatusOK {
+		authRes := res.Data.(AuthResponse)
+		frontendURL := os.Getenv("FE_URL")
+		c.Redirect(http.StatusTemporaryRedirect, fmt.Sprintf("%s/auth/callback?token=%s", frontendURL, authRes.Token))
+		return
+	}
+
+	c.JSON(res.Status, res)
+}
+
+// VerifyEmail
+//
+// @Summary Verify Email
+// @Description Verify user email with token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param payload body VerifyEmailRequest true "Verify Email"
+// @Success 200 {object} pkg.Response
+// @Router /api/auth/verify-email [post]
+func (h *handler) VerifyEmail(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var req VerifyEmailRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
+		return
+	}
+
+	res := h.service.VerifyEmail(ctx, req.Token)
+	c.JSON(res.Status, res)
+}
+
+// ResendVerification
+//
+// @Summary Resend Verification Email
+// @Description Resend email verification link
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param payload body ResendVerificationRequest true "Resend Verification"
+// @Success 200 {object} pkg.Response
+// @Router /api/auth/resend-verification [post]
+func (h *handler) ResendVerification(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var req ResendVerificationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
+		return
+	}
+
+	res := h.service.ResendVerificationEmail(ctx, req.Email)
 	c.JSON(res.Status, res)
 }

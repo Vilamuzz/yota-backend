@@ -33,15 +33,29 @@ definitions:
     - password
     - username
     type: object
+  auth.ResendVerificationRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
   auth.ResetPasswordRequest:
     properties:
-      new_password:
+      newPassword:
         minLength: 6
         type: string
       token:
         type: string
     required:
-    - new_password
+    - newPassword
+    - token
+    type: object
+  auth.VerifyEmailRequest:
+    properties:
+      token:
+        type: string
+    required:
     - token
     type: object
   pkg.Response:
@@ -103,6 +117,61 @@ paths:
       summary: Login User
       tags:
       - Auth
+  /api/auth/me:
+    get:
+      consumes:
+      - application/json
+      description: Get details of the currently authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - Bearer: []
+      summary: Get Current User
+      tags:
+      - Auth
+  /api/auth/oauth/{provider}:
+    get:
+      consumes:
+      - application/json
+      description: Initiate OAuth login with Provider
+      parameters:
+      - description: OAuth Provider
+        in: path
+        name: provider
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: OAuth Login
+      tags:
+      - Auth
+  /api/auth/oauth/{provider}/callback:
+    get:
+      consumes:
+      - application/json
+      description: Handle OAuth callback from Provider
+      parameters:
+      - description: OAuth Provider
+        in: path
+        name: provider
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: OAuth Callback
+      tags:
+      - Auth
   /api/auth/register:
     post:
       consumes:
@@ -125,6 +194,28 @@ paths:
       summary: Register User
       tags:
       - Auth
+  /api/auth/resend-verification:
+    post:
+      consumes:
+      - application/json
+      description: Resend email verification link
+      parameters:
+      - description: Resend Verification
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/auth.ResendVerificationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Resend Verification Email
+      tags:
+      - Auth
   /api/auth/reset-password:
     post:
       consumes:
@@ -145,6 +236,28 @@ paths:
           schema:
             $ref: '#/definitions/pkg.Response'
       summary: Reset Password
+      tags:
+      - Auth
+  /api/auth/verify-email:
+    post:
+      consumes:
+      - application/json
+      description: Verify user email with token
+      parameters:
+      - description: Verify Email
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/auth.VerifyEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Verify Email
       tags:
       - Auth
   /api/news/:
