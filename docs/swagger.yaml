@@ -35,13 +35,13 @@ definitions:
     type: object
   auth.ResetPasswordRequest:
     properties:
-      new_password:
+      newPassword:
         minLength: 6
         type: string
       token:
         type: string
     required:
-    - new_password
+    - newPassword
     - token
     type: object
   pkg.Response:
@@ -101,6 +101,61 @@ paths:
           schema:
             $ref: '#/definitions/pkg.Response'
       summary: Login User
+      tags:
+      - Auth
+  /api/auth/me:
+    get:
+      consumes:
+      - application/json
+      description: Get details of the currently authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - Bearer: []
+      summary: Get Current User
+      tags:
+      - Auth
+  /api/auth/oauth/{provider}:
+    get:
+      consumes:
+      - application/json
+      description: Initiate OAuth login with Provider
+      parameters:
+      - description: OAuth Provider
+        in: path
+        name: provider
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: OAuth Login
+      tags:
+      - Auth
+  /api/auth/oauth/{provider}/callback:
+    get:
+      consumes:
+      - application/json
+      description: Handle OAuth callback from Provider
+      parameters:
+      - description: OAuth Provider
+        in: path
+        name: provider
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: OAuth Callback
       tags:
       - Auth
   /api/auth/register:

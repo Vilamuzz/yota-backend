@@ -19,3 +19,9 @@ type ResetPasswordRequest struct {
 	Token       string `json:"token" binding:"required"`
 	NewPassword string `json:"newPassword" binding:"required,min=6"`
 }
+
+type OAuthCallbackRequest struct {
+	Provider string `json:"provider" binding:"required"`
+	Code     string `json:"code" binding:"required"`
+	State    string `json:"state" binding:"required"`
+}

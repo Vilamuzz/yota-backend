@@ -13,6 +13,7 @@ import (
 	jwt_pkg "github.com/Vilamuzz/yota-backend/pkg/jwt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/markbates/goth"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -21,6 +22,7 @@ type Service interface {
 	Login(ctx context.Context, req LoginRequest) pkg.Response
 	ForgetPassword(ctx context.Context, req ForgetPasswordRequest) pkg.Response
 	ResetPassword(ctx context.Context, req ResetPasswordRequest) pkg.Response
+	OAuthLogin(ctx context.Context, provider string, gothUser goth.User) pkg.Response
 }
 
 type service struct {
@@ -92,7 +94,33 @@ func (s *service) Register(ctx context.Context, req RegisterRequest) pkg.Respons
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create user", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusCreated, "User registered successfully", nil, nil)
+	// Generate JWT token for the new user
+	ttl := config.GetJWTTTL()
+	claims := &jwt_pkg.UserJWTClaims{
+		UserID: newUser.ID.String(),
+		Role:   string(newUser.Role),
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(ttl) * time.Minute)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	token, err := jwt_pkg.GenerateJWTToken(claims)
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to generate token", nil, nil)
+	}
+
+	registerResponse := AuthResponse{
+		Token: token,
+		User: user.UserProfile{
+			ID:       newUser.ID.String(),
+			Username: newUser.Username,
+			Email:    newUser.Email,
+			Role:     string(newUser.Role),
+		},
+	}
+
+	return pkg.NewResponse(http.StatusCreated, "User registered successfully", nil, registerResponse)
 }
 
 func (s *service) Login(ctx context.Context, req LoginRequest) pkg.Response {
@@ -101,6 +129,7 @@ func (s *service) Login(ctx context.Context, req LoginRequest) pkg.Response {
 
 	// Find user by email
 	existingUser, err := s.userRepo.FetchOneUser(ctx, map[string]interface{}{"email": req.Email})
+
 	if err != nil {
 		return pkg.NewResponse(http.StatusUnauthorized, "Invalid email or password", nil, nil)
 	}
@@ -131,7 +160,7 @@ func (s *service) Login(ctx context.Context, req LoginRequest) pkg.Response {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to generate token", nil, nil)
 	}
 
-	loginResponse := LoginResponse{
+	loginResponse := AuthResponse{
 		Token: token,
 		User: user.UserProfile{
 			ID:       existingUser.ID.String(),
@@ -231,4 +260,73 @@ func (s *service) ResetPassword(ctx context.Context, req ResetPasswordRequest) p
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Password reset successfully", nil, nil)
+}
+
+func (s *service) OAuthLogin(ctx context.Context, provider string, gothUser goth.User) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.contextTimeout)
+	defer cancel()
+
+	// Try to find existing user by email
+	existingUser, err := s.userRepo.FetchOneUser(ctx, map[string]interface{}{"email": gothUser.Email})
+
+	var currentUser *user.User
+
+	if err != nil {
+		// User doesn't exist, create new user
+		username := gothUser.NickName
+		if username == "" {
+			username = gothUser.Email
+		}
+
+		newUser := &user.User{
+			ID:        uuid.New(),
+			Username:  username,
+			Email:     gothUser.Email,
+			Password:  "", // No password for OAuth users
+			Role:      user.RoleUser,
+			Status:    user.StatusActive,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+
+		if err := s.userRepo.CreateOneUser(ctx, newUser); err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to create user", nil, nil)
+		}
+
+		currentUser = newUser
+	} else {
+		// User exists
+		if existingUser.Status == user.StatusBanned {
+			return pkg.NewResponse(http.StatusForbidden, "Your account has been banned", nil, nil)
+		}
+		currentUser = existingUser
+	}
+
+	// Generate JWT token
+	ttl := config.GetJWTTTL()
+	claims := &jwt_pkg.UserJWTClaims{
+		UserID: currentUser.ID.String(),
+		Role:   string(currentUser.Role),
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(ttl) * time.Minute)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	token, err := jwt_pkg.GenerateJWTToken(claims)
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to generate token", nil, nil)
+	}
+
+	authResponse := AuthResponse{
+		Token: token,
+		User: user.UserProfile{
+			ID:       currentUser.ID.String(),
+			Username: currentUser.Username,
+			Email:    currentUser.Email,
+			Role:     string(currentUser.Role),
+		},
+	}
+
+	return pkg.NewResponse(http.StatusOK, "OAuth login successful", nil, authResponse)
 }

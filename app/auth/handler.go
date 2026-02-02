@@ -1,13 +1,17 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
+
+	"os"
 
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	jwt_pkg "github.com/Vilamuzz/yota-backend/pkg/jwt"
 	"github.com/gin-gonic/gin"
+	"github.com/markbates/goth/gothic"
 )
 
 type handler struct {
@@ -33,6 +37,10 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	api.POST("/forget-password", h.ForgetPassword)
 	api.POST("/reset-password", h.ResetPassword)
 	api.GET("/me", h.middleware.AuthRequired(), h.GetMe)
+
+	// OAuth routes
+	api.GET("/oauth/:provider", h.OAuthLogin)
+	api.GET("/oauth/:provider/callback", h.OAuthCallback)
 }
 
 // Register
@@ -156,5 +164,60 @@ func (h *handler) GetMe(c *gin.Context) {
 
 	// Get user details using the UserID from claims
 	res := h.userService.GetUserDetail(ctx, claims.UserID)
+	c.JSON(res.Status, res)
+}
+
+// OAuthLogin
+//
+// @Summary OAuth Login
+// @Description Initiate OAuth login with Provider
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param provider path string true "OAuth Provider"
+// @Router /api/auth/oauth/{provider} [get]
+func (h *handler) OAuthLogin(c *gin.Context) {
+	provider := c.Param("provider")
+	q := c.Request.URL.Query()
+	q.Add("provider", provider)
+	c.Request.URL.RawQuery = q.Encode()
+
+	gothic.BeginAuthHandler(c.Writer, c.Request)
+}
+
+// OAuthCallback
+//
+// @Summary OAuth Callback
+// @Description Handle OAuth callback from Provider
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param provider path string true "OAuth Provider"
+// @Success 200 {object} pkg.Response
+// @Router /api/auth/oauth/{provider}/callback [get]
+func (h *handler) OAuthCallback(c *gin.Context) {
+	ctx := c.Request.Context()
+	provider := c.Param("provider")
+
+	q := c.Request.URL.Query()
+	q.Add("provider", provider)
+	c.Request.URL.RawQuery = q.Encode()
+
+	gothUser, err := gothic.CompleteUserAuth(c.Writer, c.Request)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "OAuth authentication failed", nil, nil))
+		return
+	}
+
+	res := h.service.OAuthLogin(ctx, provider, gothUser)
+
+	// Redirect to frontend with token
+	if res.Status == http.StatusOK {
+		authRes := res.Data.(AuthResponse)
+		frontendURL := os.Getenv("FE_URL")
+		c.Redirect(http.StatusTemporaryRedirect, fmt.Sprintf("%s/auth/callback?token=%s", frontendURL, authRes.Token))
+		return
+	}
+
 	c.JSON(res.Status, res)
 }

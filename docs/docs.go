@@ -83,6 +83,91 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/auth/me": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Get details of the currently authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Get Current User",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/oauth/{provider}": {
+            "get": {
+                "description": "Initiate OAuth login with Provider",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "OAuth Login",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "OAuth Provider",
+                        "name": "provider",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/api/auth/oauth/{provider}/callback": {
+            "get": {
+                "description": "Handle OAuth callback from Provider",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "OAuth Callback",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "OAuth Provider",
+                        "name": "provider",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/auth/register": {
             "post": {
                 "description": "Register a new user account",
@@ -233,11 +318,11 @@ const docTemplate = `{
         "auth.ResetPasswordRequest": {
             "type": "object",
             "required": [
-                "new_password",
+                "newPassword",
                 "token"
             ],
             "properties": {
-                "new_password": {
+                "newPassword": {
                     "type": "string",
                     "minLength": 6
                 },
