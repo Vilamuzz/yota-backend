@@ -123,6 +123,7 @@ func (c *Container) initMiddleware() {
 // RegisterHandlers registers all handlers with their routes
 func (c *Container) RegisterHandlers(router *gin.RouterGroup) {
 	auth.NewHandler(router, c.AuthService, c.UserService, *c.Middleware)
+	user.NewHandler(router, c.UserService, *c.Middleware)
 	donation.NewHandler(router, c.DonationService, *c.Middleware)
 	news.NewHandler(router, c.NewsService, *c.Middleware)
 }

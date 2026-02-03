@@ -40,10 +40,10 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	api.POST("/forget-password", h.middleware.CustomRateLimitHandler(5, 1*time.Minute), h.ForgetPassword)
 	api.POST("/reset-password", authRateLimit, h.ResetPassword)
 	api.GET("/me", h.middleware.AuthRequired(), h.GetMe)
+	api.PUT("/me/profile", h.middleware.AuthRequired(), h.UpdateProfile)
+	api.PUT("/me/password", h.middleware.AuthRequired(), h.UpdatePassword)
 	api.POST("/verify-email", h.VerifyEmail)
 	api.POST("/resend-verification", h.middleware.CustomRateLimitHandler(3, 1*time.Minute), h.ResendVerification)
-
-	// OAuth routes with rate limiting
 	api.GET("/oauth/:provider", h.middleware.CustomRateLimitHandler(10, 1*time.Minute), h.OAuthLogin)
 	api.GET("/oauth/:provider/callback", h.OAuthCallback)
 }
@@ -145,7 +145,7 @@ func (h *handler) ResetPassword(c *gin.Context) {
 // @Summary Get Current User
 // @Description Get details of the currently authenticated user
 // @Tags Auth
-// @Security Bearer
+// @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Success 200 {object} pkg.Response
@@ -270,5 +270,70 @@ func (h *handler) ResendVerification(c *gin.Context) {
 	}
 
 	res := h.service.ResendVerificationEmail(ctx, req.Email)
+	c.JSON(res.Status, res)
+}
+
+// UpdateProfile
+//
+// @Summary Update User Profile
+// @Description Update profile information of the currently authenticated user
+// @Tags Auth
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param payload body user.UpdateProfileRequest true "Update Profile"
+// @Success 200 {object} pkg.Response
+// @Router /api/auth/me/profile [put]
+func (h *handler) UpdateProfile(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	userData, exists := c.Get("user_data")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "User not authenticated", nil, nil))
+		return
+	}
+	claims, ok := userData.(jwt_pkg.UserJWTClaims)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Invalid user data", nil, nil))
+		return
+	}
+	var req user.UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
+		return
+	}
+	res := h.userService.UpdateProfile(ctx, claims.UserID, req)
+	c.JSON(res.Status, res)
+}
+
+// UpdatePassword
+//
+// @Summary Update User Password
+// @Description Update password of the currently authenticated user
+// @Tags Auth
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param payload body user.UpdatePasswordRequest true "Update Password"
+// @Success 200 {object} pkg.Response
+// @Router /api/auth/me/password [put]
+func (h *handler) UpdatePassword(c *gin.Context) {
+	ctx := c.Request.Context()
+	userData, exists := c.Get("user_data")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "User not authenticated", nil, nil))
+		return
+	}
+	claims, ok := userData.(jwt_pkg.UserJWTClaims)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Invalid user data", nil, nil))
+		return
+	}
+	var req user.UpdatePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
+		return
+	}
+	res := h.userService.UpdatePassword(ctx, claims.UserID, req)
 	c.JSON(res.Status, res)
 }

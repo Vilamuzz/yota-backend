@@ -10,7 +10,9 @@ import (
 type Repository interface {
 	CreateOneUser(ctx context.Context, user *User) error
 	FetchOneUser(ctx context.Context, options map[string]interface{}) (*User, error)
+	FetchListUsers(ctx context.Context, options map[string]interface{}) ([]User, error)
 	UpdateUserPassword(ctx context.Context, userID uuid.UUID, hashedPassword string) error
+	UpdateUser(ctx context.Context, userID string, updateData map[string]interface{}) error
 	VerifyUserEmail(ctx context.Context, userID uuid.UUID) error
 }
 
@@ -34,8 +36,20 @@ func (r *repository) FetchOneUser(ctx context.Context, options map[string]interf
 	return &user, nil
 }
 
+func (r *repository) FetchListUsers(ctx context.Context, options map[string]interface{}) ([]User, error) {
+	var users []User
+	if err := r.Conn.WithContext(ctx).Where(options).Find(&users).Error; err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
 func (r *repository) UpdateUserPassword(ctx context.Context, userID uuid.UUID, hashedPassword string) error {
 	return r.Conn.WithContext(ctx).Model(&User{}).Where("id = ?", userID).Update("password", hashedPassword).Error
+}
+
+func (r *repository) UpdateUser(ctx context.Context, userID string, updateData map[string]interface{}) error {
+	return r.Conn.WithContext(ctx).Model(&User{}).Where("id = ?", userID).Updates(updateData).Error
 }
 
 func (r *repository) VerifyUserEmail(ctx context.Context, userID uuid.UUID) error {

@@ -7,8 +7,16 @@ type CreateUserRequest struct {
 }
 
 type UpdateUserRequest struct {
+	Role   Role  `json:"role" binding:"omitempty,oneof=user chairman social_manager finance ambulance_manager publication_manager superadmin"`
+	Status *bool `json:"status" binding:"omitempty"`
+}
+
+type UpdateProfileRequest struct {
 	Username string `json:"username" binding:"omitempty,min=3,max=50"`
 	Email    string `json:"email" binding:"omitempty,email"`
-	Role     Role   `json:"role" binding:"omitempty,oneof=admin user"`
-	Status   Status `json:"status" binding:"omitempty,oneof=active inactive banned"`
+}
+
+type UpdatePasswordRequest struct {
+	CurrentPassword string `json:"current_password" binding:"required,min=6"`
+	NewPassword     string `json:"new_password" binding:"required,min=6"`
 }
