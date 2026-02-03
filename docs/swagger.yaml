@@ -70,6 +70,73 @@ definitions:
           type: string
         type: object
     type: object
+  user.Role:
+    enum:
+    - user
+    - chairman
+    - social_manager
+    - finance
+    - ambulance_manager
+    - publication_manager
+    - superadmin
+    type: string
+    x-enum-varnames:
+    - RoleUser
+    - RoleChairman
+    - RoleSocialManager
+    - RoleFinance
+    - RoleAmbulanceManager
+    - RolePublicationManager
+    - RoleSuperadmin
+  user.Status:
+    enum:
+    - active
+    - nonactive
+    type: string
+    x-enum-varnames:
+    - StatusActive
+    - StatusBanned
+  user.UpdatePasswordRequest:
+    properties:
+      current_password:
+        minLength: 6
+        type: string
+      new_password:
+        minLength: 6
+        type: string
+    required:
+    - current_password
+    - new_password
+    type: object
+  user.UpdateProfileRequest:
+    properties:
+      email:
+        type: string
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    type: object
+  user.UpdateUserRequest:
+    properties:
+      role:
+        allOf:
+        - $ref: '#/definitions/user.Role'
+        enum:
+        - user
+        - chairman
+        - social_manager
+        - finance
+        - ambulance_manager
+        - publication_manager
+        - superadmin
+      status:
+        allOf:
+        - $ref: '#/definitions/user.Status'
+        enum:
+        - active
+        - nonactive
+    type: object
 info:
   contact: {}
 paths:
@@ -130,8 +197,56 @@ paths:
           schema:
             $ref: '#/definitions/pkg.Response'
       security:
-      - Bearer: []
+      - BearerAuth: []
       summary: Get Current User
+      tags:
+      - Auth
+  /api/auth/me/password:
+    put:
+      consumes:
+      - application/json
+      description: Update password of the currently authenticated user
+      parameters:
+      - description: Update Password
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/user.UpdatePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update User Password
+      tags:
+      - Auth
+  /api/auth/me/profile:
+    put:
+      consumes:
+      - application/json
+      description: Update profile information of the currently authenticated user
+      parameters:
+      - description: Update Profile
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/user.UpdateProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update User Profile
       tags:
       - Auth
   /api/auth/oauth/{provider}:
@@ -277,6 +392,74 @@ paths:
       summary: Get All News
       tags:
       - News
+  /api/users:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of users
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Users List
+      tags:
+      - Users
+  /api/users/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a user by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get User Detail
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: Update user information by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update User Data
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/user.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update User
+      tags:
+      - Users
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.

@@ -76,7 +76,7 @@
             "get": {
                 "security": [
                     {
-                        "Bearer": []
+                        "BearerAuth": []
                     }
                 ],
                 "description": "Get details of the currently authenticated user",
@@ -90,6 +90,84 @@
                     "Auth"
                 ],
                 "summary": "Get Current User",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/me/password": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update password of the currently authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Update User Password",
+                "parameters": [
+                    {
+                        "description": "Update Password",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.UpdatePasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/me/profile": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update profile information of the currently authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Update User Profile",
+                "parameters": [
+                    {
+                        "description": "Update Profile",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.UpdateProfileRequest"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -320,6 +398,115 @@
                     }
                 }
             }
+        },
+        "/api/users": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a list of users",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Get Users List",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/users/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information of a user by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Get User Detail",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update user information by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Update User",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update User Data",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.UpdateUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -425,6 +612,100 @@
                     "additionalProperties": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "user.Role": {
+            "type": "string",
+            "enum": [
+                "user",
+                "chairman",
+                "social_manager",
+                "finance",
+                "ambulance_manager",
+                "publication_manager",
+                "superadmin"
+            ],
+            "x-enum-varnames": [
+                "RoleUser",
+                "RoleChairman",
+                "RoleSocialManager",
+                "RoleFinance",
+                "RoleAmbulanceManager",
+                "RolePublicationManager",
+                "RoleSuperadmin"
+            ]
+        },
+        "user.Status": {
+            "type": "string",
+            "enum": [
+                "active",
+                "nonactive"
+            ],
+            "x-enum-varnames": [
+                "StatusActive",
+                "StatusBanned"
+            ]
+        },
+        "user.UpdatePasswordRequest": {
+            "type": "object",
+            "required": [
+                "current_password",
+                "new_password"
+            ],
+            "properties": {
+                "current_password": {
+                    "type": "string",
+                    "minLength": 6
+                },
+                "new_password": {
+                    "type": "string",
+                    "minLength": 6
+                }
+            }
+        },
+        "user.UpdateProfileRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 3
+                }
+            }
+        },
+        "user.UpdateUserRequest": {
+            "type": "object",
+            "properties": {
+                "role": {
+                    "enum": [
+                        "user",
+                        "chairman",
+                        "social_manager",
+                        "finance",
+                        "ambulance_manager",
+                        "publication_manager",
+                        "superadmin"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/user.Role"
+                        }
+                    ]
+                },
+                "status": {
+                    "enum": [
+                        "active",
+                        "nonactive"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/user.Status"
+                        }
+                    ]
                 }
             }
         }

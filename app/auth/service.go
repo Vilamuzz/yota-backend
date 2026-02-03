@@ -101,7 +101,7 @@ func (s *service) Register(ctx context.Context, req RegisterRequest) pkg.Respons
 		Email:         req.Email,
 		Password:      string(hashedPassword),
 		Role:          user.RoleUser,
-		Status:        user.StatusActive,
+		Status:        true,
 		EmailVerified: false,
 		CreatedAt:     time.Now(),
 		UpdatedAt:     time.Now(),
@@ -154,7 +154,7 @@ func (s *service) Login(ctx context.Context, req LoginRequest) pkg.Response {
 	}
 
 	// Check if user is banned
-	if existingUser.Status == user.StatusBanned {
+	if !existingUser.Status {
 		return pkg.NewResponse(http.StatusForbidden, "Your account has been banned", nil, nil)
 	}
 
@@ -310,7 +310,7 @@ func (s *service) OAuthLogin(ctx context.Context, provider string, gothUser goth
 			Email:     gothUser.Email,
 			Password:  "", // No password for OAuth users
 			Role:      user.RoleUser,
-			Status:    user.StatusActive,
+			Status:    true,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		}
@@ -322,7 +322,7 @@ func (s *service) OAuthLogin(ctx context.Context, provider string, gothUser goth
 		currentUser = newUser
 	} else {
 		// User exists
-		if existingUser.Status == user.StatusBanned {
+		if !existingUser.Status {
 			return pkg.NewResponse(http.StatusForbidden, "Your account has been banned", nil, nil)
 		}
 		currentUser = existingUser
