@@ -1,4 +1,17 @@
 definitions:
+  ambulance.CreateAmbulanceRequest:
+    properties:
+      driver_name:
+        type: string
+      driver_phone:
+        type: string
+      plate_number:
+        type: string
+    required:
+    - driver_name
+    - driver_phone
+    - plate_number
+    type: object
   auth.ForgetPasswordRequest:
     properties:
       email:
@@ -88,14 +101,6 @@ definitions:
     - RoleAmbulanceManager
     - RolePublicationManager
     - RoleSuperadmin
-  user.Status:
-    enum:
-    - active
-    - nonactive
-    type: string
-    x-enum-varnames:
-    - StatusActive
-    - StatusBanned
   user.UpdatePasswordRequest:
     properties:
       current_password:
@@ -131,15 +136,182 @@ definitions:
         - publication_manager
         - superadmin
       status:
-        allOf:
-        - $ref: '#/definitions/user.Status'
-        enum:
-        - active
-        - nonactive
+        type: boolean
     type: object
 info:
   contact: {}
 paths:
+  /api/ambulance:
+    get:
+      description: Retrieve all ambulances with online status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get All Ambulances
+      tags:
+      - Ambulance
+    post:
+      consumes:
+      - application/json
+      description: Create a new ambulance record
+      parameters:
+      - description: Ambulance Data
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/ambulance.CreateAmbulanceRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Ambulance
+      tags:
+      - Ambulance
+  /api/ambulance/{id}:
+    get:
+      description: Retrieve ambulance by ID
+      parameters:
+      - description: Ambulance ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Ambulance
+      tags:
+      - Ambulance
+  /api/ambulance/{id}/history/{session_id}:
+    get:
+      description: Get location history for a tracking session
+      parameters:
+      - description: Ambulance ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Session ID
+        in: path
+        name: session_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Tracking History
+      tags:
+      - Ambulance
+  /api/ambulance/{id}/tracking/start:
+    post:
+      description: Start tracking session for an ambulance
+      parameters:
+      - description: Ambulance ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Start Tracking
+      tags:
+      - Ambulance
+  /api/ambulance/{id}/tracking/stop:
+    post:
+      description: Stop tracking session for an ambulance
+      parameters:
+      - description: Ambulance ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Stop Tracking
+      tags:
+      - Ambulance
+  /api/ambulance/online:
+    get:
+      description: Get list of currently online ambulances
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Get Online Ambulances
+      tags:
+      - Ambulance
+  /api/ambulance/ws/mobile:
+    get:
+      description: WebSocket endpoint for ambulance driver mobile app
+      parameters:
+      - description: Ambulance ID
+        in: query
+        name: ambulance_id
+        required: true
+        type: string
+      - description: JWT Token
+        in: query
+        name: token
+        required: true
+        type: string
+      responses: {}
+      summary: Mobile WebSocket Connection
+      tags:
+      - Ambulance
+  /api/ambulance/ws/web:
+    get:
+      description: WebSocket endpoint for admin web dashboard
+      parameters:
+      - description: JWT Token
+        in: query
+        name: token
+        required: true
+        type: string
+      responses: {}
+      summary: Web WebSocket Connection
+      tags:
+      - Ambulance
   /api/auth/forget-password:
     post:
       consumes:

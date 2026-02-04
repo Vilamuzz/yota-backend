@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Vilamuzz/yota-backend/app/ambulance"
 	"github.com/Vilamuzz/yota-backend/app/auth"
 	"github.com/Vilamuzz/yota-backend/app/donation"
 	"github.com/Vilamuzz/yota-backend/app/middleware"
@@ -25,16 +26,21 @@ type Container struct {
 	Timeout     time.Duration
 
 	// Repositories
-	UserRepo     user.Repository
-	AuthRepo     auth.Repository
-	DonationRepo donation.Repository
-	NewsRepo     news.Repository
+	UserRepo      user.Repository
+	AuthRepo      auth.Repository
+	DonationRepo  donation.Repository
+	NewsRepo      news.Repository
+	AmbulanceRepo ambulance.Repository
 
 	// Services
-	AuthService     auth.Service
-	UserService     user.Service
-	DonationService donation.Service
-	NewsService     news.Service
+	AuthService      auth.Service
+	UserService      user.Service
+	DonationService  donation.Service
+	NewsService      news.Service
+	AmbulanceService ambulance.Service
+
+	// WebSocket Hub
+	AmbulanceHub *ambulance.Hub
 
 	// Middleware
 	Middleware *middleware.AppMiddleware
@@ -47,6 +53,9 @@ func NewContainer() (*Container, func(), error) {
 	if err := c.initInfrastructure(); err != nil {
 		return nil, nil, err
 	}
+
+	// Initialize WebSocket Hub
+	c.initWebSocketHub()
 
 	// Initialize repositories
 	c.initRepositories()
@@ -98,11 +107,17 @@ func (c *Container) initInfrastructure() error {
 	return nil
 }
 
+func (c *Container) initWebSocketHub() {
+	c.AmbulanceHub = ambulance.NewHub()
+	go c.AmbulanceHub.Run()
+}
+
 func (c *Container) initRepositories() {
 	c.UserRepo = user.NewRepository(c.DB)
 	c.AuthRepo = auth.NewRepository(c.DB)
 	c.DonationRepo = donation.NewRepository(c.DB)
 	c.NewsRepo = news.NewRepository(c.DB)
+	c.AmbulanceRepo = ambulance.NewRepository(c.DB)
 }
 
 func (c *Container) initServices() {
@@ -110,6 +125,7 @@ func (c *Container) initServices() {
 	c.UserService = user.NewService(c.UserRepo, c.Timeout)
 	c.DonationService = donation.NewService(c.DonationRepo, c.Timeout)
 	c.NewsService = news.NewService(c.NewsRepo, c.Timeout)
+	c.AmbulanceService = ambulance.NewService(c.AmbulanceRepo, c.AmbulanceHub, c.Timeout)
 }
 
 func (c *Container) initMiddleware() {
@@ -126,4 +142,5 @@ func (c *Container) RegisterHandlers(router *gin.RouterGroup) {
 	user.NewHandler(router, c.UserService, *c.Middleware)
 	donation.NewHandler(router, c.DonationService, *c.Middleware)
 	news.NewHandler(router, c.NewsService, *c.Middleware)
+	ambulance.NewHandler(router, c.AmbulanceService, c.AmbulanceHub, *c.Middleware)
 }

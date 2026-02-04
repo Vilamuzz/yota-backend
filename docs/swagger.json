@@ -4,6 +4,276 @@
         "contact": {}
     },
     "paths": {
+        "/api/ambulance": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all ambulances with online status",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulance"
+                ],
+                "summary": "Get All Ambulances",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new ambulance record",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulance"
+                ],
+                "summary": "Create Ambulance",
+                "parameters": [
+                    {
+                        "description": "Ambulance Data",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ambulance.CreateAmbulanceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/ambulance/online": {
+            "get": {
+                "description": "Get list of currently online ambulances",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulance"
+                ],
+                "summary": "Get Online Ambulances",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/ambulance/ws/mobile": {
+            "get": {
+                "description": "WebSocket endpoint for ambulance driver mobile app",
+                "tags": [
+                    "Ambulance"
+                ],
+                "summary": "Mobile WebSocket Connection",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ambulance ID",
+                        "name": "ambulance_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "JWT Token",
+                        "name": "token",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/api/ambulance/ws/web": {
+            "get": {
+                "description": "WebSocket endpoint for admin web dashboard",
+                "tags": [
+                    "Ambulance"
+                ],
+                "summary": "Web WebSocket Connection",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "JWT Token",
+                        "name": "token",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/api/ambulance/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve ambulance by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulance"
+                ],
+                "summary": "Get Ambulance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ambulance ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/ambulance/{id}/history/{session_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get location history for a tracking session",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulance"
+                ],
+                "summary": "Get Tracking History",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ambulance ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "session_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/ambulance/{id}/tracking/start": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Start tracking session for an ambulance",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulance"
+                ],
+                "summary": "Start Tracking",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ambulance ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/ambulance/{id}/tracking/stop": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Stop tracking session for an ambulance",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulance"
+                ],
+                "summary": "Stop Tracking",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ambulance ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/auth/forget-password": {
             "post": {
                 "description": "Send password reset email",
@@ -510,6 +780,25 @@
         }
     },
     "definitions": {
+        "ambulance.CreateAmbulanceRequest": {
+            "type": "object",
+            "required": [
+                "driver_name",
+                "driver_phone",
+                "plate_number"
+            ],
+            "properties": {
+                "driver_name": {
+                    "type": "string"
+                },
+                "driver_phone": {
+                    "type": "string"
+                },
+                "plate_number": {
+                    "type": "string"
+                }
+            }
+        },
         "auth.ForgetPasswordRequest": {
             "type": "object",
             "required": [
@@ -636,17 +925,6 @@
                 "RoleSuperadmin"
             ]
         },
-        "user.Status": {
-            "type": "string",
-            "enum": [
-                "active",
-                "nonactive"
-            ],
-            "x-enum-varnames": [
-                "StatusActive",
-                "StatusBanned"
-            ]
-        },
         "user.UpdatePasswordRequest": {
             "type": "object",
             "required": [
@@ -697,15 +975,7 @@
                     ]
                 },
                 "status": {
-                    "enum": [
-                        "active",
-                        "nonactive"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/user.Status"
-                        }
-                    ]
+                    "type": "boolean"
                 }
             }
         }
