@@ -8,6 +8,7 @@ import (
 
 	"github.com/Vilamuzz/yota-backend/app/auth"
 	"github.com/Vilamuzz/yota-backend/app/donation"
+	"github.com/Vilamuzz/yota-backend/app/gallery"
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/app/news"
 	"github.com/Vilamuzz/yota-backend/app/user"
@@ -29,12 +30,14 @@ type Container struct {
 	AuthRepo     auth.Repository
 	DonationRepo donation.Repository
 	NewsRepo     news.Repository
+	GalleryRepo  gallery.Repository
 
 	// Services
 	AuthService     auth.Service
 	UserService     user.Service
 	DonationService donation.Service
 	NewsService     news.Service
+	GalleryService  gallery.Service
 
 	// Middleware
 	Middleware *middleware.AppMiddleware
@@ -103,6 +106,7 @@ func (c *Container) initRepositories() {
 	c.AuthRepo = auth.NewRepository(c.DB)
 	c.DonationRepo = donation.NewRepository(c.DB)
 	c.NewsRepo = news.NewRepository(c.DB)
+	c.GalleryRepo = gallery.NewRepository(c.DB)
 }
 
 func (c *Container) initServices() {
@@ -110,6 +114,7 @@ func (c *Container) initServices() {
 	c.UserService = user.NewService(c.UserRepo, c.Timeout)
 	c.DonationService = donation.NewService(c.DonationRepo, c.Timeout)
 	c.NewsService = news.NewService(c.NewsRepo, c.Timeout)
+	c.GalleryService = gallery.NewService(c.GalleryRepo, c.Timeout)
 }
 
 func (c *Container) initMiddleware() {
@@ -126,4 +131,5 @@ func (c *Container) RegisterHandlers(router *gin.RouterGroup) {
 	user.NewHandler(router, c.UserService, *c.Middleware)
 	donation.NewHandler(router, c.DonationService, *c.Middleware)
 	news.NewHandler(router, c.NewsService, *c.Middleware)
+	gallery.NewHandler(router, c.GalleryService, *c.Middleware)
 }

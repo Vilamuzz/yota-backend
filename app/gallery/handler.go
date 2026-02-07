@@ -1,0 +1,154 @@
+package gallery
+
+import (
+	"net/http"
+
+	"github.com/Vilamuzz/yota-backend/app/middleware"
+	"github.com/Vilamuzz/yota-backend/app/user"
+	"github.com/Vilamuzz/yota-backend/pkg"
+	"github.com/gin-gonic/gin"
+)
+
+type handler struct {
+	service    Service
+	middleware middleware.AppMiddleware
+}
+
+func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
+	handler := &handler{
+		service:    s,
+		middleware: m,
+	}
+	handler.RegisterRoutes(r)
+}
+
+func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
+	api := r.Group("/galleries")
+
+	// Public routes
+	api.GET("/", h.GetAllGalleries)
+	api.GET("/:id", h.GetGalleryByID)
+
+	// Protected routes (require publication manager or superadmin role)
+	protected := api.Group("")
+	protected.Use(h.middleware.RequireRoles(string(user.RolePublicationManager), string(user.RoleSuperadmin)))
+	{
+		protected.POST("/", h.CreateGallery)
+		protected.PUT("/:id", h.UpdateGallery)
+		protected.DELETE("/:id", h.DeleteGallery)
+	}
+}
+
+// GetAllGalleries
+//
+// @Summary Get All Galleries
+// @Description Retrieve a list of all gallery items with cursor-based pagination and optional filters
+// @Tags Gallery
+// @Accept json
+// @Produce json
+// @Param category query string false "Filter by category (photography, painting, sculpture, digital, mixed)"
+// @Param status query string false "Filter by status (active, inactive, archived)"
+// @Param cursor query string false "Cursor for pagination (encoded string)"
+// @Param limit query int false "Items per page (default: 10, max: 100)"
+// @Success 200 {object} pkg.Response
+// @Router /api/galleries/ [get]
+func (h *handler) GetAllGalleries(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var queryParams GalleryQueryParams
+	if err := c.ShouldBindQuery(&queryParams); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
+		return
+	}
+
+	res := h.service.FetchAllGalleries(ctx, queryParams)
+	c.JSON(res.Status, res)
+}
+
+// GetGalleryByID
+//
+// @Summary Get Gallery by ID
+// @Description Get detailed information of a specific gallery item
+// @Tags Gallery
+// @Accept json
+// @Produce json
+// @Param id path string true "Gallery ID"
+// @Success 200 {object} pkg.Response
+// @Router /api/galleries/{id} [get]
+func (h *handler) GetGalleryByID(c *gin.Context) {
+	ctx := c.Request.Context()
+	galleryID := c.Param("id")
+
+	// Increment view count for public access
+	res := h.service.FetchGalleryByID(ctx, galleryID, true)
+	c.JSON(res.Status, res)
+}
+
+// CreateGallery
+//
+// @Summary Create Gallery
+// @Description Create a new gallery item (requires publication manager or superadmin role)
+// @Tags Gallery
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param payload body GalleryRequest true "Create Gallery"
+// @Success 201 {object} pkg.Response
+// @Router /api/galleries/ [post]
+func (h *handler) CreateGallery(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var req GalleryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
+		return
+	}
+
+	res := h.service.Create(ctx, req)
+	c.JSON(res.Status, res)
+}
+
+// UpdateGallery
+//
+// @Summary Update Gallery
+// @Description Update an existing gallery item (requires publication manager or superadmin role)
+// @Tags Gallery
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Gallery ID"
+// @Param payload body UpdateGalleryRequest true "Update Gallery"
+// @Success 200 {object} pkg.Response
+// @Router /api/galleries/{id} [put]
+func (h *handler) UpdateGallery(c *gin.Context) {
+	ctx := c.Request.Context()
+	galleryID := c.Param("id")
+
+	var req UpdateGalleryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
+		return
+	}
+
+	res := h.service.Update(ctx, galleryID, req)
+	c.JSON(res.Status, res)
+}
+
+// DeleteGallery
+//
+// @Summary Delete Gallery
+// @Description Delete a gallery item (requires publication manager or superadmin role)
+// @Tags Gallery
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Gallery ID"
+// @Success 200 {object} pkg.Response
+// @Router /api/galleries/{id} [delete]
+func (h *handler) DeleteGallery(c *gin.Context) {
+	ctx := c.Request.Context()
+	galleryID := c.Param("id")
+
+	res := h.service.Delete(ctx, galleryID)
+	c.JSON(res.Status, res)
+}

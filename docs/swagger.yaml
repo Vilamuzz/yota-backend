@@ -139,6 +139,93 @@ definitions:
         minLength: 3
         type: string
     type: object
+  gallery.Category:
+    enum:
+    - photography
+    - painting
+    - sculpture
+    - digital
+    - mixed
+    type: string
+    x-enum-varnames:
+    - CategoryPhotography
+    - CategoryPainting
+    - CategorySculpture
+    - CategoryDigital
+    - CategoryMixed
+  gallery.GalleryRequest:
+    properties:
+      category:
+        allOf:
+        - $ref: '#/definitions/gallery.Category'
+        enum:
+        - photography
+        - painting
+        - sculpture
+        - digital
+        - mixed
+      description:
+        maxLength: 1000
+        minLength: 10
+        type: string
+      image:
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/gallery.Status'
+        enum:
+        - active
+        - inactive
+        - archived
+      title:
+        maxLength: 200
+        minLength: 3
+        type: string
+    required:
+    - category
+    - description
+    - image
+    - title
+    type: object
+  gallery.Status:
+    enum:
+    - active
+    - inactive
+    - archived
+    type: string
+    x-enum-varnames:
+    - StatusActive
+    - StatusInactive
+    - StatusArchived
+  gallery.UpdateGalleryRequest:
+    properties:
+      category:
+        allOf:
+        - $ref: '#/definitions/gallery.Category'
+        enum:
+        - photography
+        - painting
+        - sculpture
+        - digital
+        - mixed
+      description:
+        maxLength: 1000
+        minLength: 10
+        type: string
+      image:
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/gallery.Status'
+        enum:
+        - active
+        - inactive
+        - archived
+      title:
+        maxLength: 200
+        minLength: 3
+        type: string
+    type: object
   news.Category:
     enum:
     - general
@@ -592,6 +679,137 @@ paths:
       summary: Update Donation
       tags:
       - Donations
+  /api/galleries/:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all gallery items with cursor-based pagination
+        and optional filters
+      parameters:
+      - description: Filter by category (photography, painting, sculpture, digital,
+          mixed)
+        in: query
+        name: category
+        type: string
+      - description: Filter by status (active, inactive, archived)
+        in: query
+        name: status
+        type: string
+      - description: Cursor for pagination (encoded string)
+        in: query
+        name: cursor
+        type: string
+      - description: 'Items per page (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Get All Galleries
+      tags:
+      - Gallery
+    post:
+      consumes:
+      - application/json
+      description: Create a new gallery item (requires publication manager or superadmin
+        role)
+      parameters:
+      - description: Create Gallery
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/gallery.GalleryRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Gallery
+      tags:
+      - Gallery
+  /api/galleries/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a gallery item (requires publication manager or superadmin
+        role)
+      parameters:
+      - description: Gallery ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete Gallery
+      tags:
+      - Gallery
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific gallery item
+      parameters:
+      - description: Gallery ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Get Gallery by ID
+      tags:
+      - Gallery
+    put:
+      consumes:
+      - application/json
+      description: Update an existing gallery item (requires publication manager or
+        superadmin role)
+      parameters:
+      - description: Gallery ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update Gallery
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/gallery.UpdateGalleryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Gallery
+      tags:
+      - Gallery
   /api/me:
     get:
       consumes:

@@ -462,6 +462,203 @@
                 }
             }
         },
+        "/api/galleries/": {
+            "get": {
+                "description": "Retrieve a list of all gallery items with cursor-based pagination and optional filters",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gallery"
+                ],
+                "summary": "Get All Galleries",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by category (photography, painting, sculpture, digital, mixed)",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status (active, inactive, archived)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for pagination (encoded string)",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default: 10, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new gallery item (requires publication manager or superadmin role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gallery"
+                ],
+                "summary": "Create Gallery",
+                "parameters": [
+                    {
+                        "description": "Create Gallery",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gallery.GalleryRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/galleries/{id}": {
+            "get": {
+                "description": "Get detailed information of a specific gallery item",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gallery"
+                ],
+                "summary": "Get Gallery by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gallery ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing gallery item (requires publication manager or superadmin role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gallery"
+                ],
+                "summary": "Update Gallery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gallery ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update Gallery",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gallery.UpdateGalleryRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a gallery item (requires publication manager or superadmin role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gallery"
+                ],
+                "summary": "Delete Gallery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gallery ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/me": {
             "get": {
                 "security": [
@@ -1068,6 +1265,130 @@
                     "allOf": [
                         {
                             "$ref": "#/definitions/donation.Status"
+                        }
+                    ]
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "minLength": 3
+                }
+            }
+        },
+        "gallery.Category": {
+            "type": "string",
+            "enum": [
+                "photography",
+                "painting",
+                "sculpture",
+                "digital",
+                "mixed"
+            ],
+            "x-enum-varnames": [
+                "CategoryPhotography",
+                "CategoryPainting",
+                "CategorySculpture",
+                "CategoryDigital",
+                "CategoryMixed"
+            ]
+        },
+        "gallery.GalleryRequest": {
+            "type": "object",
+            "required": [
+                "category",
+                "description",
+                "image",
+                "title"
+            ],
+            "properties": {
+                "category": {
+                    "enum": [
+                        "photography",
+                        "painting",
+                        "sculpture",
+                        "digital",
+                        "mixed"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/gallery.Category"
+                        }
+                    ]
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "minLength": 10
+                },
+                "image": {
+                    "type": "string"
+                },
+                "status": {
+                    "enum": [
+                        "active",
+                        "inactive",
+                        "archived"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/gallery.Status"
+                        }
+                    ]
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "minLength": 3
+                }
+            }
+        },
+        "gallery.Status": {
+            "type": "string",
+            "enum": [
+                "active",
+                "inactive",
+                "archived"
+            ],
+            "x-enum-varnames": [
+                "StatusActive",
+                "StatusInactive",
+                "StatusArchived"
+            ]
+        },
+        "gallery.UpdateGalleryRequest": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "enum": [
+                        "photography",
+                        "painting",
+                        "sculpture",
+                        "digital",
+                        "mixed"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/gallery.Category"
+                        }
+                    ]
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "minLength": 10
+                },
+                "image": {
+                    "type": "string"
+                },
+                "status": {
+                    "enum": [
+                        "active",
+                        "inactive",
+                        "archived"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/gallery.Status"
                         }
                     ]
                 },
