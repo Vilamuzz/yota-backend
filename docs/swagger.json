@@ -568,12 +568,7 @@
         },
         "/api/news/": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve all news articles",
+                "description": "Retrieve a list of all news with cursor-based pagination and optional filters",
                 "consumes": [
                     "application/json"
                 ],
@@ -584,6 +579,180 @@
                     "News"
                 ],
                 "summary": "Get All News",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by category (general, event, announcement, donation, social)",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status (draft, published, archived)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for pagination (encoded string)",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default: 10, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new news article (requires publication manager or superadmin role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News"
+                ],
+                "summary": "Create News",
+                "parameters": [
+                    {
+                        "description": "Create News",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/news.NewsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/news/{id}": {
+            "get": {
+                "description": "Get detailed information of a specific news article",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News"
+                ],
+                "summary": "Get News by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "News ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing news article (requires publication manager or superadmin role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News"
+                ],
+                "summary": "Update News",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "News ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update News",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/news.UpdateNewsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a news article (requires publication manager or superadmin role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News"
+                ],
+                "summary": "Delete News",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "News ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -906,6 +1075,127 @@
                     "type": "string",
                     "maxLength": 200,
                     "minLength": 3
+                }
+            }
+        },
+        "news.Category": {
+            "type": "string",
+            "enum": [
+                "general",
+                "event",
+                "announcement",
+                "donation",
+                "social"
+            ],
+            "x-enum-varnames": [
+                "CategoryGeneral",
+                "CategoryEvent",
+                "CategoryAnnouncement",
+                "CategoryDonation",
+                "CategorySocial"
+            ]
+        },
+        "news.NewsRequest": {
+            "type": "object",
+            "required": [
+                "category",
+                "content",
+                "title"
+            ],
+            "properties": {
+                "category": {
+                    "enum": [
+                        "general",
+                        "event",
+                        "announcement",
+                        "donation",
+                        "social"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/news.Category"
+                        }
+                    ]
+                },
+                "content": {
+                    "type": "string",
+                    "minLength": 50
+                },
+                "image": {
+                    "type": "string"
+                },
+                "status": {
+                    "enum": [
+                        "draft",
+                        "published",
+                        "archived"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/news.Status"
+                        }
+                    ]
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "minLength": 5
+                }
+            }
+        },
+        "news.Status": {
+            "type": "string",
+            "enum": [
+                "draft",
+                "published",
+                "archived"
+            ],
+            "x-enum-varnames": [
+                "StatusDraft",
+                "StatusPublished",
+                "StatusArchived"
+            ]
+        },
+        "news.UpdateNewsRequest": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "enum": [
+                        "general",
+                        "event",
+                        "announcement",
+                        "donation",
+                        "social"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/news.Category"
+                        }
+                    ]
+                },
+                "content": {
+                    "type": "string",
+                    "minLength": 50
+                },
+                "image": {
+                    "type": "string"
+                },
+                "status": {
+                    "enum": [
+                        "draft",
+                        "published",
+                        "archived"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/news.Status"
+                        }
+                    ]
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "minLength": 5
                 }
             }
         },

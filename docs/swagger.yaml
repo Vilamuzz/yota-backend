@@ -139,6 +139,90 @@ definitions:
         minLength: 3
         type: string
     type: object
+  news.Category:
+    enum:
+    - general
+    - event
+    - announcement
+    - donation
+    - social
+    type: string
+    x-enum-varnames:
+    - CategoryGeneral
+    - CategoryEvent
+    - CategoryAnnouncement
+    - CategoryDonation
+    - CategorySocial
+  news.NewsRequest:
+    properties:
+      category:
+        allOf:
+        - $ref: '#/definitions/news.Category'
+        enum:
+        - general
+        - event
+        - announcement
+        - donation
+        - social
+      content:
+        minLength: 50
+        type: string
+      image:
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/news.Status'
+        enum:
+        - draft
+        - published
+        - archived
+      title:
+        maxLength: 200
+        minLength: 5
+        type: string
+    required:
+    - category
+    - content
+    - title
+    type: object
+  news.Status:
+    enum:
+    - draft
+    - published
+    - archived
+    type: string
+    x-enum-varnames:
+    - StatusDraft
+    - StatusPublished
+    - StatusArchived
+  news.UpdateNewsRequest:
+    properties:
+      category:
+        allOf:
+        - $ref: '#/definitions/news.Category'
+        enum:
+        - general
+        - event
+        - announcement
+        - donation
+        - social
+      content:
+        minLength: 50
+        type: string
+      image:
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/news.Status'
+        enum:
+        - draft
+        - published
+        - archived
+      title:
+        maxLength: 200
+        minLength: 5
+        type: string
+    type: object
   pkg.Response:
     properties:
       data: {}
@@ -576,7 +660,71 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieve all news articles
+      description: Retrieve a list of all news with cursor-based pagination and optional
+        filters
+      parameters:
+      - description: Filter by category (general, event, announcement, donation, social)
+        in: query
+        name: category
+        type: string
+      - description: Filter by status (draft, published, archived)
+        in: query
+        name: status
+        type: string
+      - description: Cursor for pagination (encoded string)
+        in: query
+        name: cursor
+        type: string
+      - description: 'Items per page (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Get All News
+      tags:
+      - News
+    post:
+      consumes:
+      - application/json
+      description: Create a new news article (requires publication manager or superadmin
+        role)
+      parameters:
+      - description: Create News
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/news.NewsRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create News
+      tags:
+      - News
+  /api/news/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a news article (requires publication manager or superadmin
+        role)
+      parameters:
+      - description: News ID
+        in: path
+        name: id
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -586,7 +734,56 @@ paths:
             $ref: '#/definitions/pkg.Response'
       security:
       - BearerAuth: []
-      summary: Get All News
+      summary: Delete News
+      tags:
+      - News
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific news article
+      parameters:
+      - description: News ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Get News by ID
+      tags:
+      - News
+    put:
+      consumes:
+      - application/json
+      description: Update an existing news article (requires publication manager or
+        superadmin role)
+      parameters:
+      - description: News ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update News
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/news.UpdateNewsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update News
       tags:
       - News
   /api/users:

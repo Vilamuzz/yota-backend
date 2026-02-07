@@ -1,8 +1,11 @@
 package news
 
 import (
+	"net/http"
+
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/app/user"
+	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,28 +19,136 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 		service:    s,
 		middleware: m,
 	}
-	handler.registerRoutes(r)
+	handler.RegisterRoutes(r)
 }
 
-func (h *handler) registerRoutes(r *gin.RouterGroup) {
+func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	api := r.Group("/news")
 
+	// Public routes
+	api.GET("/", h.GetAllNews)
+	api.GET("/:id", h.GetNewsByID)
+
+	// Protected routes (require publication manager role)
 	protected := api.Group("")
-	protected.Use(h.middleware.RequireRoles(string(user.RolePublicationManager)))
+	protected.Use(h.middleware.RequireRoles(string(user.RolePublicationManager), string(user.RoleSuperadmin)))
 	{
-		protected.GET("/", h.GetAllNews)
+		protected.POST("/", h.CreateNews)
+		protected.PUT("/:id", h.UpdateNews)
+		protected.DELETE("/:id", h.DeleteNews)
 	}
 }
 
 // GetAllNews
+//
 // @Summary Get All News
-// @Description Retrieve all news articles
+// @Description Retrieve a list of all news with cursor-based pagination and optional filters
+// @Tags News
+// @Accept json
+// @Produce json
+// @Param category query string false "Filter by category (general, event, announcement, donation, social)"
+// @Param status query string false "Filter by status (draft, published, archived)"
+// @Param cursor query string false "Cursor for pagination (encoded string)"
+// @Param limit query int false "Items per page (default: 10, max: 100)"
+// @Success 200 {object} pkg.Response
+// @Router /api/news/ [get]
+func (h *handler) GetAllNews(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var queryParams NewsQueryParams
+	if err := c.ShouldBindQuery(&queryParams); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
+		return
+	}
+
+	res := h.service.FetchAllNews(ctx, queryParams)
+	c.JSON(res.Status, res)
+}
+
+// GetNewsByID
+//
+// @Summary Get News by ID
+// @Description Get detailed information of a specific news article
+// @Tags News
+// @Accept json
+// @Produce json
+// @Param id path string true "News ID"
+// @Success 200 {object} pkg.Response
+// @Router /api/news/{id} [get]
+func (h *handler) GetNewsByID(c *gin.Context) {
+	ctx := c.Request.Context()
+	newsID := c.Param("id")
+
+	// Increment view count for public access
+	res := h.service.FetchNewsByID(ctx, newsID, true)
+	c.JSON(res.Status, res)
+}
+
+// CreateNews
+//
+// @Summary Create News
+// @Description Create a new news article (requires publication manager or superadmin role)
 // @Tags News
 // @Security BearerAuth
 // @Accept json
 // @Produce json
+// @Param payload body NewsRequest true "Create News"
+// @Success 201 {object} pkg.Response
+// @Router /api/news/ [post]
+func (h *handler) CreateNews(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var req NewsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
+		return
+	}
+
+	res := h.service.CreateNews(ctx, req)
+	c.JSON(res.Status, res)
+}
+
+// UpdateNews
+//
+// @Summary Update News
+// @Description Update an existing news article (requires publication manager or superadmin role)
+// @Tags News
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "News ID"
+// @Param payload body UpdateNewsRequest true "Update News"
 // @Success 200 {object} pkg.Response
-// @Router /api/news/ [get]
-func (h *handler) GetAllNews(c *gin.Context) {
-	c.JSON(200, "News")
+// @Router /api/news/{id} [put]
+func (h *handler) UpdateNews(c *gin.Context) {
+	ctx := c.Request.Context()
+	newsID := c.Param("id")
+
+	var req UpdateNewsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
+		return
+	}
+
+	res := h.service.UpdateNews(ctx, newsID, req)
+	c.JSON(res.Status, res)
+}
+
+// DeleteNews
+//
+// @Summary Delete News
+// @Description Delete a news article (requires publication manager or superadmin role)
+// @Tags News
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "News ID"
+// @Success 200 {object} pkg.Response
+// @Router /api/news/{id} [delete]
+func (h *handler) DeleteNews(c *gin.Context) {
+	ctx := c.Request.Context()
+	newsID := c.Param("id")
+
+	res := h.service.DeleteNews(ctx, newsID)
+	c.JSON(res.Status, res)
 }

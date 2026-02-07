@@ -1,6 +1,10 @@
 package donation
 
-import "time"
+import (
+	"time"
+
+	"github.com/Vilamuzz/yota-backend/pkg"
+)
 
 type DonationResponse struct {
 	ID          string    `json:"id"`
@@ -16,14 +20,6 @@ type DonationResponse struct {
 }
 
 type DonationListResponse struct {
-	Donations  []DonationResponse `json:"donations"`
-	Pagination CursorPagination   `json:"pagination"`
-}
-
-type CursorPagination struct {
-	NextCursor string `json:"next_cursor,omitempty"`
-	PrevCursor string `json:"prev_cursor,omitempty"`
-	HasNext    bool   `json:"has_next"`
-	HasPrev    bool   `json:"has_prev"`
-	Limit      int    `json:"limit"`
+	Donations  []DonationResponse   `json:"donations"`
+	Pagination pkg.CursorPagination `json:"pagination"`
 }
