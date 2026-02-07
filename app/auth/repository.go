@@ -48,7 +48,7 @@ func (r *repository) CreateEmailVerificationToken(ctx context.Context, token *Em
 
 func (r *repository) FetchEmailVerificationToken(ctx context.Context, token string) (*EmailVerificationToken, error) {
 	var verificationToken EmailVerificationToken
-	if err := r.Conn.WithContext(ctx).Where("token = ? AND used = ? AND expires_at > ?", token, false, time.Now()).First(&verificationToken).Error; err != nil {
+	if err := r.Conn.WithContext(ctx).Where("token = ?", token).First(&verificationToken).Error; err != nil {
 		return nil, err
 	}
 	return &verificationToken, nil

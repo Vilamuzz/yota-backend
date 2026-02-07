@@ -9,7 +9,6 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/pkg"
-	jwt_pkg "github.com/Vilamuzz/yota-backend/pkg/jwt"
 	"github.com/gin-gonic/gin"
 	"github.com/markbates/goth/gothic"
 )
@@ -39,9 +38,6 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	api.POST("/login", authRateLimit, h.Login)
 	api.POST("/forget-password", h.middleware.CustomRateLimitHandler(5, 1*time.Minute), h.ForgetPassword)
 	api.POST("/reset-password", authRateLimit, h.ResetPassword)
-	api.GET("/me", h.middleware.AuthRequired(), h.GetMe)
-	api.PUT("/me/profile", h.middleware.AuthRequired(), h.UpdateProfile)
-	api.PUT("/me/password", h.middleware.AuthRequired(), h.UpdatePassword)
 	api.POST("/verify-email", h.VerifyEmail)
 	api.POST("/resend-verification", h.middleware.CustomRateLimitHandler(3, 1*time.Minute), h.ResendVerification)
 	api.GET("/oauth/:provider", h.middleware.CustomRateLimitHandler(10, 1*time.Minute), h.OAuthLogin)
@@ -94,6 +90,52 @@ func (h *handler) Login(c *gin.Context) {
 	c.JSON(res.Status, res)
 }
 
+// VerifyEmail
+//
+// @Summary Verify Email
+// @Description Verify user email with token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param payload body VerifyEmailRequest true "Verify Email"
+// @Success 200 {object} pkg.Response
+// @Router /api/auth/verify-email [post]
+func (h *handler) VerifyEmail(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var req VerifyEmailRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
+		return
+	}
+
+	res := h.service.VerifyEmail(ctx, req.Token)
+	c.JSON(res.Status, res)
+}
+
+// ResendVerification
+//
+// @Summary Resend Verification Email
+// @Description Resend email verification link
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param payload body ResendVerificationRequest true "Resend Verification"
+// @Success 200 {object} pkg.Response
+// @Router /api/auth/resend-verification [post]
+func (h *handler) ResendVerification(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var req ResendVerificationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
+		return
+	}
+
+	res := h.service.ResendVerificationEmail(ctx, req.Email)
+	c.JSON(res.Status, res)
+}
+
 // ForgetPassword
 //
 // @Summary Forget Password
@@ -137,38 +179,6 @@ func (h *handler) ResetPassword(c *gin.Context) {
 	}
 
 	res := h.service.ResetPassword(ctx, req)
-	c.JSON(res.Status, res)
-}
-
-// GetMe
-//
-// @Summary Get Current User
-// @Description Get details of the currently authenticated user
-// @Tags Auth
-// @Security BearerAuth
-// @Accept json
-// @Produce json
-// @Success 200 {object} pkg.Response
-// @Router /api/auth/me [get]
-func (h *handler) GetMe(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	// Get user claims from context
-	userData, exists := c.Get("user_data")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "User not authenticated", nil, nil))
-		return
-	}
-
-	// Type assert to UserJWTClaims
-	claims, ok := userData.(jwt_pkg.UserJWTClaims)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Invalid user data", nil, nil))
-		return
-	}
-
-	// Get user details using the UserID from claims
-	res := h.userService.GetUserDetail(ctx, claims.UserID)
 	c.JSON(res.Status, res)
 }
 
@@ -216,7 +226,6 @@ func (h *handler) OAuthCallback(c *gin.Context) {
 
 	res := h.service.OAuthLogin(ctx, provider, gothUser)
 
-	// Redirect to frontend with token
 	if res.Status == http.StatusOK {
 		authRes := res.Data.(AuthResponse)
 		frontendURL := os.Getenv("FE_URL")
@@ -224,116 +233,5 @@ func (h *handler) OAuthCallback(c *gin.Context) {
 		return
 	}
 
-	c.JSON(res.Status, res)
-}
-
-// VerifyEmail
-//
-// @Summary Verify Email
-// @Description Verify user email with token
-// @Tags Auth
-// @Accept json
-// @Produce json
-// @Param payload body VerifyEmailRequest true "Verify Email"
-// @Success 200 {object} pkg.Response
-// @Router /api/auth/verify-email [post]
-func (h *handler) VerifyEmail(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	var req VerifyEmailRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
-		return
-	}
-
-	res := h.service.VerifyEmail(ctx, req.Token)
-	c.JSON(res.Status, res)
-}
-
-// ResendVerification
-//
-// @Summary Resend Verification Email
-// @Description Resend email verification link
-// @Tags Auth
-// @Accept json
-// @Produce json
-// @Param payload body ResendVerificationRequest true "Resend Verification"
-// @Success 200 {object} pkg.Response
-// @Router /api/auth/resend-verification [post]
-func (h *handler) ResendVerification(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	var req ResendVerificationRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
-		return
-	}
-
-	res := h.service.ResendVerificationEmail(ctx, req.Email)
-	c.JSON(res.Status, res)
-}
-
-// UpdateProfile
-//
-// @Summary Update User Profile
-// @Description Update profile information of the currently authenticated user
-// @Tags Auth
-// @Security BearerAuth
-// @Accept json
-// @Produce json
-// @Param payload body user.UpdateProfileRequest true "Update Profile"
-// @Success 200 {object} pkg.Response
-// @Router /api/auth/me/profile [put]
-func (h *handler) UpdateProfile(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	userData, exists := c.Get("user_data")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "User not authenticated", nil, nil))
-		return
-	}
-	claims, ok := userData.(jwt_pkg.UserJWTClaims)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Invalid user data", nil, nil))
-		return
-	}
-	var req user.UpdateProfileRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
-		return
-	}
-	res := h.userService.UpdateProfile(ctx, claims.UserID, req)
-	c.JSON(res.Status, res)
-}
-
-// UpdatePassword
-//
-// @Summary Update User Password
-// @Description Update password of the currently authenticated user
-// @Tags Auth
-// @Security BearerAuth
-// @Accept json
-// @Produce json
-// @Param payload body user.UpdatePasswordRequest true "Update Password"
-// @Success 200 {object} pkg.Response
-// @Router /api/auth/me/password [put]
-func (h *handler) UpdatePassword(c *gin.Context) {
-	ctx := c.Request.Context()
-	userData, exists := c.Get("user_data")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "User not authenticated", nil, nil))
-		return
-	}
-	claims, ok := userData.(jwt_pkg.UserJWTClaims)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Invalid user data", nil, nil))
-		return
-	}
-	var req user.UpdatePasswordRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
-		return
-	}
-	res := h.userService.UpdatePassword(ctx, claims.UserID, req)
 	c.JSON(res.Status, res)
 }
