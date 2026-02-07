@@ -191,6 +191,88 @@ func (s *service) Login(ctx context.Context, req LoginRequest) pkg.Response {
 	return pkg.NewResponse(http.StatusOK, "Login successful", nil, loginResponse)
 }
 
+func (s *service) VerifyEmail(ctx context.Context, token string) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.contextTimeout)
+	defer cancel()
+
+	// Fetch verification token
+	errValidation := make(map[string]string)
+	verificationToken, err := s.resetTokenRepo.FetchEmailVerificationToken(ctx, token)
+	if err != nil {
+		errValidation["token"] = "Invalid or expired verification token"
+	}
+
+	if verificationToken.Used {
+		errValidation["token"] = "Verification token already used"
+	}
+
+	// Check if token is expired
+	if time.Now().After(verificationToken.ExpiresAt) {
+		errValidation["token"] = "Verification token has expired"
+	}
+
+	if len(errValidation) > 0 {
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+	}
+
+	// Verify user email
+	if err := s.userRepo.VerifyUserEmail(ctx, verificationToken.UserID); err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to verify email", nil, nil)
+	}
+
+	// Mark token as used
+	verificationToken.Used = true
+	if err := s.resetTokenRepo.UpdateEmailVerificationToken(ctx, verificationToken); err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update token status", nil, nil)
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Email verified successfully", nil, nil)
+}
+
+func (s *service) ResendVerificationEmail(ctx context.Context, email string) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.contextTimeout)
+	defer cancel()
+
+	// Find user by email
+	existingUser, err := s.userRepo.FetchOneUser(ctx, map[string]interface{}{"email": email})
+	if err != nil {
+		return pkg.NewResponse(http.StatusNotFound, "User not found", nil, nil)
+	}
+
+	// Check if already verified
+	if existingUser.EmailVerified {
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"email": "Email already verified"}, nil)
+	}
+
+	// Generate new verification token
+	tokenBytes := make([]byte, 32)
+	if _, err := rand.Read(tokenBytes); err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to generate verification token", nil, nil)
+	}
+	verificationToken := hex.EncodeToString(tokenBytes)
+
+	// Create email verification token record
+	emailVerification := &EmailVerificationToken{
+		ID:        uuid.New(),
+		UserID:    existingUser.ID,
+		Token:     verificationToken,
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+		Used:      false,
+		CreatedAt: time.Now(),
+	}
+
+	if err := s.resetTokenRepo.CreateEmailVerificationToken(ctx, emailVerification); err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create verification token", nil, nil)
+	}
+
+	// Send verification email
+	if err := s.emailService.SendEmailVerification(existingUser.Email, existingUser.Username, verificationToken); err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to send verification email", nil, nil)
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Verification email sent successfully", nil, nil)
+}
+
 func (s *service) ForgetPassword(ctx context.Context, req ForgetPasswordRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.contextTimeout)
 	defer cancel()
@@ -308,7 +390,7 @@ func (s *service) OAuthLogin(ctx context.Context, provider string, gothUser goth
 			ID:        uuid.New(),
 			Username:  username,
 			Email:     gothUser.Email,
-			Password:  "", // No password for OAuth users
+			Password:  "",
 			Role:      user.RoleUser,
 			Status:    true,
 			CreatedAt: time.Now(),
@@ -349,87 +431,4 @@ func (s *service) OAuthLogin(ctx context.Context, provider string, gothUser goth
 	}
 
 	return pkg.NewResponse(http.StatusOK, "OAuth login successful", nil, authResponse)
-}
-
-func (s *service) VerifyEmail(ctx context.Context, token string) pkg.Response {
-	ctx, cancel := context.WithTimeout(ctx, s.contextTimeout)
-	defer cancel()
-
-	// Fetch verification token
-	errValidation := make(map[string]string)
-	verificationToken, err := s.resetTokenRepo.FetchEmailVerificationToken(ctx, token)
-	if err != nil {
-		errValidation["token"] = "Invalid or expired verification token"
-	}
-
-	// Check if token is already used
-	if verificationToken.Used {
-		errValidation["token"] = "Verification token already used"
-	}
-
-	// Check if token is expired
-	if time.Now().After(verificationToken.ExpiresAt) {
-		errValidation["token"] = "Verification token has expired"
-	}
-
-	if len(errValidation) > 0 {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
-	}
-
-	// Verify user email
-	if err := s.userRepo.VerifyUserEmail(ctx, verificationToken.UserID); err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to verify email", nil, nil)
-	}
-
-	// Mark token as used
-	verificationToken.Used = true
-	if err := s.resetTokenRepo.UpdateEmailVerificationToken(ctx, verificationToken); err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update token status", nil, nil)
-	}
-
-	return pkg.NewResponse(http.StatusOK, "Email verified successfully", nil, nil)
-}
-
-func (s *service) ResendVerificationEmail(ctx context.Context, email string) pkg.Response {
-	ctx, cancel := context.WithTimeout(ctx, s.contextTimeout)
-	defer cancel()
-
-	// Find user by email
-	existingUser, err := s.userRepo.FetchOneUser(ctx, map[string]interface{}{"email": email})
-	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "User not found", nil, nil)
-	}
-
-	// Check if already verified
-	if existingUser.EmailVerified {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"email": "Email already verified"}, nil)
-	}
-
-	// Generate new verification token
-	tokenBytes := make([]byte, 32)
-	if _, err := rand.Read(tokenBytes); err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to generate verification token", nil, nil)
-	}
-	verificationToken := hex.EncodeToString(tokenBytes)
-
-	// Create email verification token record
-	emailVerification := &EmailVerificationToken{
-		ID:        uuid.New(),
-		UserID:    existingUser.ID,
-		Token:     verificationToken,
-		ExpiresAt: time.Now().Add(24 * time.Hour),
-		Used:      false,
-		CreatedAt: time.Now(),
-	}
-
-	if err := s.resetTokenRepo.CreateEmailVerificationToken(ctx, emailVerification); err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create verification token", nil, nil)
-	}
-
-	// Send verification email
-	if err := s.emailService.SendEmailVerification(existingUser.Email, existingUser.Username, verificationToken); err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to send verification email", nil, nil)
-	}
-
-	return pkg.NewResponse(http.StatusOK, "Verification email sent successfully", nil, nil)
 }

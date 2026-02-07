@@ -83,112 +83,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/auth/me": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get details of the currently authenticated user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Get Current User",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/auth/me/password": {
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update password of the currently authenticated user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Update User Password",
-                "parameters": [
-                    {
-                        "description": "Update Password",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/user.UpdatePasswordRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/auth/me/profile": {
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update profile information of the currently authenticated user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Update User Profile",
-                "parameters": [
-                    {
-                        "description": "Update Profile",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/user.UpdateProfileRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
         "/api/auth/oauth/{provider}": {
             "get": {
                 "description": "Initiate OAuth login with Provider",
@@ -369,6 +263,110 @@ const docTemplate = `{
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/auth.VerifyEmailRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get details of the currently authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Get Current User",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update profile information of the currently authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Update User Profile",
+                "parameters": [
+                    {
+                        "description": "Update Profile",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.UpdateProfileRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/me/password": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update password of the currently authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Update User Password",
+                "parameters": [
+                    {
+                        "description": "Update Password",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.UpdatePasswordRequest"
                         }
                     }
                 ],
@@ -647,17 +645,6 @@ const docTemplate = `{
                 "RoleSuperadmin"
             ]
         },
-        "user.Status": {
-            "type": "string",
-            "enum": [
-                "active",
-                "nonactive"
-            ],
-            "x-enum-varnames": [
-                "StatusActive",
-                "StatusBanned"
-            ]
-        },
         "user.UpdatePasswordRequest": {
             "type": "object",
             "required": [
@@ -708,15 +695,7 @@ const docTemplate = `{
                     ]
                 },
                 "status": {
-                    "enum": [
-                        "active",
-                        "nonactive"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/user.Status"
-                        }
-                    ]
+                    "type": "boolean"
                 }
             }
         }
