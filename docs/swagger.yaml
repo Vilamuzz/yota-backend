@@ -88,14 +88,6 @@ definitions:
     - RoleAmbulanceManager
     - RolePublicationManager
     - RoleSuperadmin
-  user.Status:
-    enum:
-    - active
-    - nonactive
-    type: string
-    x-enum-varnames:
-    - StatusActive
-    - StatusBanned
   user.UpdatePasswordRequest:
     properties:
       current_password:
@@ -131,11 +123,7 @@ definitions:
         - publication_manager
         - superadmin
       status:
-        allOf:
-        - $ref: '#/definitions/user.Status'
-        enum:
-        - active
-        - nonactive
+        type: boolean
     type: object
 info:
   contact: {}
@@ -182,71 +170,6 @@ paths:
           schema:
             $ref: '#/definitions/pkg.Response'
       summary: Login User
-      tags:
-      - Auth
-  /api/auth/me:
-    get:
-      consumes:
-      - application/json
-      description: Get details of the currently authenticated user
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Get Current User
-      tags:
-      - Auth
-  /api/auth/me/password:
-    put:
-      consumes:
-      - application/json
-      description: Update password of the currently authenticated user
-      parameters:
-      - description: Update Password
-        in: body
-        name: payload
-        required: true
-        schema:
-          $ref: '#/definitions/user.UpdatePasswordRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Update User Password
-      tags:
-      - Auth
-  /api/auth/me/profile:
-    put:
-      consumes:
-      - application/json
-      description: Update profile information of the currently authenticated user
-      parameters:
-      - description: Update Profile
-        in: body
-        name: payload
-        required: true
-        schema:
-          $ref: '#/definitions/user.UpdateProfileRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Update User Profile
       tags:
       - Auth
   /api/auth/oauth/{provider}:
@@ -375,6 +298,70 @@ paths:
       summary: Verify Email
       tags:
       - Auth
+  /api/me:
+    get:
+      consumes:
+      - application/json
+      description: Get details of the currently authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Current User
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: Update profile information of the currently authenticated user
+      parameters:
+      - description: Update Profile
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/user.UpdateProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update User Profile
+      tags:
+      - Users
+  /api/me/password:
+    put:
+      consumes:
+      - application/json
+      description: Update password of the currently authenticated user
+      parameters:
+      - description: Update Password
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/user.UpdatePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update User Password
+      tags:
+      - Users
   /api/news/:
     get:
       consumes:
