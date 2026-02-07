@@ -58,6 +58,87 @@ definitions:
     required:
     - token
     type: object
+  donation.Category:
+    enum:
+    - education
+    - health
+    - environment
+    type: string
+    x-enum-varnames:
+    - CategoryEducation
+    - CategoryHealth
+    - CategoryEnvironment
+  donation.DonationRequest:
+    properties:
+      category:
+        allOf:
+        - $ref: '#/definitions/donation.Category'
+        enum:
+        - education
+        - health
+        - environment
+      date_end:
+        type: string
+      description:
+        maxLength: 2000
+        minLength: 10
+        type: string
+      fund_target:
+        type: number
+      image:
+        type: string
+      title:
+        maxLength: 200
+        minLength: 3
+        type: string
+    required:
+    - category
+    - date_end
+    - description
+    - fund_target
+    - title
+    type: object
+  donation.Status:
+    enum:
+    - active
+    - inactive
+    - completed
+    type: string
+    x-enum-varnames:
+    - StatusActive
+    - StatusInactive
+    - StatusCompleted
+  donation.UpdateDonationRequest:
+    properties:
+      category:
+        allOf:
+        - $ref: '#/definitions/donation.Category'
+        enum:
+        - education
+        - health
+        - environment
+      date_end:
+        type: string
+      description:
+        maxLength: 2000
+        minLength: 10
+        type: string
+      fund_target:
+        type: number
+      image:
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/donation.Status'
+        enum:
+        - active
+        - inactive
+        - completed
+      title:
+        maxLength: 200
+        minLength: 3
+        type: string
+    type: object
   pkg.Response:
     properties:
       data: {}
@@ -298,6 +379,135 @@ paths:
       summary: Verify Email
       tags:
       - Auth
+  /api/donations/:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all donations with cursor-based pagination and
+        optional filters
+      parameters:
+      - description: Filter by category (education, health, environment)
+        in: query
+        name: category
+        type: string
+      - description: Filter by status (active, inactive, completed)
+        in: query
+        name: status
+        type: string
+      - description: Cursor for pagination (encoded string)
+        in: query
+        name: cursor
+        type: string
+      - description: 'Items per page (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Get All Donations
+      tags:
+      - Donations
+    post:
+      consumes:
+      - application/json
+      description: Create a new donation entry (requires authentication and proper
+        role)
+      parameters:
+      - description: Create Donation
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/donation.DonationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Donation
+      tags:
+      - Donations
+  /api/donations/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a donation (requires authentication and proper role)
+      parameters:
+      - description: Donation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete Donation
+      tags:
+      - Donations
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific donation
+      parameters:
+      - description: Donation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Get Donation by ID
+      tags:
+      - Donations
+    put:
+      consumes:
+      - application/json
+      description: Update an existing donation (requires authentication and proper
+        role)
+      parameters:
+      - description: Donation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update Donation
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/donation.UpdateDonationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Donation
+      tags:
+      - Donations
   /api/me:
     get:
       consumes:
