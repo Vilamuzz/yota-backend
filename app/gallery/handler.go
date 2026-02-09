@@ -3,6 +3,7 @@ package gallery
 import (
 	"net/http"
 
+	"github.com/Vilamuzz/yota-backend/app/media"
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/pkg"
@@ -98,9 +99,8 @@ func (h *handler) GetGalleryByID(c *gin.Context) {
 // @Param title formData string true "Gallery Title"
 // @Param category formData string true "Gallery Category"
 // @Param description formData string true "Gallery Description"
-// @Param image formData file false "Gallery Image File"
-// @Param image_url formData string false "Gallery Image URL (if not uploading file)"
 // @Param status formData string false "Gallery Status"
+// @Param files formData file false "Media Files (can be multiple)"
 // @Success 201 {object} pkg.Response
 // @Router /api/galleries/ [post]
 func (h *handler) CreateGallery(c *gin.Context) {
@@ -114,15 +114,40 @@ func (h *handler) CreateGallery(c *gin.Context) {
 	}
 
 	// Handle file upload
-	file, err := c.FormFile("image")
-	if err == nil {
-		// File uploaded, save to MinIO
-		fileURL, err := h.minioClient.UploadFile(ctx, file, "galleries")
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload image", nil, nil))
-			return
+	contentType := c.GetHeader("Content-Type")
+	if contentType != "" && (contentType == "application/x-www-form-urlencoded" ||
+		(len(contentType) >= 19 && contentType[:19] == "multipart/form-data")) {
+
+		form, err := c.MultipartForm()
+		if err == nil {
+			files := form.File["files"]
+			for _, file := range files {
+				// Determine folder based on file type (image or video)
+				folder := "galleries/others"
+				mediaType := "image" // Default
+				mimeType := file.Header.Get("Content-Type")
+
+				if len(mimeType) >= 5 && mimeType[:5] == "image" {
+					folder = "galleries/images"
+					mediaType = "image"
+				} else if len(mimeType) >= 5 && mimeType[:5] == "video" {
+					folder = "galleries/videos"
+					mediaType = "video"
+				}
+
+				fileURL, err := h.minioClient.UploadFile(ctx, file, folder)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload file", nil, nil))
+					return
+				}
+
+				req.Media = append(req.Media, media.MediaItem{
+					URL:     fileURL,
+					Type:    mediaType,
+					AltText: file.Filename,
+				})
+			}
 		}
-		req.Image = fileURL
 	}
 
 	res := h.service.CreateGallery(ctx, req)
@@ -141,9 +166,8 @@ func (h *handler) CreateGallery(c *gin.Context) {
 // @Param title formData string false "Gallery Title"
 // @Param category formData string false "Gallery Category"
 // @Param description formData string false "Gallery Description"
-// @Param image formData file false "Gallery Image File"
-// @Param image_url formData string false "Gallery Image URL (if not uploading file)"
 // @Param status formData string false "Gallery Status"
+// @Param files formData file false "Media Files (can be multiple)"
 // @Success 200 {object} pkg.Response
 // @Router /api/galleries/{id} [put]
 func (h *handler) UpdateGallery(c *gin.Context) {
@@ -157,15 +181,40 @@ func (h *handler) UpdateGallery(c *gin.Context) {
 	}
 
 	// Handle file upload
-	file, err := c.FormFile("image")
-	if err == nil {
-		// File uploaded, save to MinIO
-		fileURL, err := h.minioClient.UploadFile(ctx, file, "galleries")
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload image", nil, nil))
-			return
+	contentType := c.GetHeader("Content-Type")
+	if contentType != "" && (contentType == "application/x-www-form-urlencoded" ||
+		(len(contentType) >= 19 && contentType[:19] == "multipart/form-data")) {
+
+		form, err := c.MultipartForm()
+		if err == nil {
+			files := form.File["files"]
+			for _, file := range files {
+				// Determine folder based on file type (image or video)
+				folder := "galleries/others"
+				mediaType := "image" // Default
+				mimeType := file.Header.Get("Content-Type")
+
+				if len(mimeType) >= 5 && mimeType[:5] == "image" {
+					folder = "galleries/images"
+					mediaType = "image"
+				} else if len(mimeType) >= 5 && mimeType[:5] == "video" {
+					folder = "galleries/videos"
+					mediaType = "video"
+				}
+
+				fileURL, err := h.minioClient.UploadFile(ctx, file, folder)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload file", nil, nil))
+					return
+				}
+
+				req.Media = append(req.Media, media.MediaItem{
+					URL:     fileURL,
+					Type:    mediaType,
+					AltText: file.Filename,
+				})
+			}
 		}
-		req.Image = fileURL
 	}
 
 	res := h.service.UpdateGallery(ctx, galleryID, req)

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Vilamuzz/yota-backend/app/media"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/google/uuid"
 )
@@ -155,6 +156,19 @@ func (s *service) CreateNews(ctx context.Context, req NewsRequest) pkg.Response 
 
 	// Create news
 	timeNow := time.Now()
+
+	var mediaItems []media.Media
+	if len(req.Media) > 0 {
+		for _, m := range req.Media {
+			mediaItems = append(mediaItems, media.Media{
+				ID:      uuid.New().String(),
+				Type:    m.Type,
+				URL:     m.URL,
+				AltText: m.AltText,
+			})
+		}
+	}
+
 	news := &News{
 		ID:        uuid.New().String(),
 		Title:     req.Title,
@@ -163,6 +177,7 @@ func (s *service) CreateNews(ctx context.Context, req NewsRequest) pkg.Response 
 		Image:     req.Image,
 		Status:    status,
 		Views:     0,
+		Media:     mediaItems,
 		CreatedAt: timeNow,
 		UpdatedAt: timeNow,
 	}
@@ -262,6 +277,24 @@ func (s *service) UpdateNews(ctx context.Context, id string, req UpdateNewsReque
 
 	if err := s.repo.UpdateNews(ctx, id, updateData); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update news", nil, nil)
+	}
+
+	// Update media if provided
+	if req.Media != nil {
+		var mediaItems []media.Media
+		for _, m := range req.Media {
+			mediaItems = append(mediaItems, media.Media{
+				ID:      uuid.New().String(),
+				Type:    m.Type,
+				URL:     m.URL,
+				AltText: m.AltText,
+			})
+		}
+
+		newsForKey := &News{ID: id}
+		if err := s.repo.UpdateNewsMedia(ctx, newsForKey, mediaItems); err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to update news media", nil, nil)
+		}
 	}
 
 	return pkg.NewResponse(http.StatusOK, "News updated successfully", nil, nil)

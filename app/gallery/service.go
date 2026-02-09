@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Vilamuzz/yota-backend/app/media"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/google/uuid"
 )
@@ -145,11 +146,6 @@ func (s *service) CreateGallery(ctx context.Context, req GalleryRequest) pkg.Res
 		errValidation["category"] = "Invalid category. Must be: photography, painting, sculpture, digital, or mixed"
 	}
 
-	// Validate image
-	if req.Image == "" {
-		errValidation["image"] = "Image URL is required"
-	}
-
 	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
@@ -162,14 +158,27 @@ func (s *service) CreateGallery(ctx context.Context, req GalleryRequest) pkg.Res
 
 	// Create gallery
 	timeNow := time.Now()
+
+	var mediaItems []media.Media
+	if len(req.Media) > 0 {
+		for _, m := range req.Media {
+			mediaItems = append(mediaItems, media.Media{
+				ID:      uuid.New().String(),
+				Type:    m.Type,
+				URL:     m.URL,
+				AltText: m.AltText,
+			})
+		}
+	}
+
 	gallery := &Gallery{
 		ID:          uuid.New().String(),
 		Title:       req.Title,
 		Category:    req.Category,
 		Description: req.Description,
-		Image:       req.Image,
 		Status:      status,
 		Views:       0,
+		Media:       mediaItems,
 		CreatedAt:   timeNow,
 		UpdatedAt:   timeNow,
 	}
@@ -242,11 +251,6 @@ func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGaller
 		}
 	}
 
-	// Validate and set image
-	if req.Image != "" {
-		updateData["image"] = req.Image
-	}
-
 	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
@@ -260,6 +264,28 @@ func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGaller
 
 	if err := s.repo.UpdateGallery(ctx, id, updateData); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update gallery", nil, nil)
+	}
+
+	// Update media if provided
+	if req.Media != nil {
+		var mediaItems []media.Media
+		for _, m := range req.Media {
+			mediaItems = append(mediaItems, media.Media{
+				ID:      uuid.New().String(),
+				Type:    m.Type,
+				URL:     m.URL,
+				AltText: m.AltText,
+			})
+		}
+		// We need the gallery object to update association, since we only have ID here and repository needs *Gallery
+		// relying on GORM association replace which needs model.
+		// Construct a minimal gallery object with ID is enough for association replace if we pass it to repo.
+		// However, repo method signature is UpdateGalleryMedia(ctx, gallery *Gallery, media []media.Media)
+		// and it uses Model(gallery).Association...
+		galleryForKey := &Gallery{ID: id}
+		if err := s.repo.UpdateGalleryMedia(ctx, galleryForKey, mediaItems); err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to update gallery media", nil, nil)
+		}
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Gallery updated successfully", nil, nil)

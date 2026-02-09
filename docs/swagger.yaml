@@ -535,18 +535,14 @@ paths:
         name: description
         required: true
         type: string
-      - description: Gallery Image File
-        in: formData
-        name: image
-        type: file
-      - description: Gallery Image URL (if not uploading file)
-        in: formData
-        name: image_url
-        type: string
       - description: Gallery Status
         in: formData
         name: status
         type: string
+      - description: Media Files (can be multiple)
+        in: formData
+        name: files
+        type: file
       produces:
       - application/json
       responses:
@@ -626,18 +622,14 @@ paths:
         in: formData
         name: description
         type: string
-      - description: Gallery Image File
-        in: formData
-        name: image
-        type: file
-      - description: Gallery Image URL (if not uploading file)
-        in: formData
-        name: image_url
-        type: string
       - description: Gallery Status
         in: formData
         name: status
         type: string
+      - description: Media Files (can be multiple)
+        in: formData
+        name: files
+        type: file
       produces:
       - application/json
       responses:

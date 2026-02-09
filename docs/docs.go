@@ -638,21 +638,15 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "type": "file",
-                        "description": "Gallery Image File",
-                        "name": "image",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Gallery Image URL (if not uploading file)",
-                        "name": "image_url",
-                        "in": "formData"
-                    },
-                    {
                         "type": "string",
                         "description": "Gallery Status",
                         "name": "status",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Media Files (can be multiple)",
+                        "name": "files",
                         "in": "formData"
                     }
                 ],
@@ -741,21 +735,15 @@ const docTemplate = `{
                         "in": "formData"
                     },
                     {
-                        "type": "file",
-                        "description": "Gallery Image File",
-                        "name": "image",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Gallery Image URL (if not uploading file)",
-                        "name": "image_url",
-                        "in": "formData"
-                    },
-                    {
                         "type": "string",
                         "description": "Gallery Status",
                         "name": "status",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Media Files (can be multiple)",
+                        "name": "files",
                         "in": "formData"
                     }
                 ],

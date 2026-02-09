@@ -3,6 +3,7 @@ package gallery
 import (
 	"context"
 
+	"github.com/Vilamuzz/yota-backend/app/media"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
 )
@@ -12,6 +13,7 @@ type Repository interface {
 	FetchGalleryByID(ctx context.Context, id string) (*Gallery, error)
 	CreateOneGallery(ctx context.Context, gallery *Gallery) error
 	UpdateGallery(ctx context.Context, id string, updateData map[string]interface{}) error
+	UpdateGalleryMedia(ctx context.Context, gallery *Gallery, media []media.Media) error
 	DeleteGallery(ctx context.Context, id string) error
 	IncrementViews(ctx context.Context, id string) error
 }
@@ -67,7 +69,7 @@ func (r *repository) FetchAllGalleries(ctx context.Context, options map[string]i
 
 func (r *repository) FetchGalleryByID(ctx context.Context, id string) (*Gallery, error) {
 	var gallery Gallery
-	if err := r.Conn.WithContext(ctx).Where("id = ?", id).First(&gallery).Error; err != nil {
+	if err := r.Conn.WithContext(ctx).Preload("Media").Where("id = ?", id).First(&gallery).Error; err != nil {
 		return nil, err
 	}
 	return &gallery, nil
@@ -79,6 +81,10 @@ func (r *repository) CreateOneGallery(ctx context.Context, gallery *Gallery) err
 
 func (r *repository) UpdateGallery(ctx context.Context, id string, updateData map[string]interface{}) error {
 	return r.Conn.WithContext(ctx).Model(&Gallery{}).Where("id = ?", id).Updates(updateData).Error
+}
+
+func (r *repository) UpdateGalleryMedia(ctx context.Context, gallery *Gallery, media []media.Media) error {
+	return r.Conn.WithContext(ctx).Model(gallery).Association("Media").Replace(media)
 }
 
 func (r *repository) DeleteGallery(ctx context.Context, id string) error {
