@@ -12,9 +12,9 @@ import (
 type Service interface {
 	FetchAllGalleries(ctx context.Context, queryParams GalleryQueryParams) pkg.Response
 	FetchGalleryByID(ctx context.Context, id string, incrementView bool) pkg.Response
-	Create(ctx context.Context, req GalleryRequest) pkg.Response
-	Update(ctx context.Context, id string, req UpdateGalleryRequest) pkg.Response
-	Delete(ctx context.Context, id string) pkg.Response
+	CreateGallery(ctx context.Context, req GalleryRequest) pkg.Response
+	UpdateGallery(ctx context.Context, id string, req UpdateGalleryRequest) pkg.Response
+	DeleteGallery(ctx context.Context, id string) pkg.Response
 }
 
 type service struct {
@@ -111,7 +111,7 @@ func (s *service) FetchGalleryByID(ctx context.Context, id string, incrementView
 	return pkg.NewResponse(http.StatusOK, "Success", nil, gallery)
 }
 
-func (s *service) Create(ctx context.Context, req GalleryRequest) pkg.Response {
+func (s *service) CreateGallery(ctx context.Context, req GalleryRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -174,14 +174,14 @@ func (s *service) Create(ctx context.Context, req GalleryRequest) pkg.Response {
 		UpdatedAt:   timeNow,
 	}
 
-	if err := s.repo.Create(ctx, gallery); err != nil {
+	if err := s.repo.CreateOneGallery(ctx, gallery); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create gallery", nil, nil)
 	}
 
 	return pkg.NewResponse(http.StatusCreated, "Gallery successfully created", nil, gallery)
 }
 
-func (s *service) Update(ctx context.Context, id string, req UpdateGalleryRequest) pkg.Response {
+func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGalleryRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -258,14 +258,14 @@ func (s *service) Update(ctx context.Context, id string, req UpdateGalleryReques
 	// Set updated_at
 	updateData["updated_at"] = time.Now()
 
-	if err := s.repo.Update(ctx, id, updateData); err != nil {
+	if err := s.repo.UpdateGallery(ctx, id, updateData); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update gallery", nil, nil)
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Gallery updated successfully", nil, nil)
 }
 
-func (s *service) Delete(ctx context.Context, id string) pkg.Response {
+func (s *service) DeleteGallery(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -280,7 +280,7 @@ func (s *service) Delete(ctx context.Context, id string) pkg.Response {
 		return pkg.NewResponse(http.StatusNotFound, "Gallery not found", nil, nil)
 	}
 
-	if err := s.repo.Delete(ctx, id); err != nil {
+	if err := s.repo.DeleteGallery(ctx, id); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to delete gallery", nil, nil)
 	}
 

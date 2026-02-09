@@ -125,7 +125,7 @@ func (h *handler) CreateGallery(c *gin.Context) {
 		req.Image = fileURL
 	}
 
-	res := h.service.Create(ctx, req)
+	res := h.service.CreateGallery(ctx, req)
 	c.JSON(res.Status, res)
 }
 
@@ -168,7 +168,7 @@ func (h *handler) UpdateGallery(c *gin.Context) {
 		req.Image = fileURL
 	}
 
-	res := h.service.Update(ctx, galleryID, req)
+	res := h.service.UpdateGallery(ctx, galleryID, req)
 	c.JSON(res.Status, res)
 }
 
@@ -187,6 +187,6 @@ func (h *handler) DeleteGallery(c *gin.Context) {
 	ctx := c.Request.Context()
 	galleryID := c.Param("id")
 
-	res := h.service.Delete(ctx, galleryID)
+	res := h.service.DeleteGallery(ctx, galleryID)
 	c.JSON(res.Status, res)
 }

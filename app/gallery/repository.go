@@ -10,9 +10,9 @@ import (
 type Repository interface {
 	FetchAllGalleries(ctx context.Context, options map[string]interface{}) ([]Gallery, error)
 	FetchGalleryByID(ctx context.Context, id string) (*Gallery, error)
-	Create(ctx context.Context, gallery *Gallery) error
-	Update(ctx context.Context, id string, updateData map[string]interface{}) error
-	Delete(ctx context.Context, id string) error
+	CreateOneGallery(ctx context.Context, gallery *Gallery) error
+	UpdateGallery(ctx context.Context, id string, updateData map[string]interface{}) error
+	DeleteGallery(ctx context.Context, id string) error
 	IncrementViews(ctx context.Context, id string) error
 }
 
@@ -73,15 +73,15 @@ func (r *repository) FetchGalleryByID(ctx context.Context, id string) (*Gallery,
 	return &gallery, nil
 }
 
-func (r *repository) Create(ctx context.Context, gallery *Gallery) error {
+func (r *repository) CreateOneGallery(ctx context.Context, gallery *Gallery) error {
 	return r.Conn.WithContext(ctx).Create(gallery).Error
 }
 
-func (r *repository) Update(ctx context.Context, id string, updateData map[string]interface{}) error {
+func (r *repository) UpdateGallery(ctx context.Context, id string, updateData map[string]interface{}) error {
 	return r.Conn.WithContext(ctx).Model(&Gallery{}).Where("id = ?", id).Updates(updateData).Error
 }
 
-func (r *repository) Delete(ctx context.Context, id string) error {
+func (r *repository) DeleteGallery(ctx context.Context, id string) error {
 	return r.Conn.WithContext(ctx).Where("id = ?", id).Delete(&Gallery{}).Error
 }
 
