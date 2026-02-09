@@ -6,18 +6,21 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/pkg"
+	"github.com/Vilamuzz/yota-backend/pkg/minio"
 	"github.com/gin-gonic/gin"
 )
 
 type handler struct {
-	service    Service
-	middleware middleware.AppMiddleware
+	service     Service
+	minioClient minio.Client
+	middleware  middleware.AppMiddleware
 }
 
-func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
+func NewHandler(r *gin.RouterGroup, s Service, minioClient minio.Client, m middleware.AppMiddleware) {
 	handler := &handler{
-		service:    s,
-		middleware: m,
+		service:     s,
+		minioClient: minioClient,
+		middleware:  m,
 	}
 	handler.RegisterRoutes(r)
 }
@@ -90,18 +93,36 @@ func (h *handler) GetGalleryByID(c *gin.Context) {
 // @Description Create a new gallery item (requires publication manager or superadmin role)
 // @Tags Gallery
 // @Security BearerAuth
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
-// @Param payload body GalleryRequest true "Create Gallery"
+// @Param title formData string true "Gallery Title"
+// @Param category formData string true "Gallery Category"
+// @Param description formData string true "Gallery Description"
+// @Param image formData file false "Gallery Image File"
+// @Param image_url formData string false "Gallery Image URL (if not uploading file)"
+// @Param status formData string false "Gallery Status"
 // @Success 201 {object} pkg.Response
 // @Router /api/galleries/ [post]
 func (h *handler) CreateGallery(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var req GalleryRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	// Attempt to bind multipart/form-data or JSON
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
 		return
+	}
+
+	// Handle file upload
+	file, err := c.FormFile("image")
+	if err == nil {
+		// File uploaded, save to MinIO
+		fileURL, err := h.minioClient.UploadFile(ctx, file, "galleries")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload image", nil, nil))
+			return
+		}
+		req.Image = fileURL
 	}
 
 	res := h.service.Create(ctx, req)
@@ -114,10 +135,15 @@ func (h *handler) CreateGallery(c *gin.Context) {
 // @Description Update an existing gallery item (requires publication manager or superadmin role)
 // @Tags Gallery
 // @Security BearerAuth
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
 // @Param id path string true "Gallery ID"
-// @Param payload body UpdateGalleryRequest true "Update Gallery"
+// @Param title formData string false "Gallery Title"
+// @Param category formData string false "Gallery Category"
+// @Param description formData string false "Gallery Description"
+// @Param image formData file false "Gallery Image File"
+// @Param image_url formData string false "Gallery Image URL (if not uploading file)"
+// @Param status formData string false "Gallery Status"
 // @Success 200 {object} pkg.Response
 // @Router /api/galleries/{id} [put]
 func (h *handler) UpdateGallery(c *gin.Context) {
@@ -125,9 +151,21 @@ func (h *handler) UpdateGallery(c *gin.Context) {
 	galleryID := c.Param("id")
 
 	var req UpdateGalleryRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
 		return
+	}
+
+	// Handle file upload
+	file, err := c.FormFile("image")
+	if err == nil {
+		// File uploaded, save to MinIO
+		fileURL, err := h.minioClient.UploadFile(ctx, file, "galleries")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload image", nil, nil))
+			return
+		}
+		req.Image = fileURL
 	}
 
 	res := h.service.Update(ctx, galleryID, req)

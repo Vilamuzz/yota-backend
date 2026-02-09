@@ -13,6 +13,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/news"
 	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/config"
+	minio_pkg "github.com/Vilamuzz/yota-backend/pkg/minio"
 	redis_pkg "github.com/Vilamuzz/yota-backend/pkg/redis"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -23,6 +24,7 @@ type Container struct {
 	// Infrastructure
 	DB          *gorm.DB
 	RedisClient *redis_pkg.Client
+	MinioClient minio_pkg.Client
 	Timeout     time.Duration
 
 	// Repositories
@@ -90,6 +92,10 @@ func (c *Container) initInfrastructure() error {
 		c.RedisClient = redisClient
 	}
 
+	// MinIO
+	minioClient := config.ConnectMinIO()
+	c.MinioClient = minio_pkg.NewClient(minioClient)
+
 	// Timeout
 	timeoutStr := os.Getenv("TIMEOUT")
 	if timeoutStr == "" {
@@ -129,7 +135,7 @@ func (c *Container) initMiddleware() {
 func (c *Container) RegisterHandlers(router *gin.RouterGroup) {
 	auth.NewHandler(router, c.AuthService, c.UserService, *c.Middleware)
 	user.NewHandler(router, c.UserService, *c.Middleware)
-	donation.NewHandler(router, c.DonationService, *c.Middleware)
-	news.NewHandler(router, c.NewsService, *c.Middleware)
-	gallery.NewHandler(router, c.GalleryService, *c.Middleware)
+	donation.NewHandler(router, c.DonationService, c.MinioClient, *c.Middleware)
+	news.NewHandler(router, c.NewsService, c.MinioClient, *c.Middleware)
+	gallery.NewHandler(router, c.GalleryService, c.MinioClient, *c.Middleware)
 }

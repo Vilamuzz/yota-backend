@@ -332,7 +332,7 @@ const docTemplate = `{
                 ],
                 "description": "Create a new donation entry (requires authentication and proper role)",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -343,13 +343,51 @@ const docTemplate = `{
                 "summary": "Create Donation",
                 "parameters": [
                     {
-                        "description": "Create Donation",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/donation.DonationRequest"
-                        }
+                        "type": "string",
+                        "description": "Donation Title",
+                        "name": "title",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Donation Description",
+                        "name": "description",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Donation Image File",
+                        "name": "image",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Donation Image URL",
+                        "name": "image_url",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Donation Category",
+                        "name": "category",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Fund Target",
+                        "name": "fund_target",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "End Date (RFC3339)",
+                        "name": "date_end",
+                        "in": "formData",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -401,7 +439,7 @@ const docTemplate = `{
                 ],
                 "description": "Update an existing donation (requires authentication and proper role)",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -419,13 +457,52 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Update Donation",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/donation.UpdateDonationRequest"
-                        }
+                        "type": "string",
+                        "description": "Donation Title",
+                        "name": "title",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Donation Description",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Donation Image File",
+                        "name": "image",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Donation Image URL",
+                        "name": "image_url",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Donation Category",
+                        "name": "category",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Fund Target",
+                        "name": "fund_target",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Status",
+                        "name": "status",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End Date (RFC3339)",
+                        "name": "date_end",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -529,7 +606,7 @@ const docTemplate = `{
                 ],
                 "description": "Create a new gallery item (requires publication manager or superadmin role)",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -540,13 +617,43 @@ const docTemplate = `{
                 "summary": "Create Gallery",
                 "parameters": [
                     {
-                        "description": "Create Gallery",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/gallery.GalleryRequest"
-                        }
+                        "type": "string",
+                        "description": "Gallery Title",
+                        "name": "title",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Gallery Category",
+                        "name": "category",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Gallery Description",
+                        "name": "description",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Gallery Image File",
+                        "name": "image",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Gallery Image URL (if not uploading file)",
+                        "name": "image_url",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Gallery Status",
+                        "name": "status",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -598,7 +705,7 @@ const docTemplate = `{
                 ],
                 "description": "Update an existing gallery item (requires publication manager or superadmin role)",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -616,13 +723,40 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Update Gallery",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/gallery.UpdateGalleryRequest"
-                        }
+                        "type": "string",
+                        "description": "Gallery Title",
+                        "name": "title",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Gallery Category",
+                        "name": "category",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Gallery Description",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Gallery Image File",
+                        "name": "image",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Gallery Image URL (if not uploading file)",
+                        "name": "image_url",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Gallery Status",
+                        "name": "status",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -830,7 +964,7 @@ const docTemplate = `{
                 ],
                 "description": "Create a new news article (requires publication manager or superadmin role)",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -841,13 +975,43 @@ const docTemplate = `{
                 "summary": "Create News",
                 "parameters": [
                     {
-                        "description": "Create News",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/news.NewsRequest"
-                        }
+                        "type": "string",
+                        "description": "News Title",
+                        "name": "title",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "News Category",
+                        "name": "category",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "News Content",
+                        "name": "content",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "News Image File",
+                        "name": "image",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "News Image URL (if not uploading file)",
+                        "name": "image_url",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "News Status",
+                        "name": "status",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -899,7 +1063,7 @@ const docTemplate = `{
                 ],
                 "description": "Update an existing news article (requires publication manager or superadmin role)",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -917,13 +1081,40 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Update News",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/news.UpdateNewsRequest"
-                        }
+                        "type": "string",
+                        "description": "News Title",
+                        "name": "title",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "News Category",
+                        "name": "category",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "News Content",
+                        "name": "content",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "News Image File",
+                        "name": "image",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "News Image URL (if not uploading file)",
+                        "name": "image_url",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "News Status",
+                        "name": "status",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -1166,368 +1357,6 @@ const docTemplate = `{
             "properties": {
                 "token": {
                     "type": "string"
-                }
-            }
-        },
-        "donation.Category": {
-            "type": "string",
-            "enum": [
-                "education",
-                "health",
-                "environment"
-            ],
-            "x-enum-varnames": [
-                "CategoryEducation",
-                "CategoryHealth",
-                "CategoryEnvironment"
-            ]
-        },
-        "donation.DonationRequest": {
-            "type": "object",
-            "required": [
-                "category",
-                "date_end",
-                "description",
-                "fund_target",
-                "title"
-            ],
-            "properties": {
-                "category": {
-                    "enum": [
-                        "education",
-                        "health",
-                        "environment"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/donation.Category"
-                        }
-                    ]
-                },
-                "date_end": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string",
-                    "maxLength": 2000,
-                    "minLength": 10
-                },
-                "fund_target": {
-                    "type": "number"
-                },
-                "image": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string",
-                    "maxLength": 200,
-                    "minLength": 3
-                }
-            }
-        },
-        "donation.Status": {
-            "type": "string",
-            "enum": [
-                "active",
-                "inactive",
-                "completed"
-            ],
-            "x-enum-varnames": [
-                "StatusActive",
-                "StatusInactive",
-                "StatusCompleted"
-            ]
-        },
-        "donation.UpdateDonationRequest": {
-            "type": "object",
-            "properties": {
-                "category": {
-                    "enum": [
-                        "education",
-                        "health",
-                        "environment"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/donation.Category"
-                        }
-                    ]
-                },
-                "date_end": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string",
-                    "maxLength": 2000,
-                    "minLength": 10
-                },
-                "fund_target": {
-                    "type": "number"
-                },
-                "image": {
-                    "type": "string"
-                },
-                "status": {
-                    "enum": [
-                        "active",
-                        "inactive",
-                        "completed"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/donation.Status"
-                        }
-                    ]
-                },
-                "title": {
-                    "type": "string",
-                    "maxLength": 200,
-                    "minLength": 3
-                }
-            }
-        },
-        "gallery.Category": {
-            "type": "string",
-            "enum": [
-                "photography",
-                "painting",
-                "sculpture",
-                "digital",
-                "mixed"
-            ],
-            "x-enum-varnames": [
-                "CategoryPhotography",
-                "CategoryPainting",
-                "CategorySculpture",
-                "CategoryDigital",
-                "CategoryMixed"
-            ]
-        },
-        "gallery.GalleryRequest": {
-            "type": "object",
-            "required": [
-                "category",
-                "description",
-                "image",
-                "title"
-            ],
-            "properties": {
-                "category": {
-                    "enum": [
-                        "photography",
-                        "painting",
-                        "sculpture",
-                        "digital",
-                        "mixed"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/gallery.Category"
-                        }
-                    ]
-                },
-                "description": {
-                    "type": "string",
-                    "maxLength": 1000,
-                    "minLength": 10
-                },
-                "image": {
-                    "type": "string"
-                },
-                "status": {
-                    "enum": [
-                        "active",
-                        "inactive",
-                        "archived"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/gallery.Status"
-                        }
-                    ]
-                },
-                "title": {
-                    "type": "string",
-                    "maxLength": 200,
-                    "minLength": 3
-                }
-            }
-        },
-        "gallery.Status": {
-            "type": "string",
-            "enum": [
-                "active",
-                "inactive",
-                "archived"
-            ],
-            "x-enum-varnames": [
-                "StatusActive",
-                "StatusInactive",
-                "StatusArchived"
-            ]
-        },
-        "gallery.UpdateGalleryRequest": {
-            "type": "object",
-            "properties": {
-                "category": {
-                    "enum": [
-                        "photography",
-                        "painting",
-                        "sculpture",
-                        "digital",
-                        "mixed"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/gallery.Category"
-                        }
-                    ]
-                },
-                "description": {
-                    "type": "string",
-                    "maxLength": 1000,
-                    "minLength": 10
-                },
-                "image": {
-                    "type": "string"
-                },
-                "status": {
-                    "enum": [
-                        "active",
-                        "inactive",
-                        "archived"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/gallery.Status"
-                        }
-                    ]
-                },
-                "title": {
-                    "type": "string",
-                    "maxLength": 200,
-                    "minLength": 3
-                }
-            }
-        },
-        "news.Category": {
-            "type": "string",
-            "enum": [
-                "general",
-                "event",
-                "announcement",
-                "donation",
-                "social"
-            ],
-            "x-enum-varnames": [
-                "CategoryGeneral",
-                "CategoryEvent",
-                "CategoryAnnouncement",
-                "CategoryDonation",
-                "CategorySocial"
-            ]
-        },
-        "news.NewsRequest": {
-            "type": "object",
-            "required": [
-                "category",
-                "content",
-                "title"
-            ],
-            "properties": {
-                "category": {
-                    "enum": [
-                        "general",
-                        "event",
-                        "announcement",
-                        "donation",
-                        "social"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/news.Category"
-                        }
-                    ]
-                },
-                "content": {
-                    "type": "string",
-                    "minLength": 50
-                },
-                "image": {
-                    "type": "string"
-                },
-                "status": {
-                    "enum": [
-                        "draft",
-                        "published",
-                        "archived"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/news.Status"
-                        }
-                    ]
-                },
-                "title": {
-                    "type": "string",
-                    "maxLength": 200,
-                    "minLength": 5
-                }
-            }
-        },
-        "news.Status": {
-            "type": "string",
-            "enum": [
-                "draft",
-                "published",
-                "archived"
-            ],
-            "x-enum-varnames": [
-                "StatusDraft",
-                "StatusPublished",
-                "StatusArchived"
-            ]
-        },
-        "news.UpdateNewsRequest": {
-            "type": "object",
-            "properties": {
-                "category": {
-                    "enum": [
-                        "general",
-                        "event",
-                        "announcement",
-                        "donation",
-                        "social"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/news.Category"
-                        }
-                    ]
-                },
-                "content": {
-                    "type": "string",
-                    "minLength": 50
-                },
-                "image": {
-                    "type": "string"
-                },
-                "status": {
-                    "enum": [
-                        "draft",
-                        "published",
-                        "archived"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/news.Status"
-                        }
-                    ]
-                },
-                "title": {
-                    "type": "string",
-                    "maxLength": 200,
-                    "minLength": 5
                 }
             }
         },

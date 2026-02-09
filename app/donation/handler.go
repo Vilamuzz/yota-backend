@@ -6,18 +6,21 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/pkg"
+	"github.com/Vilamuzz/yota-backend/pkg/minio"
 	"github.com/gin-gonic/gin"
 )
 
 type handler struct {
-	service    Service
-	middleware middleware.AppMiddleware
+	service     Service
+	minioClient minio.Client
+	middleware  middleware.AppMiddleware
 }
 
-func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
+func NewHandler(r *gin.RouterGroup, s Service, minioClient minio.Client, m middleware.AppMiddleware) {
 	handler := &handler{
-		service:    s,
-		middleware: m,
+		service:     s,
+		minioClient: minioClient,
+		middleware:  m,
 	}
 	handler.RegisterRoutes(r)
 }
@@ -89,18 +92,36 @@ func (h *handler) GetDonationByID(c *gin.Context) {
 // @Description Create a new donation entry (requires authentication and proper role)
 // @Tags Donations
 // @Security BearerAuth
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
-// @Param payload body DonationRequest true "Create Donation"
+// @Param title formData string true "Donation Title"
+// @Param description formData string true "Donation Description"
+// @Param image formData file false "Donation Image File"
+// @Param image_url formData string false "Donation Image URL"
+// @Param category formData string true "Donation Category"
+// @Param fund_target formData number true "Fund Target"
+// @Param date_end formData string true "End Date (RFC3339)"
 // @Success 201 {object} pkg.Response
 // @Router /api/donations/ [post]
 func (h *handler) CreateDonation(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var req DonationRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
 		return
+	}
+
+	// Handle file upload
+	file, err := c.FormFile("image")
+	if err == nil {
+		// File uploaded, save to MinIO
+		fileURL, err := h.minioClient.UploadFile(ctx, file, "donations")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload image", nil, nil))
+			return
+		}
+		req.Image = fileURL
 	}
 
 	res := h.service.Create(ctx, req)
@@ -113,10 +134,17 @@ func (h *handler) CreateDonation(c *gin.Context) {
 // @Description Update an existing donation (requires authentication and proper role)
 // @Tags Donations
 // @Security BearerAuth
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
 // @Param id path string true "Donation ID"
-// @Param payload body UpdateDonationRequest true "Update Donation"
+// @Param title formData string false "Donation Title"
+// @Param description formData string false "Donation Description"
+// @Param image formData file false "Donation Image File"
+// @Param image_url formData string false "Donation Image URL"
+// @Param category formData string false "Donation Category"
+// @Param fund_target formData number false "Fund Target"
+// @Param status formData string false "Status"
+// @Param date_end formData string false "End Date (RFC3339)"
 // @Success 200 {object} pkg.Response
 // @Router /api/donations/{id} [put]
 func (h *handler) UpdateDonation(c *gin.Context) {
@@ -124,9 +152,21 @@ func (h *handler) UpdateDonation(c *gin.Context) {
 	donationID := c.Param("id")
 
 	var req UpdateDonationRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
 		return
+	}
+
+	// Handle file upload
+	file, err := c.FormFile("image")
+	if err == nil {
+		// File uploaded, save to MinIO
+		fileURL, err := h.minioClient.UploadFile(ctx, file, "donations")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload image", nil, nil))
+			return
+		}
+		req.Image = fileURL
 	}
 
 	res := h.service.Update(ctx, donationID, req)
