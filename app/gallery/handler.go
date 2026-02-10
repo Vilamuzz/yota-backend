@@ -149,24 +149,24 @@ func (h *handler) UpdateGallery(c *gin.Context) {
 	galleryID := c.Param("id")
 
 	var req UpdateGalleryRequest
-	if err := c.ShouldBind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
-		return
-	}
-
-	// Handle file upload
-	form, err := c.MultipartForm()
-	if err == nil {
-		files := form.File["files"]
-		if len(files) > 0 {
-			mediaItems, err := h.mediaService.UploadMedia(ctx, files, "galleries")
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload file", nil, nil))
-				return
-			}
-			req.Media = append(req.Media, mediaItems...)
+		if err := c.ShouldBind(&req); err != nil {
+			c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
+			return
 		}
-	}
+
+		// Handle file upload
+		form, err := c.MultipartForm()
+		if err == nil {
+			files := form.File["files"]
+			if len(files) > 0 {
+				mediaItems, err := h.mediaService.UploadMedia(ctx, files, "galleries")
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload file", nil, nil))
+					return
+				}
+				req.Media = append(req.Media, mediaItems...)
+			}
+		}
 
 	res := h.service.UpdateGallery(ctx, galleryID, req)
 	c.JSON(res.Status, res)

@@ -272,20 +272,48 @@ func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGaller
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update gallery", nil, nil)
 	}
 
-	// Update media if provided
+	// Update media if provided - granular operations
 	if req.Media != nil {
-		var mediaItems []media.Media
-		for _, m := range req.Media {
-			mediaItems = append(mediaItems, media.Media{
-				ID:      uuid.New().String(),
-				Type:    m.Type,
-				URL:     m.URL,
-				AltText: m.AltText,
-			})
+		// 1. Fetch current gallery media
+		existingMedia, err := s.mediaService.FetchEntityMedia(ctx, id, "galleries")
+		if err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch gallery media", nil, nil)
 		}
-		galleryForKey := &Gallery{ID: id}
-		if err := s.repo.UpdateGalleryMedia(ctx, galleryForKey, mediaItems); err != nil {
-			return pkg.NewResponse(http.StatusInternalServerError, "Failed to update gallery media", nil, nil)
+
+		// 2. Build map of media IDs from request
+		requestedMediaIDs := make(map[string]bool)
+		var newMediaRequests []media.MediaRequest
+
+		for _, m := range req.Media {
+			if m.ID != "" {
+				// This is an existing media to keep
+				requestedMediaIDs[m.ID] = true
+			} else {
+				// This is new media to add
+				newMediaRequests = append(newMediaRequests, m)
+			}
+		}
+
+		// 3. Delete media that are not in the request (removed by user)
+		for _, existingItem := range existingMedia {
+			if !requestedMediaIDs[existingItem.ID] {
+				// Media not in request, delete it (this also deletes from MinIO)
+				if err := s.mediaService.DeleteMediaByID(ctx, existingItem.ID); err != nil {
+					// Log error but continue with other operations
+					continue
+				}
+			}
+		}
+
+		// 4. Create new media items
+		if len(newMediaRequests) > 0 {
+			// Generate IDs for new media
+			for i := range newMediaRequests {
+				newMediaRequests[i].ID = uuid.New().String()
+			}
+			if err := s.mediaService.CreateEntityMedia(ctx, id, "galleries", newMediaRequests); err != nil {
+				return pkg.NewResponse(http.StatusInternalServerError, "Failed to create new gallery media", nil, nil)
+			}
 		}
 	}
 

@@ -7,7 +7,7 @@ type GalleryRequest struct {
 	Category    Category    `json:"category" form:"category" binding:"required,oneof=photography painting sculpture digital mixed"`
 	Description string      `json:"description" form:"description" binding:"required,min=10,max=1000"`
 	Status      Status      `json:"status" form:"status" binding:"omitempty,oneof=active inactive archived"`
-	Media       []media.MediaItem `json:"media" binding:"omitempty,dive"`
+	Media       []media.MediaRequest `json:"media" binding:"omitempty,dive"`
 }
 
 type UpdateGalleryRequest struct {
@@ -15,7 +15,7 @@ type UpdateGalleryRequest struct {
 	Category    Category          `json:"category" form:"category" binding:"omitempty,oneof=photography painting sculpture digital mixed"`
 	Description string            `json:"description" form:"description" binding:"omitempty,min=10,max=1000"`
 	Status      Status            `json:"status" form:"status" binding:"omitempty,oneof=active inactive archived"`
-	Media       []media.MediaItem `json:"media" binding:"omitempty,dive"`
+	Media       []media.MediaRequest `json:"media" binding:"omitempty,dive"`
 }
 
 type GalleryQueryParams struct {

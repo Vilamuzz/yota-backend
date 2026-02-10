@@ -8,8 +8,11 @@ import (
 )
 
 type Service interface {
-	UploadMedia(ctx context.Context, files []*multipart.FileHeader, prefix string) ([]MediaItem, error)
+	UploadMedia(ctx context.Context, files []*multipart.FileHeader, prefix string) ([]MediaRequest, error)
 	DeleteEntityMedia(ctx context.Context, entityID string) error
+	CreateEntityMedia(ctx context.Context, entityID, entityType string, mediaRequests []MediaRequest) error
+	DeleteMediaByID(ctx context.Context, mediaID string) error
+	FetchEntityMedia(ctx context.Context, entityID, entityType string) ([]Media, error)
 }
 
 type service struct {
@@ -24,8 +27,8 @@ func NewService(repo Repository, minioClient minio.Client) Service {
 	}
 }
 
-func (s *service) UploadMedia(ctx context.Context, files []*multipart.FileHeader, prefix string) ([]MediaItem, error) {
-	var mediaItems []MediaItem
+func (s *service) UploadMedia(ctx context.Context, files []*multipart.FileHeader, prefix string) ([]MediaRequest, error) {
+	var mediaItems []MediaRequest
 
 	for _, file := range files {
 		// Determine folder based on file type (image or video)
@@ -46,7 +49,7 @@ func (s *service) UploadMedia(ctx context.Context, files []*multipart.FileHeader
 			return nil, err
 		}
 
-		mediaItems = append(mediaItems, MediaItem{
+		mediaItems = append(mediaItems, MediaRequest{
 			URL:     fileURL,
 			Type:    mediaType,
 			AltText: file.Filename,
@@ -76,4 +79,38 @@ func (s *service) DeleteEntityMedia(ctx context.Context, entityID string) error 
 
 	// Delete media records from database
 	return s.repo.DeleteEntityMedia(ctx, entityID)
+}
+
+func (s *service) CreateEntityMedia(ctx context.Context, entityID, entityType string, mediaRequests []MediaRequest) error {
+	var mediaItems []Media
+	for _, m := range mediaRequests {
+		mediaItems = append(mediaItems, Media{
+			ID:      m.ID,
+			Type:    m.Type,
+			URL:     m.URL,
+			AltText: m.AltText,
+		})
+	}
+	return s.repo.CreateEntityMedia(ctx, entityID, entityType, mediaItems)
+}
+
+func (s *service) DeleteMediaByID(ctx context.Context, mediaID string) error {
+	// Delete media and get its info for MinIO cleanup
+	media, err := s.repo.DeleteMediaByID(ctx, mediaID)
+	if err != nil {
+		return err
+	}
+
+	// Delete file from MinIO
+	objectName := minio.ExtractObjectNameFromURL(media.URL)
+	if objectName != "" {
+		// Ignore error if file doesn't exist
+		_ = s.minioClient.DeleteFile(ctx, objectName)
+	}
+
+	return nil
+}
+
+func (s *service) FetchEntityMedia(ctx context.Context, entityID, entityType string) ([]Media, error) {
+	return s.repo.FetchEntityMedia(ctx, entityID)
 }
