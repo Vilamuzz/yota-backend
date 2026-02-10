@@ -25,7 +25,7 @@ type client struct {
 }
 
 func NewClient(minioClient *minio.Client) Client {
-	bucketName := os.Getenv("MINIO_BUCKET")
+	bucketName := os.Getenv("MINIO_BUCKET_NAME")
 	if bucketName == "" {
 		bucketName = "default-bucket"
 	}

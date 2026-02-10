@@ -9,6 +9,7 @@ import (
 type Gallery struct {
 	ID          string        `json:"id" gorm:"primary_key"`
 	Title       string        `json:"title" gorm:"not null"`
+	Slug        string        `json:"slug" gorm:"unique;not null"`
 	Category    Category      `json:"category" gorm:"not null"`
 	Description string        `json:"description" gorm:"not null"`
 	Status      Status        `json:"status" gorm:"type:varchar(20);not null;default:'active'"`

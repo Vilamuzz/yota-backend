@@ -9,6 +9,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/auth"
 	"github.com/Vilamuzz/yota-backend/app/donation"
 	"github.com/Vilamuzz/yota-backend/app/gallery"
+	"github.com/Vilamuzz/yota-backend/app/media"
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/app/news"
 	"github.com/Vilamuzz/yota-backend/app/user"
@@ -33,6 +34,7 @@ type Container struct {
 	DonationRepo donation.Repository
 	NewsRepo     news.Repository
 	GalleryRepo  gallery.Repository
+	MediaRepo    media.Repository
 
 	// Services
 	AuthService     auth.Service
@@ -40,6 +42,7 @@ type Container struct {
 	DonationService donation.Service
 	NewsService     news.Service
 	GalleryService  gallery.Service
+	MediaService    media.Service
 
 	// Middleware
 	Middleware *middleware.AppMiddleware
@@ -113,14 +116,16 @@ func (c *Container) initRepositories() {
 	c.DonationRepo = donation.NewRepository(c.DB)
 	c.NewsRepo = news.NewRepository(c.DB)
 	c.GalleryRepo = gallery.NewRepository(c.DB)
+	c.MediaRepo = media.NewRepository(c.DB)
 }
 
 func (c *Container) initServices() {
-	c.AuthService = auth.NewService(c.UserRepo, c.AuthRepo, c.Timeout)
+	c.AuthService = auth.NewService(c.AuthRepo, c.UserRepo, c.Timeout)
 	c.UserService = user.NewService(c.UserRepo, c.Timeout)
 	c.DonationService = donation.NewService(c.DonationRepo, c.Timeout)
 	c.NewsService = news.NewService(c.NewsRepo, c.Timeout)
-	c.GalleryService = gallery.NewService(c.GalleryRepo, c.Timeout)
+	c.MediaService = media.NewService(c.MediaRepo, c.MinioClient)
+	c.GalleryService = gallery.NewService(c.GalleryRepo, c.MediaService, c.Timeout)
 }
 
 func (c *Container) initMiddleware() {
@@ -137,5 +142,5 @@ func (c *Container) RegisterHandlers(router *gin.RouterGroup) {
 	user.NewHandler(router, c.UserService, *c.Middleware)
 	donation.NewHandler(router, c.DonationService, c.MinioClient, *c.Middleware)
 	news.NewHandler(router, c.NewsService, c.MinioClient, *c.Middleware)
-	gallery.NewHandler(router, c.GalleryService, c.MinioClient, *c.Middleware)
+	gallery.NewHandler(router, c.GalleryService, c.MediaService, *c.Middleware)
 }

@@ -7,21 +7,20 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/pkg"
-	"github.com/Vilamuzz/yota-backend/pkg/minio"
 	"github.com/gin-gonic/gin"
 )
 
 type handler struct {
-	service     Service
-	minioClient minio.Client
-	middleware  middleware.AppMiddleware
+	service      Service
+	mediaService media.Service
+	middleware   middleware.AppMiddleware
 }
 
-func NewHandler(r *gin.RouterGroup, s Service, minioClient minio.Client, m middleware.AppMiddleware) {
+func NewHandler(r *gin.RouterGroup, s Service, ms media.Service, m middleware.AppMiddleware) {
 	handler := &handler{
-		service:     s,
-		minioClient: minioClient,
-		middleware:  m,
+		service:      s,
+		mediaService: ms,
+		middleware:   m,
 	}
 	handler.RegisterRoutes(r)
 }
@@ -100,7 +99,7 @@ func (h *handler) GetGalleryByID(c *gin.Context) {
 // @Param category formData string true "Gallery Category"
 // @Param description formData string true "Gallery Description"
 // @Param status formData string false "Gallery Status"
-// @Param files formData file false "Media Files (can be multiple)"
+// @Param files formData file true "Media Files (can be multiple)"
 // @Success 201 {object} pkg.Response
 // @Router /api/galleries/ [post]
 func (h *handler) CreateGallery(c *gin.Context) {
@@ -114,40 +113,15 @@ func (h *handler) CreateGallery(c *gin.Context) {
 	}
 
 	// Handle file upload
-	contentType := c.GetHeader("Content-Type")
-	if contentType != "" && (contentType == "application/x-www-form-urlencoded" ||
-		(len(contentType) >= 19 && contentType[:19] == "multipart/form-data")) {
-
-		form, err := c.MultipartForm()
-		if err == nil {
-			files := form.File["files"]
-			for _, file := range files {
-				// Determine folder based on file type (image or video)
-				folder := "galleries/others"
-				mediaType := "image" // Default
-				mimeType := file.Header.Get("Content-Type")
-
-				if len(mimeType) >= 5 && mimeType[:5] == "image" {
-					folder = "galleries/images"
-					mediaType = "image"
-				} else if len(mimeType) >= 5 && mimeType[:5] == "video" {
-					folder = "galleries/videos"
-					mediaType = "video"
-				}
-
-				fileURL, err := h.minioClient.UploadFile(ctx, file, folder)
-				if err != nil {
-					c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload file", nil, nil))
-					return
-				}
-
-				req.Media = append(req.Media, media.MediaItem{
-					URL:     fileURL,
-					Type:    mediaType,
-					AltText: file.Filename,
-				})
-			}
+	form, err := c.MultipartForm()
+	if err == nil {
+		files := form.File["files"]
+		mediaItems, err := h.mediaService.UploadMedia(ctx, files, "galleries")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload file", nil, nil))
+			return
 		}
+		req.Media = append(req.Media, mediaItems...)
 	}
 
 	res := h.service.CreateGallery(ctx, req)
@@ -181,39 +155,16 @@ func (h *handler) UpdateGallery(c *gin.Context) {
 	}
 
 	// Handle file upload
-	contentType := c.GetHeader("Content-Type")
-	if contentType != "" && (contentType == "application/x-www-form-urlencoded" ||
-		(len(contentType) >= 19 && contentType[:19] == "multipart/form-data")) {
-
-		form, err := c.MultipartForm()
-		if err == nil {
-			files := form.File["files"]
-			for _, file := range files {
-				// Determine folder based on file type (image or video)
-				folder := "galleries/others"
-				mediaType := "image" // Default
-				mimeType := file.Header.Get("Content-Type")
-
-				if len(mimeType) >= 5 && mimeType[:5] == "image" {
-					folder = "galleries/images"
-					mediaType = "image"
-				} else if len(mimeType) >= 5 && mimeType[:5] == "video" {
-					folder = "galleries/videos"
-					mediaType = "video"
-				}
-
-				fileURL, err := h.minioClient.UploadFile(ctx, file, folder)
-				if err != nil {
-					c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload file", nil, nil))
-					return
-				}
-
-				req.Media = append(req.Media, media.MediaItem{
-					URL:     fileURL,
-					Type:    mediaType,
-					AltText: file.Filename,
-				})
+	form, err := c.MultipartForm()
+	if err == nil {
+		files := form.File["files"]
+		if len(files) > 0 {
+			mediaItems, err := h.mediaService.UploadMedia(ctx, files, "galleries")
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload file", nil, nil))
+				return
 			}
+			req.Media = append(req.Media, mediaItems...)
 		}
 	}
 

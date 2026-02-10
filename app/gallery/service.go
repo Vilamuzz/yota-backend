@@ -19,14 +19,17 @@ type Service interface {
 }
 
 type service struct {
-	repo    Repository
-	timeout time.Duration
+	repo         Repository
+	timeout      time.Duration
+	mediaRepo    media.Repository
+	mediaService media.Service
 }
 
-func NewService(repo Repository, timeout time.Duration) Service {
+func NewService(repo Repository, mediaService media.Service, timeout time.Duration) Service {
 	return &service{
-		repo:    repo,
-		timeout: timeout,
+		repo:         repo,
+		mediaService: mediaService,
+		timeout:      timeout,
 	}
 }
 
@@ -146,6 +149,11 @@ func (s *service) CreateGallery(ctx context.Context, req GalleryRequest) pkg.Res
 		errValidation["category"] = "Invalid category. Must be: photography, painting, sculpture, digital, or mixed"
 	}
 
+	// Validate media
+	if len(req.Media) <= 0 {
+		errValidation["media"] = "Media is required"
+	}
+
 	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
@@ -160,15 +168,13 @@ func (s *service) CreateGallery(ctx context.Context, req GalleryRequest) pkg.Res
 	timeNow := time.Now()
 
 	var mediaItems []media.Media
-	if len(req.Media) > 0 {
-		for _, m := range req.Media {
-			mediaItems = append(mediaItems, media.Media{
-				ID:      uuid.New().String(),
-				Type:    m.Type,
-				URL:     m.URL,
-				AltText: m.AltText,
-			})
-		}
+	for _, m := range req.Media {
+		mediaItems = append(mediaItems, media.Media{
+			ID:      uuid.New().String(),
+			Type:    m.Type,
+			URL:     m.URL,
+			AltText: m.AltText,
+		})
 	}
 
 	gallery := &Gallery{
@@ -277,11 +283,6 @@ func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGaller
 				AltText: m.AltText,
 			})
 		}
-		// We need the gallery object to update association, since we only have ID here and repository needs *Gallery
-		// relying on GORM association replace which needs model.
-		// Construct a minimal gallery object with ID is enough for association replace if we pass it to repo.
-		// However, repo method signature is UpdateGalleryMedia(ctx, gallery *Gallery, media []media.Media)
-		// and it uses Model(gallery).Association...
 		galleryForKey := &Gallery{ID: id}
 		if err := s.repo.UpdateGalleryMedia(ctx, galleryForKey, mediaItems); err != nil {
 			return pkg.NewResponse(http.StatusInternalServerError, "Failed to update gallery media", nil, nil)
@@ -304,6 +305,11 @@ func (s *service) DeleteGallery(ctx context.Context, id string) pkg.Response {
 	_, err := s.repo.FetchGalleryByID(ctx, id)
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "Gallery not found", nil, nil)
+	}
+
+	// Delete media files from MinIO and database
+	if err := s.mediaService.DeleteEntityMedia(ctx, id); err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to delete gallery media", nil, nil)
 	}
 
 	if err := s.repo.DeleteGallery(ctx, id); err != nil {
