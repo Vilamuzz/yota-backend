@@ -1,6 +1,7 @@
 package gallery
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/Vilamuzz/yota-backend/app/media"
@@ -141,6 +142,7 @@ func (h *handler) CreateGallery(c *gin.Context) {
 // @Param category formData string false "Gallery Category"
 // @Param description formData string false "Gallery Description"
 // @Param status formData string false "Gallery Status"
+// @Param existing_media formData string false "Existing media JSON array"
 // @Param files formData file false "Media Files (can be multiple)"
 // @Success 200 {object} pkg.Response
 // @Router /api/galleries/{id} [put]
@@ -149,24 +151,37 @@ func (h *handler) UpdateGallery(c *gin.Context) {
 	galleryID := c.Param("id")
 
 	var req UpdateGalleryRequest
-		if err := c.ShouldBind(&req); err != nil {
-			c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
+	if err := c.ShouldBind(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
+		return
+	}
+
+	// Parse existing_media if provided
+	existingMediaJSON := c.PostForm("existing_media")
+	if existingMediaJSON != "" {
+		var existingMedia []media.MediaRequest
+		if err := json.Unmarshal([]byte(existingMediaJSON), &existingMedia); err != nil {
+			c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid existing_media format", nil, nil))
 			return
 		}
+		req.Media = existingMedia
+	}
 
-		// Handle file upload
-		form, err := c.MultipartForm()
-		if err == nil {
-			files := form.File["files"]
-			if len(files) > 0 {
-				mediaItems, err := h.mediaService.UploadMedia(ctx, files, "galleries")
-				if err != nil {
-					c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload file", nil, nil))
-					return
-				}
-				req.Media = append(req.Media, mediaItems...)
+	// Handle new file uploads
+	form, err := c.MultipartForm()
+	if err == nil {
+		files := form.File["files"]
+		if len(files) > 0 {
+			// Upload new files
+			newMediaItems, err := h.mediaService.UploadMedia(ctx, files, "galleries")
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload files", nil, nil))
+				return
 			}
+			// Append new media to existing media
+			req.Media = append(req.Media, newMediaItems...)
 		}
+	}
 
 	res := h.service.UpdateGallery(ctx, galleryID, req)
 	c.JSON(res.Status, res)

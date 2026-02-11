@@ -261,58 +261,67 @@ func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGaller
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
 
-	if len(updateData) == 0 {
+	if len(updateData) == 0 && req.Media == nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"update_data": "No fields to update"}, nil)
 	}
 
-	// Set updated_at
-	updateData["updated_at"] = time.Now()
+	// Update basic gallery fields if there are any changes
+	if len(updateData) > 0 {
+		// Set updated_at
+		updateData["updated_at"] = time.Now()
 
-	if err := s.repo.UpdateGallery(ctx, id, updateData); err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update gallery", nil, nil)
+		if err := s.repo.UpdateGallery(ctx, id, updateData); err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to update gallery", nil, nil)
+		}
 	}
 
-	// Update media if provided - granular operations
+	// Handle media updates if provided
 	if req.Media != nil {
-		// 1. Fetch current gallery media
+		// Fetch existing media
 		existingMedia, err := s.mediaService.FetchEntityMedia(ctx, id, "galleries")
 		if err != nil {
-			return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch gallery media", nil, nil)
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch existing media", nil, nil)
 		}
 
-		// 2. Build map of media IDs from request
-		requestedMediaIDs := make(map[string]bool)
-		var newMediaRequests []media.MediaRequest
+		// Create a map of existing media IDs
+		existingMediaMap := make(map[string]bool)
+		for _, item := range existingMedia {
+			existingMediaMap[item.ID] = true
+		}
 
-		for _, m := range req.Media {
-			if m.ID != "" {
-				// This is an existing media to keep
-				requestedMediaIDs[m.ID] = true
+		// Create a map of requested media IDs
+		requestedMediaMap := make(map[string]bool)
+		var newMedia []media.MediaRequest
+
+		for _, item := range req.Media {
+			if item.ID != "" {
+				// This is existing media that should be kept
+				requestedMediaMap[item.ID] = true
 			} else {
-				// This is new media to add
-				newMediaRequests = append(newMediaRequests, m)
+				// This is new media to be created
+				newMedia = append(newMedia, item)
 			}
 		}
 
-		// 3. Delete media that are not in the request (removed by user)
-		for _, existingItem := range existingMedia {
-			if !requestedMediaIDs[existingItem.ID] {
-				// Media not in request, delete it (this also deletes from MinIO)
-				if err := s.mediaService.DeleteMediaByID(ctx, existingItem.ID); err != nil {
-					// Log error but continue with other operations
+		// Delete media that are no longer in the request
+		for _, item := range existingMedia {
+			if !requestedMediaMap[item.ID] {
+				// Media should be deleted
+				if err := s.mediaService.DeleteMediaByID(ctx, item.ID); err != nil {
+					// Log error but continue
 					continue
 				}
 			}
 		}
 
-		// 4. Create new media items
-		if len(newMediaRequests) > 0 {
+		// Create new media
+		if len(newMedia) > 0 {
 			// Generate IDs for new media
-			for i := range newMediaRequests {
-				newMediaRequests[i].ID = uuid.New().String()
+			for i := range newMedia {
+				newMedia[i].ID = uuid.New().String()
 			}
-			if err := s.mediaService.CreateEntityMedia(ctx, id, "galleries", newMediaRequests); err != nil {
-				return pkg.NewResponse(http.StatusInternalServerError, "Failed to create new gallery media", nil, nil)
+			if err := s.mediaService.CreateEntityMedia(ctx, id, "galleries", newMedia); err != nil {
+				return pkg.NewResponse(http.StatusInternalServerError, "Failed to create new media", nil, nil)
 			}
 		}
 	}
