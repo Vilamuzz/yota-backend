@@ -2,6 +2,7 @@ package gallery
 
 import (
 	"encoding/json"
+	"mime/multipart"
 	"net/http"
 
 	"github.com/Vilamuzz/yota-backend/app/media"
@@ -113,19 +114,14 @@ func (h *handler) CreateGallery(c *gin.Context) {
 		return
 	}
 
-	// Handle file upload
-	form, err := c.MultipartForm()
-	if err == nil {
-		files := form.File["files"]
-		mediaItems, err := h.mediaService.UploadMedia(ctx, files, "galleries")
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload file", nil, nil))
-			return
-		}
-		req.Media = append(req.Media, mediaItems...)
+	// Get uploaded files
+	form, _ := c.MultipartForm()
+	var files []*multipart.FileHeader
+	if form != nil {
+		files = form.File["files"]
 	}
 
-	res := h.service.CreateGallery(ctx, req)
+	res := h.service.CreateGallery(ctx, req, files)
 	c.JSON(res.Status, res)
 }
 
@@ -167,23 +163,14 @@ func (h *handler) UpdateGallery(c *gin.Context) {
 		req.Media = existingMedia
 	}
 
-	// Handle new file uploads
-	form, err := c.MultipartForm()
-	if err == nil {
-		files := form.File["files"]
-		if len(files) > 0 {
-			// Upload new files
-			newMediaItems, err := h.mediaService.UploadMedia(ctx, files, "galleries")
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload files", nil, nil))
-				return
-			}
-			// Append new media to existing media
-			req.Media = append(req.Media, newMediaItems...)
-		}
+	// Get uploaded files
+	form, _ := c.MultipartForm()
+	var files []*multipart.FileHeader
+	if form != nil {
+		files = form.File["files"]
 	}
 
-	res := h.service.UpdateGallery(ctx, galleryID, req)
+	res := h.service.UpdateGallery(ctx, galleryID, req, files)
 	c.JSON(res.Status, res)
 }
 

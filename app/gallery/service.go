@@ -2,6 +2,7 @@ package gallery
 
 import (
 	"context"
+	"mime/multipart"
 	"net/http"
 	"time"
 
@@ -13,8 +14,8 @@ import (
 type Service interface {
 	FetchAllGalleries(ctx context.Context, queryParams GalleryQueryParams) pkg.Response
 	FetchGalleryByID(ctx context.Context, id string, incrementView bool) pkg.Response
-	CreateGallery(ctx context.Context, req GalleryRequest) pkg.Response
-	UpdateGallery(ctx context.Context, id string, req UpdateGalleryRequest) pkg.Response
+	CreateGallery(ctx context.Context, req GalleryRequest, files []*multipart.FileHeader) pkg.Response
+	UpdateGallery(ctx context.Context, id string, req UpdateGalleryRequest, files []*multipart.FileHeader) pkg.Response
 	DeleteGallery(ctx context.Context, id string) pkg.Response
 }
 
@@ -115,7 +116,7 @@ func (s *service) FetchGalleryByID(ctx context.Context, id string, incrementView
 	return pkg.NewResponse(http.StatusOK, "Success", nil, gallery)
 }
 
-func (s *service) CreateGallery(ctx context.Context, req GalleryRequest) pkg.Response {
+func (s *service) CreateGallery(ctx context.Context, req GalleryRequest, files []*multipart.FileHeader) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -149,13 +150,22 @@ func (s *service) CreateGallery(ctx context.Context, req GalleryRequest) pkg.Res
 		errValidation["category"] = "Invalid category. Must be: photography, painting, sculpture, digital, or mixed"
 	}
 
-	// Validate media
-	if len(req.Media) <= 0 {
-		errValidation["media"] = "Media is required"
+	// Validate media - either files or media array must be provided
+	if len(files) == 0 && len(req.Media) == 0 {
+		errValidation["media"] = "At least one media file is required"
 	}
 
 	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+	}
+
+	// Upload files if provided
+	if len(files) > 0 {
+		mediaItems, err := s.mediaService.UploadMedia(ctx, files, "galleries")
+		if err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload files", nil, nil)
+		}
+		req.Media = append(req.Media, mediaItems...)
 	}
 
 	// Set default status if not provided
@@ -196,7 +206,7 @@ func (s *service) CreateGallery(ctx context.Context, req GalleryRequest) pkg.Res
 	return pkg.NewResponse(http.StatusCreated, "Gallery successfully created", nil, gallery)
 }
 
-func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGalleryRequest) pkg.Response {
+func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGalleryRequest, files []*multipart.FileHeader) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -259,6 +269,16 @@ func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGaller
 
 	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+	}
+
+	// Upload new files if provided
+	if len(files) > 0 {
+		newMediaItems, err := s.mediaService.UploadMedia(ctx, files, "galleries")
+		if err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload files", nil, nil)
+		}
+		// Append new media to existing media
+		req.Media = append(req.Media, newMediaItems...)
 	}
 
 	if len(updateData) == 0 && req.Media == nil {
