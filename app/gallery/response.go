@@ -12,8 +12,8 @@ type GalleryResponse struct {
 	Category    Category  `json:"category"`
 	Description string    `json:"description"`
 	Image       string    `json:"image"`
-	Status      Status    `json:"status"`
 	Views       int       `json:"views"`
+	PublishedAt time.Time `json:"published_at"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

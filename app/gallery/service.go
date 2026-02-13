@@ -50,9 +50,6 @@ func (s *service) FetchAllGalleries(ctx context.Context, queryParams GalleryQuer
 	if queryParams.Category != "" {
 		options["category"] = queryParams.Category
 	}
-	if queryParams.Status != "" {
-		options["status"] = queryParams.Status
-	}
 	if queryParams.Cursor != "" {
 		options["cursor"] = queryParams.Cursor
 	}
@@ -98,7 +95,6 @@ func (s *service) FetchGalleryByID(ctx context.Context, id string, incrementView
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	// Validate UUID format
 	if _, err := uuid.Parse(id); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid gallery ID format"}, nil)
 	}
@@ -108,7 +104,6 @@ func (s *service) FetchGalleryByID(ctx context.Context, id string, incrementView
 		return pkg.NewResponse(http.StatusNotFound, "Gallery not found", nil, nil)
 	}
 
-	// Increment views if requested (for public access)
 	if incrementView {
 		go s.repo.IncrementViews(context.Background(), id)
 	}
@@ -150,7 +145,10 @@ func (s *service) CreateGallery(ctx context.Context, req GalleryRequest, files [
 		errValidation["category"] = "Invalid category. Must be: photography, painting, sculpture, digital, or mixed"
 	}
 
-	// Validate media - either files or media array must be provided
+	if req.Published != true && req.Published != false {
+		errValidation["published"] = "Published field is required and must be a boolean"
+	}
+
 	if len(files) == 0 && len(req.Media) == 0 {
 		errValidation["media"] = "At least one media file is required"
 	}
@@ -168,14 +166,13 @@ func (s *service) CreateGallery(ctx context.Context, req GalleryRequest, files [
 		req.Media = append(req.Media, mediaItems...)
 	}
 
-	// Set default status if not provided
-	status := req.Status
-	if status == "" {
-		status = StatusActive
-	}
-
 	// Create gallery
 	timeNow := time.Now()
+
+	var publishedAt *time.Time
+	if req.Published {
+		publishedAt = &timeNow
+	}
 
 	var mediaItems []media.Media
 	for _, m := range req.Media {
@@ -192,7 +189,7 @@ func (s *service) CreateGallery(ctx context.Context, req GalleryRequest, files [
 		Title:       req.Title,
 		Category:    req.Category,
 		Description: req.Description,
-		Status:      status,
+		PublishedAt: publishedAt,
 		Views:       0,
 		Media:       mediaItems,
 		CreatedAt:   timeNow,
@@ -216,7 +213,7 @@ func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGaller
 	}
 
 	// Check if gallery exists
-	_, err := s.repo.FetchGalleryByID(ctx, id)
+	existingGallery, err := s.repo.FetchGalleryByID(ctx, id)
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "Gallery not found", nil, nil)
 	}
@@ -258,13 +255,9 @@ func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGaller
 		}
 	}
 
-	// Validate and set status
-	if req.Status != "" {
-		if req.Status != StatusActive && req.Status != StatusInactive && req.Status != StatusArchived {
-			errValidation["status"] = "Invalid status. Must be: active, inactive, or archived"
-		} else {
-			updateData["status"] = req.Status
-		}
+	if req.Published && existingGallery.PublishedAt == nil {
+		now := time.Now()
+		updateData["published_at"] = &now
 	}
 
 	if len(errValidation) > 0 {

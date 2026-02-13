@@ -12,20 +12,13 @@ type Gallery struct {
 	Slug        string        `json:"slug" gorm:"unique;not null"`
 	Category    Category      `json:"category" gorm:"not null"`
 	Description string        `json:"description" gorm:"not null"`
-	Status      Status        `json:"status" gorm:"type:varchar(20);not null;default:'active'"`
 	Views       int           `json:"views" gorm:"not null;default:0"`
 	Media       []media.Media `json:"media" gorm:"polymorphic:Entity;"`
+	PublishedAt *time.Time    `json:"published_at"`
 	CreatedAt   time.Time     `json:"created_at"`
 	UpdatedAt   time.Time     `json:"updated_at"`
+	DeletedAt   time.Time     `json:"deleted_at" gorm:"index"`
 }
-
-type Status string
-
-const (
-	StatusActive   Status = "active"
-	StatusInactive Status = "inactive"
-	StatusArchived Status = "archived"
-)
 
 type Category string
 
