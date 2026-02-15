@@ -1,19 +1,27 @@
 package news
 
 type NewsRequest struct {
-	Title    string   `json:"title" binding:"required,min=5,max=200"`
-	Category Category `json:"category" binding:"required,oneof=general event announcement donation social"`
-	Content  string   `json:"content" binding:"required,min=50"`
-	Image    string   `json:"image" binding:"omitempty,url"`
-	Status   Status   `json:"status" binding:"omitempty,oneof=draft published archived"`
+	Title    string      `json:"title" form:"title" binding:"required,min=5,max=200"`
+	Category Category    `json:"category" form:"category" binding:"required,oneof=general event announcement donation social"`
+	Content  string      `json:"content" form:"content" binding:"required,min=50"`
+	Image    string      `json:"image" form:"image"` // Optional if uploading file
+	Status   Status      `json:"status" form:"status" binding:"omitempty,oneof=draft published archived"`
+	Media    []MediaItem `json:"media" binding:"omitempty,dive"`
 }
 
 type UpdateNewsRequest struct {
-	Title    string   `json:"title" binding:"omitempty,min=5,max=200"`
-	Category Category `json:"category" binding:"omitempty,oneof=general event announcement donation social"`
-	Content  string   `json:"content" binding:"omitempty,min=50"`
-	Image    string   `json:"image" binding:"omitempty,url"`
-	Status   Status   `json:"status" binding:"omitempty,oneof=draft published archived"`
+	Title    string      `json:"title" form:"title" binding:"omitempty,min=5,max=200"`
+	Category Category    `json:"category" form:"category" binding:"omitempty,oneof=general event announcement donation social"`
+	Content  string      `json:"content" form:"content" binding:"omitempty,min=50"`
+	Image    string      `json:"image" form:"image"`
+	Status   Status      `json:"status" form:"status" binding:"omitempty,oneof=draft published archived"`
+	Media    []MediaItem `json:"media" binding:"omitempty,dive"`
+}
+
+type MediaItem struct {
+	URL     string `json:"url" binding:"required,url"`
+	Type    string `json:"type" binding:"required,oneof=image video"`
+	AltText string `json:"alt_text"`
 }
 
 type NewsQueryParams struct {

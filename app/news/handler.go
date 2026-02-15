@@ -6,18 +6,21 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/pkg"
+	"github.com/Vilamuzz/yota-backend/pkg/minio"
 	"github.com/gin-gonic/gin"
 )
 
 type handler struct {
-	service    Service
-	middleware middleware.AppMiddleware
+	service     Service
+	minioClient minio.Client
+	middleware  middleware.AppMiddleware
 }
 
-func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
+func NewHandler(r *gin.RouterGroup, s Service, minioClient minio.Client, m middleware.AppMiddleware) {
 	handler := &handler{
-		service:    s,
-		middleware: m,
+		service:     s,
+		minioClient: minioClient,
+		middleware:  m,
 	}
 	handler.RegisterRoutes(r)
 }
@@ -90,18 +93,35 @@ func (h *handler) GetNewsByID(c *gin.Context) {
 // @Description Create a new news article (requires publication manager or superadmin role)
 // @Tags News
 // @Security BearerAuth
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
-// @Param payload body NewsRequest true "Create News"
+// @Param title formData string true "News Title"
+// @Param category formData string true "News Category"
+// @Param content formData string true "News Content"
+// @Param image formData file false "News Image File"
+// @Param image_url formData string false "News Image URL (if not uploading file)"
+// @Param status formData string false "News Status"
 // @Success 201 {object} pkg.Response
 // @Router /api/news/ [post]
 func (h *handler) CreateNews(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var req NewsRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
 		return
+	}
+
+	// Handle file upload
+	file, err := c.FormFile("image")
+	if err == nil {
+		// File uploaded, save to MinIO
+		fileURL, err := h.minioClient.UploadFile(ctx, file, "news")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload image", nil, nil))
+			return
+		}
+		req.Image = fileURL
 	}
 
 	res := h.service.CreateNews(ctx, req)
@@ -114,10 +134,15 @@ func (h *handler) CreateNews(c *gin.Context) {
 // @Description Update an existing news article (requires publication manager or superadmin role)
 // @Tags News
 // @Security BearerAuth
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
 // @Param id path string true "News ID"
-// @Param payload body UpdateNewsRequest true "Update News"
+// @Param title formData string false "News Title"
+// @Param category formData string false "News Category"
+// @Param content formData string false "News Content"
+// @Param image formData file false "News Image File"
+// @Param image_url formData string false "News Image URL (if not uploading file)"
+// @Param status formData string false "News Status"
 // @Success 200 {object} pkg.Response
 // @Router /api/news/{id} [put]
 func (h *handler) UpdateNews(c *gin.Context) {
@@ -125,9 +150,21 @@ func (h *handler) UpdateNews(c *gin.Context) {
 	newsID := c.Param("id")
 
 	var req UpdateNewsRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
 		return
+	}
+
+	// Handle file upload
+	file, err := c.FormFile("image")
+	if err == nil {
+		// File uploaded, save to MinIO
+		fileURL, err := h.minioClient.UploadFile(ctx, file, "news")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload image", nil, nil))
+			return
+		}
+		req.Image = fileURL
 	}
 
 	res := h.service.UpdateNews(ctx, newsID, req)

@@ -34,7 +34,7 @@ type service struct {
 	contextTimeout time.Duration
 }
 
-func NewService(userRepo user.Repository, resetTokenRepo Repository, timeout time.Duration) Service {
+func NewService(resetTokenRepo Repository, userRepo user.Repository, timeout time.Duration) Service {
 	return &service{
 		userRepo:       userRepo,
 		resetTokenRepo: resetTokenRepo,

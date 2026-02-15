@@ -8,10 +8,13 @@ import (
 
 	"github.com/Vilamuzz/yota-backend/app/auth"
 	"github.com/Vilamuzz/yota-backend/app/donation"
+	"github.com/Vilamuzz/yota-backend/app/gallery"
+	"github.com/Vilamuzz/yota-backend/app/media"
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/app/news"
 	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/config"
+	minio_pkg "github.com/Vilamuzz/yota-backend/pkg/minio"
 	redis_pkg "github.com/Vilamuzz/yota-backend/pkg/redis"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -22,6 +25,7 @@ type Container struct {
 	// Infrastructure
 	DB          *gorm.DB
 	RedisClient *redis_pkg.Client
+	MinioClient minio_pkg.Client
 	Timeout     time.Duration
 
 	// Repositories
@@ -29,12 +33,16 @@ type Container struct {
 	AuthRepo     auth.Repository
 	DonationRepo donation.Repository
 	NewsRepo     news.Repository
+	GalleryRepo  gallery.Repository
+	MediaRepo    media.Repository
 
 	// Services
 	AuthService     auth.Service
 	UserService     user.Service
 	DonationService donation.Service
 	NewsService     news.Service
+	GalleryService  gallery.Service
+	MediaService    media.Service
 
 	// Middleware
 	Middleware *middleware.AppMiddleware
@@ -87,6 +95,10 @@ func (c *Container) initInfrastructure() error {
 		c.RedisClient = redisClient
 	}
 
+	// MinIO
+	minioClient := config.ConnectMinIO()
+	c.MinioClient = minio_pkg.NewClient(minioClient)
+
 	// Timeout
 	timeoutStr := os.Getenv("TIMEOUT")
 	if timeoutStr == "" {
@@ -103,13 +115,17 @@ func (c *Container) initRepositories() {
 	c.AuthRepo = auth.NewRepository(c.DB)
 	c.DonationRepo = donation.NewRepository(c.DB)
 	c.NewsRepo = news.NewRepository(c.DB)
+	c.GalleryRepo = gallery.NewRepository(c.DB)
+	c.MediaRepo = media.NewRepository(c.DB)
 }
 
 func (c *Container) initServices() {
-	c.AuthService = auth.NewService(c.UserRepo, c.AuthRepo, c.Timeout)
+	c.AuthService = auth.NewService(c.AuthRepo, c.UserRepo, c.Timeout)
 	c.UserService = user.NewService(c.UserRepo, c.Timeout)
 	c.DonationService = donation.NewService(c.DonationRepo, c.Timeout)
 	c.NewsService = news.NewService(c.NewsRepo, c.Timeout)
+	c.MediaService = media.NewService(c.MediaRepo, c.MinioClient)
+	c.GalleryService = gallery.NewService(c.GalleryRepo, c.MediaService, c.Timeout)
 }
 
 func (c *Container) initMiddleware() {
@@ -124,6 +140,7 @@ func (c *Container) initMiddleware() {
 func (c *Container) RegisterHandlers(router *gin.RouterGroup) {
 	auth.NewHandler(router, c.AuthService, c.UserService, *c.Middleware)
 	user.NewHandler(router, c.UserService, *c.Middleware)
-	donation.NewHandler(router, c.DonationService, *c.Middleware)
-	news.NewHandler(router, c.NewsService, *c.Middleware)
+	donation.NewHandler(router, c.DonationService, c.MinioClient, *c.Middleware)
+	news.NewHandler(router, c.NewsService, c.MinioClient, *c.Middleware)
+	gallery.NewHandler(router, c.GalleryService, c.MediaService, *c.Middleware)
 }

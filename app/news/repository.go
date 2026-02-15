@@ -3,6 +3,7 @@ package news
 import (
 	"context"
 
+	"github.com/Vilamuzz/yota-backend/app/media"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
 )
@@ -12,6 +13,7 @@ type Repository interface {
 	FetchNewsByID(ctx context.Context, id string) (*News, error)
 	CreateOneNews(ctx context.Context, news *News) error
 	UpdateNews(ctx context.Context, id string, updateData map[string]interface{}) error
+	UpdateNewsMedia(ctx context.Context, news *News, media []media.Media) error
 	DeleteNews(ctx context.Context, id string) error
 	IncrementViews(ctx context.Context, id string) error
 }
@@ -68,7 +70,7 @@ func (r *repository) FetchAllNews(ctx context.Context, options map[string]interf
 
 func (r *repository) FetchNewsByID(ctx context.Context, id string) (*News, error) {
 	var news News
-	if err := r.Conn.WithContext(ctx).Where("id = ?", id).First(&news).Error; err != nil {
+	if err := r.Conn.WithContext(ctx).Preload("Media").Where("id = ?", id).First(&news).Error; err != nil {
 		return nil, err
 	}
 	return &news, nil
@@ -80,6 +82,10 @@ func (r *repository) CreateOneNews(ctx context.Context, news *News) error {
 
 func (r *repository) UpdateNews(ctx context.Context, id string, updateData map[string]interface{}) error {
 	return r.Conn.WithContext(ctx).Model(&News{}).Where("id = ?", id).Updates(updateData).Error
+}
+
+func (r *repository) UpdateNewsMedia(ctx context.Context, news *News, media []media.Media) error {
+	return r.Conn.WithContext(ctx).Model(news).Association("Media").Replace(media)
 }
 
 func (r *repository) DeleteNews(ctx context.Context, id string) error {

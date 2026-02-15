@@ -60,12 +60,12 @@ services:
       - SMTP_PASSWORD=your-app-password
       - SMTP_FROM=noreply@yourdomain.com
       - CORS_ALLOW_ORIGIN=*
-      - REDIS_ENABLED=true
+      - REDIS_ENABLED=false
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=
       - REDIS_DB=0
-      - RATE_LIMIT_ENABLED=true
+      - RATE_LIMIT_ENABLED=false
       - RATE_LIMIT_PER_MINUTE=60
     depends_on:
       postgres:
@@ -91,7 +91,7 @@ services:
       start_period: 40s
 
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-02-18T16-25-55Z
     container_name: yota-minio
     ports:
       - "9000:9000"
