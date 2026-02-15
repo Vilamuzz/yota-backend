@@ -31,14 +31,14 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	api := r.Group("/galleries")
 
 	// Public routes
-	api.GET("/", h.GetAllGalleries)
+	api.GET("", h.GetAllGalleries)
 	api.GET("/:id", h.GetGalleryByID)
 
 	// Protected routes (require publication manager or superadmin role)
 	protected := api.Group("")
 	protected.Use(h.middleware.RequireRoles(string(user.RolePublicationManager), string(user.RoleSuperadmin)))
 	{
-		protected.POST("/", h.CreateGallery)
+		protected.POST("", h.CreateGallery)
 		protected.PUT("/:id", h.UpdateGallery)
 		protected.DELETE("/:id", h.DeleteGallery)
 	}
@@ -100,7 +100,8 @@ func (h *handler) GetGalleryByID(c *gin.Context) {
 // @Param title formData string true "Gallery Title"
 // @Param category formData string true "Gallery Category"
 // @Param description formData string true "Gallery Description"
-// @Param status formData string false "Gallery Status"
+// @Param published formData boolean true "Published Status"
+// @Param metadata formData string false "Media metadata JSON (array of objects with alt_text and order)"
 // @Param files formData file true "Media Files (can be multiple)"
 // @Success 201 {object} pkg.Response
 // @Router /api/galleries/ [post]
@@ -114,6 +115,16 @@ func (h *handler) CreateGallery(c *gin.Context) {
 		return
 	}
 
+	// Parse metadata if provided
+	var metadataWrapper *MetadataWrapper
+	if req.Metadata != "" {
+		metadataWrapper = &MetadataWrapper{}
+		if err := json.Unmarshal([]byte(req.Metadata), metadataWrapper); err != nil {
+			c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid metadata format", nil, nil))
+			return
+		}
+	}
+
 	// Get uploaded files
 	form, _ := c.MultipartForm()
 	var files []*multipart.FileHeader
@@ -121,7 +132,7 @@ func (h *handler) CreateGallery(c *gin.Context) {
 		files = form.File["files"]
 	}
 
-	res := h.service.CreateGallery(ctx, req, files)
+	res := h.service.CreateGallery(ctx, req, files, metadataWrapper)
 	c.JSON(res.Status, res)
 }
 
@@ -137,8 +148,9 @@ func (h *handler) CreateGallery(c *gin.Context) {
 // @Param title formData string false "Gallery Title"
 // @Param category formData string false "Gallery Category"
 // @Param description formData string false "Gallery Description"
-// @Param status formData string false "Gallery Status"
-// @Param existing_media formData string false "Existing media JSON array"
+// @Param published formData boolean false "Published Status"
+// @Param metadata formData string false "Media metadata JSON (array of objects with id, alt_text, and order)"
+// @Param existing_media formData string false "Existing media JSON array (deprecated, use metadata instead)"
 // @Param files formData file false "Media Files (can be multiple)"
 // @Success 200 {object} pkg.Response
 // @Router /api/galleries/{id} [put]
@@ -152,7 +164,17 @@ func (h *handler) UpdateGallery(c *gin.Context) {
 		return
 	}
 
-	// Parse existing_media if provided
+	// Parse metadata if provided
+	var metadataWrapper *MetadataWrapper
+	if req.Metadata != "" {
+		metadataWrapper = &MetadataWrapper{}
+		if err := json.Unmarshal([]byte(req.Metadata), metadataWrapper); err != nil {
+			c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid metadata format", nil, nil))
+			return
+		}
+	}
+
+	// Parse existing_media if provided (for backward compatibility)
 	existingMediaJSON := c.PostForm("existing_media")
 	if existingMediaJSON != "" {
 		var existingMedia []media.MediaRequest
@@ -170,7 +192,7 @@ func (h *handler) UpdateGallery(c *gin.Context) {
 		files = form.File["files"]
 	}
 
-	res := h.service.UpdateGallery(ctx, galleryID, req, files)
+	res := h.service.UpdateGallery(ctx, galleryID, req, files, metadataWrapper)
 	c.JSON(res.Status, res)
 }
 

@@ -638,16 +638,24 @@ const docTemplate = `{
                         "required": true
                     },
                     {
+                        "type": "boolean",
+                        "description": "Published Status",
+                        "name": "published",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
                         "type": "string",
-                        "description": "Gallery Status",
-                        "name": "status",
+                        "description": "Media metadata JSON (array of objects with alt_text and order)",
+                        "name": "metadata",
                         "in": "formData"
                     },
                     {
                         "type": "file",
                         "description": "Media Files (can be multiple)",
                         "name": "files",
-                        "in": "formData"
+                        "in": "formData",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -735,9 +743,21 @@ const docTemplate = `{
                         "in": "formData"
                     },
                     {
+                        "type": "boolean",
+                        "description": "Published Status",
+                        "name": "published",
+                        "in": "formData"
+                    },
+                    {
                         "type": "string",
-                        "description": "Gallery Status",
-                        "name": "status",
+                        "description": "Media metadata JSON (array of objects with id, alt_text, and order)",
+                        "name": "metadata",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Existing media JSON array (deprecated, use metadata instead)",
+                        "name": "existing_media",
                         "in": "formData"
                     },
                     {

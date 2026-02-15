@@ -14,8 +14,8 @@ import (
 type Service interface {
 	FetchAllGalleries(ctx context.Context, queryParams GalleryQueryParams) pkg.Response
 	FetchGalleryByID(ctx context.Context, id string, incrementView bool) pkg.Response
-	CreateGallery(ctx context.Context, req GalleryRequest, files []*multipart.FileHeader) pkg.Response
-	UpdateGallery(ctx context.Context, id string, req UpdateGalleryRequest, files []*multipart.FileHeader) pkg.Response
+	CreateGallery(ctx context.Context, req GalleryRequest, files []*multipart.FileHeader, metadata *MetadataWrapper) pkg.Response
+	UpdateGallery(ctx context.Context, id string, req UpdateGalleryRequest, files []*multipart.FileHeader, metadata *MetadataWrapper) pkg.Response
 	DeleteGallery(ctx context.Context, id string) pkg.Response
 }
 
@@ -111,7 +111,7 @@ func (s *service) FetchGalleryByID(ctx context.Context, id string, incrementView
 	return pkg.NewResponse(http.StatusOK, "Success", nil, gallery)
 }
 
-func (s *service) CreateGallery(ctx context.Context, req GalleryRequest, files []*multipart.FileHeader) pkg.Response {
+func (s *service) CreateGallery(ctx context.Context, req GalleryRequest, files []*multipart.FileHeader, metadata *MetadataWrapper) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -145,12 +145,16 @@ func (s *service) CreateGallery(ctx context.Context, req GalleryRequest, files [
 		errValidation["category"] = "Invalid category. Must be: photography, painting, sculpture, digital, or mixed"
 	}
 
-	if req.Published != true && req.Published != false {
-		errValidation["published"] = "Published field is required and must be a boolean"
-	}
-
+	// Validate files and metadata matching
 	if len(files) == 0 && len(req.Media) == 0 {
 		errValidation["media"] = "At least one media file is required"
+	}
+
+	// If metadata is provided, validate that file count matches metadata count
+	if metadata != nil && len(metadata.Media) > 0 {
+		if len(files) != len(metadata.Media) {
+			errValidation["metadata"] = "Number of files must match number of metadata entries"
+		}
 	}
 
 	if len(errValidation) > 0 {
@@ -163,6 +167,18 @@ func (s *service) CreateGallery(ctx context.Context, req GalleryRequest, files [
 		if err != nil {
 			return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload files", nil, nil)
 		}
+
+		// If metadata is provided, match it with uploaded files by index
+		if metadata != nil && len(metadata.Media) > 0 {
+			for i, item := range mediaItems {
+				if i < len(metadata.Media) {
+					item.AltText = metadata.Media[i].AltText
+					item.Order = metadata.Media[i].Order
+					mediaItems[i] = item
+				}
+			}
+		}
+
 		req.Media = append(req.Media, mediaItems...)
 	}
 
@@ -170,7 +186,7 @@ func (s *service) CreateGallery(ctx context.Context, req GalleryRequest, files [
 	timeNow := time.Now()
 
 	var publishedAt *time.Time
-	if req.Published {
+	if *req.Published {
 		publishedAt = &timeNow
 	}
 
@@ -181,12 +197,14 @@ func (s *service) CreateGallery(ctx context.Context, req GalleryRequest, files [
 			Type:    m.Type,
 			URL:     m.URL,
 			AltText: m.AltText,
+			Order:   m.Order,
 		})
 	}
 
 	gallery := &Gallery{
 		ID:          uuid.New().String(),
 		Title:       req.Title,
+		Slug:        pkg.Slugify(req.Title),
 		Category:    req.Category,
 		Description: req.Description,
 		PublishedAt: publishedAt,
@@ -203,7 +221,7 @@ func (s *service) CreateGallery(ctx context.Context, req GalleryRequest, files [
 	return pkg.NewResponse(http.StatusCreated, "Gallery successfully created", nil, gallery)
 }
 
-func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGalleryRequest, files []*multipart.FileHeader) pkg.Response {
+func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGalleryRequest, files []*multipart.FileHeader, metadata *MetadataWrapper) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -230,6 +248,7 @@ func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGaller
 			errValidation["title"] = "Title must not exceed 200 characters"
 		} else {
 			updateData["title"] = req.Title
+			updateData["slug"] = pkg.Slugify(req.Title)
 		}
 	}
 
@@ -255,41 +274,113 @@ func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGaller
 		}
 	}
 
-	if req.Published && existingGallery.PublishedAt == nil {
-		now := time.Now()
-		updateData["published_at"] = &now
+	if req.Published != nil {
+		if *req.Published {
+			// If published is true and wasn't before, update published_at
+			if existingGallery.PublishedAt == nil {
+				now := time.Now()
+				updateData["published_at"] = &now
+			}
+		} else {
+			// If published is false, clear published_at
+			updateData["published_at"] = nil
+		}
 	}
 
 	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
 
-	// Upload new files if provided
-	if len(files) > 0 {
-		newMediaItems, err := s.mediaService.UploadMedia(ctx, files, "galleries")
+	// Handle metadata-based media updates
+	if metadata != nil && len(metadata.Media) > 0 {
+		// Separate metadata into existing and new media
+		var existingMediaMetadata []MediaMetadata
+		var newMediaMetadata []MediaMetadata
+
+		for _, m := range metadata.Media {
+			if m.ID != "" {
+				existingMediaMetadata = append(existingMediaMetadata, m)
+			} else {
+				newMediaMetadata = append(newMediaMetadata, m)
+			}
+		}
+
+		// Validate that new media count matches uploaded files count
+		if len(newMediaMetadata) != len(files) {
+			errValidation["metadata"] = "Number of new media entries must match number of uploaded files"
+			return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+		}
+
+		// Upload new files if provided
+		var uploadedMedia []media.MediaRequest
+		if len(files) > 0 {
+			uploadedMedia, err = s.mediaService.UploadMedia(ctx, files, "galleries")
+			if err != nil {
+				return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload files", nil, nil)
+			}
+
+			// Match uploaded files with new metadata by index
+			for i, item := range uploadedMedia {
+				if i < len(newMediaMetadata) {
+					item.AltText = newMediaMetadata[i].AltText
+					item.Order = newMediaMetadata[i].Order
+					uploadedMedia[i] = item
+				}
+			}
+		}
+
+		// Fetch existing media from database
+		existingMediaList, err := s.mediaService.FetchEntityMedia(ctx, id, "galleries")
 		if err != nil {
-			return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload files", nil, nil)
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch existing media", nil, nil)
 		}
-		// Append new media to existing media
-		req.Media = append(req.Media, newMediaItems...)
-	}
 
-	if len(updateData) == 0 && req.Media == nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"update_data": "No fields to update"}, nil)
-	}
-
-	// Update basic gallery fields if there are any changes
-	if len(updateData) > 0 {
-		// Set updated_at
-		updateData["updated_at"] = time.Now()
-
-		if err := s.repo.UpdateGallery(ctx, id, updateData); err != nil {
-			return pkg.NewResponse(http.StatusInternalServerError, "Failed to update gallery", nil, nil)
+		// Create map of media IDs to keep/update
+		keepMediaIDs := make(map[string]MediaMetadata)
+		for _, m := range existingMediaMetadata {
+			keepMediaIDs[m.ID] = m
 		}
-	}
 
-	// Handle media updates if provided
-	if req.Media != nil {
+		// Delete media not in the metadata
+		for _, existingMedia := range existingMediaList {
+			if _, shouldKeep := keepMediaIDs[existingMedia.ID]; !shouldKeep {
+				if err := s.mediaService.DeleteMediaByID(ctx, existingMedia.ID); err != nil {
+					// Log error but continue
+					continue
+				}
+			}
+		}
+
+		// Update existing media (alt_text and order)
+		for _, m := range existingMediaMetadata {
+			// Update via media service
+			updateMediaData := map[string]interface{}{
+				"alt_text": m.AltText,
+				"order":    m.Order,
+			}
+			if err := s.mediaService.UpdateMediaByID(ctx, m.ID, updateMediaData); err != nil {
+				return pkg.NewResponse(http.StatusInternalServerError, "Failed to update media", nil, nil)
+			}
+		}
+
+		// Create new media
+		if len(uploadedMedia) > 0 {
+			var newMediaItems []media.MediaRequest
+			for _, m := range uploadedMedia {
+				newMediaItems = append(newMediaItems, media.MediaRequest{
+					ID:      uuid.New().String(),
+					URL:     m.URL,
+					Type:    m.Type,
+					AltText: m.AltText,
+					Order:   m.Order,
+				})
+			}
+			if err := s.mediaService.CreateEntityMedia(ctx, id, "galleries", newMediaItems); err != nil {
+				return pkg.NewResponse(http.StatusInternalServerError, "Failed to create new media", nil, nil)
+			}
+		}
+	} else if req.Media != nil {
+		// Backward compatibility: Handle media updates using the old format
 		// Fetch existing media
 		existingMedia, err := s.mediaService.FetchEntityMedia(ctx, id, "galleries")
 		if err != nil {
@@ -339,6 +430,20 @@ func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGaller
 		}
 	}
 
+	if len(updateData) == 0 && metadata == nil && req.Media == nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"update_data": "No fields to update"}, nil)
+	}
+
+	// Update basic gallery fields if there are any changes
+	if len(updateData) > 0 {
+		// Set updated_at
+		updateData["updated_at"] = time.Now()
+
+		if err := s.repo.UpdateGallery(ctx, id, updateData); err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to update gallery", nil, nil)
+		}
+	}
+
 	return pkg.NewResponse(http.StatusOK, "Gallery updated successfully", nil, nil)
 }
 
@@ -357,12 +462,7 @@ func (s *service) DeleteGallery(ctx context.Context, id string) pkg.Response {
 		return pkg.NewResponse(http.StatusNotFound, "Gallery not found", nil, nil)
 	}
 
-	// Delete media files from MinIO and database
-	if err := s.mediaService.DeleteEntityMedia(ctx, id); err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to delete gallery media", nil, nil)
-	}
-
-	if err := s.repo.DeleteGallery(ctx, id); err != nil {
+	if err := s.repo.SoftDeleteGallery(ctx, id); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to delete gallery", nil, nil)
 	}
 

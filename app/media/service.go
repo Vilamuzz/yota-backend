@@ -13,6 +13,7 @@ type Service interface {
 	CreateEntityMedia(ctx context.Context, entityID, entityType string, mediaRequests []MediaRequest) error
 	DeleteMediaByID(ctx context.Context, mediaID string) error
 	FetchEntityMedia(ctx context.Context, entityID, entityType string) ([]Media, error)
+	UpdateMediaByID(ctx context.Context, mediaID string, updateData map[string]interface{}) error
 }
 
 type service struct {
@@ -113,4 +114,8 @@ func (s *service) DeleteMediaByID(ctx context.Context, mediaID string) error {
 
 func (s *service) FetchEntityMedia(ctx context.Context, entityID, entityType string) ([]Media, error) {
 	return s.repo.FetchEntityMedia(ctx, entityID)
+}
+
+func (s *service) UpdateMediaByID(ctx context.Context, mediaID string, updateData map[string]interface{}) error {
+	return s.repo.UpdateMediaByID(ctx, mediaID, updateData)
 }

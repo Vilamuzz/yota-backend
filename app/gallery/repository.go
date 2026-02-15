@@ -2,6 +2,7 @@ package gallery
 
 import (
 	"context"
+	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
@@ -12,6 +13,7 @@ type Repository interface {
 	FetchGalleryByID(ctx context.Context, id string) (*Gallery, error)
 	CreateOneGallery(ctx context.Context, gallery *Gallery) error
 	UpdateGallery(ctx context.Context, id string, updateData map[string]interface{}) error
+	SoftDeleteGallery(ctx context.Context, id string) error
 	DeleteGallery(ctx context.Context, id string) error
 	IncrementViews(ctx context.Context, id string) error
 }
@@ -30,12 +32,11 @@ func (r *repository) FetchAllGalleries(ctx context.Context, options map[string]i
 	var galleries []Gallery
 	query := r.Conn.WithContext(ctx)
 
+	query = query.Where("deleted_at IS NULL")
+
 	// Apply filters
 	if category, ok := options["category"]; ok && category != "" {
 		query = query.Where("category = ?", category)
-	}
-	if status, ok := options["status"]; ok && status != "" {
-		query = query.Where("status = ?", status)
 	}
 
 	// Apply cursor-based pagination
@@ -79,6 +80,11 @@ func (r *repository) CreateOneGallery(ctx context.Context, gallery *Gallery) err
 
 func (r *repository) UpdateGallery(ctx context.Context, id string, updateData map[string]interface{}) error {
 	return r.Conn.WithContext(ctx).Model(&Gallery{}).Where("id = ?", id).Updates(updateData).Error
+}
+
+func (r *repository) SoftDeleteGallery(ctx context.Context, id string) error {
+	return r.Conn.WithContext(ctx).Model(&Gallery{}).Where("id = ?", id).
+		Update("deleted_at", time.Now()).Error
 }
 
 func (r *repository) DeleteGallery(ctx context.Context, id string) error {

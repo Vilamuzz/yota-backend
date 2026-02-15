@@ -12,6 +12,7 @@ type Repository interface {
 	CreateEntityMedia(ctx context.Context, entityID, entityType string, media []Media) error
 	DeleteMediaByID(ctx context.Context, mediaID string) (*Media, error)
 	FetchMediaByID(ctx context.Context, mediaID string) (*Media, error)
+	UpdateMediaByID(ctx context.Context, mediaID string, updateData map[string]interface{}) error
 }
 
 type repository struct {
@@ -24,10 +25,6 @@ func NewRepository(conn *gorm.DB) Repository {
 	}
 }
 
-func (r *repository) DeleteEntityMedia(ctx context.Context, entityID string) error {
-	return r.Conn.WithContext(ctx).Where("entity_id = ?", entityID).Delete(&Media{}).Error
-}
-
 func (r *repository) FetchEntityMedia(ctx context.Context, entityID string) ([]Media, error) {
 	var media []Media
 	if err := r.Conn.WithContext(ctx).Where("entity_id = ?", entityID).Find(&media).Error; err != nil {
@@ -36,13 +33,28 @@ func (r *repository) FetchEntityMedia(ctx context.Context, entityID string) ([]M
 	return media, nil
 }
 
+func (r *repository) FetchMediaByID(ctx context.Context, mediaID string) (*Media, error) {
+	var media Media
+	if err := r.Conn.WithContext(ctx).Where("id = ?", mediaID).First(&media).Error; err != nil {
+		return nil, err
+	}
+	return &media, nil
+}
+
 func (r *repository) CreateEntityMedia(ctx context.Context, entityID, entityType string, media []Media) error {
-	// Set entity_id and entity_type for all media items
 	for i := range media {
 		media[i].EntityID = entityID
 		media[i].EntityType = entityType
 	}
 	return r.Conn.WithContext(ctx).Create(&media).Error
+}
+
+func (r *repository) UpdateMediaByID(ctx context.Context, mediaID string, updateData map[string]interface{}) error {
+	return r.Conn.WithContext(ctx).Model(&Media{}).Where("id = ?", mediaID).Updates(updateData).Error
+}
+
+func (r *repository) DeleteEntityMedia(ctx context.Context, entityID string) error {
+	return r.Conn.WithContext(ctx).Where("entity_id = ?", entityID).Delete(&Media{}).Error
 }
 
 func (r *repository) DeleteMediaByID(ctx context.Context, mediaID string) (*Media, error) {
@@ -53,14 +65,6 @@ func (r *repository) DeleteMediaByID(ctx context.Context, mediaID string) (*Medi
 	}
 	// Delete the media
 	if err := r.Conn.WithContext(ctx).Delete(&media).Error; err != nil {
-		return nil, err
-	}
-	return &media, nil
-}
-
-func (r *repository) FetchMediaByID(ctx context.Context, mediaID string) (*Media, error) {
-	var media Media
-	if err := r.Conn.WithContext(ctx).Where("id = ?", mediaID).First(&media).Error; err != nil {
 		return nil, err
 	}
 	return &media, nil

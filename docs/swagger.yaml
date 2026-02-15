@@ -535,13 +535,19 @@ paths:
         name: description
         required: true
         type: string
-      - description: Gallery Status
+      - description: Published Status
         in: formData
-        name: status
+        name: published
+        required: true
+        type: boolean
+      - description: Media metadata JSON (array of objects with alt_text and order)
+        in: formData
+        name: metadata
         type: string
       - description: Media Files (can be multiple)
         in: formData
         name: files
+        required: true
         type: file
       produces:
       - application/json
@@ -622,9 +628,18 @@ paths:
         in: formData
         name: description
         type: string
-      - description: Gallery Status
+      - description: Published Status
         in: formData
-        name: status
+        name: published
+        type: boolean
+      - description: Media metadata JSON (array of objects with id, alt_text, and
+          order)
+        in: formData
+        name: metadata
+        type: string
+      - description: Existing media JSON array (deprecated, use metadata instead)
+        in: formData
+        name: existing_media
         type: string
       - description: Media Files (can be multiple)
         in: formData
