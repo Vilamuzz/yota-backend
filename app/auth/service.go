@@ -280,7 +280,6 @@ func (s *service) ForgetPassword(ctx context.Context, req ForgetPasswordRequest)
 	// Find user by email
 	existingUser, err := s.userRepo.FetchOneUser(ctx, map[string]interface{}{"email": req.Email})
 	if err != nil {
-		// Return success even if user not found (security best practice)
 		return pkg.NewResponse(http.StatusOK, "If the email exists, a reset link has been sent", nil, nil)
 	}
 
@@ -306,7 +305,7 @@ func (s *service) ForgetPassword(ctx context.Context, req ForgetPasswordRequest)
 	}
 
 	// Send email
-	if err := s.emailService.SendPasswordResetEmail(req.Email, resetToken); err != nil {
+	if err := s.emailService.SendPasswordResetEmail(req.Email, existingUser.Username, resetToken); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to send reset email", nil, nil)
 	}
 
