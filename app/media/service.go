@@ -4,7 +4,7 @@ import (
 	"context"
 	"mime/multipart"
 
-	"github.com/Vilamuzz/yota-backend/pkg/minio"
+	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 )
 
 type Service interface {
@@ -18,13 +18,13 @@ type Service interface {
 
 type service struct {
 	repo        Repository
-	minioClient minio.Client
+	s3Client     s3_pkg.Client
 }
 
-func NewService(repo Repository, minioClient minio.Client) Service {
+func NewService(repo Repository, s3Client s3_pkg.Client) Service {
 	return &service{
 		repo:        repo,
-		minioClient: minioClient,
+		s3Client:     s3Client,
 	}
 }
 
@@ -45,7 +45,7 @@ func (s *service) UploadMedia(ctx context.Context, files []*multipart.FileHeader
 			mediaType = MediaTypeVideo
 		}
 
-		fileURL, err := s.minioClient.UploadFile(ctx, file, folder)
+		fileURL, err := s.s3Client.UploadFile(ctx, file, folder)
 		if err != nil {
 			return nil, err
 		}
@@ -71,10 +71,10 @@ func (s *service) DeleteEntityMedia(ctx context.Context, entityID string) error 
 	for _, m := range mediaList {
 		// Extract object name from URL
 		// URL format: http://minio:9000/bucket-name/path/to/file.jpg
-		objectName := minio.ExtractObjectNameFromURL(m.URL)
+		objectName := s3_pkg.ExtractObjectNameFromURL(m.URL)
 		if objectName != "" {
 			// Delete file from MinIO (ignore error if file doesn't exist)
-			_ = s.minioClient.DeleteFile(ctx, objectName)
+			_ = s.s3Client.DeleteFile(ctx, objectName)
 		}
 	}
 
@@ -103,10 +103,10 @@ func (s *service) DeleteMediaByID(ctx context.Context, mediaID string) error {
 	}
 
 	// Delete file from MinIO
-	objectName := minio.ExtractObjectNameFromURL(media.URL)
+	objectName := s3_pkg.ExtractObjectNameFromURL(media.URL)
 	if objectName != "" {
 		// Ignore error if file doesn't exist
-		_ = s.minioClient.DeleteFile(ctx, objectName)
+		_ = s.s3Client.DeleteFile(ctx, objectName)
 	}
 
 	return nil

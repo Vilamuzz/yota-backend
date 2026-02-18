@@ -9,8 +9,10 @@ import (
 )
 
 type Repository interface {
-	FetchAllGalleries(ctx context.Context, options map[string]interface{}) ([]Gallery, error)
-	FetchGalleryByID(ctx context.Context, id string) (*Gallery, error)
+	FindPublished(ctx context.Context, options map[string]interface{}) ([]Gallery, error)
+	FindAll(ctx context.Context, options map[string]interface{}) ([]Gallery, error)
+	FindByID(ctx context.Context, id string) (*Gallery, error)
+	FindPublishedByID(ctx context.Context, id string) (*Gallery, error)
 	CreateOneGallery(ctx context.Context, gallery *Gallery) error
 	UpdateGallery(ctx context.Context, id string, updateData map[string]interface{}) error
 	SoftDeleteGallery(ctx context.Context, id string) error
@@ -28,15 +30,15 @@ func NewRepository(conn *gorm.DB) Repository {
 	}
 }
 
-func (r *repository) FetchAllGalleries(ctx context.Context, options map[string]interface{}) ([]Gallery, error) {
+func (r *repository) FindPublished(ctx context.Context, options map[string]interface{}) ([]Gallery, error) {
 	var galleries []Gallery
 	query := r.Conn.WithContext(ctx)
 
-	query = query.Where("deleted_at IS NULL")
+	query = query.Preload("Media").Preload("CategoryMedia").Where("deleted_at IS NULL AND published_at IS NOT NULL")
 
 	// Apply filters
-	if category, ok := options["category"]; ok && category != "" {
-		query = query.Where("category = ?", category)
+	if categoryID, ok := options["category_id"]; ok && categoryID != 0 {
+		query = query.Where("category_id = ?", categoryID)
 	}
 
 	// Apply cursor-based pagination
@@ -66,9 +68,55 @@ func (r *repository) FetchAllGalleries(ctx context.Context, options map[string]i
 	return galleries, nil
 }
 
-func (r *repository) FetchGalleryByID(ctx context.Context, id string) (*Gallery, error) {
+func (r *repository) FindAll(ctx context.Context, options map[string]interface{}) ([]Gallery, error) {
+	var galleries []Gallery
+	query := r.Conn.WithContext(ctx)
+
+	query = query.Preload("Media").Preload("CategoryMedia").Where("deleted_at IS NULL")
+
+	// Apply filters
+	if categoryID, ok := options["category_id"]; ok && categoryID != 0 {
+		query = query.Where("category_id = ?", categoryID)
+	}
+
+	// Apply cursor-based pagination
+	if cursor, ok := options["cursor"]; ok && cursor != "" {
+		cursorStr := cursor.(string)
+		cursorData, err := pkg.DecodeCursor(cursorStr)
+		if err == nil {
+			query = query.Where("created_at < ? OR (created_at = ? AND id < ?)",
+				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
+		}
+	}
+
+	// Apply limit (fetch one extra to check if there's a next page)
+	limit := 10
+	if l, ok := options["limit"]; ok {
+		limit = l.(int)
+	}
+	query = query.Limit(limit + 1)
+
+	// Order by created date (newest first) and ID for consistent ordering
+	query = query.Order("created_at DESC, id DESC")
+
+	if err := query.Find(&galleries).Error; err != nil {
+		return nil, err
+	}
+
+	return galleries, nil
+}
+
+func (r *repository) FindByID(ctx context.Context, id string) (*Gallery, error) {
 	var gallery Gallery
-	if err := r.Conn.WithContext(ctx).Preload("Media").Where("id = ?", id).First(&gallery).Error; err != nil {
+	if err := r.Conn.WithContext(ctx).Preload("Media").Preload("CategoryMedia").Where("id = ?", id).First(&gallery).Error; err != nil {
+		return nil, err
+	}
+	return &gallery, nil
+}
+
+func (r *repository) FindPublishedByID(ctx context.Context, id string) (*Gallery, error) {
+	var gallery Gallery
+	if err := r.Conn.WithContext(ctx).Preload("Media").Preload("CategoryMedia").Where("id = ? AND published_at IS NOT NULL", id).First(&gallery).Error; err != nil {
 		return nil, err
 	}
 	return &gallery, nil

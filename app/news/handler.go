@@ -6,20 +6,20 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/pkg"
-	"github.com/Vilamuzz/yota-backend/pkg/minio"
+	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 	"github.com/gin-gonic/gin"
 )
 
 type handler struct {
 	service     Service
-	minioClient minio.Client
+	s3Client     s3_pkg.Client
 	middleware  middleware.AppMiddleware
 }
 
-func NewHandler(r *gin.RouterGroup, s Service, minioClient minio.Client, m middleware.AppMiddleware) {
+func NewHandler(r *gin.RouterGroup, s Service, s3Client s3_pkg.Client, m middleware.AppMiddleware) {
 	handler := &handler{
 		service:     s,
-		minioClient: minioClient,
+		s3Client:     s3Client,
 		middleware:  m,
 	}
 	handler.RegisterRoutes(r)
@@ -116,7 +116,7 @@ func (h *handler) CreateNews(c *gin.Context) {
 	file, err := c.FormFile("image")
 	if err == nil {
 		// File uploaded, save to MinIO
-		fileURL, err := h.minioClient.UploadFile(ctx, file, "news")
+		fileURL, err := h.s3Client.UploadFile(ctx, file, "news")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload image", nil, nil))
 			return
@@ -159,7 +159,7 @@ func (h *handler) UpdateNews(c *gin.Context) {
 	file, err := c.FormFile("image")
 	if err == nil {
 		// File uploaded, save to MinIO
-		fileURL, err := h.minioClient.UploadFile(ctx, file, "news")
+		fileURL, err := h.s3Client.UploadFile(ctx, file, "news")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload image", nil, nil))
 			return

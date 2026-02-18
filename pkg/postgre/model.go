@@ -16,6 +16,7 @@ func GetAllModels() []interface{} {
 		&auth.PasswordResetToken{},
 		&auth.EmailVerificationToken{},
 		&donation.Donation{},
+		&media.CategoryMedia{},
 		&news.News{},
 		&gallery.Gallery{},
 		&media.Media{},

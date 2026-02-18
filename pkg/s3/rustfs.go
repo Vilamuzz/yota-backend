@@ -1,4 +1,4 @@
-package minio
+package s3_pkg
 
 import "strings"
 

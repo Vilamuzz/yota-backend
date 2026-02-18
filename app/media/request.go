@@ -8,3 +8,13 @@ type MediaRequest struct {
 	AltText string `json:"alt_text"`
 	Order   int    `json:"order" binding:"omitempty,min=0"`
 }
+
+type MediaMetadata struct {
+	ID      string `json:"id,omitempty"`
+	AltText string `json:"alt_text"`
+	Order   int    `json:"order"`
+}
+
+type MetadataWrapper struct {
+	Media []MediaMetadata `json:"media"`
+}

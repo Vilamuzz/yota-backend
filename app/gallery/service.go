@@ -12,10 +12,12 @@ import (
 )
 
 type Service interface {
-	FetchAllGalleries(ctx context.Context, queryParams GalleryQueryParams) pkg.Response
-	FetchGalleryByID(ctx context.Context, id string, incrementView bool) pkg.Response
-	CreateGallery(ctx context.Context, req GalleryRequest, files []*multipart.FileHeader, metadata *MetadataWrapper) pkg.Response
-	UpdateGallery(ctx context.Context, id string, req UpdateGalleryRequest, files []*multipart.FileHeader, metadata *MetadataWrapper) pkg.Response
+	ListPublished(ctx context.Context, queryParams GalleryQueryParams) pkg.Response
+	GetPublishedByID(ctx context.Context, id string, incrementView bool) pkg.Response
+	List(ctx context.Context, queryParams GalleryQueryParams) pkg.Response
+	GetByID(ctx context.Context, id string) pkg.Response
+	CreateGallery(ctx context.Context, req GalleryRequest, files []*multipart.FileHeader, metadata *media.MetadataWrapper) pkg.Response
+	UpdateGallery(ctx context.Context, id string, req UpdateGalleryRequest, files []*multipart.FileHeader, metadata *media.MetadataWrapper) pkg.Response
 	DeleteGallery(ctx context.Context, id string) pkg.Response
 }
 
@@ -34,7 +36,7 @@ func NewService(repo Repository, mediaService media.Service, timeout time.Durati
 	}
 }
 
-func (s *service) FetchAllGalleries(ctx context.Context, queryParams GalleryQueryParams) pkg.Response {
+func (s *service) ListPublished(ctx context.Context, queryParams GalleryQueryParams) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -47,14 +49,14 @@ func (s *service) FetchAllGalleries(ctx context.Context, queryParams GalleryQuer
 		"limit": queryParams.Limit,
 	}
 
-	if queryParams.Category != "" {
-		options["category"] = queryParams.Category
+	if queryParams.CategoryID != 0 {
+		options["category_id"] = queryParams.CategoryID
 	}
 	if queryParams.Cursor != "" {
 		options["cursor"] = queryParams.Cursor
 	}
 
-	galleries, err := s.repo.FetchAllGalleries(ctx, options)
+	galleries, err := s.repo.FindPublished(ctx, options)
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch galleries", nil, nil)
 	}
@@ -79,8 +81,46 @@ func (s *service) FetchAllGalleries(ctx context.Context, queryParams GalleryQuer
 		prevCursor = pkg.EncodeCursor(firstGallery.CreatedAt, firstGallery.ID)
 	}
 
+	// Map response
+	var galleryResponses []PublishedGalleryListResponseItem
+	for _, g := range galleries {
+		var firstMedia *media.Media
+		if len(g.Media) > 0 {
+			// Find media with lowest order
+			lowestOrderMedia := g.Media[0]
+			for _, m := range g.Media {
+				if m.Order < lowestOrderMedia.Order {
+					lowestOrderMedia = m
+				}
+			}
+			firstMedia = &lowestOrderMedia
+		}
+
+		// Format PublishedAt
+		publishedAt := ""
+		if g.PublishedAt != nil {
+			publishedAt = g.PublishedAt.Format(time.RFC3339)
+		}
+
+		thumbnailURL := ""
+		if firstMedia != nil {
+			thumbnailURL = firstMedia.URL
+		}
+
+		galleryResponses = append(galleryResponses, PublishedGalleryListResponseItem{
+			ID:           g.ID,
+			Title:        g.Title,
+			Slug:         g.Slug,
+			Category:     g.CategoryMedia.Category,
+			Description:  g.Description,
+			ThumbnailURL: thumbnailURL,
+			Views:        g.Views,
+			PublishedAt:  publishedAt,
+		})
+	}
+
 	return pkg.NewResponse(http.StatusOK, "Success", nil, map[string]interface{}{
-		"galleries": galleries,
+		"galleries": galleryResponses,
 		"pagination": map[string]interface{}{
 			"next_cursor": nextCursor,
 			"prev_cursor": prevCursor,
@@ -91,7 +131,7 @@ func (s *service) FetchAllGalleries(ctx context.Context, queryParams GalleryQuer
 	})
 }
 
-func (s *service) FetchGalleryByID(ctx context.Context, id string, incrementView bool) pkg.Response {
+func (s *service) GetPublishedByID(ctx context.Context, id string, incrementView bool) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -99,19 +139,175 @@ func (s *service) FetchGalleryByID(ctx context.Context, id string, incrementView
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid gallery ID format"}, nil)
 	}
 
-	gallery, err := s.repo.FetchGalleryByID(ctx, id)
+	gallery, err := s.repo.FindPublishedByID(ctx, id)
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "Gallery not found", nil, nil)
+	}
+
+	mediaResponses := make([]media.PublishedMediaResponse, 0)
+	for _, m := range gallery.Media {
+		mediaResponses = append(mediaResponses, media.PublishedMediaResponse{
+			URL:     m.URL,
+			AltText: m.AltText,
+			Order:   m.Order,
+		})
+	}
+
+	// Format PublishedAt
+	publishedAt := ""
+	if gallery.PublishedAt != nil {
+		publishedAt = gallery.PublishedAt.Format(time.RFC3339)
+	}
+
+	galleryResponse := PublishedGalleryResponse{
+		ID:          gallery.ID,
+		Title:       gallery.Title,
+		Slug:        gallery.Slug,
+		Category:    gallery.CategoryMedia.Category,
+		Description: gallery.Description,
+		Media:       mediaResponses,
+		Views:       gallery.Views,
+		PublishedAt: publishedAt,
 	}
 
 	if incrementView {
 		go s.repo.IncrementViews(context.Background(), id)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, gallery)
+	return pkg.NewResponse(http.StatusOK, "Success", nil, galleryResponse)
 }
 
-func (s *service) CreateGallery(ctx context.Context, req GalleryRequest, files []*multipart.FileHeader, metadata *MetadataWrapper) pkg.Response {
+func (s *service) List(ctx context.Context, queryParams GalleryQueryParams) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	if queryParams.Limit == 0 {
+		queryParams.Limit = 10
+	}
+
+	options := map[string]interface{}{
+		"limit": queryParams.Limit,
+	}
+
+	if queryParams.CategoryID != 0 {
+		options["category_id"] = queryParams.CategoryID
+	}
+	if queryParams.Cursor != "" {
+		options["cursor"] = queryParams.Cursor
+	}
+
+	galleries, err := s.repo.FindAll(ctx, options)
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch galleries", nil, nil)
+	}
+
+	// Check if there are more results
+	hasNext := len(galleries) > queryParams.Limit
+	if hasNext {
+		galleries = galleries[:queryParams.Limit]
+	}
+
+	// Generate cursors
+	var nextCursor, prevCursor string
+	hasPrev := queryParams.Cursor != ""
+
+	if hasNext && len(galleries) > 0 {
+		lastGallery := galleries[len(galleries)-1]
+		nextCursor = pkg.EncodeCursor(lastGallery.CreatedAt, lastGallery.ID)
+	}
+
+	if hasPrev && len(galleries) > 0 {
+		firstGallery := galleries[0]
+		prevCursor = pkg.EncodeCursor(firstGallery.CreatedAt, firstGallery.ID)
+	}
+
+	// Map response
+	var galleryResponses []PublishedGalleryListResponseItem
+	for _, g := range galleries {
+		var firstMedia *media.Media
+		if len(g.Media) > 0 {
+			// Find media with lowest order
+			lowestOrderMedia := g.Media[0]
+			for _, m := range g.Media {
+				if m.Order < lowestOrderMedia.Order {
+					lowestOrderMedia = m
+				}
+			}
+			firstMedia = &lowestOrderMedia
+		}
+
+		// Format PublishedAt
+		publishedAt := ""
+		if g.PublishedAt != nil {
+			publishedAt = g.PublishedAt.Format(time.RFC3339)
+		}
+
+		thumbnailURL := ""
+		if firstMedia != nil {
+			thumbnailURL = firstMedia.URL
+		}
+
+		galleryResponses = append(galleryResponses, PublishedGalleryListResponseItem{
+			ID:           g.ID,
+			Title:        g.Title,
+			Slug:         g.Slug,
+			Category:     g.CategoryMedia.Category,
+			Description:  g.Description,
+			ThumbnailURL: thumbnailURL,
+			Views:        g.Views,
+			PublishedAt:  publishedAt,
+		})
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Success", nil, map[string]interface{}{
+		"galleries": galleryResponses,
+		"pagination": map[string]interface{}{
+			"next_cursor": nextCursor,
+			"prev_cursor": prevCursor,
+			"has_next":    hasNext,
+			"has_prev":    hasPrev,
+			"limit":       queryParams.Limit,
+		},
+	})
+}
+
+func (s *service) GetByID(ctx context.Context, id string) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	gallery, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return pkg.NewResponse(http.StatusNotFound, "Gallery not found", nil, nil)
+	}
+
+	mediaResponses := make([]media.MediaResponse, 0)
+	for _, m := range gallery.Media {
+		mediaResponses = append(mediaResponses, media.MediaResponse{
+			ID:         m.ID,
+			EntityID:   m.EntityID,
+			EntityType: m.EntityType,
+			Type:       m.Type,
+			URL:        m.URL,
+			AltText:    m.AltText,
+			Order:      m.Order,
+		})
+	}
+
+	galleryResponse := GalleryResponse{
+		ID:          gallery.ID,
+		Title:       gallery.Title,
+		Slug:        gallery.Slug,
+		CategoryID:  gallery.CategoryID,
+		Description: gallery.Description,
+		Media:       mediaResponses,
+		Views:       gallery.Views,
+		PublishedAt: gallery.PublishedAt,
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Success", nil, galleryResponse)
+}
+
+func (s *service) CreateGallery(ctx context.Context, req GalleryRequest, files []*multipart.FileHeader, metadata *media.MetadataWrapper) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -137,12 +333,8 @@ func (s *service) CreateGallery(ctx context.Context, req GalleryRequest, files [
 	}
 
 	// Validate category
-	if req.Category == "" {
+	if req.CategoryID == 0 {
 		errValidation["category"] = "Category is required"
-	} else if req.Category != CategoryPhotography && req.Category != CategoryPainting &&
-		req.Category != CategorySculpture && req.Category != CategoryDigital &&
-		req.Category != CategoryMixed {
-		errValidation["category"] = "Invalid category. Must be: photography, painting, sculpture, digital, or mixed"
 	}
 
 	// Validate files and metadata matching
@@ -205,7 +397,7 @@ func (s *service) CreateGallery(ctx context.Context, req GalleryRequest, files [
 		ID:          uuid.New().String(),
 		Title:       req.Title,
 		Slug:        pkg.Slugify(req.Title),
-		Category:    req.Category,
+		CategoryID:  req.CategoryID,
 		Description: req.Description,
 		PublishedAt: publishedAt,
 		Views:       0,
@@ -221,7 +413,7 @@ func (s *service) CreateGallery(ctx context.Context, req GalleryRequest, files [
 	return pkg.NewResponse(http.StatusCreated, "Gallery successfully created", nil, gallery)
 }
 
-func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGalleryRequest, files []*multipart.FileHeader, metadata *MetadataWrapper) pkg.Response {
+func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGalleryRequest, files []*multipart.FileHeader, metadata *media.MetadataWrapper) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -231,7 +423,7 @@ func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGaller
 	}
 
 	// Check if gallery exists
-	existingGallery, err := s.repo.FetchGalleryByID(ctx, id)
+	existingGallery, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "Gallery not found", nil, nil)
 	}
@@ -264,14 +456,8 @@ func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGaller
 	}
 
 	// Validate and set category
-	if req.Category != "" {
-		if req.Category != CategoryPhotography && req.Category != CategoryPainting &&
-			req.Category != CategorySculpture && req.Category != CategoryDigital &&
-			req.Category != CategoryMixed {
-			errValidation["category"] = "Invalid category. Must be: photography, painting, sculpture, digital, or mixed"
-		} else {
-			updateData["category"] = req.Category
-		}
+	if req.CategoryID != 0 {
+		updateData["category_id"] = req.CategoryID
 	}
 
 	if req.Published != nil {
@@ -294,8 +480,8 @@ func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGaller
 	// Handle metadata-based media updates
 	if metadata != nil && len(metadata.Media) > 0 {
 		// Separate metadata into existing and new media
-		var existingMediaMetadata []MediaMetadata
-		var newMediaMetadata []MediaMetadata
+		var existingMediaMetadata []media.MediaMetadata
+		var newMediaMetadata []media.MediaMetadata
 
 		for _, m := range metadata.Media {
 			if m.ID != "" {
@@ -336,7 +522,7 @@ func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGaller
 		}
 
 		// Create map of media IDs to keep/update
-		keepMediaIDs := make(map[string]MediaMetadata)
+		keepMediaIDs := make(map[string]media.MediaMetadata)
 		for _, m := range existingMediaMetadata {
 			keepMediaIDs[m.ID] = m
 		}
@@ -457,7 +643,7 @@ func (s *service) DeleteGallery(ctx context.Context, id string) pkg.Response {
 	}
 
 	// Check if gallery exists
-	_, err := s.repo.FetchGalleryByID(ctx, id)
+	_, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "Gallery not found", nil, nil)
 	}

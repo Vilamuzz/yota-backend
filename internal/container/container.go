@@ -14,8 +14,8 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/news"
 	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/config"
-	minio_pkg "github.com/Vilamuzz/yota-backend/pkg/minio"
 	redis_pkg "github.com/Vilamuzz/yota-backend/pkg/redis"
+	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -23,10 +23,10 @@ import (
 
 type Container struct {
 	// Infrastructure
-	DB          *gorm.DB
-	RedisClient *redis_pkg.Client
-	MinioClient minio_pkg.Client
-	Timeout     time.Duration
+	DB           *gorm.DB
+	RedisClient  *redis_pkg.Client
+	S3Client     s3_pkg.Client
+	Timeout      time.Duration
 
 	// Repositories
 	UserRepo     user.Repository
@@ -95,9 +95,9 @@ func (c *Container) initInfrastructure() error {
 		c.RedisClient = redisClient
 	}
 
-	// MinIO
-	minioClient := config.ConnectMinIO()
-	c.MinioClient = minio_pkg.NewClient(minioClient)
+	// S3-compatible client (RustFS)
+	s3Client := config.ConnectS3()
+	c.S3Client = s3_pkg.NewClient(s3Client)
 
 	// Timeout
 	timeoutStr := os.Getenv("TIMEOUT")
@@ -124,7 +124,7 @@ func (c *Container) initServices() {
 	c.UserService = user.NewService(c.UserRepo, c.Timeout)
 	c.DonationService = donation.NewService(c.DonationRepo, c.Timeout)
 	c.NewsService = news.NewService(c.NewsRepo, c.Timeout)
-	c.MediaService = media.NewService(c.MediaRepo, c.MinioClient)
+	c.MediaService = media.NewService(c.MediaRepo, c.S3Client)
 	c.GalleryService = gallery.NewService(c.GalleryRepo, c.MediaService, c.Timeout)
 }
 
@@ -140,7 +140,7 @@ func (c *Container) initMiddleware() {
 func (c *Container) RegisterHandlers(router *gin.RouterGroup) {
 	auth.NewHandler(router, c.AuthService, c.UserService, *c.Middleware)
 	user.NewHandler(router, c.UserService, *c.Middleware)
-	donation.NewHandler(router, c.DonationService, c.MinioClient, *c.Middleware)
-	news.NewHandler(router, c.NewsService, c.MinioClient, *c.Middleware)
+	donation.NewHandler(router, c.DonationService, c.S3Client, *c.Middleware)
+	news.NewHandler(router, c.NewsService, c.S3Client, *c.Middleware)
 	gallery.NewHandler(router, c.GalleryService, c.MediaService, *c.Middleware)
 }
