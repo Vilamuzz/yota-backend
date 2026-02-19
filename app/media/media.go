@@ -15,3 +15,8 @@ const (
 	MediaTypeImage = "image"
 	MediaTypeVideo = "video"
 )
+
+type CategoryMedia struct {
+	ID       int8   `json:"id" gorm:"primary_key"`
+	Category string `json:"category" gorm:"not null"`
+}

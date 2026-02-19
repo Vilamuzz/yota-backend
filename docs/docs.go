@@ -552,7 +552,12 @@ const docTemplate = `{
         },
         "/api/galleries/": {
             "get": {
-                "description": "Retrieve a list of all gallery items with cursor-based pagination and optional filters",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a list of all gallery items (requires publication manager or superadmin role)",
                 "consumes": [
                     "application/json"
                 ],
@@ -562,18 +567,12 @@ const docTemplate = `{
                 "tags": [
                     "Gallery"
                 ],
-                "summary": "Get All Galleries",
+                "summary": "List All Galleries (Protected)",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Filter by category (photography, painting, sculpture, digital, mixed)",
-                        "name": "category",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by status (active, inactive, archived)",
-                        "name": "status",
+                        "type": "integer",
+                        "description": "Filter by category ID",
+                        "name": "category_id",
                         "in": "query"
                     },
                     {
@@ -593,7 +592,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/pkg.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/gallery.PublishedGalleryListResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -624,9 +635,9 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "type": "string",
-                        "description": "Gallery Category",
-                        "name": "category",
+                        "type": "integer",
+                        "description": "Gallery Category ID",
+                        "name": "category_id",
                         "in": "formData",
                         "required": true
                     },
@@ -662,7 +673,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/pkg.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/gallery.GalleryResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -670,7 +693,12 @@ const docTemplate = `{
         },
         "/api/galleries/{id}": {
             "get": {
-                "description": "Get detailed information of a specific gallery item",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information of a specific gallery item (requires publication manager or superadmin role)",
                 "consumes": [
                     "application/json"
                 ],
@@ -680,7 +708,7 @@ const docTemplate = `{
                 "tags": [
                     "Gallery"
                 ],
-                "summary": "Get Gallery by ID",
+                "summary": "Get Gallery (Protected)",
                 "parameters": [
                     {
                         "type": "string",
@@ -694,7 +722,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/pkg.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/gallery.GalleryResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -731,9 +771,9 @@ const docTemplate = `{
                         "in": "formData"
                     },
                     {
-                        "type": "string",
-                        "description": "Gallery Category",
-                        "name": "category",
+                        "type": "integer",
+                        "description": "Gallery Category ID",
+                        "name": "category_id",
                         "in": "formData"
                     },
                     {
@@ -1170,6 +1210,105 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/public/galleries/": {
+            "get": {
+                "description": "Retrieve a list of published gallery items with cursor-based pagination and optional filters",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gallery"
+                ],
+                "summary": "List Published Galleries",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Filter by category ID",
+                        "name": "category_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for pagination (encoded string)",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default: 10, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/gallery.PublishedGalleryListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/public/galleries/{id}": {
+            "get": {
+                "description": "Get detailed information of a specific published gallery item",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gallery"
+                ],
+                "summary": "Get Published Gallery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gallery ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/gallery.PublishedGalleryResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/api/users": {
             "get": {
                 "security": [
@@ -1364,6 +1503,173 @@ const docTemplate = `{
             ],
             "properties": {
                 "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "gallery.GalleryResponse": {
+            "type": "object",
+            "properties": {
+                "category_id": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "media": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/media.MediaResponse"
+                    }
+                },
+                "published_at": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "views": {
+                    "type": "integer"
+                }
+            }
+        },
+        "gallery.PublishedGalleryListResponse": {
+            "type": "object",
+            "properties": {
+                "galleries": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gallery.PublishedGalleryListResponseItem"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/pkg.CursorPagination"
+                }
+            }
+        },
+        "gallery.PublishedGalleryListResponseItem": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "published_at": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "thumbnail_url": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "views": {
+                    "type": "integer"
+                }
+            }
+        },
+        "gallery.PublishedGalleryResponse": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "media": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/media.PublishedMediaResponse"
+                    }
+                },
+                "published_at": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "views": {
+                    "type": "integer"
+                }
+            }
+        },
+        "media.MediaResponse": {
+            "type": "object",
+            "properties": {
+                "alt_text": {
+                    "type": "string"
+                },
+                "entity_id": {
+                    "type": "string"
+                },
+                "entity_type": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "media.PublishedMediaResponse": {
+            "type": "object",
+            "properties": {
+                "alt_text": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "integer"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "pkg.CursorPagination": {
+            "type": "object",
+            "properties": {
+                "has_next": {
+                    "type": "boolean"
+                },
+                "has_prev": {
+                    "type": "boolean"
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "next_cursor": {
+                    "type": "string"
+                },
+                "prev_cursor": {
                     "type": "string"
                 }
             }

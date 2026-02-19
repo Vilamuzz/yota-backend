@@ -13,6 +13,7 @@ Yota Backend is a high-performance RESTful API designed to power the Yota platfo
 -   **Database:** PostgreSQL
 -   **ORM:** [GORM](https://gorm.io/)
 -   **Caching:** Redis
+-   **Object Storage:** [RustFS](https://rustfs.com/) (S3-compatible)
 -   **Authentication:** JWT (JSON Web Tokens) & Google OAuth
 -   **Documentation:** Swagger (Swaggo)
 -   **Containerization:** Docker & Docker Compose
@@ -57,7 +58,7 @@ cp .env.example .env
 
 ### 3. Run with Docker (Recommended)
 
-The easiest way to start the application and its dependencies (Postgres, Redis) is using Docker Compose:
+The easiest way to start the application and its dependencies (Postgres, Redis, RustFS) is using Docker Compose:
 
 ```bash
 docker-compose up -d --build
