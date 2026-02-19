@@ -12,6 +12,7 @@ import (
 
 func GetAllModels() []interface{} {
 	return []interface{}{
+		&user.Role{},
 		&user.User{},
 		&auth.PasswordResetToken{},
 		&auth.EmailVerificationToken{},

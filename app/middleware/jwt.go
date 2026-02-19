@@ -7,6 +7,7 @@ import (
 
 	"github.com/Vilamuzz/yota-backend/config"
 	"github.com/Vilamuzz/yota-backend/pkg"
+	"github.com/Vilamuzz/yota-backend/pkg/enum"
 	jwt_pkg "github.com/Vilamuzz/yota-backend/pkg/jwt"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -22,7 +23,6 @@ func NewJWTMiddleware() *JWTMiddleware {
 	}
 }
 
-// AuthRequired validates JWT token and sets user claims in context
 func (m *JWTMiddleware) AuthRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claims, err := m.extractAndValidateToken(c)
@@ -40,8 +40,7 @@ func (m *JWTMiddleware) AuthRequired() gin.HandlerFunc {
 	}
 }
 
-// RequireRoles creates middleware that checks if user has any of the specified roles
-func (m *JWTMiddleware) RequireRoles(allowedRoles ...string) gin.HandlerFunc {
+func (m *JWTMiddleware) RequireRoles(allowedRoles ...enum.RoleName) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claims, err := m.extractAndValidateToken(c)
 		if err != nil {
@@ -54,10 +53,9 @@ func (m *JWTMiddleware) RequireRoles(allowedRoles ...string) gin.HandlerFunc {
 			return
 		}
 
-		// Check if user role is in allowed roles
 		hasRole := false
 		for _, role := range allowedRoles {
-			if claims.Role == role {
+			if claims.Role == string(role) {
 				hasRole = true
 				break
 			}

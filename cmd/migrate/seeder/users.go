@@ -28,7 +28,7 @@ func seedUsers(db *gorm.DB) error {
 			Username:      "superadmin",
 			Email:         "superadmin@yota.com",
 			Password:      string(hashedPassword),
-			Role:          user.RoleSuperadmin,
+			RoleID:        8, // user.RoleSuperadmin,
 			Status:        true,
 			EmailVerified: true,
 			CreatedAt:     time.Now(),
@@ -40,7 +40,7 @@ func seedUsers(db *gorm.DB) error {
 			Username:      "chairman",
 			Email:         "chairman@yota.com",
 			Password:      string(hashedPassword),
-			Role:          user.RoleChairman,
+			RoleID:        2, // user.RoleChairman,
 			Status:        true,
 			EmailVerified: true,
 			CreatedAt:     time.Now(),
@@ -52,7 +52,7 @@ func seedUsers(db *gorm.DB) error {
 			Username:      "social_manager",
 			Email:         "social@yota.com",
 			Password:      string(hashedPassword),
-			Role:          user.RoleSocialManager,
+			RoleID:        3, // user.RoleSocialManager,
 			Status:        true,
 			EmailVerified: true,
 			CreatedAt:     time.Now(),
@@ -64,7 +64,7 @@ func seedUsers(db *gorm.DB) error {
 			Username:      "finance",
 			Email:         "finance@yota.com",
 			Password:      string(hashedPassword),
-			Role:          user.RoleFinance,
+			RoleID:        4, // user.RoleFinance,
 			Status:        true,
 			EmailVerified: true,
 			CreatedAt:     time.Now(),
@@ -76,7 +76,7 @@ func seedUsers(db *gorm.DB) error {
 			Username:      "ambulance_manager",
 			Email:         "ambulance@yota.com",
 			Password:      string(hashedPassword),
-			Role:          user.RoleAmbulanceManager,
+			RoleID:        5, // user.RoleAmbulanceManager,
 			Status:        true,
 			EmailVerified: true,
 			CreatedAt:     time.Now(),
@@ -88,7 +88,7 @@ func seedUsers(db *gorm.DB) error {
 			Username:      "publication_manager",
 			Email:         "publication@yota.com",
 			Password:      string(hashedPassword),
-			Role:          user.RolePublicationManager,
+			RoleID:        6, // user.RolePublicationManager,
 			Status:        true,
 			EmailVerified: true,
 			CreatedAt:     time.Now(),
@@ -100,7 +100,7 @@ func seedUsers(db *gorm.DB) error {
 			Username:      "user1",
 			Email:         "user1@yota.com",
 			Password:      string(hashedPassword),
-			Role:          user.RoleUser,
+			RoleID:        1, // user.RoleUser,
 			Status:        true,
 			EmailVerified: true,
 			CreatedAt:     time.Now(),
@@ -112,7 +112,7 @@ func seedUsers(db *gorm.DB) error {
 			Username:      "user2",
 			Email:         "user2@yota.com",
 			Password:      string(hashedPassword),
-			Role:          user.RoleUser,
+			RoleID:        1, // user.RoleUser,
 			Status:        true,
 			EmailVerified: true,
 			CreatedAt:     time.Now(),
@@ -124,7 +124,7 @@ func seedUsers(db *gorm.DB) error {
 			Username:      "user3",
 			Email:         "user3@yota.com",
 			Password:      string(hashedPassword),
-			Role:          user.RoleUser,
+			RoleID:        1, // user.RoleUser,
 			Status:        true,
 			EmailVerified: false,
 			CreatedAt:     time.Now(),
@@ -136,7 +136,7 @@ func seedUsers(db *gorm.DB) error {
 			Username:      "banned_user",
 			Email:         "banned@yota.com",
 			Password:      string(hashedPassword),
-			Role:          user.RoleUser,
+			RoleID:        1, // user.RoleUser,
 			Status:        false,
 			EmailVerified: true,
 			CreatedAt:     time.Now(),
@@ -156,7 +156,8 @@ func seedUsers(db *gorm.DB) error {
 			log.Printf("Warning: Failed to create user %s: %v", u.Username, err)
 			continue
 		}
-		fmt.Printf("✓ Created user: %-20s | Email: %-25s | Role: %-20s\n", u.Username, u.Email, u.Role)
+		fmt.Printf("✓ Created user: %-20s | Email: %-25s | Role: %-20d\n", u.Username, u.Email, u.RoleID)
+
 	}
 
 	fmt.Println("\n================================================================================")
@@ -175,8 +176,8 @@ func seedUsers(db *gorm.DB) error {
 		if !u.Status {
 			status = "Banned"
 		}
-		fmt.Printf("%-20s | %-25s | %-20s | %-15s | %s\n",
-			u.Username, u.Email, u.Role, verified, status)
+		fmt.Printf("%-20s | %-25s | %-20d | %-15s | %s\n",
+			u.Username, u.Email, u.RoleID, verified, status)
 	}
 
 	fmt.Println("================================================================================")
