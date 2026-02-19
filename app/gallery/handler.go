@@ -5,8 +5,8 @@ import (
 
 	"github.com/Vilamuzz/yota-backend/app/media"
 	"github.com/Vilamuzz/yota-backend/app/middleware"
-	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/pkg"
+	"github.com/Vilamuzz/yota-backend/pkg/enum"
 	"github.com/gin-gonic/gin"
 )
 
@@ -33,7 +33,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 
 	// Protected routes (require publication manager or superadmin role)
 	protected := r.Group("/galleries")
-	protected.Use(h.middleware.RequireRoles(string(user.RolePublicationManager), string(user.RoleSuperadmin)))
+	protected.Use(h.middleware.RequireRoles(enum.RolePublicationManager, enum.RoleSuperadmin))
 	{
 		protected.GET("", h.ListGalleries)
 		protected.GET("/:id", h.GetGallery)

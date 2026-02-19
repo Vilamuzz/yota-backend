@@ -7,7 +7,7 @@ type CreateUserRequest struct {
 }
 
 type UpdateUserRequest struct {
-	Role   Role  `json:"role" binding:"omitempty,oneof=user chairman social_manager finance ambulance_manager publication_manager superadmin"`
+	Role   int8  `json:"role" binding:"omitempty"`
 	Status *bool `json:"status" binding:"omitempty"`
 }
 

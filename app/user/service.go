@@ -46,7 +46,7 @@ func (s *service) GetUsersList(ctx context.Context, queryParam url.Values) pkg.R
 			ID:       user.ID.String(),
 			Username: user.Username,
 			Email:    user.Email,
-			Role:     string(user.Role),
+			Role:     user.Role.Role,
 		})
 	}
 	return pkg.NewResponse(http.StatusOK, "Users list retrieved successfully", nil, userProfiles)
@@ -66,7 +66,7 @@ func (s *service) GetUserDetail(ctx context.Context, userID string) pkg.Response
 		ID:       user.ID.String(),
 		Username: user.Username,
 		Email:    user.Email,
-		Role:     string(user.Role),
+		Role:     user.Role.Role,
 	}
 
 	return pkg.NewResponse(http.StatusOK, "User details retrieved successfully", nil, userProfile)
@@ -77,19 +77,18 @@ func (s *service) UpdateUser(ctx context.Context, userID string, payload UpdateU
 	defer cancel()
 
 	errValidation := make(map[string]string)
-	if payload.Role != "" {
-		switch payload.Role {
-		case RoleUser, RoleChairman, RoleSocialManager, RoleFinance, RoleAmbulanceManager, RolePublicationManager, RoleSuperadmin:
-		default:
+	if payload.Role != 0 {
+		_, err := s.repo.FetchRoleByID(ctx, payload.Role)
+		if err != nil {
 			errValidation["role"] = "Invalid role"
 		}
 	}
-	// No need to validate bool for status, but you can check if it's set (since zero value is false)
+
 	updateMap := make(map[string]interface{})
-	if payload.Role != "" {
+	if payload.Role != 0 {
 		updateMap["role"] = payload.Role
 	}
-	// Only update status if the field is present in the request (e.g., pointer or with a flag)
+
 	if payload.Status != nil {
 		updateMap["status"] = *payload.Status
 	}

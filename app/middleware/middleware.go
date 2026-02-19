@@ -4,6 +4,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/Vilamuzz/yota-backend/pkg/enum"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 )
@@ -39,7 +40,7 @@ func (m *AppMiddleware) AuthRequired() gin.HandlerFunc {
 	return m.JWT.AuthRequired()
 }
 
-func (m *AppMiddleware) RequireRoles(roles ...string) gin.HandlerFunc {
+func (m *AppMiddleware) RequireRoles(roles ...enum.RoleName) gin.HandlerFunc {
 	return m.JWT.RequireRoles(roles...)
 }
 

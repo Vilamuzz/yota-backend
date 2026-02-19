@@ -4,23 +4,23 @@ import (
 	"net/http"
 
 	"github.com/Vilamuzz/yota-backend/app/middleware"
-	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/pkg"
+	"github.com/Vilamuzz/yota-backend/pkg/enum"
 	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 	"github.com/gin-gonic/gin"
 )
 
 type handler struct {
-	service      Service
-	s3Client     s3_pkg.Client
-	middleware   middleware.AppMiddleware
+	service    Service
+	s3Client   s3_pkg.Client
+	middleware middleware.AppMiddleware
 }
 
 func NewHandler(r *gin.RouterGroup, s Service, s3Client s3_pkg.Client, m middleware.AppMiddleware) {
 	handler := &handler{
-		service:      s,
-		s3Client:     s3Client,
-		middleware:   m,
+		service:    s,
+		s3Client:   s3Client,
+		middleware: m,
 	}
 	handler.RegisterRoutes(r)
 }
@@ -36,9 +36,9 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	protected := api.Group("")
 	protected.Use(h.middleware.AuthRequired())
 	{
-		protected.POST("/", h.middleware.RequireRoles(string(user.RoleSuperadmin), string(user.RoleChairman), string(user.RoleSocialManager)), h.CreateDonation)
-		protected.PUT("/:id", h.middleware.RequireRoles(string(user.RoleSuperadmin), string(user.RoleChairman), string(user.RoleSocialManager)), h.UpdateDonation)
-		protected.DELETE("/:id", h.middleware.RequireRoles(string(user.RoleSuperadmin), string(user.RoleChairman)), h.DeleteDonation)
+		protected.POST("/", h.middleware.RequireRoles(enum.RoleSuperadmin, enum.RoleChairman, enum.RoleSocialManager), h.CreateDonation)
+		protected.PUT("/:id", h.middleware.RequireRoles(enum.RoleSuperadmin, enum.RoleChairman, enum.RoleSocialManager), h.UpdateDonation)
+		protected.DELETE("/:id", h.middleware.RequireRoles(enum.RoleSuperadmin, enum.RoleChairman), h.DeleteDonation)
 	}
 }
 

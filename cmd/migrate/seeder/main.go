@@ -28,10 +28,6 @@ func main() {
 	// Check for command line arguments
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
-		case "users":
-			if err := seedUsers(db); err != nil {
-				log.Fatalf("Failed to seed users: %v", err)
-			}
 		case "all":
 			if err := seedAll(db); err != nil {
 				log.Fatalf("Failed to seed database: %v", err)
@@ -42,7 +38,6 @@ func main() {
 			}
 		default:
 			fmt.Println("Unknown command. Available commands:")
-			fmt.Println("  users - Seed only users")
 			fmt.Println("  all   - Seed all data")
 			fmt.Println("  reset - Delete all users and reseed")
 			os.Exit(1)
@@ -58,6 +53,9 @@ func main() {
 }
 
 func seedAll(db *gorm.DB) error {
+	if err := seedRoles(db); err != nil {
+		return err
+	}
 	if err := seedUsers(db); err != nil {
 		return err
 	}

@@ -5,6 +5,7 @@ import (
 
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/pkg"
+	"github.com/Vilamuzz/yota-backend/pkg/enum"
 	jwt_pkg "github.com/Vilamuzz/yota-backend/pkg/jwt"
 	"github.com/gin-gonic/gin"
 )
@@ -27,9 +28,9 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	r.PUT("/me", h.middleware.AuthRequired(), h.UpdateProfile)
 	r.PUT("/me/password", h.middleware.AuthRequired(), h.UpdatePassword)
 	api := r.Group("/users")
-	api.GET("", h.middleware.RequireRoles(string(RoleSuperadmin)), h.GetUsersList)
-	api.GET("/:id", h.middleware.RequireRoles(string(RoleSuperadmin)), h.GetUserDetail)
-	api.PUT("/:id", h.middleware.RequireRoles(string(RoleSuperadmin)), h.UpdateUser)
+	api.GET("", h.middleware.RequireRoles(enum.RoleSuperadmin), h.GetUsersList)
+	api.GET("/:id", h.middleware.RequireRoles(enum.RoleSuperadmin), h.GetUserDetail)
+	api.PUT("/:id", h.middleware.RequireRoles(enum.RoleSuperadmin), h.UpdateUser)
 }
 
 // GetUsersList

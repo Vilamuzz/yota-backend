@@ -94,13 +94,12 @@ func (s *service) Register(ctx context.Context, req RegisterRequest) pkg.Respons
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to hash password", nil, nil)
 	}
 
-	// Create user with email_verified = false
 	newUser := &user.User{
 		ID:            uuid.New(),
 		Username:      req.Username,
 		Email:         req.Email,
 		Password:      string(hashedPassword),
-		Role:          user.RoleUser,
+		RoleID:        1, // Default to regular user role
 		Status:        true,
 		EmailVerified: false,
 		CreatedAt:     time.Now(),
@@ -172,7 +171,7 @@ func (s *service) Login(ctx context.Context, req LoginRequest) pkg.Response {
 	ttl := config.GetJWTTTL()
 	claims := &jwt_pkg.UserJWTClaims{
 		UserID: existingUser.ID.String(),
-		Role:   string(existingUser.Role),
+		Role:   existingUser.Role.Role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(ttl) * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -390,7 +389,7 @@ func (s *service) OAuthLogin(ctx context.Context, provider string, gothUser goth
 			Username:  username,
 			Email:     gothUser.Email,
 			Password:  "",
-			Role:      user.RoleUser,
+			RoleID:    1, // Default to regular user role
 			Status:    true,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
@@ -413,7 +412,7 @@ func (s *service) OAuthLogin(ctx context.Context, provider string, gothUser goth
 	ttl := config.GetJWTTTL()
 	claims := &jwt_pkg.UserJWTClaims{
 		UserID: currentUser.ID.String(),
-		Role:   string(currentUser.Role),
+		Role:   currentUser.Role.Role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(ttl) * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
