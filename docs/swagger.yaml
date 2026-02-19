@@ -589,6 +589,198 @@ paths:
       summary: Update Donation
       tags:
       - Donations
+  /api/galleries/:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all gallery items (requires publication manager
+        or superadmin role)
+      parameters:
+      - description: Filter by category ID
+        in: query
+        name: category_id
+        type: integer
+      - description: Cursor for pagination (encoded string)
+        in: query
+        name: cursor
+        type: string
+      - description: 'Items per page (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/gallery.PublishedGalleryListResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List All Galleries (Protected)
+      tags:
+      - Gallery
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create a new gallery item (requires publication manager or superadmin
+        role)
+      parameters:
+      - description: Gallery Title
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: Gallery Category ID
+        in: formData
+        name: category_id
+        required: true
+        type: integer
+      - description: Gallery Description
+        in: formData
+        name: description
+        required: true
+        type: string
+      - description: Published Status
+        in: formData
+        name: published
+        required: true
+        type: boolean
+      - description: Media metadata JSON (array of objects with alt_text and order)
+        in: formData
+        name: metadata
+        type: string
+      - description: Media Files (can be multiple)
+        in: formData
+        name: files
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/gallery.GalleryResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create Gallery
+      tags:
+      - Gallery
+  /api/galleries/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a gallery item (requires publication manager or superadmin
+        role)
+      parameters:
+      - description: Gallery ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete Gallery
+      tags:
+      - Gallery
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific gallery item (requires publication
+        manager or superadmin role)
+      parameters:
+      - description: Gallery ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/gallery.GalleryResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get Gallery (Protected)
+      tags:
+      - Gallery
+    put:
+      consumes:
+      - multipart/form-data
+      description: Update an existing gallery item (requires publication manager or
+        superadmin role)
+      parameters:
+      - description: Gallery ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Gallery Title
+        in: formData
+        name: title
+        type: string
+      - description: Gallery Category ID
+        in: formData
+        name: category_id
+        type: integer
+      - description: Gallery Description
+        in: formData
+        name: description
+        type: string
+      - description: Published Status
+        in: formData
+        name: published
+        type: boolean
+      - description: Media metadata JSON (array of objects with id, alt_text, and
+          order)
+        in: formData
+        name: metadata
+        type: string
+      - description: Existing media JSON array (deprecated, use metadata instead)
+        in: formData
+        name: existing_media
+        type: string
+      - description: Media Files (can be multiple)
+        in: formData
+        name: files
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Gallery
+      tags:
+      - Gallery
   /api/me:
     get:
       consumes:
@@ -822,6 +1014,66 @@ paths:
       summary: Update News
       tags:
       - News
+  /api/public/galleries/:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of published gallery items with cursor-based pagination
+        and optional filters
+      parameters:
+      - description: Filter by category ID
+        in: query
+        name: category_id
+        type: integer
+      - description: Cursor for pagination (encoded string)
+        in: query
+        name: cursor
+        type: string
+      - description: 'Items per page (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/gallery.PublishedGalleryListResponse'
+              type: object
+      summary: List Published Galleries
+      tags:
+      - Gallery
+  /api/public/galleries/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific published gallery item
+      parameters:
+      - description: Gallery ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/gallery.PublishedGalleryResponse'
+              type: object
+      summary: Get Published Gallery
+      tags:
+      - Gallery
   /api/users:
     get:
       consumes:
@@ -890,258 +1142,6 @@ paths:
       summary: Update User
       tags:
       - Users
-  /galleries/:
-    get:
-      consumes:
-      - application/json
-      description: Retrieve a list of all gallery items (requires publication manager
-        or superadmin role)
-      parameters:
-      - description: Filter by category ID
-        in: query
-        name: category_id
-        type: integer
-      - description: Cursor for pagination (encoded string)
-        in: query
-        name: cursor
-        type: string
-      - description: 'Items per page (default: 10, max: 100)'
-        in: query
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/pkg.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/gallery.PublishedGalleryListResponse'
-              type: object
-      security:
-      - BearerAuth: []
-      summary: List All Galleries (Admin)
-      tags:
-      - Gallery (Admin)
-    post:
-      consumes:
-      - multipart/form-data
-      description: Create a new gallery item (requires publication manager or superadmin
-        role)
-      parameters:
-      - description: Gallery Title
-        in: formData
-        name: title
-        required: true
-        type: string
-      - description: Gallery Category ID
-        in: formData
-        name: category_id
-        required: true
-        type: integer
-      - description: Gallery Description
-        in: formData
-        name: description
-        required: true
-        type: string
-      - description: Published Status
-        in: formData
-        name: published
-        required: true
-        type: boolean
-      - description: Media metadata JSON (array of objects with alt_text and order)
-        in: formData
-        name: metadata
-        type: string
-      - description: Media Files (can be multiple)
-        in: formData
-        name: files
-        required: true
-        type: file
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            allOf:
-            - $ref: '#/definitions/pkg.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/gallery.GalleryResponse'
-              type: object
-      security:
-      - BearerAuth: []
-      summary: Create Gallery
-      tags:
-      - Gallery (Admin)
-  /galleries/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a gallery item (requires publication manager or superadmin
-        role)
-      parameters:
-      - description: Gallery ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Delete Gallery
-      tags:
-      - Gallery (Admin)
-    get:
-      consumes:
-      - application/json
-      description: Get detailed information of a specific gallery item (requires publication
-        manager or superadmin role)
-      parameters:
-      - description: Gallery ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/pkg.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/gallery.GalleryResponse'
-              type: object
-      security:
-      - BearerAuth: []
-      summary: Get Gallery (Admin)
-      tags:
-      - Gallery (Admin)
-    put:
-      consumes:
-      - multipart/form-data
-      description: Update an existing gallery item (requires publication manager or
-        superadmin role)
-      parameters:
-      - description: Gallery ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Gallery Title
-        in: formData
-        name: title
-        type: string
-      - description: Gallery Category ID
-        in: formData
-        name: category_id
-        type: integer
-      - description: Gallery Description
-        in: formData
-        name: description
-        type: string
-      - description: Published Status
-        in: formData
-        name: published
-        type: boolean
-      - description: Media metadata JSON (array of objects with id, alt_text, and
-          order)
-        in: formData
-        name: metadata
-        type: string
-      - description: Existing media JSON array (deprecated, use metadata instead)
-        in: formData
-        name: existing_media
-        type: string
-      - description: Media Files (can be multiple)
-        in: formData
-        name: files
-        type: file
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Update Gallery
-      tags:
-      - Gallery (Admin)
-  /public/galleries/:
-    get:
-      consumes:
-      - application/json
-      description: Retrieve a list of published gallery items with cursor-based pagination
-        and optional filters
-      parameters:
-      - description: Filter by category ID
-        in: query
-        name: category_id
-        type: integer
-      - description: Cursor for pagination (encoded string)
-        in: query
-        name: cursor
-        type: string
-      - description: 'Items per page (default: 10, max: 100)'
-        in: query
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/pkg.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/gallery.PublishedGalleryListResponse'
-              type: object
-      summary: List Published Galleries
-      tags:
-      - Gallery (Public)
-  /public/galleries/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Get detailed information of a specific published gallery item
-      parameters:
-      - description: Gallery ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/pkg.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/gallery.PublishedGalleryResponse'
-              type: object
-      summary: Get Published Gallery
-      tags:
-      - Gallery (Public)
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.

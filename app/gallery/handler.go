@@ -1,8 +1,6 @@
 package gallery
 
 import (
-	"encoding/json"
-	"mime/multipart"
 	"net/http"
 
 	"github.com/Vilamuzz/yota-backend/app/media"
@@ -49,14 +47,14 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 //
 // @Summary List Published Galleries
 // @Description Retrieve a list of published gallery items with cursor-based pagination and optional filters
-// @Tags Gallery (Public)
+// @Tags Gallery
 // @Accept json
 // @Produce json
 // @Param category_id query int false "Filter by category ID"
 // @Param cursor query string false "Cursor for pagination (encoded string)"
 // @Param limit query int false "Items per page (default: 10, max: 100)"
 // @Success 200 {object} pkg.Response{data=PublishedGalleryListResponse}
-// @Router /public/galleries/ [get]
+// @Router /api/public/galleries/ [get]
 func (h *handler) ListPublishedGalleries(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -74,12 +72,12 @@ func (h *handler) ListPublishedGalleries(c *gin.Context) {
 //
 // @Summary Get Published Gallery
 // @Description Get detailed information of a specific published gallery item
-// @Tags Gallery (Public)
+// @Tags Gallery
 // @Accept json
 // @Produce json
 // @Param id path string true "Gallery ID"
 // @Success 200 {object} pkg.Response{data=PublishedGalleryResponse}
-// @Router /public/galleries/{id} [get]
+// @Router /api/public/galleries/{id} [get]
 func (h *handler) GetPublishedGallery(c *gin.Context) {
 	ctx := c.Request.Context()
 	galleryID := c.Param("id")
@@ -91,9 +89,9 @@ func (h *handler) GetPublishedGallery(c *gin.Context) {
 
 // ListGalleries
 //
-// @Summary List All Galleries (Admin)
+// @Summary List All Galleries (Protected)
 // @Description Retrieve a list of all gallery items (requires publication manager or superadmin role)
-// @Tags Gallery (Admin)
+// @Tags Gallery
 // @Security BearerAuth
 // @Accept json
 // @Produce json
@@ -101,7 +99,7 @@ func (h *handler) GetPublishedGallery(c *gin.Context) {
 // @Param cursor query string false "Cursor for pagination (encoded string)"
 // @Param limit query int false "Items per page (default: 10, max: 100)"
 // @Success 200 {object} pkg.Response{data=PublishedGalleryListResponse}
-// @Router /galleries/ [get]
+// @Router /api/galleries/ [get]
 func (h *handler) ListGalleries(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -117,15 +115,15 @@ func (h *handler) ListGalleries(c *gin.Context) {
 
 // GetGallery
 //
-// @Summary Get Gallery (Admin)
+// @Summary Get Gallery (Protected)
 // @Description Get detailed information of a specific gallery item (requires publication manager or superadmin role)
-// @Tags Gallery (Admin)
+// @Tags Gallery
 // @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param id path string true "Gallery ID"
 // @Success 200 {object} pkg.Response{data=GalleryResponse}
-// @Router /galleries/{id} [get]
+// @Router /api/galleries/{id} [get]
 func (h *handler) GetGallery(c *gin.Context) {
 	ctx := c.Request.Context()
 	galleryID := c.Param("id")
@@ -138,7 +136,7 @@ func (h *handler) GetGallery(c *gin.Context) {
 //
 // @Summary Create Gallery
 // @Description Create a new gallery item (requires publication manager or superadmin role)
-// @Tags Gallery (Admin)
+// @Tags Gallery
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json
@@ -149,35 +147,18 @@ func (h *handler) GetGallery(c *gin.Context) {
 // @Param metadata formData string false "Media metadata JSON (array of objects with alt_text and order)"
 // @Param files formData file true "Media Files (can be multiple)"
 // @Success 201 {object} pkg.Response{data=GalleryResponse}
-// @Router /galleries/ [post]
+// @Router /api/galleries/ [post]
 func (h *handler) CreateGallery(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var req GalleryRequest
-	// Attempt to bind multipart/form-data or JSON
+	// Attempt to bind multipart/form-data
 	if err := c.ShouldBind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body: "+err.Error(), nil, nil))
 		return
 	}
 
-	// Parse metadata if provided
-	var metadataWrapper *media.MetadataWrapper
-	if req.Metadata != "" {
-		metadataWrapper = &media.MetadataWrapper{}
-		if err := json.Unmarshal([]byte(req.Metadata), metadataWrapper); err != nil {
-			c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid metadata format", nil, nil))
-			return
-		}
-	}
-
-	// Get uploaded files
-	form, _ := c.MultipartForm()
-	var files []*multipart.FileHeader
-	if form != nil {
-		files = form.File["files"]
-	}
-
-	res := h.service.CreateGallery(ctx, req, files, metadataWrapper)
+	res := h.service.CreateGallery(ctx, req)
 	c.JSON(res.Status, res)
 }
 
@@ -185,7 +166,7 @@ func (h *handler) CreateGallery(c *gin.Context) {
 //
 // @Summary Update Gallery
 // @Description Update an existing gallery item (requires publication manager or superadmin role)
-// @Tags Gallery (Admin)
+// @Tags Gallery
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json
@@ -198,46 +179,18 @@ func (h *handler) CreateGallery(c *gin.Context) {
 // @Param existing_media formData string false "Existing media JSON array (deprecated, use metadata instead)"
 // @Param files formData file false "Media Files (can be multiple)"
 // @Success 200 {object} pkg.Response
-// @Router /galleries/{id} [put]
+// @Router /api/galleries/{id} [put]
 func (h *handler) UpdateGallery(c *gin.Context) {
 	ctx := c.Request.Context()
 	galleryID := c.Param("id")
 
 	var req UpdateGalleryRequest
 	if err := c.ShouldBind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body: "+err.Error(), nil, nil))
 		return
 	}
 
-	// Parse metadata if provided
-	var metadataWrapper *media.MetadataWrapper
-	if req.Metadata != "" {
-		metadataWrapper = &media.MetadataWrapper{}
-		if err := json.Unmarshal([]byte(req.Metadata), metadataWrapper); err != nil {
-			c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid metadata format", nil, nil))
-			return
-		}
-	}
-
-	// Parse existing_media if provided (for backward compatibility)
-	existingMediaJSON := c.PostForm("existing_media")
-	if existingMediaJSON != "" {
-		var existingMedia []media.MediaRequest
-		if err := json.Unmarshal([]byte(existingMediaJSON), &existingMedia); err != nil {
-			c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid existing_media format", nil, nil))
-			return
-		}
-		req.Media = existingMedia
-	}
-
-	// Get uploaded files
-	form, _ := c.MultipartForm()
-	var files []*multipart.FileHeader
-	if form != nil {
-		files = form.File["files"]
-	}
-
-	res := h.service.UpdateGallery(ctx, galleryID, req, files, metadataWrapper)
+	res := h.service.UpdateGallery(ctx, galleryID, req)
 	c.JSON(res.Status, res)
 }
 
@@ -245,13 +198,13 @@ func (h *handler) UpdateGallery(c *gin.Context) {
 //
 // @Summary Delete Gallery
 // @Description Delete a gallery item (requires publication manager or superadmin role)
-// @Tags Gallery (Admin)
+// @Tags Gallery
 // @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param id path string true "Gallery ID"
 // @Success 200 {object} pkg.Response
-// @Router /galleries/{id} [delete]
+// @Router /api/galleries/{id} [delete]
 func (h *handler) DeleteGallery(c *gin.Context) {
 	ctx := c.Request.Context()
 	galleryID := c.Param("id")

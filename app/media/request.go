@@ -14,7 +14,3 @@ type MediaMetadata struct {
 	AltText string `json:"alt_text"`
 	Order   int    `json:"order"`
 }
-
-type MetadataWrapper struct {
-	Media []MediaMetadata `json:"media"`
-}
