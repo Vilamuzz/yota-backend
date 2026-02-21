@@ -6,56 +6,53 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/Vilamuzz/yota-backend/pkg/enum"
-	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 	"github.com/gin-gonic/gin"
 )
 
 type handler struct {
 	service    Service
-	s3Client   s3_pkg.Client
 	middleware middleware.AppMiddleware
 }
 
-func NewHandler(r *gin.RouterGroup, s Service, s3Client s3_pkg.Client, m middleware.AppMiddleware) {
+func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 	handler := &handler{
 		service:    s,
-		s3Client:   s3Client,
 		middleware: m,
 	}
 	handler.RegisterRoutes(r)
 }
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
-	api := r.Group("/donations")
-
 	// Public routes
-	api.GET("/", h.GetAllDonations)
-	api.GET("/:id", h.GetDonationByID)
+	public := r.Group("/public/donations")
+	public.GET("", h.ListPublishedDonations)
+	public.GET("/:id", h.GetPublishedDonation)
 
-	// Protected routes (require authentication)
-	protected := api.Group("")
-	protected.Use(h.middleware.AuthRequired())
+	// Protected routes
+	protected := r.Group("/donations")
+	protected.Use(h.middleware.RequireRoles(enum.RoleSuperadmin, enum.RoleFinance))
 	{
-		protected.POST("/", h.middleware.RequireRoles(enum.RoleSuperadmin, enum.RoleChairman, enum.RoleSocialManager), h.CreateDonation)
-		protected.PUT("/:id", h.middleware.RequireRoles(enum.RoleSuperadmin, enum.RoleChairman, enum.RoleSocialManager), h.UpdateDonation)
-		protected.DELETE("/:id", h.middleware.RequireRoles(enum.RoleSuperadmin, enum.RoleChairman), h.DeleteDonation)
+		protected.GET("", h.ListDonations)
+		protected.GET("/:id", h.GetDonationByID)
+		protected.POST("/", h.CreateDonation)
+		protected.PUT("/:id", h.UpdateDonation)
+		protected.DELETE("/:id", h.DeleteDonation)
 	}
 }
 
-// GetAllDonations
+// ListPublishedDonations
 //
-// @Summary Get All Donations
-// @Description Retrieve a list of all donations with cursor-based pagination and optional filters
+// @Summary List Published Donations
+// @Description Retrieve a list of published (active) donations
 // @Tags Donations
 // @Accept json
 // @Produce json
-// @Param category query string false "Filter by category (education, health, environment)"
-// @Param status query string false "Filter by status (active, inactive, completed)"
-// @Param cursor query string false "Cursor for pagination (encoded string)"
-// @Param limit query int false "Items per page (default: 10, max: 100)"
+// @Param category query string false "Filter by category"
+// @Param cursor query string false "Cursor for pagination"
+// @Param limit query int false "Items per page"
 // @Success 200 {object} pkg.Response
-// @Router /api/donations/ [get]
-func (h *handler) GetAllDonations(c *gin.Context) {
+// @Router /api/public/donations/ [get]
+func (h *handler) ListPublishedDonations(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var queryParams DonationQueryParams
@@ -64,7 +61,52 @@ func (h *handler) GetAllDonations(c *gin.Context) {
 		return
 	}
 
-	res := h.service.FetchAllDonations(ctx, queryParams)
+	res := h.service.ListPublished(ctx, queryParams)
+	c.JSON(res.Status, res)
+}
+
+// GetPublishedDonation
+//
+// @Summary Get Published Donation by ID
+// @Description Get detailed information of a specific published donation
+// @Tags Donations
+// @Accept json
+// @Produce json
+// @Param id path string true "Donation ID"
+// @Success 200 {object} pkg.Response
+// @Router /api/public/donations/{id} [get]
+func (h *handler) GetPublishedDonation(c *gin.Context) {
+	ctx := c.Request.Context()
+	donationID := c.Param("id")
+
+	res := h.service.GetPublishedByID(ctx, donationID)
+	c.JSON(res.Status, res)
+}
+
+// ListDonations
+//
+// @Summary Get All Donations
+// @Description Retrieve a list of all donations with cursor-based pagination and optional filters
+// @Tags Donations
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param category query string false "Filter by category (education, health, environment)"
+// @Param status query string false "Filter by status (active, inactive, completed)"
+// @Param cursor query string false "Cursor for pagination (encoded string)"
+// @Param limit query int false "Items per page (default: 10, max: 100)"
+// @Success 200 {object} pkg.Response
+// @Router /api/donations/ [get]
+func (h *handler) ListDonations(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var queryParams DonationQueryParams
+	if err := c.ShouldBindQuery(&queryParams); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
+		return
+	}
+
+	res := h.service.List(ctx, queryParams)
 	c.JSON(res.Status, res)
 }
 
@@ -73,6 +115,7 @@ func (h *handler) GetAllDonations(c *gin.Context) {
 // @Summary Get Donation by ID
 // @Description Get detailed information of a specific donation
 // @Tags Donations
+// @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param id path string true "Donation ID"
@@ -82,7 +125,7 @@ func (h *handler) GetDonationByID(c *gin.Context) {
 	ctx := c.Request.Context()
 	donationID := c.Param("id")
 
-	res := h.service.FetchDonationByID(ctx, donationID)
+	res := h.service.GetByID(ctx, donationID)
 	c.JSON(res.Status, res)
 }
 
@@ -97,8 +140,8 @@ func (h *handler) GetDonationByID(c *gin.Context) {
 // @Param title formData string true "Donation Title"
 // @Param description formData string true "Donation Description"
 // @Param image formData file false "Donation Image File"
-// @Param image_url formData string false "Donation Image URL"
 // @Param category formData string true "Donation Category"
+// @Param status formData string false "Donation Status"
 // @Param fund_target formData number true "Fund Target"
 // @Param date_end formData string true "End Date (RFC3339)"
 // @Success 201 {object} pkg.Response
@@ -112,19 +155,7 @@ func (h *handler) CreateDonation(c *gin.Context) {
 		return
 	}
 
-	// Handle file upload
-	file, err := c.FormFile("image")
-	if err == nil {
-		// File uploaded, save to MinIO
-		fileURL, err := h.s3Client.UploadFile(ctx, file, "donations")
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload image", nil, nil))
-			return
-		}
-		req.Image = fileURL
-	}
-
-	res := h.service.Create(ctx, req)
+	res := h.service.CreateDonation(ctx, req)
 	c.JSON(res.Status, res)
 }
 
@@ -140,7 +171,6 @@ func (h *handler) CreateDonation(c *gin.Context) {
 // @Param title formData string false "Donation Title"
 // @Param description formData string false "Donation Description"
 // @Param image formData file false "Donation Image File"
-// @Param image_url formData string false "Donation Image URL"
 // @Param category formData string false "Donation Category"
 // @Param fund_target formData number false "Fund Target"
 // @Param status formData string false "Status"
@@ -157,19 +187,7 @@ func (h *handler) UpdateDonation(c *gin.Context) {
 		return
 	}
 
-	// Handle file upload
-	file, err := c.FormFile("image")
-	if err == nil {
-		// File uploaded, save to MinIO
-		fileURL, err := h.s3Client.UploadFile(ctx, file, "donations")
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Failed to upload image", nil, nil))
-			return
-		}
-		req.Image = fileURL
-	}
-
-	res := h.service.Update(ctx, donationID, req)
+	res := h.service.UpdateDonation(ctx, donationID, req)
 	c.JSON(res.Status, res)
 }
 
@@ -188,6 +206,6 @@ func (h *handler) DeleteDonation(c *gin.Context) {
 	ctx := c.Request.Context()
 	donationID := c.Param("id")
 
-	res := h.service.Delete(ctx, donationID)
+	res := h.service.DeleteDonation(ctx, donationID)
 	c.JSON(res.Status, res)
 }

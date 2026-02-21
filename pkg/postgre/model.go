@@ -7,6 +7,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/media"
 	"github.com/Vilamuzz/yota-backend/app/news"
 	"github.com/Vilamuzz/yota-backend/app/social_program"
+	"github.com/Vilamuzz/yota-backend/app/transaction_donation"
 	"github.com/Vilamuzz/yota-backend/app/user"
 )
 
@@ -22,5 +23,6 @@ func GetAllModels() []interface{} {
 		&gallery.Gallery{},
 		&media.Media{},
 		&social_program.SocialProgram{},
+		&transaction_donation.TransactionDonation{},
 	}
 }

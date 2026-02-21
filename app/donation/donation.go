@@ -6,7 +6,7 @@ type Donation struct {
 	ID          string    `json:"id" gorm:"primary_key"`
 	Title       string    `json:"title" gorm:"not null"`
 	Description string    `json:"description" gorm:"not null"`
-	Image       string    `json:"image"`
+	ImageURL    string    `json:"image_url"`
 	Category    Category  `json:"category" gorm:"not null"`
 	FundTarget  float64   `json:"fund_target" gorm:"not null"`
 	Status      Status    `json:"status" gorm:"type:varchar(20);not null;default:'active'"`
@@ -20,7 +20,7 @@ type Status string
 
 const (
 	StatusActive    Status = "active"
-	StatusInactive  Status = "inactive"
+	StatusDraft     Status = "draft"
 	StatusCompleted Status = "completed"
 )
 

@@ -179,24 +179,41 @@ definitions:
           type: string
         type: object
     type: object
-  user.Role:
-    enum:
-    - user
-    - chairman
-    - social_manager
-    - finance
-    - ambulance_manager
-    - publication_manager
-    - superadmin
-    type: string
-    x-enum-varnames:
-    - RoleUser
-    - RoleChairman
-    - RoleSocialManager
-    - RoleFinance
-    - RoleAmbulanceManager
-    - RolePublicationManager
-    - RoleSuperadmin
+  transaction_donation.CreateTransactionRequest:
+    properties:
+      donation_id:
+        type: string
+      donor_email:
+        type: string
+      donor_name:
+        type: string
+      gross_amount:
+        type: number
+    required:
+    - donation_id
+    - donor_email
+    - donor_name
+    - gross_amount
+    type: object
+  transaction_donation.MidtransNotificationRequest:
+    properties:
+      fraud_status:
+        type: string
+      gross_amount:
+        type: string
+      order_id:
+        type: string
+      payment_type:
+        type: string
+      signature_key:
+        type: string
+      status_code:
+        type: string
+      transaction_id:
+        type: string
+      transaction_status:
+        type: string
+    type: object
   user.UpdatePasswordRequest:
     properties:
       current_password:
@@ -221,16 +238,7 @@ definitions:
   user.UpdateUserRequest:
     properties:
       role:
-        allOf:
-        - $ref: '#/definitions/user.Role'
-        enum:
-        - user
-        - chairman
-        - social_manager
-        - finance
-        - ambulance_manager
-        - publication_manager
-        - superadmin
+        type: integer
       status:
         type: boolean
     type: object
@@ -437,6 +445,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
       summary: Get All Donations
       tags:
       - Donations
@@ -460,14 +470,14 @@ paths:
         in: formData
         name: image
         type: file
-      - description: Donation Image URL
-        in: formData
-        name: image_url
-        type: string
       - description: Donation Category
         in: formData
         name: category
         required: true
+        type: string
+      - description: Donation Status
+        in: formData
+        name: status
         type: string
       - description: Fund Target
         in: formData
@@ -531,6 +541,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
       summary: Get Donation by ID
       tags:
       - Donations
@@ -557,10 +569,6 @@ paths:
         in: formData
         name: image
         type: file
-      - description: Donation Image URL
-        in: formData
-        name: image_url
-        type: string
       - description: Donation Category
         in: formData
         name: category
@@ -1014,6 +1022,55 @@ paths:
       summary: Update News
       tags:
       - News
+  /api/public/donations/:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of published (active) donations
+      parameters:
+      - description: Filter by category
+        in: query
+        name: category
+        type: string
+      - description: Cursor for pagination
+        in: query
+        name: cursor
+        type: string
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: List Published Donations
+      tags:
+      - Donations
+  /api/public/donations/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific published donation
+      parameters:
+      - description: Donation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Get Published Donation by ID
+      tags:
+      - Donations
   /api/public/galleries/:
     get:
       consumes:
@@ -1074,6 +1131,99 @@ paths:
       summary: Get Published Gallery
       tags:
       - Gallery
+  /api/public/transaction-donations:
+    post:
+      consumes:
+      - application/json
+      description: Initiate a Midtrans Snap payment for a donation
+      parameters:
+      - description: Transaction request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/transaction_donation.CreateTransactionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Create Donation Transaction
+      tags:
+      - Transaction Donations
+  /api/public/transaction-donations/notification:
+    post:
+      consumes:
+      - application/json
+      description: Webhook endpoint for Midtrans to send payment status updates
+      parameters:
+      - description: Midtrans notification payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/transaction_donation.MidtransNotificationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Midtrans Payment Notification
+      tags:
+      - Transaction Donations
+  /api/transaction-donations:
+    get:
+      description: Retrieve a paginated list of donation transactions (admin only)
+      parameters:
+      - description: Filter by payment status
+        in: query
+        name: status
+        type: string
+      - description: Filter by donation ID
+        in: query
+        name: donation_id
+        type: string
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List Donation Transactions
+      tags:
+      - Transaction Donations
+  /api/transaction-donations/{id}:
+    get:
+      description: Retrieve a specific donation transaction (admin only)
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Donation Transaction by ID
+      tags:
+      - Transaction Donations
   /api/users:
     get:
       consumes:

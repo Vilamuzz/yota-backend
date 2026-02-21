@@ -6,30 +6,35 @@ import (
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
+	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 	"github.com/google/uuid"
 )
 
 type Service interface {
-	FetchAllDonations(ctx context.Context, queryParams DonationQueryParams) pkg.Response
-	FetchDonationByID(ctx context.Context, id string) pkg.Response
-	Create(ctx context.Context, donation DonationRequest) pkg.Response
-	Update(ctx context.Context, id string, req UpdateDonationRequest) pkg.Response
-	Delete(ctx context.Context, id string) pkg.Response
+	ListPublished(ctx context.Context, queryParams DonationQueryParams) pkg.Response
+	GetPublishedByID(ctx context.Context, id string) pkg.Response
+	List(ctx context.Context, queryParams DonationQueryParams) pkg.Response
+	GetByID(ctx context.Context, id string) pkg.Response
+	CreateDonation(ctx context.Context, donation DonationRequest) pkg.Response
+	UpdateDonation(ctx context.Context, id string, req UpdateDonationRequest) pkg.Response
+	DeleteDonation(ctx context.Context, id string) pkg.Response
 }
 
 type service struct {
-	repo    Repository
-	timeout time.Duration
+	repo     Repository
+	s3Client s3_pkg.Client
+	timeout  time.Duration
 }
 
-func NewService(repo Repository, timeout time.Duration) Service {
+func NewService(repo Repository, s3Client s3_pkg.Client, timeout time.Duration) Service {
 	return &service{
-		repo:    repo,
-		timeout: timeout,
+		repo:     repo,
+		s3Client: s3Client,
+		timeout:  timeout,
 	}
 }
 
-func (s *service) FetchAllDonations(ctx context.Context, queryParams DonationQueryParams) pkg.Response {
+func (s *service) ListPublished(ctx context.Context, queryParams DonationQueryParams) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -45,14 +50,11 @@ func (s *service) FetchAllDonations(ctx context.Context, queryParams DonationQue
 	if queryParams.Category != "" {
 		options["category"] = queryParams.Category
 	}
-	if queryParams.Status != "" {
-		options["status"] = queryParams.Status
-	}
 	if queryParams.Cursor != "" {
 		options["cursor"] = queryParams.Cursor
 	}
 
-	donations, err := s.repo.FetchAllDonations(ctx, options)
+	donations, err := s.repo.FindPublished(ctx, options)
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch donations", nil, nil)
 	}
@@ -90,7 +92,68 @@ func (s *service) FetchAllDonations(ctx context.Context, queryParams DonationQue
 	})
 }
 
-func (s *service) FetchDonationByID(ctx context.Context, id string) pkg.Response {
+func (s *service) List(ctx context.Context, queryParams DonationQueryParams) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	// Set default limit
+	if queryParams.Limit == 0 {
+		queryParams.Limit = 10
+	}
+
+	options := map[string]interface{}{
+		"limit": queryParams.Limit,
+	}
+
+	if queryParams.Category != "" {
+		options["category"] = queryParams.Category
+	}
+	if queryParams.Status != "" {
+		options["status"] = queryParams.Status
+	}
+	if queryParams.Cursor != "" {
+		options["cursor"] = queryParams.Cursor
+	}
+
+	donations, err := s.repo.FindAll(ctx, options)
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch donations", nil, nil)
+	}
+
+	// Check if there are more results
+	hasNext := len(donations) > queryParams.Limit
+	if hasNext {
+		// Remove the extra item
+		donations = donations[:queryParams.Limit]
+	}
+
+	// Generate cursors
+	var nextCursor, prevCursor string
+	hasPrev := queryParams.Cursor != ""
+
+	if hasNext && len(donations) > 0 {
+		lastDonation := donations[len(donations)-1]
+		nextCursor = pkg.EncodeCursor(lastDonation.CreatedAt, lastDonation.ID)
+	}
+
+	if hasPrev && len(donations) > 0 {
+		firstDonation := donations[0]
+		prevCursor = pkg.EncodeCursor(firstDonation.CreatedAt, firstDonation.ID)
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Success", nil, map[string]interface{}{
+		"donations": donations,
+		"pagination": map[string]interface{}{
+			"next_cursor": nextCursor,
+			"prev_cursor": prevCursor,
+			"has_next":    hasNext,
+			"has_prev":    hasPrev,
+			"limit":       queryParams.Limit,
+		},
+	})
+}
+
+func (s *service) GetPublishedByID(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -99,7 +162,7 @@ func (s *service) FetchDonationByID(ctx context.Context, id string) pkg.Response
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid donation ID format"}, nil)
 	}
 
-	donation, err := s.repo.FetchDonationByID(ctx, id)
+	donation, err := s.repo.FindPublishedByID(ctx, id)
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "Donation not found", nil, nil)
 	}
@@ -107,7 +170,24 @@ func (s *service) FetchDonationByID(ctx context.Context, id string) pkg.Response
 	return pkg.NewResponse(http.StatusOK, "Success", nil, donation)
 }
 
-func (s *service) Create(ctx context.Context, req DonationRequest) pkg.Response {
+func (s *service) GetByID(ctx context.Context, id string) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	// Validate UUID format
+	if _, err := uuid.Parse(id); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid donation ID format"}, nil)
+	}
+
+	donation, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return pkg.NewResponse(http.StatusNotFound, "Donation not found", nil, nil)
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Success", nil, donation)
+}
+
+func (s *service) CreateDonation(ctx context.Context, req DonationRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -155,16 +235,32 @@ func (s *service) Create(ctx context.Context, req DonationRequest) pkg.Response 
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
 
+	// Handle image upload
+	var imageURL string
+	if req.Image != nil {
+		uploadedURL, err := s.s3Client.UploadFile(ctx, req.Image, "donations")
+		if err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload image", nil, nil)
+		}
+		imageURL = uploadedURL
+	}
+
+	// Handle status
+	status := StatusDraft
+	if req.Status {
+		status = StatusActive
+	}
+
 	// Create donation
 	timeNow := time.Now()
 	donation := &Donation{
 		ID:          uuid.New().String(),
 		Title:       req.Title,
 		Description: req.Description,
-		Image:       req.Image,
+		ImageURL:    imageURL,
 		Category:    req.Category,
 		FundTarget:  req.FundTarget,
-		Status:      StatusActive,
+		Status:      status,
 		DateEnd:     req.DateEnd,
 		CreatedAt:   timeNow,
 		UpdatedAt:   timeNow,
@@ -177,7 +273,7 @@ func (s *service) Create(ctx context.Context, req DonationRequest) pkg.Response 
 	return pkg.NewResponse(http.StatusCreated, "Donation successfully created", nil, donation)
 }
 
-func (s *service) Update(ctx context.Context, id string, req UpdateDonationRequest) pkg.Response {
+func (s *service) UpdateDonation(ctx context.Context, id string, req UpdateDonationRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -187,7 +283,7 @@ func (s *service) Update(ctx context.Context, id string, req UpdateDonationReque
 	}
 
 	// Check if donation exists
-	existingDonation, err := s.repo.FetchDonationByID(ctx, id)
+	existingDonation, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "Donation not found", nil, nil)
 	}
@@ -235,16 +331,16 @@ func (s *service) Update(ctx context.Context, id string, req UpdateDonationReque
 	}
 
 	// Validate and set status
-	if req.Status != "" {
-		if req.Status != StatusActive && req.Status != StatusInactive && req.Status != StatusCompleted {
-			errValidation["status"] = "Invalid status. Must be: active, inactive, or completed"
+	if req.Status != nil {
+		status := StatusDraft
+		if *req.Status {
+			status = StatusActive
+		}
+
+		if status == StatusActive && time.Now().After(existingDonation.DateEnd) {
+			errValidation["status"] = "Cannot activate donation that has already ended"
 		} else {
-			// Prevent changing status to active if date has passed
-			if req.Status == StatusActive && time.Now().After(existingDonation.DateEnd) {
-				errValidation["status"] = "Cannot activate donation that has already ended"
-			} else {
-				updateData["status"] = req.Status
-			}
+			updateData["status"] = status
 		}
 	}
 
@@ -258,8 +354,12 @@ func (s *service) Update(ctx context.Context, id string, req UpdateDonationReque
 	}
 
 	// Validate and set image
-	if req.Image != "" {
-		updateData["image"] = req.Image
+	if req.Image != nil {
+		uploadedURL, err := s.s3Client.UploadFile(ctx, req.Image, "donations")
+		if err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload image", nil, nil)
+		}
+		updateData["image_url"] = uploadedURL
 	}
 
 	if len(errValidation) > 0 {
@@ -280,7 +380,7 @@ func (s *service) Update(ctx context.Context, id string, req UpdateDonationReque
 	return pkg.NewResponse(http.StatusOK, "Donation updated successfully", nil, nil)
 }
 
-func (s *service) Delete(ctx context.Context, id string) pkg.Response {
+func (s *service) DeleteDonation(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -290,7 +390,7 @@ func (s *service) Delete(ctx context.Context, id string) pkg.Response {
 	}
 
 	// Check if donation exists
-	_, err := s.repo.FetchDonationByID(ctx, id)
+	_, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "Donation not found", nil, nil)
 	}

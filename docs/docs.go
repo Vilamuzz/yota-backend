@@ -278,6 +278,11 @@ const docTemplate = `{
         },
         "/api/donations/": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Retrieve a list of all donations with cursor-based pagination and optional filters",
                 "consumes": [
                     "application/json"
@@ -364,16 +369,16 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Donation Image URL",
-                        "name": "image_url",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
                         "description": "Donation Category",
                         "name": "category",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Donation Status",
+                        "name": "status",
+                        "in": "formData"
                     },
                     {
                         "type": "number",
@@ -402,6 +407,11 @@ const docTemplate = `{
         },
         "/api/donations/{id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get detailed information of a specific donation",
                 "consumes": [
                     "application/json"
@@ -472,12 +482,6 @@ const docTemplate = `{
                         "type": "file",
                         "description": "Donation Image File",
                         "name": "image",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Donation Image URL",
-                        "name": "image_url",
                         "in": "formData"
                     },
                     {
@@ -1210,6 +1214,81 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/public/donations/": {
+            "get": {
+                "description": "Retrieve a list of published (active) donations",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donations"
+                ],
+                "summary": "List Published Donations",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by category",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for pagination",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/public/donations/{id}": {
+            "get": {
+                "description": "Get detailed information of a specific published donation",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donations"
+                ],
+                "summary": "Get Published Donation by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Donation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/public/galleries/": {
             "get": {
                 "description": "Retrieve a list of published gallery items with cursor-based pagination and optional filters",
@@ -1304,6 +1383,153 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/public/transaction-donations": {
+            "post": {
+                "description": "Initiate a Midtrans Snap payment for a donation",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Transaction Donations"
+                ],
+                "summary": "Create Donation Transaction",
+                "parameters": [
+                    {
+                        "description": "Transaction request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/transaction_donation.CreateTransactionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/public/transaction-donations/notification": {
+            "post": {
+                "description": "Webhook endpoint for Midtrans to send payment status updates",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Transaction Donations"
+                ],
+                "summary": "Midtrans Payment Notification",
+                "parameters": [
+                    {
+                        "description": "Midtrans notification payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/transaction_donation.MidtransNotificationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/transaction-donations": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a paginated list of donation transactions (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Transaction Donations"
+                ],
+                "summary": "List Donation Transactions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by payment status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by donation ID",
+                        "name": "donation_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/transaction-donations/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific donation transaction (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Transaction Donations"
+                ],
+                "summary": "Get Donation Transaction by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Transaction ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
                         }
                     }
                 }
@@ -1692,26 +1918,57 @@ const docTemplate = `{
                 }
             }
         },
-        "user.Role": {
-            "type": "string",
-            "enum": [
-                "user",
-                "chairman",
-                "social_manager",
-                "finance",
-                "ambulance_manager",
-                "publication_manager",
-                "superadmin"
+        "transaction_donation.CreateTransactionRequest": {
+            "type": "object",
+            "required": [
+                "donation_id",
+                "donor_email",
+                "donor_name",
+                "gross_amount"
             ],
-            "x-enum-varnames": [
-                "RoleUser",
-                "RoleChairman",
-                "RoleSocialManager",
-                "RoleFinance",
-                "RoleAmbulanceManager",
-                "RolePublicationManager",
-                "RoleSuperadmin"
-            ]
+            "properties": {
+                "donation_id": {
+                    "type": "string"
+                },
+                "donor_email": {
+                    "type": "string"
+                },
+                "donor_name": {
+                    "type": "string"
+                },
+                "gross_amount": {
+                    "type": "number"
+                }
+            }
+        },
+        "transaction_donation.MidtransNotificationRequest": {
+            "type": "object",
+            "properties": {
+                "fraud_status": {
+                    "type": "string"
+                },
+                "gross_amount": {
+                    "type": "string"
+                },
+                "order_id": {
+                    "type": "string"
+                },
+                "payment_type": {
+                    "type": "string"
+                },
+                "signature_key": {
+                    "type": "string"
+                },
+                "status_code": {
+                    "type": "string"
+                },
+                "transaction_id": {
+                    "type": "string"
+                },
+                "transaction_status": {
+                    "type": "string"
+                }
+            }
         },
         "user.UpdatePasswordRequest": {
             "type": "object",
@@ -1747,20 +2004,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "role": {
-                    "enum": [
-                        "user",
-                        "chairman",
-                        "social_manager",
-                        "finance",
-                        "ambulance_manager",
-                        "publication_manager",
-                        "superadmin"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/user.Role"
-                        }
-                    ]
+                    "type": "integer"
                 },
                 "status": {
                     "type": "boolean"
