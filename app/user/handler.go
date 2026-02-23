@@ -45,7 +45,11 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // @Router /api/users [get]
 func (h *handler) GetUsersList(c *gin.Context) {
 	ctx := c.Request.Context()
-	queryParam := c.Request.URL.Query()
+	var queryParam UserQueryParam
+	if err := c.ShouldBindQuery(&queryParam); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
+		return
+	}
 	res := h.service.GetUsersList(ctx, queryParam)
 	c.JSON(res.Status, res)
 }

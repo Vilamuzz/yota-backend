@@ -3,7 +3,6 @@ package user
 import (
 	"context"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
@@ -11,7 +10,7 @@ import (
 )
 
 type Service interface {
-	GetUsersList(ctx context.Context, queryParam url.Values) pkg.Response
+	GetUsersList(ctx context.Context, queryParams UserQueryParam) pkg.Response
 	GetUserDetail(ctx context.Context, userID string) pkg.Response
 	UpdateUser(ctx context.Context, userID string, payload UpdateUserRequest) pkg.Response
 	UpdateProfile(ctx context.Context, userID string, payload UpdateProfileRequest) pkg.Response
@@ -30,23 +29,45 @@ func NewService(r Repository, timeout time.Duration) Service {
 	}
 }
 
-func (s *service) GetUsersList(ctx context.Context, queryParam url.Values) pkg.Response {
+func (s *service) GetUsersList(ctx context.Context, queryParams UserQueryParam) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
-	// For simplicity, fetch all users without pagination/filtering
-	var users []User
-	users, err := s.repo.FetchListUsers(ctx, map[string]interface{}{})
+
+	if queryParams.Limit == 0 {
+		queryParams.Limit = 10
+	}
+
+	options := map[string]interface{}{
+		"limit": queryParams.Limit,
+	}
+
+	if queryParams.Role != 0 {
+		options["role"] = queryParams.Role
+	}
+	if queryParams.Status != nil {
+		options["status"] = *queryParams.Status
+	}
+	if queryParams.Search != "" {
+		options["search"] = queryParams.Search
+	}
+	if queryParams.Cursor != "" {
+		options["cursor"] = queryParams.Cursor
+	}
+
+	users, err := s.repo.FindAll(ctx, options)
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to retrieve users", nil, nil)
 	}
 	// Map to UserProfile responses
-	var userProfiles []UserProfile
+	var userProfiles []UserResponse
 	for _, user := range users {
-		userProfiles = append(userProfiles, UserProfile{
-			ID:       user.ID.String(),
-			Username: user.Username,
-			Email:    user.Email,
-			Role:     user.Role.Role,
+		userProfiles = append(userProfiles, UserResponse{
+			ID:        user.ID.String(),
+			Username:  user.Username,
+			Email:     user.Email,
+			Status:    user.Status,
+			Role:      user.Role,
+			CreatedAt: user.CreatedAt,
 		})
 	}
 	return pkg.NewResponse(http.StatusOK, "Users list retrieved successfully", nil, userProfiles)
@@ -56,17 +77,19 @@ func (s *service) GetUserDetail(ctx context.Context, userID string) pkg.Response
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	user, err := s.repo.FetchOneUser(ctx, map[string]interface{}{"id": userID})
+	user, err := s.repo.FindByID(ctx, userID)
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "User not found", nil, nil)
 	}
 
 	// Map to UserProfile response
-	userProfile := UserProfile{
-		ID:       user.ID.String(),
-		Username: user.Username,
-		Email:    user.Email,
-		Role:     user.Role.Role,
+	userProfile := UserResponse{
+		ID:        user.ID.String(),
+		Username:  user.Username,
+		Email:     user.Email,
+		Status:    user.Status,
+		Role:      user.Role,
+		CreatedAt: user.CreatedAt,
 	}
 
 	return pkg.NewResponse(http.StatusOK, "User details retrieved successfully", nil, userProfile)
@@ -78,7 +101,7 @@ func (s *service) UpdateUser(ctx context.Context, userID string, payload UpdateU
 
 	errValidation := make(map[string]string)
 	if payload.Role != 0 {
-		_, err := s.repo.FetchRoleByID(ctx, payload.Role)
+		_, err := s.repo.FindRoleByID(ctx, payload.Role)
 		if err != nil {
 			errValidation["role"] = "Invalid role"
 		}
@@ -152,7 +175,7 @@ func (s *service) UpdatePassword(ctx context.Context, userID string, payload Upd
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
 
-	user, err := s.repo.FetchOneUser(ctx, map[string]interface{}{"id": userID})
+	user, err := s.repo.FindByID(ctx, userID)
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "User not found", nil, nil)
 	}

@@ -20,3 +20,11 @@ type UpdatePasswordRequest struct {
 	CurrentPassword string `json:"current_password" binding:"required,min=6"`
 	NewPassword     string `json:"new_password" binding:"required,min=6"`
 }
+
+type UserQueryParam struct {
+	Limit  int    `form:"limit"`
+	Cursor string `form:"cursor"`
+	Search string `form:"search"`
+	Role   int8   `form:"role"`
+	Status *bool  `form:"status"`
+}
