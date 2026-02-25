@@ -10,8 +10,10 @@ import (
 )
 
 type Service interface {
+	GetRoles(ctx context.Context) pkg.Response
 	GetUsersList(ctx context.Context, queryParams UserQueryParam) pkg.Response
 	GetUserDetail(ctx context.Context, userID string) pkg.Response
+	GetProfile(ctx context.Context, userID string) pkg.Response
 	UpdateUser(ctx context.Context, userID string, payload UpdateUserRequest) pkg.Response
 	UpdateProfile(ctx context.Context, userID string, payload UpdateProfileRequest) pkg.Response
 	UpdatePassword(ctx context.Context, userID string, payload UpdatePasswordRequest) pkg.Response
@@ -29,6 +31,27 @@ func NewService(r Repository, timeout time.Duration) Service {
 	}
 }
 
+func (s *service) GetRoles(ctx context.Context) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	roles, err := s.repo.FindAllRoles(ctx)
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to retrieve roles", nil, nil)
+	}
+
+	// Map to RoleResponse
+	var roleResponses []RoleResponse
+	for _, role := range roles {
+		roleResponses = append(roleResponses, RoleResponse{
+			ID:   role.ID,
+			Role: role.Role,
+		})
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Roles retrieved successfully", nil, roleResponses)
+}
+
 func (s *service) GetUsersList(ctx context.Context, queryParams UserQueryParam) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
@@ -37,12 +60,14 @@ func (s *service) GetUsersList(ctx context.Context, queryParams UserQueryParam) 
 		queryParams.Limit = 10
 	}
 
+	usingPrevCursor := queryParams.PrevCursor != ""
+
 	options := map[string]interface{}{
 		"limit": queryParams.Limit,
 	}
 
 	if queryParams.Role != 0 {
-		options["role"] = queryParams.Role
+		options["role_id"] = queryParams.Role
 	}
 	if queryParams.Status != nil {
 		options["status"] = *queryParams.Status
@@ -50,15 +75,32 @@ func (s *service) GetUsersList(ctx context.Context, queryParams UserQueryParam) 
 	if queryParams.Search != "" {
 		options["search"] = queryParams.Search
 	}
-	if queryParams.Cursor != "" {
-		options["cursor"] = queryParams.Cursor
+	if queryParams.NextCursor != "" {
+		options["next_cursor"] = queryParams.NextCursor
+	}
+	if usingPrevCursor {
+		options["prev_cursor"] = queryParams.PrevCursor
 	}
 
 	users, err := s.repo.FindAll(ctx, options)
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to retrieve users", nil, nil)
 	}
-	// Map to UserProfile responses
+
+	// When traversing backwards the repo returns ASC order; check overflow then reverse
+	hasMore := len(users) > queryParams.Limit
+	if hasMore {
+		users = users[:queryParams.Limit]
+	}
+
+	// Reverse the slice when using prev_cursor so the page is in DESC order
+	if usingPrevCursor {
+		for i, j := 0, len(users)-1; i < j; i, j = i+1, j-1 {
+			users[i], users[j] = users[j], users[i]
+		}
+	}
+
+	// Map to UserResponse
 	var userProfiles []UserResponse
 	for _, user := range users {
 		userProfiles = append(userProfiles, UserResponse{
@@ -70,14 +112,43 @@ func (s *service) GetUsersList(ctx context.Context, queryParams UserQueryParam) 
 			CreatedAt: user.CreatedAt,
 		})
 	}
-	return pkg.NewResponse(http.StatusOK, "Users list retrieved successfully", nil, userProfiles)
+
+	var nextCursor, prevCursor string
+
+	hasNext := (!usingPrevCursor && hasMore) || (usingPrevCursor && queryParams.NextCursor == "")
+	hasPrev := (usingPrevCursor && hasMore) || (!usingPrevCursor && queryParams.NextCursor != "")
+
+	if len(userProfiles) > 0 {
+		first := userProfiles[0]
+		last := userProfiles[len(userProfiles)-1]
+
+		if hasNext {
+			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID)
+		}
+		if hasPrev {
+			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID)
+		}
+	}
+
+	resData := UserListResponse{
+		Users: userProfiles,
+		Pagination: pkg.CursorPagination{
+			NextCursor: nextCursor,
+			PrevCursor: prevCursor,
+			HasNext:    hasNext,
+			HasPrev:    hasPrev,
+			Limit:      queryParams.Limit,
+		},
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Users list retrieved successfully", nil, resData)
 }
 
 func (s *service) GetUserDetail(ctx context.Context, userID string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	user, err := s.repo.FindByID(ctx, userID)
+	user, err := s.repo.FindOne(ctx, map[string]interface{}{"id": userID})
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "User not found", nil, nil)
 	}
@@ -95,21 +166,41 @@ func (s *service) GetUserDetail(ctx context.Context, userID string) pkg.Response
 	return pkg.NewResponse(http.StatusOK, "User details retrieved successfully", nil, userProfile)
 }
 
+func (s *service) GetProfile(ctx context.Context, userID string) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	user, err := s.repo.FindOne(ctx, map[string]interface{}{"id": userID})
+	if err != nil {
+		return pkg.NewResponse(http.StatusNotFound, "User not found", nil, nil)
+	}
+
+	// Map to UserProfile response
+	userProfile := UserProfileResponse{
+		ID:       user.ID.String(),
+		Username: user.Username,
+		Email:    user.Email,
+		Role:     user.Role.Role,
+	}
+
+	return pkg.NewResponse(http.StatusOK, "User profile retrieved successfully", nil, userProfile)
+}
+
 func (s *service) UpdateUser(ctx context.Context, userID string, payload UpdateUserRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	errValidation := make(map[string]string)
-	if payload.Role != 0 {
-		_, err := s.repo.FindRoleByID(ctx, payload.Role)
+	if payload.RoleID != 0 {
+		_, err := s.repo.FindRoleByID(ctx, payload.RoleID)
 		if err != nil {
 			errValidation["role"] = "Invalid role"
 		}
 	}
 
 	updateMap := make(map[string]interface{})
-	if payload.Role != 0 {
-		updateMap["role"] = payload.Role
+	if payload.RoleID != 0 {
+		updateMap["role_id"] = payload.RoleID
 	}
 
 	if payload.Status != nil {
@@ -175,7 +266,7 @@ func (s *service) UpdatePassword(ctx context.Context, userID string, payload Upd
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
 
-	user, err := s.repo.FindByID(ctx, userID)
+	user, err := s.repo.FindOne(ctx, map[string]interface{}{"id": userID})
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "User not found", nil, nil)
 	}

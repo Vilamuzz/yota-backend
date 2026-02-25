@@ -9,9 +9,10 @@ import (
 )
 
 type Repository interface {
+	FindAllRoles(ctx context.Context) ([]Role, error)
 	FindRoleByID(ctx context.Context, roleID int8) (*Role, error)
 	CreateUser(ctx context.Context, user *User) error
-	FindByID(ctx context.Context, id string) (*User, error)
+	FindOne(ctx context.Context, options map[string]interface{}) (*User, error)
 	FindAll(ctx context.Context, options map[string]interface{}) ([]User, error)
 	UpdateUserPassword(ctx context.Context, userID uuid.UUID, hashedPassword string) error
 	UpdateUser(ctx context.Context, userID string, updateData map[string]interface{}) error
@@ -26,6 +27,14 @@ func NewRepository(conn *gorm.DB) Repository {
 	return &repository{Conn: conn}
 }
 
+func (r *repository) FindAllRoles(ctx context.Context) ([]Role, error) {
+	var roles []Role
+	if err := r.Conn.WithContext(ctx).Where("role != ?", "superadmin").Find(&roles).Error; err != nil {
+		return nil, err
+	}
+	return roles, nil
+}
+
 func (r *repository) FindRoleByID(ctx context.Context, roleID int8) (*Role, error) {
 	var role Role
 	if err := r.Conn.WithContext(ctx).Where("id = ?", roleID).First(&role).Error; err != nil {
@@ -38,9 +47,9 @@ func (r *repository) CreateUser(ctx context.Context, user *User) error {
 	return r.Conn.WithContext(ctx).Create(user).Error
 }
 
-func (r *repository) FindByID(ctx context.Context, id string) (*User, error) {
+func (r *repository) FindOne(ctx context.Context, options map[string]interface{}) (*User, error) {
 	var user User
-	if err := r.Conn.WithContext(ctx).Where("id = ?", id).Preload("Role").First(&user).Error; err != nil {
+	if err := r.Conn.WithContext(ctx).Where(options).Preload("Role").First(&user).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil
@@ -48,7 +57,7 @@ func (r *repository) FindByID(ctx context.Context, id string) (*User, error) {
 
 func (r *repository) FindAll(ctx context.Context, options map[string]interface{}) ([]User, error) {
 	var users []User
-	query := r.Conn.WithContext(ctx)
+	query := r.Conn.WithContext(ctx).Preload("Role").Where("role_id != ?", 8)
 
 	// Apply filters
 	if roleID, ok := options["role_id"]; ok && roleID != 0 {
@@ -64,13 +73,25 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 	}
 
 	// Apply cursor-based pagination
-	if cursor, ok := options["cursor"]; ok && cursor != "" {
+	if cursor, ok := options["next_cursor"]; ok && cursor != "" {
 		cursorStr := cursor.(string)
 		cursorData, err := pkg.DecodeCursor(cursorStr)
 		if err == nil {
 			query = query.Where("created_at < ? OR (created_at = ? AND id < ?)",
 				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
 		}
+	} else if prevCursor, ok := options["prev_cursor"]; ok && prevCursor != "" {
+		cursorStr := prevCursor.(string)
+		cursorData, err := pkg.DecodeCursor(cursorStr)
+		if err == nil {
+			query = query.Where("created_at > ? OR (created_at = ? AND id > ?)",
+				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID).
+				Order("created_at ASC, id ASC")
+		}
+	}
+
+	if _, usingPrevCursor := options["prev_cursor"]; !usingPrevCursor {
+		query = query.Order("created_at DESC, id DESC")
 	}
 
 	// Apply limit
@@ -79,9 +100,6 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 		limit = l.(int)
 	}
 	query = query.Limit(limit + 1)
-
-	// Order by created date and ID for consistent ordering
-	query = query.Order("created_at DESC, id DESC")
 
 	if err := query.Find(&users).Error; err != nil {
 		return nil, err

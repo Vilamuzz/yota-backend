@@ -7,7 +7,7 @@ type CreateUserRequest struct {
 }
 
 type UpdateUserRequest struct {
-	Role   int8  `json:"role" binding:"omitempty"`
+	RoleID int8  `json:"role_id" binding:"omitempty"`
 	Status *bool `json:"status" binding:"omitempty"`
 }
 
@@ -22,9 +22,10 @@ type UpdatePasswordRequest struct {
 }
 
 type UserQueryParam struct {
-	Limit  int    `form:"limit"`
-	Cursor string `form:"cursor"`
-	Search string `form:"search"`
-	Role   int8   `form:"role"`
-	Status *bool  `form:"status"`
+	Limit      int    `form:"limit"`
+	NextCursor string `form:"next_cursor"`
+	PrevCursor string `form:"prev_cursor"`
+	Search     string `form:"search"`
+	Role       int8   `form:"role"`
+	Status     *bool  `form:"status"`
 }

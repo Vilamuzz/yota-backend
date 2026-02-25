@@ -22,6 +22,11 @@ type UserResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type RoleResponse struct {
+	ID   int8   `json:"id"`
+	Role string `json:"role"`
+}
+
 type UserListResponse struct {
 	Users      []UserResponse       `json:"users"`
 	Pagination pkg.CursorPagination `json:"pagination"`

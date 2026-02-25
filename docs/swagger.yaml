@@ -214,6 +214,20 @@ definitions:
       transaction_status:
         type: string
     type: object
+  user.Role:
+    properties:
+      id:
+        type: integer
+      role:
+        type: string
+    type: object
+  user.RoleResponse:
+    properties:
+      id:
+        type: string
+      role:
+        type: string
+    type: object
   user.UpdatePasswordRequest:
     properties:
       current_password:
@@ -241,6 +255,32 @@ definitions:
         type: integer
       status:
         type: boolean
+    type: object
+  user.UserProfileResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      role:
+        type: string
+      username:
+        type: string
+    type: object
+  user.UserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      role:
+        $ref: '#/definitions/user.Role'
+      status:
+        type: boolean
+      username:
+        type: string
     type: object
 info:
   contact: {}
@@ -800,7 +840,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/pkg.Response'
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/user.UserProfileResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: Get Current User
@@ -1175,6 +1220,28 @@ paths:
       summary: Midtrans Payment Notification
       tags:
       - Transaction Donations
+  /api/public/users/roles:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of roles
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/user.RoleResponse'
+                  type: array
+              type: object
+      summary: Get Roles
+      tags:
+      - Users
   /api/transaction-donations:
     get:
       description: Retrieve a paginated list of donation transactions (admin only)
@@ -1229,13 +1296,45 @@ paths:
       consumes:
       - application/json
       description: Get a list of users
+      parameters:
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      - description: Search query
+        in: query
+        name: search
+        type: string
+      - description: Role ID filter
+        in: query
+        name: role
+        type: integer
+      - description: Status filter
+        in: query
+        name: status
+        type: boolean
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/pkg.Response'
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/user.UserResponse'
+                  type: array
+              type: object
       security:
       - BearerAuth: []
       summary: Get Users List
@@ -1258,7 +1357,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/pkg.Response'
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/user.UserResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: Get User Detail

@@ -24,13 +24,42 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 }
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
-	r.GET("/me", h.middleware.AuthRequired(), h.GetMe)
-	r.PUT("/me", h.middleware.AuthRequired(), h.UpdateProfile)
-	r.PUT("/me/password", h.middleware.AuthRequired(), h.UpdatePassword)
-	api := r.Group("/users")
-	api.GET("", h.middleware.RequireRoles(enum.RoleSuperadmin), h.GetUsersList)
-	api.GET("/:id", h.middleware.RequireRoles(enum.RoleSuperadmin), h.GetUserDetail)
-	api.PUT("/:id", h.middleware.RequireRoles(enum.RoleSuperadmin), h.UpdateUser)
+
+	public := r.Group("/public/users")
+	{
+		public.GET("/roles", h.GetRoles)
+	}
+
+	me := r.Group("/me")
+	me.Use(h.middleware.AuthRequired())
+	{
+		me.GET("", h.GetMe)
+		me.PUT("", h.UpdateProfile)
+		me.PUT("/password", h.UpdatePassword)
+	}
+
+	protected := r.Group("/users")
+	protected.Use(h.middleware.RequireRoles(enum.RoleSuperadmin))
+	{
+		protected.GET("", h.GetUsersList)
+		protected.GET("/:id", h.GetUserDetail)
+		protected.PUT("/:id", h.UpdateUser)
+	}
+}
+
+// GetRoles
+//
+// @Summary Get Roles
+// @Description Get a list of roles
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Success 200 {object} pkg.Response{data=[]RoleResponse}
+// @Router /api/public/users/roles [get]
+func (h *handler) GetRoles(c *gin.Context) {
+	ctx := c.Request.Context()
+	res := h.service.GetRoles(ctx)
+	c.JSON(res.Status, res)
 }
 
 // GetUsersList
@@ -41,7 +70,13 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Success 200 {object} pkg.Response
+// @Param limit query int false "Pagination limit"
+// @Param next_cursor query string false "Pagination cursor (next page)"
+// @Param prev_cursor query string false "Pagination cursor (prev page)"
+// @Param search query string false "Search query"
+// @Param role query int false "Role ID filter"
+// @Param status query boolean false "Status filter"
+// @Success 200 {object} pkg.Response{data=[]UserResponse}
 // @Router /api/users [get]
 func (h *handler) GetUsersList(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -63,7 +98,7 @@ func (h *handler) GetUsersList(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path string true "User ID"
-// @Success 200 {object} pkg.Response
+// @Success 200 {object} pkg.Response{data=UserResponse}
 // @Router /api/users/{id} [get]
 func (h *handler) GetUserDetail(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -104,7 +139,7 @@ func (h *handler) UpdateUser(c *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Success 200 {object} pkg.Response
+// @Success 200 {object} pkg.Response{data=UserProfileResponse}
 // @Router /api/me [get]
 func (h *handler) GetMe(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -124,7 +159,7 @@ func (h *handler) GetMe(c *gin.Context) {
 	}
 
 	// Get user details using the UserID from claims
-	res := h.service.GetUserDetail(ctx, claims.UserID)
+	res := h.service.GetProfile(ctx, claims.UserID)
 	c.JSON(res.Status, res)
 }
 

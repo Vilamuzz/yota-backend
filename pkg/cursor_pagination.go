@@ -13,7 +13,7 @@ type CursorData struct {
 }
 
 func EncodeCursor(createdAt time.Time, id string) string {
-	cursorStr := fmt.Sprintf("%d|%s", createdAt.Unix(), id)
+	cursorStr := fmt.Sprintf("%d|%s", createdAt.UTC().UnixNano(), id)
 	return base64.URLEncoding.EncodeToString([]byte(cursorStr))
 }
 
@@ -32,7 +32,7 @@ func DecodeCursor(cursor string) (*CursorData, error) {
 	fmt.Sscanf(parts[0], "%d", &timestamp)
 
 	return &CursorData{
-		CreatedAt: time.Unix(timestamp, 0),
+		CreatedAt: time.Unix(0, timestamp).UTC(),
 		ID:        parts[1],
 	}, nil
 }
