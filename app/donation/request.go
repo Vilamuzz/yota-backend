@@ -12,7 +12,7 @@ type DonationRequest struct {
 	Category    Category              `json:"category" form:"category" binding:"required,oneof=education health environment"`
 	Status      bool                  `json:"status" form:"status" binding:"required"`
 	FundTarget  float64               `json:"fund_target" form:"fund_target" binding:"required,gt=0"`
-	DateEnd     time.Time             `json:"date_end" form:"date_end" binding:"required" time_format:"2006-01-02T15:04:05Z07:00"`
+	DateEnd     time.Time             `json:"date_end" form:"date_end" binding:"required" time_format:"2006-01-02"`
 }
 
 type UpdateDonationRequest struct {
@@ -22,7 +22,7 @@ type UpdateDonationRequest struct {
 	Category    Category              `json:"category" form:"category" binding:"omitempty,oneof=education health environment"`
 	FundTarget  float64               `json:"fund_target" form:"fund_target" binding:"omitempty,gt=0"`
 	Status      *bool                 `json:"status" form:"status" binding:"omitempty"`
-	DateEnd     time.Time             `json:"date_end" form:"date_end" binding:"omitempty" time_format:"2006-01-02T15:04:05Z07:00"`
+	DateEnd     time.Time             `json:"date_end" form:"date_end" binding:"omitempty" time_format:"2006-01-02"`
 }
 
 type DonationQueryParams struct {

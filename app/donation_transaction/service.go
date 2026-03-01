@@ -1,4 +1,4 @@
-package transaction_donation
+package donation_transaction
 
 import (
 	"context"
@@ -67,7 +67,7 @@ func (s *service) CreateTransaction(ctx context.Context, req CreateTransactionRe
 	}
 
 	now := time.Now()
-	tx := &TransactionDonation{
+	tx := &DonationTransaction{
 		ID:              uuid.New().String(),
 		DonationID:      req.DonationID,
 		OrderID:         orderID,
@@ -151,7 +151,7 @@ func (s *service) List(ctx context.Context, params QueryParams) pkg.Response {
 		transactions = transactions[:params.Limit]
 	}
 
-	responses := make([]TransactionDonationResponse, len(transactions))
+	responses := make([]DonationTransactionResponse, len(transactions))
 	for i, tx := range transactions {
 		txCopy := tx
 		responses[i] = toResponse(&txCopy)

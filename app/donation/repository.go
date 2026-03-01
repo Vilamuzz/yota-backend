@@ -2,6 +2,7 @@ package donation
 
 import (
 	"context"
+	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
@@ -9,7 +10,7 @@ import (
 
 type Repository interface {
 	FindPublished(ctx context.Context, options map[string]interface{}) ([]Donation, error)
-	FindPublishedByID(ctx context.Context, id string) (*Donation, error)
+	FindPublishedBySlug(ctx context.Context, slug string) (*Donation, error)
 	FindAll(ctx context.Context, options map[string]interface{}) ([]Donation, error)
 	FindByID(ctx context.Context, id string) (*Donation, error)
 	Create(ctx context.Context, donation *Donation) error
@@ -115,9 +116,9 @@ func (r *repository) FindByID(ctx context.Context, id string) (*Donation, error)
 	return &donation, nil
 }
 
-func (r *repository) FindPublishedByID(ctx context.Context, id string) (*Donation, error) {
+func (r *repository) FindPublishedBySlug(ctx context.Context, slug string) (*Donation, error) {
 	var donation Donation
-	if err := r.Conn.WithContext(ctx).Where("id = ? AND status = ?", id, StatusActive).First(&donation).Error; err != nil {
+	if err := r.Conn.WithContext(ctx).Where("slug = ? AND status = ?", slug, StatusActive).First(&donation).Error; err != nil {
 		return nil, err
 	}
 	return &donation, nil
@@ -132,5 +133,5 @@ func (r *repository) Update(ctx context.Context, id string, updateData map[strin
 }
 
 func (r *repository) Delete(ctx context.Context, id string) error {
-	return r.Conn.WithContext(ctx).Delete(&Donation{}, "id = ?", id).Error
+	return r.Conn.WithContext(ctx).Model(&Donation{}).Where("id = ?", id).Update("deleted_at", time.Now()).Error
 }

@@ -1,8 +1,8 @@
-package transaction_donation
+package donation_transaction
 
 import "time"
 
-type TransactionDonationResponse struct {
+type DonationTransactionResponse struct {
 	ID              string     `json:"id"`
 	DonationID      string     `json:"donation_id"`
 	OrderID         string     `json:"order_id"`
@@ -19,8 +19,8 @@ type TransactionDonationResponse struct {
 	CreatedAt       time.Time  `json:"created_at"`
 }
 
-func toResponse(tx *TransactionDonation) TransactionDonationResponse {
-	return TransactionDonationResponse{
+func toResponse(tx *DonationTransaction) DonationTransactionResponse {
+	return DonationTransactionResponse{
 		ID:              tx.ID,
 		DonationID:      tx.DonationID,
 		OrderID:         tx.OrderID,

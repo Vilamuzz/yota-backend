@@ -12,7 +12,7 @@ import (
 
 type Service interface {
 	ListPublished(ctx context.Context, queryParams DonationQueryParams) pkg.Response
-	GetPublishedByID(ctx context.Context, id string) pkg.Response
+	GetPublishedBySlug(ctx context.Context, slug string) pkg.Response
 	List(ctx context.Context, queryParams DonationQueryParams) pkg.Response
 	GetByID(ctx context.Context, id string) pkg.Response
 	CreateDonation(ctx context.Context, donation DonationRequest) pkg.Response
@@ -153,16 +153,11 @@ func (s *service) List(ctx context.Context, queryParams DonationQueryParams) pkg
 	})
 }
 
-func (s *service) GetPublishedByID(ctx context.Context, id string) pkg.Response {
+func (s *service) GetPublishedBySlug(ctx context.Context, slug string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	// Validate UUID format
-	if _, err := uuid.Parse(id); err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid donation ID format"}, nil)
-	}
-
-	donation, err := s.repo.FindPublishedByID(ctx, id)
+	donation, err := s.repo.FindPublishedBySlug(ctx, slug)
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "Donation not found", nil, nil)
 	}
@@ -256,6 +251,7 @@ func (s *service) CreateDonation(ctx context.Context, req DonationRequest) pkg.R
 	donation := &Donation{
 		ID:          uuid.New().String(),
 		Title:       req.Title,
+		Slug:        pkg.Slugify(req.Title),
 		Description: req.Description,
 		ImageURL:    imageURL,
 		Category:    req.Category,

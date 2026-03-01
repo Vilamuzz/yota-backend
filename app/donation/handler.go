@@ -26,7 +26,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	// Public routes
 	public := r.Group("/public/donations")
 	public.GET("", h.ListPublishedDonations)
-	public.GET("/:id", h.GetPublishedDonation)
+	public.GET("/:slug", h.GetPublishedDonation)
 
 	// Protected routes
 	protected := r.Group("/donations")
@@ -67,19 +67,19 @@ func (h *handler) ListPublishedDonations(c *gin.Context) {
 
 // GetPublishedDonation
 //
-// @Summary Get Published Donation by ID
+// @Summary Get Published Donation by Slug
 // @Description Get detailed information of a specific published donation
 // @Tags Donations
 // @Accept json
 // @Produce json
-// @Param id path string true "Donation ID"
+// @Param slug path string true "Donation Slug"
 // @Success 200 {object} pkg.Response
-// @Router /api/public/donations/{id} [get]
+// @Router /api/public/donations/{slug} [get]
 func (h *handler) GetPublishedDonation(c *gin.Context) {
 	ctx := c.Request.Context()
-	donationID := c.Param("id")
+	donationSlug := c.Param("slug")
 
-	res := h.service.GetPublishedByID(ctx, donationID)
+	res := h.service.GetPublishedBySlug(ctx, donationSlug)
 	c.JSON(res.Status, res)
 }
 

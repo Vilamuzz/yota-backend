@@ -5,6 +5,7 @@ import "time"
 type Donation struct {
 	ID          string    `json:"id" gorm:"primary_key"`
 	Title       string    `json:"title" gorm:"not null"`
+	Slug        string    `json:"slug" gorm:"not null;unique"`
 	Description string    `json:"description" gorm:"not null"`
 	ImageURL    string    `json:"image_url"`
 	Category    Category  `json:"category" gorm:"not null"`
@@ -21,7 +22,7 @@ type Status string
 const (
 	StatusActive    Status = "active"
 	StatusDraft     Status = "draft"
-	StatusCompleted Status = "completed"
+	StatusCompleted Status = "complete"
 )
 
 type Category string

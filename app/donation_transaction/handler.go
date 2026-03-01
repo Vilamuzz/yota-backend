@@ -1,4 +1,4 @@
-package transaction_donation
+package donation_transaction
 
 import (
 	"net/http"
@@ -24,12 +24,12 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	// Public routes (anyone can donate or receive webhook)
-	public := r.Group("/public/transaction-donations")
+	public := r.Group("/public/donation-transactions")
 	public.POST("", h.CreateTransaction)
 	public.POST("/notification", h.HandleNotification)
 
 	// Admin-only routes
-	protected := r.Group("/transaction-donations")
+	protected := r.Group("/donation-transactions")
 	protected.Use(h.middleware.RequireRoles(enum.RoleSuperadmin, enum.RoleFinance))
 	{
 		protected.GET("", h.ListTransactions)
@@ -41,12 +41,12 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 //
 // @Summary Create Donation Transaction
 // @Description Initiate a Midtrans Snap payment for a donation
-// @Tags Transaction Donations
+// @Tags Donation Transactions
 // @Accept json
 // @Produce json
 // @Param body body CreateTransactionRequest true "Transaction request"
 // @Success 201 {object} pkg.Response
-// @Router /api/public/transaction-donations [post]
+// @Router /api/public/donation-transactions [post]
 func (h *handler) CreateTransaction(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -64,12 +64,12 @@ func (h *handler) CreateTransaction(c *gin.Context) {
 //
 // @Summary Midtrans Payment Notification
 // @Description Webhook endpoint for Midtrans to send payment status updates
-// @Tags Transaction Donations
+// @Tags Donation Transactions
 // @Accept json
 // @Produce json
 // @Param body body MidtransNotificationRequest true "Midtrans notification payload"
 // @Success 200 {object} pkg.Response
-// @Router /api/public/transaction-donations/notification [post]
+// @Router /api/public/donation-transactions/notification [post]
 func (h *handler) HandleNotification(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -87,14 +87,14 @@ func (h *handler) HandleNotification(c *gin.Context) {
 //
 // @Summary List Donation Transactions
 // @Description Retrieve a paginated list of donation transactions (admin only)
-// @Tags Transaction Donations
+// @Tags Donation Transactions
 // @Security BearerAuth
 // @Produce json
 // @Param status query string false "Filter by payment status"
 // @Param donation_id query string false "Filter by donation ID"
 // @Param limit query int false "Items per page"
 // @Success 200 {object} pkg.Response
-// @Router /api/transaction-donations [get]
+// @Router /api/donation-transactions [get]
 func (h *handler) ListTransactions(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -112,12 +112,12 @@ func (h *handler) ListTransactions(c *gin.Context) {
 //
 // @Summary Get Donation Transaction by ID
 // @Description Retrieve a specific donation transaction (admin only)
-// @Tags Transaction Donations
+// @Tags Donation Transactions
 // @Security BearerAuth
 // @Produce json
 // @Param id path string true "Transaction ID"
 // @Success 200 {object} pkg.Response
-// @Router /api/transaction-donations/{id} [get]
+// @Router /api/donation-transactions/{id} [get]
 func (h *handler) GetTransactionByID(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")

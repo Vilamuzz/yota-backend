@@ -1,4 +1,4 @@
-package transaction_donation
+package donation_transaction
 
 type CreateTransactionRequest struct {
 	DonationID  string  `json:"donation_id" binding:"required"`

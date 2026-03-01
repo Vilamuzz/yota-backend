@@ -1,10 +1,10 @@
-package transaction_donation
+package donation_transaction
 
 import (
 	"time"
 )
 
-type TransactionDonation struct {
+type DonationTransaction struct {
 	ID              string     `json:"id" gorm:"primary_key"`
 	DonationID      string     `json:"donation_id" gorm:"not null"`
 	OrderID         string     `json:"order_id" gorm:"uniqueIndex"`
@@ -22,5 +22,4 @@ type TransactionDonation struct {
 	PaidAt          *time.Time `json:"paid_at"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
-	DeletedAt       *time.Time `json:"deleted_at"`
 }
