@@ -44,6 +44,10 @@ func (m *AppMiddleware) RequireRoles(roles ...enum.RoleName) gin.HandlerFunc {
 	return m.JWT.RequireRoles(roles...)
 }
 
+func (m *AppMiddleware) OptionalAuth() gin.HandlerFunc {
+	return m.JWT.OptionalAuth()
+}
+
 func (m *AppMiddleware) CORSHandler() gin.HandlerFunc {
 	return m.CORS.CORS()
 }

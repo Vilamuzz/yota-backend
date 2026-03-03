@@ -1,12 +1,12 @@
 package donation_transaction
 
 type CreateTransactionRequest struct {
+	UserID      string  `json:"-"`
 	DonationID  string  `json:"donation_id" binding:"required"`
 	DonorName   string  `json:"donor_name" binding:"required"`
 	DonorEmail  string  `json:"donor_email" binding:"required,email"`
 	GrossAmount float64 `json:"gross_amount" binding:"required,gt=0"`
 }
-
 type MidtransNotificationRequest struct {
 	OrderID           string `json:"order_id"`
 	StatusCode        string `json:"status_code"`
@@ -17,7 +17,6 @@ type MidtransNotificationRequest struct {
 	PaymentType       string `json:"payment_type"`
 	TransactionID     string `json:"transaction_id"`
 }
-
 type QueryParams struct {
 	Status     string `form:"status"`
 	DonationID string `form:"donation_id"`

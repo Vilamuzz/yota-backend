@@ -277,7 +277,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Transaction Donations"
+                    "Donation Transactions"
                 ],
                 "summary": "List Donation Transactions",
                 "parameters": [
@@ -322,7 +322,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Transaction Donations"
+                    "Donation Transactions"
                 ],
                 "summary": "Get Donation Transaction by ID",
                 "parameters": [
@@ -1304,7 +1304,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Transaction Donations"
+                    "Donation Transactions"
                 ],
                 "summary": "Create Donation Transaction",
                 "parameters": [
@@ -1338,7 +1338,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Transaction Donations"
+                    "Donation Transactions"
                 ],
                 "summary": "Midtrans Payment Notification",
                 "parameters": [

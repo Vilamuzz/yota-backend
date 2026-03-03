@@ -6,6 +6,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/Vilamuzz/yota-backend/pkg/enum"
+	jwt_pkg "github.com/Vilamuzz/yota-backend/pkg/jwt"
 	"github.com/gin-gonic/gin"
 )
 
@@ -25,7 +26,7 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	// Public routes (anyone can donate or receive webhook)
 	public := r.Group("/public/donation-transactions")
-	public.POST("", h.CreateTransaction)
+	public.POST("", h.middleware.OptionalAuth(), h.CreateTransaction)
 	public.POST("/notification", h.HandleNotification)
 
 	// Admin-only routes
@@ -54,6 +55,12 @@ func (h *handler) CreateTransaction(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
 		return
+	}
+
+	if val, exists := c.Get("user_data"); exists {
+		if claims, ok := val.(jwt_pkg.UserJWTClaims); ok {
+			req.UserID = claims.UserID
+		}
 	}
 
 	res := h.service.CreateTransaction(ctx, req)

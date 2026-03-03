@@ -288,7 +288,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Transaction Donations"
+                    "Donation Transactions"
                 ],
                 "summary": "List Donation Transactions",
                 "parameters": [
@@ -333,7 +333,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Transaction Donations"
+                    "Donation Transactions"
                 ],
                 "summary": "Get Donation Transaction by ID",
                 "parameters": [
@@ -1315,7 +1315,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Transaction Donations"
+                    "Donation Transactions"
                 ],
                 "summary": "Create Donation Transaction",
                 "parameters": [
@@ -1349,7 +1349,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Transaction Donations"
+                    "Donation Transactions"
                 ],
                 "summary": "Midtrans Payment Notification",
                 "parameters": [

@@ -482,7 +482,7 @@ paths:
       - BearerAuth: []
       summary: List Donation Transactions
       tags:
-      - Transaction Donations
+      - Donation Transactions
   /api/donation-transactions/{id}:
     get:
       description: Retrieve a specific donation transaction (admin only)
@@ -503,7 +503,7 @@ paths:
       - BearerAuth: []
       summary: Get Donation Transaction by ID
       tags:
-      - Transaction Donations
+      - Donation Transactions
   /api/donations/:
     get:
       consumes:
@@ -1137,7 +1137,7 @@ paths:
             $ref: '#/definitions/pkg.Response'
       summary: Create Donation Transaction
       tags:
-      - Transaction Donations
+      - Donation Transactions
   /api/public/donation-transactions/notification:
     post:
       consumes:
@@ -1159,7 +1159,7 @@ paths:
             $ref: '#/definitions/pkg.Response'
       summary: Midtrans Payment Notification
       tags:
-      - Transaction Donations
+      - Donation Transactions
   /api/public/donations/:
     get:
       consumes:

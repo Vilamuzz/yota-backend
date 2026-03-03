@@ -6,10 +6,10 @@ import (
 )
 
 type DonationRequest struct {
-	Title       string                `json:"title" form:"title" binding:"required,min=3,max=200"`
-	Description string                `json:"description" form:"description" binding:"required,min=10,max=2000"`
+	Title       string                `json:"title" form:"title"`
+	Description string                `json:"description" form:"description"`
 	Image       *multipart.FileHeader `json:"image" form:"image"`
-	Category    Category              `json:"category" form:"category" binding:"required,oneof=education health environment"`
+	Category    Category              `json:"category" form:"category"`
 	Status      bool                  `json:"status" form:"status" binding:"required"`
 	FundTarget  float64               `json:"fund_target" form:"fund_target" binding:"required,gt=0"`
 	DateEnd     time.Time             `json:"date_end" form:"date_end" binding:"required" time_format:"2006-01-02"`

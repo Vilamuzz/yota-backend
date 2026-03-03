@@ -39,6 +39,8 @@ func (s *service) CreateTransaction(ctx context.Context, req CreateTransactionRe
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	userID := req.UserID
+
 	orderID := fmt.Sprintf("DON-%s", uuid.New().String())
 	grossAmountInt := int64(req.GrossAmount)
 
@@ -70,6 +72,7 @@ func (s *service) CreateTransaction(ctx context.Context, req CreateTransactionRe
 	tx := &DonationTransaction{
 		ID:              uuid.New().String(),
 		DonationID:      req.DonationID,
+		UserID:          userID, // attach here
 		OrderID:         orderID,
 		DonorName:       req.DonorName,
 		DonorEmail:      req.DonorEmail,
