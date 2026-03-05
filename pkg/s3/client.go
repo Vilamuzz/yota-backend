@@ -9,10 +9,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/google/uuid"
+	"github.com/minio/minio-go/v7"
 )
 
 type Client interface {
@@ -22,12 +20,12 @@ type Client interface {
 }
 
 type client struct {
-	s3Client   *s3.Client
-	bucketName string
-	endpoint   string
+	minioClient *minio.Client
+	bucketName  string
+	endpoint    string
 }
 
-func NewClient(s3Client *s3.Client) Client {
+func NewClient(minioClient *minio.Client) Client {
 	bucketName := os.Getenv("RUSTFS_BUCKET_NAME")
 	if bucketName == "" {
 		bucketName = "default-bucket"
@@ -40,17 +38,12 @@ func NewClient(s3Client *s3.Client) Client {
 		protocol = "https"
 	}
 
-	// Ensure bucket exists
 	ctx := context.Background()
-	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
-		Bucket: aws.String(bucketName),
-	})
+	err := minioClient.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{})
 	if err != nil {
-		// Check if bucket already exists
-		_, headErr := s3Client.HeadBucket(ctx, &s3.HeadBucketInput{
-			Bucket: aws.String(bucketName),
-		})
-		if headErr != nil {
+		exists, errBucketExists := minioClient.BucketExists(ctx, bucketName)
+		if errBucketExists == nil && exists {
+		} else {
 			fmt.Printf("Failed to create or verify bucket %s: %v\n", bucketName, err)
 		}
 	}
@@ -68,18 +61,15 @@ func NewClient(s3Client *s3.Client) Client {
 		]
 	}`, bucketName)
 
-	_, err = s3Client.PutBucketPolicy(ctx, &s3.PutBucketPolicyInput{
-		Bucket: aws.String(bucketName),
-		Policy: aws.String(policy),
-	})
+	err = minioClient.SetBucketPolicy(ctx, bucketName, policy)
 	if err != nil {
 		fmt.Printf("Failed to set bucket policy: %v\n", err)
 	}
 
 	return &client{
-		s3Client:   s3Client,
-		bucketName: bucketName,
-		endpoint:   protocol + "://" + endpoint,
+		minioClient: minioClient,
+		bucketName:  bucketName,
+		endpoint:    protocol + "://" + endpoint,
 	}
 }
 
@@ -108,12 +98,8 @@ func (c *client) UploadFile(ctx context.Context, file *multipart.FileHeader, fol
 	}
 
 	// Upload the file using bytes.NewReader
-	_, err = c.s3Client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:      aws.String(c.bucketName),
-		Key:         aws.String(filename),
-		Body:        bytes.NewReader(fileContent),
-		ContentType: aws.String(contentType),
-		ACL:         types.ObjectCannedACLPublicRead,
+	_, err = c.minioClient.PutObject(ctx, c.bucketName, filename, bytes.NewReader(fileContent), int64(len(fileContent)), minio.PutObjectOptions{
+		ContentType: contentType,
 	})
 	if err != nil {
 		return "", err
@@ -129,27 +115,9 @@ func (c *client) GetFileLink(ctx context.Context, objectName string) (string, er
 	// For now, return the direct URL since we're using public bucket
 	fileURL := fmt.Sprintf("%s/%s/%s", c.endpoint, c.bucketName, objectName)
 	return fileURL, nil
-
-	// If you need presigned URLs, uncomment below:
-	/*
-		presignClient := s3.NewPresignClient(c.s3Client)
-		presignResult, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
-			Bucket: aws.String(c.bucketName),
-			Key:    aws.String(objectName),
-		}, func(opts *s3.PresignOptions) {
-			opts.Expires = 1000 * time.Second
-		})
-		if err != nil {
-			return "", err
-		}
-		return presignResult.URL, nil
-	*/
 }
 
 func (c *client) DeleteFile(ctx context.Context, objectName string) error {
-	_, err := c.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
-		Bucket: aws.String(c.bucketName),
-		Key:    aws.String(objectName),
-	})
+	err := c.minioClient.RemoveObject(ctx, c.bucketName, objectName, minio.RemoveObjectOptions{})
 	return err
 }
