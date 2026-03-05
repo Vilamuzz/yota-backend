@@ -1,18 +1,15 @@
 package config
 
 import (
-	"context"
 	"log"
 	"os"
 	"strconv"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
-func ConnectS3() *s3.Client {
+func ConnectS3() *minio.Client {
 	// Read RustFS (S3-compatible) configuration
 	endpoint := os.Getenv("RUSTFS_ENDPOINT")
 	accessKeyID := os.Getenv("RUSTFS_ACCESS_KEY")
@@ -38,40 +35,15 @@ func ConnectS3() *s3.Client {
 		}
 	}
 
-	// Construct endpoint URL with protocol
-	protocol := "http"
-	if useSSL {
-		protocol = "https"
-	}
-	endpointURL := protocol + "://" + endpoint
-
-	// Create custom resolver for S3-compatible endpoint
-	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-		return aws.Endpoint{
-			URL:               endpointURL,
-			SigningRegion:     region,
-			HostnameImmutable: true,
-		}, nil
+	// Initialize minio client object.
+	s3Client, err := minio.New(endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
+		Secure: useSSL,
+		Region: region,
 	})
-
-	// Create AWS config with custom credentials and endpoint
-	cfg, err := config.LoadDefaultConfig(context.Background(),
-		config.WithRegion(region),
-		config.WithEndpointResolverWithOptions(customResolver),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
-			accessKeyID,
-			secretAccessKey,
-			"",
-		)),
-	)
 	if err != nil {
-		log.Fatalf("Failed to load AWS SDK config: %v", err)
+		log.Fatalln("Failed to load MinIO SDK config:", err)
 	}
-
-	// Create S3 client with path-style addressing (required for MinIO/RustFS)
-	s3Client := s3.NewFromConfig(cfg, func(o *s3.Options) {
-		o.UsePathStyle = true
-	})
 
 	return s3Client
 }

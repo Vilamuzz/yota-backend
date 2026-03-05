@@ -77,13 +77,13 @@ func (s *service) Register(ctx context.Context, req RegisterRequest) pkg.Respons
 	}
 
 	// Check if email already exists
-	existingUser, _ := s.userRepo.FetchOneUser(ctx, map[string]interface{}{"email": req.Email})
+	existingUser, _ := s.userRepo.FindOne(ctx, map[string]interface{}{"email": req.Email})
 	if existingUser != nil {
 		return pkg.NewResponse(http.StatusConflict, "Email already registered", nil, nil)
 	}
 
 	// Check if username already exists
-	existingUser, _ = s.userRepo.FetchOneUser(ctx, map[string]interface{}{"username": req.Username})
+	existingUser, _ = s.userRepo.FindOne(ctx, map[string]interface{}{"username": req.Username})
 	if existingUser != nil {
 		return pkg.NewResponse(http.StatusConflict, "Username already taken", nil, nil)
 	}
@@ -106,7 +106,7 @@ func (s *service) Register(ctx context.Context, req RegisterRequest) pkg.Respons
 		UpdatedAt:     time.Now(),
 	}
 
-	if err := s.userRepo.CreateOneUser(ctx, newUser); err != nil {
+	if err := s.userRepo.CreateUser(ctx, newUser); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create user", nil, nil)
 	}
 
@@ -146,7 +146,7 @@ func (s *service) Login(ctx context.Context, req LoginRequest) pkg.Response {
 	defer cancel()
 
 	// Find user by email
-	existingUser, err := s.userRepo.FetchOneUser(ctx, map[string]interface{}{"email": req.Email})
+	existingUser, err := s.userRepo.FindOne(ctx, map[string]interface{}{"email": req.Email})
 
 	if err != nil {
 		return pkg.NewResponse(http.StatusUnauthorized, "Invalid email or password", nil, nil)
@@ -233,7 +233,7 @@ func (s *service) ResendVerificationEmail(ctx context.Context, email string) pkg
 	defer cancel()
 
 	// Find user by email
-	existingUser, err := s.userRepo.FetchOneUser(ctx, map[string]interface{}{"email": email})
+	existingUser, err := s.userRepo.FindOne(ctx, map[string]interface{}{"email": email})
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "User not found", nil, nil)
 	}
@@ -277,7 +277,7 @@ func (s *service) ForgetPassword(ctx context.Context, req ForgetPasswordRequest)
 	defer cancel()
 
 	// Find user by email
-	existingUser, err := s.userRepo.FetchOneUser(ctx, map[string]interface{}{"email": req.Email})
+	existingUser, err := s.userRepo.FindOne(ctx, map[string]interface{}{"email": req.Email})
 	if err != nil {
 		return pkg.NewResponse(http.StatusOK, "If the email exists, a reset link has been sent", nil, nil)
 	}
@@ -373,7 +373,7 @@ func (s *service) OAuthLogin(ctx context.Context, provider string, gothUser goth
 	defer cancel()
 
 	// Try to find existing user by email
-	existingUser, err := s.userRepo.FetchOneUser(ctx, map[string]interface{}{"email": gothUser.Email})
+	existingUser, err := s.userRepo.FindOne(ctx, map[string]interface{}{"email": gothUser.Email})
 
 	var currentUser *user.User
 
@@ -395,7 +395,7 @@ func (s *service) OAuthLogin(ctx context.Context, provider string, gothUser goth
 			UpdatedAt: time.Now(),
 		}
 
-		if err := s.userRepo.CreateOneUser(ctx, newUser); err != nil {
+		if err := s.userRepo.CreateUser(ctx, newUser); err != nil {
 			return pkg.NewResponse(http.StatusInternalServerError, "Failed to create user", nil, nil)
 		}
 

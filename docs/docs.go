@@ -276,8 +276,163 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/donation-transactions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a paginated list of donation transactions (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Transactions"
+                ],
+                "summary": "List Donation Transactions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by payment status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by donation ID",
+                        "name": "donation_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a donation transaction without initiating a Midtrans payment (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Transactions"
+                ],
+                "summary": "Create Offline Donation Transaction",
+                "parameters": [
+                    {
+                        "description": "Offline transaction request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/donation_transaction.CreateTransactionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/donation-transactions/donation/{donation_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all transactions for a specific donation (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Transactions"
+                ],
+                "summary": "Get Donation Transactions by Donation ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Donation ID",
+                        "name": "donation_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/donation-transactions/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific donation transaction (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Transactions"
+                ],
+                "summary": "Get Donation Transaction by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Transaction ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/donations/": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Retrieve a list of all donations with cursor-based pagination and optional filters",
                 "consumes": [
                     "application/json"
@@ -364,16 +519,16 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Donation Image URL",
-                        "name": "image_url",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
                         "description": "Donation Category",
                         "name": "category",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Donation Status",
+                        "name": "status",
+                        "in": "formData"
                     },
                     {
                         "type": "number",
@@ -402,6 +557,11 @@ const docTemplate = `{
         },
         "/api/donations/{id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get detailed information of a specific donation",
                 "consumes": [
                     "application/json"
@@ -472,12 +632,6 @@ const docTemplate = `{
                         "type": "file",
                         "description": "Donation Image File",
                         "name": "image",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Donation Image URL",
-                        "name": "image_url",
                         "in": "formData"
                     },
                     {
@@ -874,7 +1028,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/pkg.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/user.UserProfileResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -1210,6 +1376,149 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/public/donation-transactions": {
+            "post": {
+                "description": "Initiate a Midtrans Snap payment for a donation",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Transactions"
+                ],
+                "summary": "Create Donation Transaction",
+                "parameters": [
+                    {
+                        "description": "Transaction request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/donation_transaction.CreateTransactionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/public/donation-transactions/notification": {
+            "post": {
+                "description": "Webhook endpoint for Midtrans to send payment status updates",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Transactions"
+                ],
+                "summary": "Midtrans Payment Notification",
+                "parameters": [
+                    {
+                        "description": "Midtrans notification payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/donation_transaction.MidtransNotificationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/public/donations/": {
+            "get": {
+                "description": "Retrieve a list of published (active) donations",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donations"
+                ],
+                "summary": "List Published Donations",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by category",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for pagination",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/public/donations/{slug}": {
+            "get": {
+                "description": "Get detailed information of a specific published donation",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donations"
+                ],
+                "summary": "Get Published Donation by Slug",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Donation Slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/public/galleries/": {
             "get": {
                 "description": "Retrieve a list of published gallery items with cursor-based pagination and optional filters",
@@ -1309,6 +1618,44 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/public/users/roles": {
+            "get": {
+                "description": "Get a list of roles",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Get Roles",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/user.RoleResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/api/users": {
             "get": {
                 "security": [
@@ -1327,11 +1674,64 @@ const docTemplate = `{
                     "Users"
                 ],
                 "summary": "Get Users List",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Role ID filter",
+                        "name": "role",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Status filter",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/pkg.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/user.UserResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -1368,7 +1768,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/pkg.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/user.UserResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -1503,6 +1915,55 @@ const docTemplate = `{
             ],
             "properties": {
                 "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "donation_transaction.CreateTransactionRequest": {
+            "type": "object",
+            "properties": {
+                "donation_id": {
+                    "type": "string"
+                },
+                "donor_email": {
+                    "type": "string"
+                },
+                "donor_name": {
+                    "type": "string"
+                },
+                "gross_amount": {
+                    "type": "number"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "donation_transaction.MidtransNotificationRequest": {
+            "type": "object",
+            "properties": {
+                "fraud_status": {
+                    "type": "string"
+                },
+                "gross_amount": {
+                    "type": "string"
+                },
+                "order_id": {
+                    "type": "string"
+                },
+                "payment_type": {
+                    "type": "string"
+                },
+                "signature_key": {
+                    "type": "string"
+                },
+                "status_code": {
+                    "type": "string"
+                },
+                "transaction_id": {
+                    "type": "string"
+                },
+                "transaction_status": {
                     "type": "string"
                 }
             }
@@ -1693,25 +2154,26 @@ const docTemplate = `{
             }
         },
         "user.Role": {
-            "type": "string",
-            "enum": [
-                "user",
-                "chairman",
-                "social_manager",
-                "finance",
-                "ambulance_manager",
-                "publication_manager",
-                "superadmin"
-            ],
-            "x-enum-varnames": [
-                "RoleUser",
-                "RoleChairman",
-                "RoleSocialManager",
-                "RoleFinance",
-                "RoleAmbulanceManager",
-                "RolePublicationManager",
-                "RoleSuperadmin"
-            ]
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "role": {
+                    "type": "string"
+                }
+            }
+        },
+        "user.RoleResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "role": {
+                    "type": "string"
+                }
+            }
         },
         "user.UpdatePasswordRequest": {
             "type": "object",
@@ -1746,24 +2208,51 @@ const docTemplate = `{
         "user.UpdateUserRequest": {
             "type": "object",
             "properties": {
-                "role": {
-                    "enum": [
-                        "user",
-                        "chairman",
-                        "social_manager",
-                        "finance",
-                        "ambulance_manager",
-                        "publication_manager",
-                        "superadmin"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/user.Role"
-                        }
-                    ]
+                "role_id": {
+                    "type": "integer"
                 },
                 "status": {
                     "type": "boolean"
+                }
+            }
+        },
+        "user.UserProfileResponse": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "user.UserResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "role": {
+                    "$ref": "#/definitions/user.Role"
+                },
+                "status": {
+                    "type": "boolean"
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         }

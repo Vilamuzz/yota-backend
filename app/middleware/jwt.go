@@ -76,7 +76,6 @@ func (m *JWTMiddleware) RequireRoles(allowedRoles ...enum.RoleName) gin.HandlerF
 	}
 }
 
-// extractAndValidateToken extracts and validates the JWT token from Authorization header
 func (m *JWTMiddleware) extractAndValidateToken(c *gin.Context) (*jwt_pkg.UserJWTClaims, error) {
 	reqToken := c.GetHeader("Authorization")
 	if reqToken == "" {

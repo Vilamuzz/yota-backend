@@ -1,0 +1,169 @@
+package donation_transaction
+
+import (
+	"net/http"
+
+	"github.com/Vilamuzz/yota-backend/app/middleware"
+	"github.com/Vilamuzz/yota-backend/pkg"
+	"github.com/Vilamuzz/yota-backend/pkg/enum"
+	"github.com/gin-gonic/gin"
+)
+
+type handler struct {
+	service    Service
+	middleware middleware.AppMiddleware
+}
+
+func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
+	h := &handler{
+		service:    s,
+		middleware: m,
+	}
+	h.RegisterRoutes(r)
+}
+
+func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
+	// Public routes (anyone can donate or receive webhook)
+	public := r.Group("/public/donation-transactions")
+	public.POST("", h.CreateTransaction)
+	public.POST("/notification", h.HandleNotification)
+
+	// Admin-only routes
+	protected := r.Group("/donation-transactions")
+	protected.Use(h.middleware.RequireRoles(enum.RoleSuperadmin, enum.RoleFinance))
+	{
+		protected.GET("", h.ListTransactions)
+		protected.GET("/:id", h.GetTransactionByID)
+		protected.GET("/donation/:donation_id", h.GetTransactionByDonationID)
+		protected.POST("", h.CreateOfflineTransaction)
+	}
+}
+
+// CreateOfflineTransaction
+//
+// @Summary Create Offline Donation Transaction
+// @Description Create a donation transaction without initiating a Midtrans payment (admin only)
+// @Tags Donation Transactions
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param body body CreateTransactionRequest true "Offline transaction request"
+// @Success 201 {object} pkg.Response
+// @Router /api/donation-transactions [post]
+func (h *handler) CreateOfflineTransaction(c *gin.Context) {
+	ctx := c.Request.Context()
+	var req CreateTransactionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
+		return
+	}
+	res := h.service.CreateOfflineTransaction(ctx, req)
+	c.JSON(res.Status, res)
+}
+
+// CreateTransaction
+//
+// @Summary Create Donation Transaction
+// @Description Initiate a Midtrans Snap payment for a donation
+// @Tags Donation Transactions
+// @Accept json
+// @Produce json
+// @Param body body CreateTransactionRequest true "Transaction request"
+// @Success 201 {object} pkg.Response
+// @Router /api/public/donation-transactions [post]
+func (h *handler) CreateTransaction(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var req CreateTransactionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
+		return
+	}
+
+	res := h.service.CreateTransaction(ctx, req)
+	c.JSON(res.Status, res)
+}
+
+// HandleNotification
+//
+// @Summary Midtrans Payment Notification
+// @Description Webhook endpoint for Midtrans to send payment status updates
+// @Tags Donation Transactions
+// @Accept json
+// @Produce json
+// @Param body body MidtransNotificationRequest true "Midtrans notification payload"
+// @Success 200 {object} pkg.Response
+// @Router /api/public/donation-transactions/notification [post]
+func (h *handler) HandleNotification(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var notification MidtransNotificationRequest
+	if err := c.ShouldBindJSON(&notification); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid notification payload", nil, nil))
+		return
+	}
+
+	res := h.service.HandleNotification(ctx, notification)
+	c.JSON(res.Status, res)
+}
+
+// ListTransactions
+//
+// @Summary List Donation Transactions
+// @Description Retrieve a paginated list of donation transactions (admin only)
+// @Tags Donation Transactions
+// @Security BearerAuth
+// @Produce json
+// @Param status query string false "Filter by payment status"
+// @Param donation_id query string false "Filter by donation ID"
+// @Param limit query int false "Items per page"
+// @Success 200 {object} pkg.Response
+// @Router /api/donation-transactions [get]
+func (h *handler) ListTransactions(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var params QueryParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
+		return
+	}
+
+	res := h.service.List(ctx, params)
+	c.JSON(res.Status, res)
+}
+
+// GetTransactionByDonationID
+//
+// @Summary Get Donation Transactions by Donation ID
+// @Description Retrieve all transactions for a specific donation (admin only)
+// @Tags Donation Transactions
+// @Security BearerAuth
+// @Produce json
+// @Param donation_id path string true "Donation ID"
+// @Success 200 {object} pkg.Response
+// @Router /api/donation-transactions/donation/{donation_id} [get]
+func (h *handler) GetTransactionByDonationID(c *gin.Context) {
+	ctx := c.Request.Context()
+	donationID := c.Param("donation_id")
+
+	res := h.service.GetByDonationID(ctx, donationID)
+	c.JSON(res.Status, res)
+}
+
+// GetTransactionByID
+//
+// @Summary Get Donation Transaction by ID
+// @Description Retrieve a specific donation transaction (admin only)
+// @Tags Donation Transactions
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Transaction ID"
+// @Success 200 {object} pkg.Response
+// @Router /api/donation-transactions/{id} [get]
+func (h *handler) GetTransactionByID(c *gin.Context) {
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	res := h.service.GetByID(ctx, id)
+	c.JSON(res.Status, res)
+}

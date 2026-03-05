@@ -40,6 +40,9 @@ func NewApp() (*App, func(), error) {
 	// Setup routes
 	app.setupRoutes(engine)
 
+	// Start background scheduler
+	cnt.Scheduler.Start()
+
 	return app, cleanup, nil
 }
 

@@ -3,6 +3,7 @@ package postgre_pkg
 import (
 	"github.com/Vilamuzz/yota-backend/app/auth"
 	"github.com/Vilamuzz/yota-backend/app/donation"
+	"github.com/Vilamuzz/yota-backend/app/donation_transaction"
 	"github.com/Vilamuzz/yota-backend/app/gallery"
 	"github.com/Vilamuzz/yota-backend/app/media"
 	"github.com/Vilamuzz/yota-backend/app/news"
@@ -22,5 +23,6 @@ func GetAllModels() []interface{} {
 		&gallery.Gallery{},
 		&media.Media{},
 		&social_program.SocialProgram{},
+		&donation_transaction.DonationTransaction{},
 	}
 }
