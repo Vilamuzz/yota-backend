@@ -24,6 +24,7 @@ const (
 	StatusActive    Status = "active"
 	StatusDraft     Status = "draft"
 	StatusCompleted Status = "complete"
+	StatusExpired   Status = "expired"
 )
 
 type Category string

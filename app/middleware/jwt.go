@@ -76,15 +76,6 @@ func (m *JWTMiddleware) RequireRoles(allowedRoles ...enum.RoleName) gin.HandlerF
 	}
 }
 
-func (m *JWTMiddleware) OptionalAuth() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if claims, err := m.extractAndValidateToken(c); err == nil {
-			c.Set("user_data", *claims)
-		}
-		c.Next()
-	}
-}
-
 func (m *JWTMiddleware) extractAndValidateToken(c *gin.Context) (*jwt_pkg.UserJWTClaims, error) {
 	reqToken := c.GetHeader("Authorization")
 	if reqToken == "" {

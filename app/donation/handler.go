@@ -143,7 +143,7 @@ func (h *handler) GetDonationByID(c *gin.Context) {
 // @Param category formData string true "Donation Category"
 // @Param status formData string false "Donation Status"
 // @Param fund_target formData number true "Fund Target"
-// @Param date_end formData string true "End Date (RFC3339)"
+// @Param date_end formData string true "End Date"
 // @Success 201 {object} pkg.Response
 // @Router /api/donations/ [post]
 func (h *handler) CreateDonation(c *gin.Context) {

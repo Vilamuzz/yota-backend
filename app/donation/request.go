@@ -10,9 +10,9 @@ type DonationRequest struct {
 	Description string                `json:"description" form:"description"`
 	Image       *multipart.FileHeader `json:"image" form:"image"`
 	Category    Category              `json:"category" form:"category"`
-	Status      bool                  `json:"status" form:"status" binding:"required"`
-	FundTarget  float64               `json:"fund_target" form:"fund_target" binding:"required,gt=0"`
-	DateEnd     time.Time             `json:"date_end" form:"date_end" binding:"required" time_format:"2006-01-02"`
+	Status      bool                  `json:"status" form:"status"`
+	FundTarget  float64               `json:"fund_target" form:"fund_target"`
+	DateEnd     time.Time             `json:"date_end" form:"date_end" time_format:"2006-01-02"`
 }
 
 type UpdateDonationRequest struct {
@@ -26,8 +26,9 @@ type UpdateDonationRequest struct {
 }
 
 type DonationQueryParams struct {
+	Search   string `form:"search" binding:"omitempty"`
 	Category string `form:"category" binding:"omitempty,oneof=education health environment"`
-	Status   string `form:"status" binding:"omitempty,oneof=active draft completed"`
+	Status   string `form:"status" binding:"omitempty,oneof=active draft complete expired"`
 	Cursor   string `form:"cursor" binding:"omitempty"`
 	Limit    int    `form:"limit" binding:"omitempty,min=1,max=100"`
 }

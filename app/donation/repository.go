@@ -11,11 +11,13 @@ import (
 type Repository interface {
 	FindPublished(ctx context.Context, options map[string]interface{}) ([]Donation, error)
 	FindPublishedBySlug(ctx context.Context, slug string) (*Donation, error)
+	FindActiveById(ctx context.Context, id string) (*Donation, error)
 	FindAll(ctx context.Context, options map[string]interface{}) ([]Donation, error)
 	FindByID(ctx context.Context, id string) (*Donation, error)
 	Create(ctx context.Context, donation *Donation) error
 	Update(ctx context.Context, id string, updateData map[string]interface{}) error
 	Delete(ctx context.Context, id string) error
+	UpdateExpired(ctx context.Context) error
 }
 
 type repository struct {
@@ -32,14 +34,17 @@ func (r *repository) FindPublished(ctx context.Context, options map[string]inter
 	var donations []Donation
 	collectedFundSubquery := r.Conn.Table("donation_transactions").
 		Select("COALESCE(SUM(gross_amount), 0)").
-		Where("donation_id = donations.id AND payment_status = 'settlement'")
+		Where("donation_id = donations.id AND transaction_status = 'settlement'")
 	query := r.Conn.WithContext(ctx).
 		Select("donations.*, (?) as collected_fund", collectedFundSubquery)
 
 	// Filter by active status
-	query = query.Where("status = ?", StatusActive)
+	query = query.Where("status != ?", StatusDraft)
 
 	// Apply filters
+	if search, ok := options["search"]; ok && search != "" {
+		query = query.Where("title ILIKE ?", "%"+search.(string)+"%")
+	}
 	if category, ok := options["category"]; ok && category != "" {
 		query = query.Where("category = ?", category)
 	}
@@ -76,11 +81,14 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 	var donations []Donation
 	collectedFundSubquery := r.Conn.Table("donation_transactions").
 		Select("COALESCE(SUM(gross_amount), 0)").
-		Where("donation_id = donations.id AND payment_status = 'settlement'")
+		Where("donation_id = donations.id AND transaction_status = 'settlement'")
 	query := r.Conn.WithContext(ctx).
 		Select("donations.*, (?) as collected_fund", collectedFundSubquery)
 
 	// Apply filters
+	if search, ok := options["search"]; ok && search != "" {
+		query = query.Where("title ILIKE ?", "%"+search.(string)+"%")
+	}
 	if category, ok := options["category"]; ok && category != "" {
 		query = query.Where("category = ?", category)
 	}
@@ -120,7 +128,7 @@ func (r *repository) FindByID(ctx context.Context, id string) (*Donation, error)
 	var donation Donation
 	collectedFundSubquery := r.Conn.Table("donation_transactions").
 		Select("COALESCE(SUM(gross_amount), 0)").
-		Where("donation_id = donations.id AND payment_status = 'settlement'")
+		Where("donation_id = donations.id AND transaction_status = 'settlement'")
 	if err := r.Conn.WithContext(ctx).
 		Select("donations.*, (?) as collected_fund", collectedFundSubquery).
 		Where("id = ?", id).
@@ -134,10 +142,20 @@ func (r *repository) FindPublishedBySlug(ctx context.Context, slug string) (*Don
 	var donation Donation
 	collectedFundSubquery := r.Conn.Table("donation_transactions").
 		Select("COALESCE(SUM(gross_amount), 0)").
-		Where("donation_id = donations.id AND payment_status = 'settlement'")
+		Where("donation_id = donations.id AND transaction_status = 'settlement'")
 	if err := r.Conn.WithContext(ctx).
 		Select("donations.*, (?) as collected_fund", collectedFundSubquery).
-		Where("slug = ? AND status = ?", slug, StatusActive).
+		Where("slug = ? AND status != ?", slug, StatusDraft).
+		First(&donation).Error; err != nil {
+		return nil, err
+	}
+	return &donation, nil
+}
+
+func (r *repository) FindActiveById(ctx context.Context, id string) (*Donation, error) {
+	var donation Donation
+	if err := r.Conn.WithContext(ctx).
+		Where("id = ? AND status = ?", id, StatusActive).
 		First(&donation).Error; err != nil {
 		return nil, err
 	}
@@ -154,4 +172,16 @@ func (r *repository) Update(ctx context.Context, id string, updateData map[strin
 
 func (r *repository) Delete(ctx context.Context, id string) error {
 	return r.Conn.WithContext(ctx).Model(&Donation{}).Where("id = ?", id).Update("deleted_at", time.Now()).Error
+}
+
+func (r *repository) UpdateExpired(ctx context.Context) error {
+	collectedFundSubquery := r.Conn.Table("donation_transactions").
+		Select("COALESCE(SUM(gross_amount), 0)").
+		Where("donation_id = donations.id AND transaction_status = 'settlement'")
+
+	return r.Conn.WithContext(ctx).
+		Model(&Donation{}).
+		Where("date_end < NOW() AND status = ?", StatusActive).
+		Update("status", gorm.Expr("CASE WHEN (?) >= fund_target THEN ? ELSE ? END",
+			collectedFundSubquery, StatusCompleted, StatusExpired)).Error
 }

@@ -18,6 +18,7 @@ type Service interface {
 	CreateDonation(ctx context.Context, donation DonationRequest) pkg.Response
 	UpdateDonation(ctx context.Context, id string, req UpdateDonationRequest) pkg.Response
 	DeleteDonation(ctx context.Context, id string) pkg.Response
+	UpdateExpiredDonations(ctx context.Context) error
 }
 
 type service struct {
@@ -45,6 +46,10 @@ func (s *service) ListPublished(ctx context.Context, queryParams DonationQueryPa
 
 	options := map[string]interface{}{
 		"limit": queryParams.Limit,
+	}
+
+	if queryParams.Search != "" {
+		options["search"] = queryParams.Search
 	}
 
 	if queryParams.Category != "" {
@@ -107,6 +112,9 @@ func (s *service) List(ctx context.Context, queryParams DonationQueryParams) pkg
 
 	if queryParams.Category != "" {
 		options["category"] = queryParams.Category
+	}
+	if queryParams.Search != "" {
+		options["search"] = queryParams.Search
 	}
 	if queryParams.Status != "" {
 		options["status"] = queryParams.Status
@@ -396,4 +404,10 @@ func (s *service) DeleteDonation(ctx context.Context, id string) pkg.Response {
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Donation deleted successfully", nil, nil)
+}
+
+func (s *service) UpdateExpiredDonations(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+	return s.repo.UpdateExpired(ctx)
 }

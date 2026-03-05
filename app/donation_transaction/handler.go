@@ -6,7 +6,6 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/Vilamuzz/yota-backend/pkg/enum"
-	jwt_pkg "github.com/Vilamuzz/yota-backend/pkg/jwt"
 	"github.com/gin-gonic/gin"
 )
 
@@ -26,7 +25,7 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	// Public routes (anyone can donate or receive webhook)
 	public := r.Group("/public/donation-transactions")
-	public.POST("", h.middleware.OptionalAuth(), h.CreateTransaction)
+	public.POST("", h.CreateTransaction)
 	public.POST("/notification", h.HandleNotification)
 
 	// Admin-only routes
@@ -35,7 +34,31 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	{
 		protected.GET("", h.ListTransactions)
 		protected.GET("/:id", h.GetTransactionByID)
+		protected.GET("/donation/:donation_id", h.GetTransactionByDonationID)
+		protected.POST("", h.CreateOfflineTransaction)
 	}
+}
+
+// CreateOfflineTransaction
+//
+// @Summary Create Offline Donation Transaction
+// @Description Create a donation transaction without initiating a Midtrans payment (admin only)
+// @Tags Donation Transactions
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param body body CreateTransactionRequest true "Offline transaction request"
+// @Success 201 {object} pkg.Response
+// @Router /api/donation-transactions [post]
+func (h *handler) CreateOfflineTransaction(c *gin.Context) {
+	ctx := c.Request.Context()
+	var req CreateTransactionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
+		return
+	}
+	res := h.service.CreateOfflineTransaction(ctx, req)
+	c.JSON(res.Status, res)
 }
 
 // CreateTransaction
@@ -55,12 +78,6 @@ func (h *handler) CreateTransaction(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
 		return
-	}
-
-	if val, exists := c.Get("user_data"); exists {
-		if claims, ok := val.(jwt_pkg.UserJWTClaims); ok {
-			req.UserID = claims.UserID
-		}
 	}
 
 	res := h.service.CreateTransaction(ctx, req)
@@ -112,6 +129,24 @@ func (h *handler) ListTransactions(c *gin.Context) {
 	}
 
 	res := h.service.List(ctx, params)
+	c.JSON(res.Status, res)
+}
+
+// GetTransactionByDonationID
+//
+// @Summary Get Donation Transactions by Donation ID
+// @Description Retrieve all transactions for a specific donation (admin only)
+// @Tags Donation Transactions
+// @Security BearerAuth
+// @Produce json
+// @Param donation_id path string true "Donation ID"
+// @Success 200 {object} pkg.Response
+// @Router /api/donation-transactions/donation/{donation_id} [get]
+func (h *handler) GetTransactionByDonationID(c *gin.Context) {
+	ctx := c.Request.Context()
+	donationID := c.Param("donation_id")
+
+	res := h.service.GetByDonationID(ctx, donationID)
 	c.JSON(res.Status, res)
 }
 

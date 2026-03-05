@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Vilamuzz/yota-backend/app/donation"
+	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	payment_pkg "github.com/Vilamuzz/yota-backend/pkg/payment"
 	"github.com/google/uuid"
@@ -15,30 +17,133 @@ import (
 )
 
 type Service interface {
+	CreateOfflineTransaction(ctx context.Context, req CreateTransactionRequest) pkg.Response
 	CreateTransaction(ctx context.Context, req CreateTransactionRequest) pkg.Response
 	HandleNotification(ctx context.Context, notification MidtransNotificationRequest) pkg.Response
 	List(ctx context.Context, params QueryParams) pkg.Response
 	GetByID(ctx context.Context, id string) pkg.Response
+	GetByDonationID(ctx context.Context, donationID string) pkg.Response
 }
 
 type service struct {
 	repo           Repository
+	userRepo       user.Repository
+	donationRepo   donation.Repository
 	midtransClient payment_pkg.Client
 	timeout        time.Duration
 }
 
-func NewService(repo Repository, midtransClient payment_pkg.Client, timeout time.Duration) Service {
+func NewService(repo Repository, userRepo user.Repository, donationRepo donation.Repository, midtransClient payment_pkg.Client, timeout time.Duration) Service {
 	return &service{
 		repo:           repo,
+		userRepo:       userRepo,
+		donationRepo:   donationRepo,
 		midtransClient: midtransClient,
 		timeout:        timeout,
 	}
+}
+
+func (s *service) CreateOfflineTransaction(ctx context.Context, req CreateTransactionRequest) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+	errValidation := make(map[string]string)
+
+	if req.DonationID == "" {
+		errValidation["donation_id"] = "Donation ID is required"
+	} else {
+		_, err := s.donationRepo.FindActiveById(ctx, req.DonationID)
+		if err != nil {
+			errValidation["donation_id"] = "Donation not found"
+		}
+	}
+
+	if req.UserID != "" {
+		_, err := s.userRepo.FindOne(ctx, map[string]interface{}{"id": req.UserID})
+		if err != nil {
+			errValidation["user_id"] = "User not found"
+		}
+	}
+
+	if req.GrossAmount <= 0 {
+		errValidation["gross_amount"] = "Gross amount must be greater than 0"
+	}
+
+	if len(errValidation) > 0 {
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+	}
+
+	donorName := "anonymous"
+	if req.DonorName != "" {
+		donorName = req.DonorName
+	}
+	donorEmail := "anonymous@example.com"
+	if req.DonorEmail != "" {
+		donorEmail = req.DonorEmail
+	}
+
+	userID := req.UserID
+	now := time.Now()
+
+	tx := &DonationTransaction{
+		ID:                uuid.New().String(),
+		DonationID:        req.DonationID,
+		UserID:            userID,
+		OrderID:           fmt.Sprintf("OFF-%s", uuid.New().String()),
+		DonorName:         donorName,
+		DonorEmail:        donorEmail,
+		Source:            false,
+		GrossAmount:       req.GrossAmount,
+		FraudStatus:       "accept",
+		TransactionStatus: "settlement",
+		Provider:          "offline",
+		PaidAt:            &now,
+		CreatedAt:         now,
+		UpdatedAt:         now,
+	}
+	if err := s.repo.Create(ctx, tx); err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to save offline transaction", nil, nil)
+	}
+	return pkg.NewResponse(http.StatusCreated, "Offline transaction created successfully", nil, toResponse(tx))
 }
 
 func (s *service) CreateTransaction(ctx context.Context, req CreateTransactionRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	errValidation := make(map[string]string)
+
+	if req.DonationID == "" {
+		errValidation["donation_id"] = "Donation ID is required"
+	} else {
+		_, err := s.donationRepo.FindActiveById(ctx, req.DonationID)
+		if err != nil {
+			errValidation["donation_id"] = "Donation not found"
+		}
+	}
+
+	if req.UserID != "" {
+		_, err := s.userRepo.FindOne(ctx, map[string]interface{}{"id": req.UserID})
+		if err != nil {
+			errValidation["user_id"] = "User not found"
+		}
+	}
+
+	if req.GrossAmount <= 0 {
+		errValidation["gross_amount"] = "Gross amount must be greater than 0"
+	}
+
+	if len(errValidation) > 0 {
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+	}
+
+	donorName := "anonymous"
+	if req.DonorName != "" {
+		donorName = req.DonorName
+	}
+	donorEmail := "anonymous@example.com"
+	if req.DonorEmail != "" {
+		donorEmail = req.DonorEmail
+	}
 	userID := req.UserID
 
 	orderID := fmt.Sprintf("DON-%s", uuid.New().String())
@@ -50,8 +155,8 @@ func (s *service) CreateTransaction(ctx context.Context, req CreateTransactionRe
 			GrossAmt: grossAmountInt,
 		},
 		CustomerDetail: &midtrans.CustomerDetails{
-			FName: req.DonorName,
-			Email: req.DonorEmail,
+			FName: donorName,
+			Email: donorEmail,
 		},
 		Items: &[]midtrans.ItemDetails{
 			{
@@ -70,20 +175,21 @@ func (s *service) CreateTransaction(ctx context.Context, req CreateTransactionRe
 
 	now := time.Now()
 	tx := &DonationTransaction{
-		ID:              uuid.New().String(),
-		DonationID:      req.DonationID,
-		UserID:          userID, // attach here
-		OrderID:         orderID,
-		DonorName:       req.DonorName,
-		DonorEmail:      req.DonorEmail,
-		Source:          true, // online
-		GrossAmount:     req.GrossAmount,
-		PaymentStatus:   "pending",
-		Provider:        "midtrans",
-		SnapToken:       snapResp.Token,
-		SnapRedirectURL: snapResp.RedirectURL,
-		CreatedAt:       now,
-		UpdatedAt:       now,
+		ID:                uuid.New().String(),
+		DonationID:        req.DonationID,
+		UserID:            userID, // attach here
+		OrderID:           orderID,
+		DonorName:         donorName,
+		DonorEmail:        donorEmail,
+		Source:            true, // online
+		GrossAmount:       req.GrossAmount,
+		FraudStatus:       "accept",
+		TransactionStatus: "pending",
+		Provider:          "midtrans",
+		SnapToken:         snapResp.Token,
+		SnapRedirectURL:   snapResp.RedirectURL,
+		CreatedAt:         now,
+		UpdatedAt:         now,
 	}
 
 	if err := s.repo.Create(ctx, tx); err != nil {
@@ -112,18 +218,25 @@ func (s *service) HandleNotification(ctx context.Context, notification MidtransN
 	}
 
 	// Determine new payment status
-	status := mapMidtransStatus(notification.TransactionStatus, notification.FraudStatus)
-	if status == tx.PaymentStatus {
+	if notification.TransactionStatus == tx.TransactionStatus {
 		return pkg.NewResponse(http.StatusOK, "No status change", nil, nil)
 	}
 
-	var paidAt *time.Time
-	if status == "settlement" {
-		now := time.Now()
-		paidAt = &now
+	updates := map[string]interface{}{
+		"transaction_status": notification.TransactionStatus,
+		"fraud_status":       notification.FraudStatus,
+		"updated_at":         time.Now(),
+	}
+	if notification.TransactionID != "" {
+		updates["transaction_id"] = notification.TransactionID
+	}
+	isSettled := notification.TransactionStatus == "settlement" ||
+		(notification.TransactionStatus == "capture" && notification.FraudStatus != "challenge")
+	if isSettled {
+		updates["paid_at"] = time.Now()
 	}
 
-	if err := s.repo.UpdateStatus(ctx, notification.OrderID, status, notification.TransactionID, paidAt); err != nil {
+	if err := s.repo.UpdateStatus(ctx, notification.OrderID, updates); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update transaction", nil, nil)
 	}
 
@@ -183,21 +296,16 @@ func (s *service) GetByID(ctx context.Context, id string) pkg.Response {
 	return pkg.NewResponse(http.StatusOK, "Success", nil, toResponse(tx))
 }
 
-// mapMidtransStatus normalizes Midtrans transaction_status + fraud_status into a simple status string.
-func mapMidtransStatus(transactionStatus, fraudStatus string) string {
-	switch transactionStatus {
-	case "capture":
-		if fraudStatus == "challenge" {
-			return "challenge"
-		}
-		return "settlement"
-	case "settlement":
-		return "settlement"
-	case "deny", "cancel", "expire":
-		return transactionStatus
-	case "pending":
-		return "pending"
-	default:
-		return transactionStatus
+func (s *service) GetByDonationID(ctx context.Context, donationID string) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	transactions, err := s.repo.FindByDonationID(ctx, donationID)
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch transactions", nil, nil)
 	}
+
+	return pkg.NewResponse(http.StatusOK, "Success", nil, map[string]interface{}{
+		"transactions": transactions,
+	})
 }

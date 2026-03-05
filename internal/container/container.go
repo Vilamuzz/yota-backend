@@ -1,6 +1,7 @@
 package container
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
@@ -15,6 +16,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/news"
 	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/config"
+	"github.com/Vilamuzz/yota-backend/internal/scheduler"
 	payment_pkg "github.com/Vilamuzz/yota-backend/pkg/payment"
 	redis_pkg "github.com/Vilamuzz/yota-backend/pkg/redis"
 	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
@@ -51,6 +53,9 @@ type Container struct {
 
 	// Middleware
 	Middleware *middleware.AppMiddleware
+
+	// Scheduler
+	Scheduler *scheduler.Scheduler
 }
 
 func NewContainer() (*Container, func(), error) {
@@ -70,8 +75,14 @@ func NewContainer() (*Container, func(), error) {
 	// Initialize middleware
 	c.initMiddleware()
 
+	// Initialize scheduler
+	c.initScheduler()
+
 	// Cleanup function
 	cleanup := func() {
+		if c.Scheduler != nil {
+			c.Scheduler.Stop()
+		}
 		if c.DB != nil {
 			sqlDB, _ := c.DB.DB()
 			if sqlDB != nil {
@@ -135,7 +146,7 @@ func (c *Container) initServices() {
 	c.NewsService = news.NewService(c.NewsRepo, c.Timeout)
 	c.MediaService = media.NewService(c.MediaRepo, c.S3Client)
 	c.GalleryService = gallery.NewService(c.GalleryRepo, c.MediaService, c.Timeout)
-	c.TransactionDonationService = donation_transaction.NewService(c.TransactionDonationRepo, c.MidtransClient, c.Timeout)
+	c.TransactionDonationService = donation_transaction.NewService(c.TransactionDonationRepo, c.UserRepo, c.DonationRepo, c.MidtransClient, c.Timeout)
 }
 
 func (c *Container) initMiddleware() {
@@ -144,6 +155,18 @@ func (c *Container) initMiddleware() {
 		redisClient = c.RedisClient.GetClient()
 	}
 	c.Middleware = middleware.NewAppMiddleware(redisClient)
+}
+
+func (c *Container) initScheduler() {
+	c.Scheduler = scheduler.New()
+
+	// Update expired donations to 'complete' every midnight
+	c.Scheduler.Add("0 0 * * *", "update-expired-donations", func() {
+		if err := c.DonationService.UpdateExpiredDonations(context.Background()); err != nil {
+			// error is logged inside the scheduler wrapper; log detail here
+			_ = err
+		}
+	})
 }
 
 // RegisterHandlers registers all handlers with their routes

@@ -68,11 +68,8 @@ definitions:
         type: string
       gross_amount:
         type: number
-    required:
-    - donation_id
-    - donor_email
-    - donor_name
-    - gross_amount
+      user_id:
+        type: string
     type: object
   donation_transaction.MidtransNotificationRequest:
     properties:
@@ -483,6 +480,30 @@ paths:
       summary: List Donation Transactions
       tags:
       - Donation Transactions
+    post:
+      consumes:
+      - application/json
+      description: Create a donation transaction without initiating a Midtrans payment
+        (admin only)
+      parameters:
+      - description: Offline transaction request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/donation_transaction.CreateTransactionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Offline Donation Transaction
+      tags:
+      - Donation Transactions
   /api/donation-transactions/{id}:
     get:
       description: Retrieve a specific donation transaction (admin only)
@@ -502,6 +523,27 @@ paths:
       security:
       - BearerAuth: []
       summary: Get Donation Transaction by ID
+      tags:
+      - Donation Transactions
+  /api/donation-transactions/donation/{donation_id}:
+    get:
+      description: Retrieve all transactions for a specific donation (admin only)
+      parameters:
+      - description: Donation ID
+        in: path
+        name: donation_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Donation Transactions by Donation ID
       tags:
       - Donation Transactions
   /api/donations/:

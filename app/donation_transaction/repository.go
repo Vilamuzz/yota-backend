@@ -2,7 +2,6 @@ package donation_transaction
 
 import (
 	"context"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -11,8 +10,9 @@ type Repository interface {
 	Create(ctx context.Context, tx *DonationTransaction) error
 	FindByID(ctx context.Context, id string) (*DonationTransaction, error)
 	FindByOrderID(ctx context.Context, orderID string) (*DonationTransaction, error)
-	UpdateStatus(ctx context.Context, orderID string, status string, transactionID string, paidAt *time.Time) error
+	UpdateStatus(ctx context.Context, orderID string, updates map[string]interface{}) error
 	FindAll(ctx context.Context, options map[string]interface{}) ([]DonationTransaction, error)
+	FindByDonationID(ctx context.Context, donationID string) ([]DonationTransaction, error)
 }
 
 type repository struct {
@@ -25,6 +25,14 @@ func NewRepository(conn *gorm.DB) Repository {
 
 func (r *repository) Create(ctx context.Context, tx *DonationTransaction) error {
 	return r.Conn.WithContext(ctx).Create(tx).Error
+}
+
+func (r *repository) FindByDonationID(ctx context.Context, donationID string) ([]DonationTransaction, error) {
+	var transactions []DonationTransaction
+	if err := r.Conn.WithContext(ctx).Where("donation_id = ?", donationID).Find(&transactions).Error; err != nil {
+		return nil, err
+	}
+	return transactions, nil
 }
 
 func (r *repository) FindByID(ctx context.Context, id string) (*DonationTransaction, error) {
@@ -43,17 +51,7 @@ func (r *repository) FindByOrderID(ctx context.Context, orderID string) (*Donati
 	return &tx, nil
 }
 
-func (r *repository) UpdateStatus(ctx context.Context, orderID string, status string, transactionID string, paidAt *time.Time) error {
-	updates := map[string]interface{}{
-		"payment_status": status,
-		"updated_at":     time.Now(),
-	}
-	if transactionID != "" {
-		updates["transaction_id"] = transactionID
-	}
-	if paidAt != nil {
-		updates["paid_at"] = paidAt
-	}
+func (r *repository) UpdateStatus(ctx context.Context, orderID string, updates map[string]interface{}) error {
 	return r.Conn.WithContext(ctx).Model(&DonationTransaction{}).
 		Where("order_id = ?", orderID).
 		Updates(updates).Error
@@ -64,7 +62,7 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 	query := r.Conn.WithContext(ctx)
 
 	if status, ok := options["status"]; ok && status != "" {
-		query = query.Where("payment_status = ?", status)
+		query = query.Where("transaction_status = ?", status)
 	}
 	if donationID, ok := options["donation_id"]; ok && donationID != "" {
 		query = query.Where("donation_id = ?", donationID)

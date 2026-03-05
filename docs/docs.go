@@ -319,6 +319,77 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a donation transaction without initiating a Midtrans payment (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Transactions"
+                ],
+                "summary": "Create Offline Donation Transaction",
+                "parameters": [
+                    {
+                        "description": "Offline transaction request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/donation_transaction.CreateTransactionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/donation-transactions/donation/{donation_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all transactions for a specific donation (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Transactions"
+                ],
+                "summary": "Get Donation Transactions by Donation ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Donation ID",
+                        "name": "donation_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
             }
         },
         "/api/donation-transactions/{id}": {
@@ -1850,12 +1921,6 @@ const docTemplate = `{
         },
         "donation_transaction.CreateTransactionRequest": {
             "type": "object",
-            "required": [
-                "donation_id",
-                "donor_email",
-                "donor_name",
-                "gross_amount"
-            ],
             "properties": {
                 "donation_id": {
                     "type": "string"
@@ -1868,6 +1933,9 @@ const docTemplate = `{
                 },
                 "gross_amount": {
                     "type": "number"
+                },
+                "user_id": {
+                    "type": "string"
                 }
             }
         },
