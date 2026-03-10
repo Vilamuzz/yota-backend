@@ -34,7 +34,6 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	{
 		protected.GET("", h.ListTransactions)
 		protected.GET("/:id", h.GetTransactionByID)
-		protected.GET("/donation/:donation_id", h.GetTransactionByDonationID)
 		protected.POST("", h.CreateOfflineTransaction)
 	}
 }
@@ -129,24 +128,6 @@ func (h *handler) ListTransactions(c *gin.Context) {
 	}
 
 	res := h.service.List(ctx, params)
-	c.JSON(res.Status, res)
-}
-
-// GetTransactionByDonationID
-//
-// @Summary Get Donation Transactions by Donation ID
-// @Description Retrieve all transactions for a specific donation (admin only)
-// @Tags Donation Transactions
-// @Security BearerAuth
-// @Produce json
-// @Param donation_id path string true "Donation ID"
-// @Success 200 {object} pkg.Response
-// @Router /api/donation-transactions/donation/{donation_id} [get]
-func (h *handler) GetTransactionByDonationID(c *gin.Context) {
-	ctx := c.Request.Context()
-	donationID := c.Param("donation_id")
-
-	res := h.service.GetByDonationID(ctx, donationID)
 	c.JSON(res.Status, res)
 }
 

@@ -194,10 +194,9 @@ func (s *service) CreateDonation(ctx context.Context, req DonationRequest) pkg.R
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	// Validation
+	// Field validation
 	errValidation := make(map[string]string)
 
-	// Validate title
 	if req.Title == "" {
 		errValidation["title"] = "Title is required"
 	} else if len(req.Title) < 3 {
@@ -206,7 +205,6 @@ func (s *service) CreateDonation(ctx context.Context, req DonationRequest) pkg.R
 		errValidation["title"] = "Title must not exceed 200 characters"
 	}
 
-	// Validate description
 	if req.Description == "" {
 		errValidation["description"] = "Description is required"
 	} else if len(req.Description) < 10 {
@@ -215,22 +213,20 @@ func (s *service) CreateDonation(ctx context.Context, req DonationRequest) pkg.R
 		errValidation["description"] = "Description must not exceed 2000 characters"
 	}
 
-	// Validate category
 	if req.Category == "" {
 		errValidation["category"] = "Category is required"
 	} else if req.Category != CategoryEducation && req.Category != CategoryHealth && req.Category != CategoryEnvironment {
 		errValidation["category"] = "Invalid category. Must be: education, health, or environment"
 	}
 
-	// Validate fund target
 	if req.FundTarget <= 0 {
 		errValidation["fund_target"] = "Fund target must be greater than 0"
 	}
 
-	// Validate end date
+	now := time.Now()
 	if req.DateEnd.IsZero() {
 		errValidation["date_end"] = "End date is required"
-	} else if req.DateEnd.Before(time.Now()) {
+	} else if req.DateEnd.Before(now) {
 		errValidation["date_end"] = "End date must be in the future"
 	}
 
@@ -238,7 +234,6 @@ func (s *service) CreateDonation(ctx context.Context, req DonationRequest) pkg.R
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
 
-	// Handle image upload
 	var imageURL string
 	if req.Image != nil {
 		uploadedURL, err := s.s3Client.UploadFile(ctx, req.Image, "donations")
@@ -248,14 +243,11 @@ func (s *service) CreateDonation(ctx context.Context, req DonationRequest) pkg.R
 		imageURL = uploadedURL
 	}
 
-	// Handle status
 	status := StatusDraft
 	if req.Status {
 		status = StatusActive
 	}
 
-	// Create donation
-	timeNow := time.Now()
 	donation := &Donation{
 		ID:          uuid.New().String(),
 		Title:       req.Title,
@@ -266,8 +258,8 @@ func (s *service) CreateDonation(ctx context.Context, req DonationRequest) pkg.R
 		FundTarget:  req.FundTarget,
 		Status:      status,
 		DateEnd:     req.DateEnd,
-		CreatedAt:   timeNow,
-		UpdatedAt:   timeNow,
+		CreatedAt:   now,
+		UpdatedAt:   now,
 	}
 
 	if err := s.repo.Create(ctx, donation); err != nil {
@@ -281,22 +273,22 @@ func (s *service) UpdateDonation(ctx context.Context, id string, req UpdateDonat
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	// Validate UUID format
+	// UUID validation before checking existence
 	if _, err := uuid.Parse(id); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid donation ID format"}, nil)
 	}
-
-	// Check if donation exists
 	existingDonation, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "Donation not found", nil, nil)
 	}
+	if existingDonation.Status == StatusCompleted || existingDonation.Status == StatusExpired {
+		return pkg.NewResponse(http.StatusBadRequest, "Donation is completed or expired and cannot be updated", nil, nil)
+	}
 
-	// Validation
+	// Field validation & update data
 	errValidation := make(map[string]string)
 	updateData := make(map[string]interface{})
 
-	// Validate and set title
 	if req.Title != "" {
 		if len(req.Title) < 3 {
 			errValidation["title"] = "Title must be at least 3 characters"
@@ -307,7 +299,6 @@ func (s *service) UpdateDonation(ctx context.Context, id string, req UpdateDonat
 		}
 	}
 
-	// Validate and set description
 	if req.Description != "" {
 		if len(req.Description) < 10 {
 			errValidation["description"] = "Description must be at least 10 characters"
@@ -318,7 +309,6 @@ func (s *service) UpdateDonation(ctx context.Context, id string, req UpdateDonat
 		}
 	}
 
-	// Validate and set category
 	if req.Category != "" {
 		if req.Category != CategoryEducation && req.Category != CategoryHealth && req.Category != CategoryEnvironment {
 			errValidation["category"] = "Invalid category. Must be: education, health, or environment"
@@ -327,14 +317,12 @@ func (s *service) UpdateDonation(ctx context.Context, id string, req UpdateDonat
 		}
 	}
 
-	// Validate and set fund target
 	if req.FundTarget > 0 {
 		updateData["fund_target"] = req.FundTarget
 	} else if req.FundTarget < 0 {
 		errValidation["fund_target"] = "Fund target must be greater than 0"
 	}
 
-	// Validate and set status
 	if req.Status != nil {
 		status := StatusDraft
 		if *req.Status {
@@ -348,7 +336,6 @@ func (s *service) UpdateDonation(ctx context.Context, id string, req UpdateDonat
 		}
 	}
 
-	// Validate and set end date
 	if !req.DateEnd.IsZero() {
 		if req.DateEnd.Before(time.Now()) {
 			errValidation["date_end"] = "End date must be in the future"
@@ -357,7 +344,10 @@ func (s *service) UpdateDonation(ctx context.Context, id string, req UpdateDonat
 		}
 	}
 
-	// Validate and set image
+	if len(errValidation) > 0 {
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+	}
+
 	if req.Image != nil {
 		uploadedURL, err := s.s3Client.UploadFile(ctx, req.Image, "donations")
 		if err != nil {
@@ -366,15 +356,10 @@ func (s *service) UpdateDonation(ctx context.Context, id string, req UpdateDonat
 		updateData["image_url"] = uploadedURL
 	}
 
-	if len(errValidation) > 0 {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
-	}
-
 	if len(updateData) == 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"update_data": "No fields to update"}, nil)
 	}
 
-	// Set updated_at
 	updateData["updated_at"] = time.Now()
 
 	if err := s.repo.Update(ctx, id, updateData); err != nil {

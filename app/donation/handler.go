@@ -174,7 +174,7 @@ func (h *handler) CreateDonation(c *gin.Context) {
 // @Param category formData string false "Donation Category"
 // @Param fund_target formData number false "Fund Target"
 // @Param status formData string false "Status"
-// @Param date_end formData string false "End Date (RFC3339)"
+// @Param date_end formData string false "End Date"
 // @Success 200 {object} pkg.Response
 // @Router /api/donations/{id} [put]
 func (h *handler) UpdateDonation(c *gin.Context) {

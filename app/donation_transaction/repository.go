@@ -12,7 +12,6 @@ type Repository interface {
 	FindByOrderID(ctx context.Context, orderID string) (*DonationTransaction, error)
 	UpdateStatus(ctx context.Context, orderID string, updates map[string]interface{}) error
 	FindAll(ctx context.Context, options map[string]interface{}) ([]DonationTransaction, error)
-	FindByDonationID(ctx context.Context, donationID string) ([]DonationTransaction, error)
 }
 
 type repository struct {
@@ -25,14 +24,6 @@ func NewRepository(conn *gorm.DB) Repository {
 
 func (r *repository) Create(ctx context.Context, tx *DonationTransaction) error {
 	return r.Conn.WithContext(ctx).Create(tx).Error
-}
-
-func (r *repository) FindByDonationID(ctx context.Context, donationID string) ([]DonationTransaction, error) {
-	var transactions []DonationTransaction
-	if err := r.Conn.WithContext(ctx).Where("donation_id = ?", donationID).Find(&transactions).Error; err != nil {
-		return nil, err
-	}
-	return transactions, nil
 }
 
 func (r *repository) FindByID(ctx context.Context, id string) (*DonationTransaction, error) {
