@@ -57,17 +57,12 @@ func (s *service) Register(ctx context.Context, req RegisterRequest) pkg.Respons
 	if req.Password == "" {
 		errValidation["password"] = "Password is required"
 	}
-	// Validate email format
 	if !pkg.IsValidEmail(req.Email) {
 		errValidation["email"] = "Invalid email format"
 	}
-
-	// Validate password length
 	if !pkg.IsValidLengthPassword(req.Password) {
 		errValidation["password"] = "Password must be at least 8 characters"
 	}
-
-	// Validate password strength
 	if !pkg.IsStrongPassword(req.Password) {
 		errValidation["password"] = "Password must contain uppercase, lowercase, and number"
 	}
@@ -76,19 +71,16 @@ func (s *service) Register(ctx context.Context, req RegisterRequest) pkg.Respons
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
 
-	// Check if email already exists
 	existingUser, _ := s.userRepo.FindOne(ctx, map[string]interface{}{"email": req.Email})
 	if existingUser != nil {
 		return pkg.NewResponse(http.StatusConflict, "Email already registered", nil, nil)
 	}
 
-	// Check if username already exists
 	existingUser, _ = s.userRepo.FindOne(ctx, map[string]interface{}{"username": req.Username})
 	if existingUser != nil {
 		return pkg.NewResponse(http.StatusConflict, "Username already taken", nil, nil)
 	}
 
-	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to hash password", nil, nil)
@@ -110,14 +102,12 @@ func (s *service) Register(ctx context.Context, req RegisterRequest) pkg.Respons
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create user", nil, nil)
 	}
 
-	// Generate email verification token
 	tokenBytes := make([]byte, 32)
 	if _, err := rand.Read(tokenBytes); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to generate verification token", nil, nil)
 	}
 	verificationToken := hex.EncodeToString(tokenBytes)
 
-	// Create email verification token record
 	emailVerification := &EmailVerificationToken{
 		ID:        uuid.New(),
 		UserID:    newUser.ID,
@@ -131,7 +121,6 @@ func (s *service) Register(ctx context.Context, req RegisterRequest) pkg.Respons
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create verification token", nil, nil)
 	}
 
-	// Send verification email
 	if err := s.emailService.SendEmailVerification(newUser.Email, newUser.Username, verificationToken); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to send verification email", nil, nil)
 	}
@@ -145,29 +134,24 @@ func (s *service) Login(ctx context.Context, req LoginRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.contextTimeout)
 	defer cancel()
 
-	// Find user by email
 	existingUser, err := s.userRepo.FindOne(ctx, map[string]interface{}{"email": req.Email})
 
 	if err != nil {
 		return pkg.NewResponse(http.StatusUnauthorized, "Invalid email or password", nil, nil)
 	}
 
-	// Check if user is banned
 	if !existingUser.Status {
 		return pkg.NewResponse(http.StatusForbidden, "Your account has been banned", nil, nil)
 	}
 
-	// Verify password
 	if err := bcrypt.CompareHashAndPassword([]byte(existingUser.Password), []byte(req.Password)); err != nil {
 		return pkg.NewResponse(http.StatusUnauthorized, "Invalid email or password", nil, nil)
 	}
 
-	// Check if email is verified
 	if !existingUser.EmailVerified {
 		return pkg.NewResponse(http.StatusForbidden, "Please verify your email before logging in", nil, nil)
 	}
 
-	// Generate JWT token with role
 	ttl := config.GetJWTTTL()
 	claims := &jwt_pkg.UserJWTClaims{
 		UserID: existingUser.ID.String(),
@@ -194,7 +178,6 @@ func (s *service) VerifyEmail(ctx context.Context, token string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.contextTimeout)
 	defer cancel()
 
-	// Fetch verification token
 	errValidation := make(map[string]string)
 	verificationToken, err := s.resetTokenRepo.FetchEmailVerificationToken(ctx, token)
 	if err != nil {
@@ -205,7 +188,6 @@ func (s *service) VerifyEmail(ctx context.Context, token string) pkg.Response {
 		errValidation["token"] = "Verification token already used"
 	}
 
-	// Check if token is expired
 	if time.Now().After(verificationToken.ExpiresAt) {
 		errValidation["token"] = "Verification token has expired"
 	}
@@ -214,12 +196,10 @@ func (s *service) VerifyEmail(ctx context.Context, token string) pkg.Response {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
 
-	// Verify user email
 	if err := s.userRepo.VerifyUserEmail(ctx, verificationToken.UserID); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to verify email", nil, nil)
 	}
 
-	// Mark token as used
 	verificationToken.Used = true
 	if err := s.resetTokenRepo.UpdateEmailVerificationToken(ctx, verificationToken); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update token status", nil, nil)
@@ -232,25 +212,21 @@ func (s *service) ResendVerificationEmail(ctx context.Context, email string) pkg
 	ctx, cancel := context.WithTimeout(ctx, s.contextTimeout)
 	defer cancel()
 
-	// Find user by email
 	existingUser, err := s.userRepo.FindOne(ctx, map[string]interface{}{"email": email})
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "User not found", nil, nil)
 	}
 
-	// Check if already verified
 	if existingUser.EmailVerified {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"email": "Email already verified"}, nil)
 	}
 
-	// Generate new verification token
 	tokenBytes := make([]byte, 32)
 	if _, err := rand.Read(tokenBytes); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to generate verification token", nil, nil)
 	}
 	verificationToken := hex.EncodeToString(tokenBytes)
 
-	// Create email verification token record
 	emailVerification := &EmailVerificationToken{
 		ID:        uuid.New(),
 		UserID:    existingUser.ID,
@@ -264,7 +240,6 @@ func (s *service) ResendVerificationEmail(ctx context.Context, email string) pkg
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create verification token", nil, nil)
 	}
 
-	// Send verification email
 	if err := s.emailService.SendEmailVerification(existingUser.Email, existingUser.Username, verificationToken); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to send verification email", nil, nil)
 	}
@@ -276,20 +251,17 @@ func (s *service) ForgetPassword(ctx context.Context, req ForgetPasswordRequest)
 	ctx, cancel := context.WithTimeout(ctx, s.contextTimeout)
 	defer cancel()
 
-	// Find user by email
 	existingUser, err := s.userRepo.FindOne(ctx, map[string]interface{}{"email": req.Email})
 	if err != nil {
 		return pkg.NewResponse(http.StatusOK, "If the email exists, a reset link has been sent", nil, nil)
 	}
 
-	// Generate reset token
 	tokenBytes := make([]byte, 32)
 	if _, err := rand.Read(tokenBytes); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to generate reset token", nil, nil)
 	}
 	resetToken := hex.EncodeToString(tokenBytes)
 
-	// Create password reset token record
 	passwordReset := &PasswordResetToken{
 		ID:        uuid.New(),
 		UserID:    existingUser.ID,
@@ -303,7 +275,6 @@ func (s *service) ForgetPassword(ctx context.Context, req ForgetPasswordRequest)
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create reset token", nil, nil)
 	}
 
-	// Send email
 	if err := s.emailService.SendPasswordResetEmail(req.Email, existingUser.Username, resetToken); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to send reset email", nil, nil)
 	}
@@ -315,7 +286,6 @@ func (s *service) ResetPassword(ctx context.Context, req ResetPasswordRequest) p
 	ctx, cancel := context.WithTimeout(ctx, s.contextTimeout)
 	defer cancel()
 
-	// Validate new password
 	errValidation := make(map[string]string)
 	if req.NewPassword == "" {
 		errValidation["new_password"] = "New password is required"
@@ -329,18 +299,15 @@ func (s *service) ResetPassword(ctx context.Context, req ResetPasswordRequest) p
 		errValidation["new_password"] = "Password must contain uppercase, lowercase, and number"
 	}
 
-	// Fetch reset token
 	resetToken, err := s.resetTokenRepo.FetchPasswordResetToken(ctx, req.Token)
 	if err != nil {
 		errValidation["token"] = "Invalid or expired reset token"
 	}
 
-	// Check if token is used
 	if resetToken.Used {
 		errValidation["token"] = "Reset token already used"
 	}
 
-	// Check if token is expired
 	if time.Now().After(resetToken.ExpiresAt) {
 		errValidation["token"] = "Reset token has expired"
 	}
@@ -348,18 +315,15 @@ func (s *service) ResetPassword(ctx context.Context, req ResetPasswordRequest) p
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
 
-	// Hash new password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to hash password", nil, nil)
 	}
 
-	// Update user password
 	if err := s.userRepo.UpdateUserPassword(ctx, resetToken.UserID, string(hashedPassword)); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update password", nil, nil)
 	}
 
-	// Mark token as used
 	resetToken.Used = true
 	if err := s.resetTokenRepo.UpdatePasswordResetToken(ctx, resetToken); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update token status", nil, nil)
@@ -372,13 +336,11 @@ func (s *service) OAuthLogin(ctx context.Context, provider string, gothUser goth
 	ctx, cancel := context.WithTimeout(ctx, s.contextTimeout)
 	defer cancel()
 
-	// Try to find existing user by email
 	existingUser, err := s.userRepo.FindOne(ctx, map[string]interface{}{"email": gothUser.Email})
 
 	var currentUser *user.User
 
 	if err != nil {
-		// User doesn't exist, create new user
 		username := gothUser.NickName
 		if username == "" {
 			username = gothUser.Email
@@ -401,14 +363,12 @@ func (s *service) OAuthLogin(ctx context.Context, provider string, gothUser goth
 
 		currentUser = newUser
 	} else {
-		// User exists
 		if !existingUser.Status {
 			return pkg.NewResponse(http.StatusForbidden, "Your account has been banned", nil, nil)
 		}
 		currentUser = existingUser
 	}
 
-	// Generate JWT token
 	ttl := config.GetJWTTTL()
 	claims := &jwt_pkg.UserJWTClaims{
 		UserID: currentUser.ID.String(),

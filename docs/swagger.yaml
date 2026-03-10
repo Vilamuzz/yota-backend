@@ -525,27 +525,6 @@ paths:
       summary: Get Donation Transaction by ID
       tags:
       - Donation Transactions
-  /api/donation-transactions/donation/{donation_id}:
-    get:
-      description: Retrieve all transactions for a specific donation (admin only)
-      parameters:
-      - description: Donation ID
-        in: path
-        name: donation_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Get Donation Transactions by Donation ID
-      tags:
-      - Donation Transactions
   /api/donations/:
     get:
       consumes:
@@ -615,7 +594,7 @@ paths:
         name: fund_target
         required: true
         type: number
-      - description: End Date (RFC3339)
+      - description: End Date
         in: formData
         name: date_end
         required: true
@@ -712,7 +691,7 @@ paths:
         in: formData
         name: status
         type: string
-      - description: End Date (RFC3339)
+      - description: End Date
         in: formData
         name: date_end
         type: string

@@ -11,7 +11,7 @@ import (
 type Repository interface {
 	FindPublished(ctx context.Context, options map[string]interface{}) ([]Donation, error)
 	FindPublishedBySlug(ctx context.Context, slug string) (*Donation, error)
-	FindActiveById(ctx context.Context, id string) (*Donation, error)
+	FindActiveByID(ctx context.Context, id string) (*Donation, error)
 	FindAll(ctx context.Context, options map[string]interface{}) ([]Donation, error)
 	FindByID(ctx context.Context, id string) (*Donation, error)
 	Create(ctx context.Context, donation *Donation) error
@@ -126,11 +126,8 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 
 func (r *repository) FindByID(ctx context.Context, id string) (*Donation, error) {
 	var donation Donation
-	collectedFundSubquery := r.Conn.Table("donation_transactions").
-		Select("COALESCE(SUM(gross_amount), 0)").
-		Where("donation_id = donations.id AND transaction_status = 'settlement'")
 	if err := r.Conn.WithContext(ctx).
-		Select("donations.*, (?) as collected_fund", collectedFundSubquery).
+		Select("donations.*").
 		Where("id = ?", id).
 		First(&donation).Error; err != nil {
 		return nil, err
@@ -152,7 +149,7 @@ func (r *repository) FindPublishedBySlug(ctx context.Context, slug string) (*Don
 	return &donation, nil
 }
 
-func (r *repository) FindActiveById(ctx context.Context, id string) (*Donation, error) {
+func (r *repository) FindActiveByID(ctx context.Context, id string) (*Donation, error) {
 	var donation Donation
 	if err := r.Conn.WithContext(ctx).
 		Where("id = ? AND status = ?", id, StatusActive).

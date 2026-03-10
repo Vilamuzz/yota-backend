@@ -22,7 +22,6 @@ type Service interface {
 	HandleNotification(ctx context.Context, notification MidtransNotificationRequest) pkg.Response
 	List(ctx context.Context, params QueryParams) pkg.Response
 	GetByID(ctx context.Context, id string) pkg.Response
-	GetByDonationID(ctx context.Context, donationID string) pkg.Response
 }
 
 type service struct {
@@ -51,7 +50,7 @@ func (s *service) CreateOfflineTransaction(ctx context.Context, req CreateTransa
 	if req.DonationID == "" {
 		errValidation["donation_id"] = "Donation ID is required"
 	} else {
-		_, err := s.donationRepo.FindActiveById(ctx, req.DonationID)
+		_, err := s.donationRepo.FindActiveByID(ctx, req.DonationID)
 		if err != nil {
 			errValidation["donation_id"] = "Donation not found"
 		}
@@ -99,7 +98,7 @@ func (s *service) CreateOfflineTransaction(ctx context.Context, req CreateTransa
 		PaidAt:            &now,
 		CreatedAt:         now,
 		UpdatedAt:         now,
-	}
+	} 
 	if err := s.repo.Create(ctx, tx); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to save offline transaction", nil, nil)
 	}
@@ -115,7 +114,7 @@ func (s *service) CreateTransaction(ctx context.Context, req CreateTransactionRe
 	if req.DonationID == "" {
 		errValidation["donation_id"] = "Donation ID is required"
 	} else {
-		_, err := s.donationRepo.FindActiveById(ctx, req.DonationID)
+		_, err := s.donationRepo.FindActiveByID(ctx, req.DonationID)
 		if err != nil {
 			errValidation["donation_id"] = "Donation not found"
 		}
@@ -211,13 +210,11 @@ func (s *service) HandleNotification(ctx context.Context, notification MidtransN
 		return pkg.NewResponse(http.StatusUnauthorized, "Invalid signature", nil, nil)
 	}
 
-	// Find the transaction
 	tx, err := s.repo.FindByOrderID(ctx, notification.OrderID)
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "Transaction not found", nil, nil)
 	}
 
-	// Determine new payment status
 	if notification.TransactionStatus == tx.TransactionStatus {
 		return pkg.NewResponse(http.StatusOK, "No status change", nil, nil)
 	}
@@ -294,18 +291,4 @@ func (s *service) GetByID(ctx context.Context, id string) pkg.Response {
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Success", nil, toResponse(tx))
-}
-
-func (s *service) GetByDonationID(ctx context.Context, donationID string) pkg.Response {
-	ctx, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	transactions, err := s.repo.FindByDonationID(ctx, donationID)
-	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch transactions", nil, nil)
-	}
-
-	return pkg.NewResponse(http.StatusOK, "Success", nil, map[string]interface{}{
-		"transactions": transactions,
-	})
 }

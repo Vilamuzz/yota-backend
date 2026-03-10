@@ -8,8 +8,8 @@ type DonationTransactionResponse struct {
 	OrderID           string     `json:"order_id"`
 	DonorName         string     `json:"donor_name"`
 	DonorEmail        string     `json:"donor_email"`
+	Source            bool       `json:"source"`
 	GrossAmount       float64    `json:"gross_amount"`
-	PaymentMethod     string     `json:"payment_method"`
 	FraudStatus       string     `json:"fraud_status"`
 	TransactionStatus string     `json:"transaction_status"`
 	Provider          string     `json:"provider"`
@@ -27,8 +27,8 @@ func toResponse(tx *DonationTransaction) DonationTransactionResponse {
 		OrderID:           tx.OrderID,
 		DonorName:         tx.DonorName,
 		DonorEmail:        tx.DonorEmail,
+		Source:            tx.Source,
 		GrossAmount:       tx.GrossAmount,
-		PaymentMethod:     tx.PaymentMethod,
 		FraudStatus:       tx.FraudStatus,
 		TransactionStatus: tx.TransactionStatus,
 		Provider:          tx.Provider,

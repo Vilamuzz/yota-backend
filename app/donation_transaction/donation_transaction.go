@@ -13,7 +13,6 @@ type DonationTransaction struct {
 	DonorEmail        string     `json:"donor_email"`
 	Source            bool       `json:"source"` // true = online, false = offline
 	GrossAmount       float64    `json:"gross_amount"`
-	PaymentMethod     string     `json:"payment_method"`
 	FraudStatus       string     `json:"fraud_status"`
 	TransactionStatus string     `json:"transaction_status"`
 	Provider          string     `json:"provider"` // midtrans

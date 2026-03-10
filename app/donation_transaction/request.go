@@ -18,8 +18,10 @@ type MidtransNotificationRequest struct {
 	PaymentType       string `json:"payment_type"`
 	TransactionID     string `json:"transaction_id"`
 }
+
 type QueryParams struct {
 	Status     string `form:"status"`
 	DonationID string `form:"donation_id"`
-	Limit      int    `form:"limit" binding:"omitempty,min=1,max=100"`
+	Cursor     string `form:"cursor"`
+	Limit      int    `form:"limit"`
 }

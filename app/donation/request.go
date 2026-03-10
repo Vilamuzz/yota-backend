@@ -16,19 +16,19 @@ type DonationRequest struct {
 }
 
 type UpdateDonationRequest struct {
-	Title       string                `json:"title" form:"title" binding:"omitempty,min=3,max=200"`
-	Description string                `json:"description" form:"description" binding:"omitempty,min=10,max=2000"`
+	Title       string                `json:"title" form:"title"`
+	Description string                `json:"description" form:"description"`
 	Image       *multipart.FileHeader `json:"image" form:"image"`
-	Category    Category              `json:"category" form:"category" binding:"omitempty,oneof=education health environment"`
-	FundTarget  float64               `json:"fund_target" form:"fund_target" binding:"omitempty,gt=0"`
-	Status      *bool                 `json:"status" form:"status" binding:"omitempty"`
-	DateEnd     time.Time             `json:"date_end" form:"date_end" binding:"omitempty" time_format:"2006-01-02"`
+	Category    Category              `json:"category" form:"category"`
+	FundTarget  float64               `json:"fund_target" form:"fund_target"`
+	Status      *bool                 `json:"status" form:"status"`
+	DateEnd     time.Time             `json:"date_end" form:"date_end" time_format:"2006-01-02"`
 }
 
 type DonationQueryParams struct {
-	Search   string `form:"search" binding:"omitempty"`
-	Category string `form:"category" binding:"omitempty,oneof=education health environment"`
-	Status   string `form:"status" binding:"omitempty,oneof=active draft complete expired"`
-	Cursor   string `form:"cursor" binding:"omitempty"`
-	Limit    int    `form:"limit" binding:"omitempty,min=1,max=100"`
+	Search   string `form:"search"`
+	Category string `form:"category"`
+	Status   string `form:"status"`
+	Cursor   string `form:"cursor"`
+	Limit    int    `form:"limit"`
 }

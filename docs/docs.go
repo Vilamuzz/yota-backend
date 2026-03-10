@@ -358,40 +358,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/donation-transactions/donation/{donation_id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve all transactions for a specific donation (admin only)",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Donation Transactions"
-                ],
-                "summary": "Get Donation Transactions by Donation ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Donation ID",
-                        "name": "donation_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
         "/api/donation-transactions/{id}": {
             "get": {
                 "security": [
@@ -539,7 +505,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "End Date (RFC3339)",
+                        "description": "End Date",
                         "name": "date_end",
                         "in": "formData",
                         "required": true
@@ -654,7 +620,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "End Date (RFC3339)",
+                        "description": "End Date",
                         "name": "date_end",
                         "in": "formData"
                     }
