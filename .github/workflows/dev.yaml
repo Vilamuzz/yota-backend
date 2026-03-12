@@ -107,8 +107,24 @@ jobs:
           fi
           echo "Built image: ${{ steps.image.outputs.name }}:${{ steps.imagetag.outputs.tag }}"
 
-  deploy:
+  migrate:
     needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Atlas
+        uses: ariga/setup-atlas@v0
+
+      - name: Run Database Migrations
+        run: |
+          atlas migrate apply \
+            --dir "file://migrations" \
+            --url "${{ secrets.PROD_DATABASE_URL }}"
+
+  deploy:
+    needs: migrate
     runs-on: ubuntu-latest
     steps:
       - name: Update Dokploy application image
