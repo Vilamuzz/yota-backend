@@ -30,7 +30,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 
 	// Admin-only routes
 	protected := r.Group("/donation-transactions")
-	protected.Use(h.middleware.RequireRoles(enum.RoleSuperadmin, enum.RoleFinance))
+	protected.Use(h.middleware.RequireRoles(enum.RoleFinance))
 	{
 		protected.GET("", h.ListTransactions)
 		protected.GET("/:id", h.GetTransactionByID)
@@ -127,7 +127,7 @@ func (h *handler) ListTransactions(c *gin.Context) {
 		return
 	}
 
-	res := h.service.List(ctx, params)
+	res := h.service.ListTransactions(ctx, params)
 	c.JSON(res.Status, res)
 }
 
@@ -145,6 +145,6 @@ func (h *handler) GetTransactionByID(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
 
-	res := h.service.GetByID(ctx, id)
+	res := h.service.GetTransactionByID(ctx, id)
 	c.JSON(res.Status, res)
 }

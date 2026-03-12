@@ -1,11 +1,12 @@
 package donation_transaction
 
 type CreateTransactionRequest struct {
-	UserID      string  `json:"user_id,omitempty"`
-	DonationID  string  `json:"donation_id"`
-	DonorName   string  `json:"donor_name"`
-	DonorEmail  string  `json:"donor_email"`
-	GrossAmount float64 `json:"gross_amount"`
+	UserID        string  `json:"user_id,omitempty"`
+	DonationID    string  `json:"donation_id"`
+	DonorName     string  `json:"donor_name"`
+	DonorEmail    string  `json:"donor_email"`
+	GrossAmount   float64 `json:"gross_amount"`
+	PrayerContent string  `json:"prayer_content,omitempty"`
 }
 
 type MidtransNotificationRequest struct {
@@ -22,6 +23,7 @@ type MidtransNotificationRequest struct {
 type QueryParams struct {
 	Status     string `form:"status"`
 	DonationID string `form:"donation_id"`
-	Cursor     string `form:"cursor"`
+	NextCursor string `form:"next_cursor"`
+	PrevCursor string `form:"prev_cursor"`
 	Limit      int    `form:"limit"`
 }

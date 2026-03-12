@@ -30,7 +30,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 
 	// Protected routes
 	protected := r.Group("/donations")
-	protected.Use(h.middleware.RequireRoles(enum.RoleSuperadmin, enum.RoleFinance))
+	protected.Use(h.middleware.RequireRoles(enum.RoleFinance))
 	{
 		protected.GET("", h.ListDonations)
 		protected.GET("/:id", h.GetDonationByID)
@@ -48,8 +48,9 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // @Accept json
 // @Produce json
 // @Param category query string false "Filter by category"
-// @Param cursor query string false "Cursor for pagination"
-// @Param limit query int false "Items per page"
+// @Param limit query int false "Pagination limit"
+// @Param next_cursor query string false "Pagination cursor (next page)"
+// @Param prev_cursor query string false "Pagination cursor (prev page)"
 // @Success 200 {object} pkg.Response
 // @Router /api/public/donations/ [get]
 func (h *handler) ListPublishedDonations(c *gin.Context) {
@@ -61,7 +62,7 @@ func (h *handler) ListPublishedDonations(c *gin.Context) {
 		return
 	}
 
-	res := h.service.ListPublished(ctx, queryParams)
+	res := h.service.ListPublishedDonations(ctx, queryParams)
 	c.JSON(res.Status, res)
 }
 
@@ -79,7 +80,7 @@ func (h *handler) GetPublishedDonation(c *gin.Context) {
 	ctx := c.Request.Context()
 	donationSlug := c.Param("slug")
 
-	res := h.service.GetPublishedBySlug(ctx, donationSlug)
+	res := h.service.GetPublishedDonationBySlug(ctx, donationSlug)
 	c.JSON(res.Status, res)
 }
 
@@ -106,7 +107,7 @@ func (h *handler) ListDonations(c *gin.Context) {
 		return
 	}
 
-	res := h.service.List(ctx, queryParams)
+	res := h.service.ListDonations(ctx, queryParams)
 	c.JSON(res.Status, res)
 }
 
@@ -125,7 +126,7 @@ func (h *handler) GetDonationByID(c *gin.Context) {
 	ctx := c.Request.Context()
 	donationID := c.Param("id")
 
-	res := h.service.GetByID(ctx, donationID)
+	res := h.service.GetDonationByID(ctx, donationID)
 	c.JSON(res.Status, res)
 }
 
