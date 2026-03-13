@@ -26,9 +26,10 @@ type UpdateDonationRequest struct {
 }
 
 type DonationQueryParams struct {
-	Search   string `form:"search"`
-	Category string `form:"category"`
-	Status   string `form:"status"`
-	Cursor   string `form:"cursor"`
-	Limit    int    `form:"limit"`
+	Search     string `form:"search"`
+	Category   string `form:"category"`
+	Status     string `form:"status"`
+	Limit      int    `form:"limit"`
+	NextCursor string `form:"next_cursor"`
+	PrevCursor string `form:"prev_cursor"`
 }

@@ -14,8 +14,9 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the application from cmd/server
+# Build the application from cmd/server and seeder
 RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -o seed ./cmd/seed
 
 # Runtime stage
 FROM alpine:latest
@@ -31,6 +32,7 @@ WORKDIR /app
 
 # Copy binary from builder
 COPY --from=builder /app/main .
+COPY --from=builder /app/seed .
 
 # Change ownership
 RUN chown -R appuser:appuser /app

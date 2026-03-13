@@ -3,6 +3,7 @@ package donation_transaction
 import (
 	"context"
 
+	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
 )
 
@@ -11,7 +12,7 @@ type Repository interface {
 	FindByID(ctx context.Context, id string) (*DonationTransaction, error)
 	FindByOrderID(ctx context.Context, orderID string) (*DonationTransaction, error)
 	UpdateStatus(ctx context.Context, orderID string, updates map[string]interface{}) error
-	FindAll(ctx context.Context, options map[string]interface{}) ([]DonationTransaction, error)
+	FindAll(ctx context.Context, params QueryParams) ([]DonationTransaction, error)
 }
 
 type repository struct {
@@ -48,23 +49,41 @@ func (r *repository) UpdateStatus(ctx context.Context, orderID string, updates m
 		Updates(updates).Error
 }
 
-func (r *repository) FindAll(ctx context.Context, options map[string]interface{}) ([]DonationTransaction, error) {
+func (r *repository) FindAll(ctx context.Context, params QueryParams) ([]DonationTransaction, error) {
 	var transactions []DonationTransaction
-	query := r.Conn.WithContext(ctx)
 
-	if status, ok := options["status"]; ok && status != "" {
-		query = query.Where("transaction_status = ?", status)
-	}
-	if donationID, ok := options["donation_id"]; ok && donationID != "" {
-		query = query.Where("donation_id = ?", donationID)
+	usingPrevCursor := params.PrevCursor != ""
+
+	order := "created_at DESC, id DESC"
+	if usingPrevCursor {
+		order = "created_at ASC, id ASC"
 	}
 
-	limit := 10
-	if l, ok := options["limit"]; ok {
-		limit = l.(int)
+	limit := params.Limit
+	if limit <= 0 {
+		limit = 10
 	}
-	query = query.Limit(limit + 1)
-	query = query.Order("created_at DESC")
+
+	query := r.Conn.WithContext(ctx).Order(order).Limit(limit + 1)
+
+	if params.Status != "" {
+		query = query.Where("transaction_status = ?", params.Status)
+	}
+	if params.DonationID != "" {
+		query = query.Where("donation_id = ?", params.DonationID)
+	}
+	if params.NextCursor != "" {
+		cursorData, err := pkg.DecodeCursor(params.NextCursor)
+		if err == nil {
+			query = query.Where("(created_at, id) < (?, ?)", cursorData.CreatedAt, cursorData.ID)
+		}
+	}
+	if usingPrevCursor {
+		cursorData, err := pkg.DecodeCursor(params.PrevCursor)
+		if err == nil {
+			query = query.Where("(created_at, id) > (?, ?)", cursorData.CreatedAt, cursorData.ID)
+		}
+	}
 
 	if err := query.Find(&transactions).Error; err != nil {
 		return nil, err

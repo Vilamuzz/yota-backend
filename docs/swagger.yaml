@@ -68,6 +68,8 @@ definitions:
         type: string
       gross_amount:
         type: number
+      prayer_content:
+        type: string
       user_id:
         type: string
     type: object
@@ -210,6 +212,32 @@ definitions:
         additionalProperties:
           type: string
         type: object
+    type: object
+  prayer.PrayerListResponse:
+    properties:
+      pagination:
+        $ref: '#/definitions/pkg.CursorPagination'
+      prayers:
+        items:
+          $ref: '#/definitions/prayer.PrayerResponse'
+        type: array
+    type: object
+  prayer.PrayerResponse:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      donation_id:
+        type: string
+      id:
+        type: string
+      is_reported:
+        type: boolean
+      like_count:
+        type: integer
+      user_id:
+        type: string
     type: object
   user.Role:
     properties:
@@ -452,6 +480,160 @@ paths:
       summary: Verify Email
       tags:
       - Auth
+  /api/donation-expenses/:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of all expenses (requires authentication
+        and proper role)
+      parameters:
+      - description: Filter by donation ID
+        in: query
+        name: donation_id
+        type: string
+      - description: Cursor for pagination
+        in: query
+        name: cursor
+        type: string
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List Expenses
+      tags:
+      - Donation Expenses
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create a new expense entry (requires authentication and proper
+        role)
+      parameters:
+      - description: Donation ID
+        in: formData
+        name: donation_id
+        required: true
+        type: string
+      - description: Expense Amount
+        in: formData
+        name: amount
+        required: true
+        type: number
+      - description: Expense Description
+        in: formData
+        name: description
+        required: true
+        type: string
+      - description: Expense Image File
+        in: formData
+        name: image
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Expense
+      tags:
+      - Donation Expenses
+  /api/donation-expenses/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an existing expense entry (requires authentication and proper
+        role)
+      parameters:
+      - description: Expense ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete Expense
+      tags:
+      - Donation Expenses
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific expense entry (requires
+        authentication and proper role)
+      parameters:
+      - description: Expense ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Expense by ID
+      tags:
+      - Donation Expenses
+    put:
+      consumes:
+      - multipart/form-data
+      description: Update an existing expense entry (requires authentication and proper
+        role)
+      parameters:
+      - description: Expense ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Donation ID
+        in: formData
+        name: donation_id
+        type: string
+      - description: Expense Amount
+        in: formData
+        name: amount
+        type: number
+      - description: Expense Description
+        in: formData
+        name: description
+        type: string
+      - description: Expense Image File
+        in: formData
+        name: image
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Expense
+      tags:
+      - Donation Expenses
   /api/donation-transactions:
     get:
       description: Retrieve a paginated list of donation transactions (admin only)
@@ -1191,14 +1373,18 @@ paths:
         in: query
         name: category
         type: string
-      - description: Cursor for pagination
-        in: query
-        name: cursor
-        type: string
-      - description: Items per page
+      - description: Pagination limit
         in: query
         name: limit
         type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
       produces:
       - application/json
       responses:
@@ -1417,6 +1603,85 @@ paths:
       summary: Update User
       tags:
       - Users
+  /prayers:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of prayers
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Search query
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/prayer.PrayerListResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: List Prayers
+      tags:
+      - Prayer
+  /prayers/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a prayer by its ID
+      parameters:
+      - description: Prayer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/prayer.PrayerResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Get Prayer by ID
+      tags:
+      - Prayer
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.

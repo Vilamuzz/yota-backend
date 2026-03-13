@@ -11,10 +11,10 @@ import (
 )
 
 type Service interface {
-	ListPublished(ctx context.Context, queryParams DonationQueryParams) pkg.Response
-	GetPublishedBySlug(ctx context.Context, slug string) pkg.Response
-	List(ctx context.Context, queryParams DonationQueryParams) pkg.Response
-	GetByID(ctx context.Context, id string) pkg.Response
+	ListPublishedDonations(ctx context.Context, queryParams DonationQueryParams) pkg.Response
+	GetPublishedDonationBySlug(ctx context.Context, slug string) pkg.Response
+	ListDonations(ctx context.Context, queryParams DonationQueryParams) pkg.Response
+	GetDonationByID(ctx context.Context, id string) pkg.Response
 	CreateDonation(ctx context.Context, donation DonationRequest) pkg.Response
 	UpdateDonation(ctx context.Context, id string, req UpdateDonationRequest) pkg.Response
 	DeleteDonation(ctx context.Context, id string) pkg.Response
@@ -35,7 +35,7 @@ func NewService(repo Repository, s3Client s3_pkg.Client, timeout time.Duration) 
 	}
 }
 
-func (s *service) ListPublished(ctx context.Context, queryParams DonationQueryParams) pkg.Response {
+func (s *service) ListPublishedDonations(ctx context.Context, queryParams DonationQueryParams) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -51,12 +51,14 @@ func (s *service) ListPublished(ctx context.Context, queryParams DonationQueryPa
 	if queryParams.Search != "" {
 		options["search"] = queryParams.Search
 	}
-
 	if queryParams.Category != "" {
 		options["category"] = queryParams.Category
 	}
-	if queryParams.Cursor != "" {
-		options["cursor"] = queryParams.Cursor
+	if queryParams.NextCursor != "" {
+		options["next_cursor"] = queryParams.NextCursor
+	}
+	if queryParams.PrevCursor != "" {
+		options["prev_cursor"] = queryParams.PrevCursor
 	}
 
 	donations, err := s.repo.FindPublished(ctx, options)
@@ -73,7 +75,7 @@ func (s *service) ListPublished(ctx context.Context, queryParams DonationQueryPa
 
 	// Generate cursors
 	var nextCursor, prevCursor string
-	hasPrev := queryParams.Cursor != ""
+	hasPrev := queryParams.PrevCursor != ""
 
 	if hasNext && len(donations) > 0 {
 		lastDonation := donations[len(donations)-1]
@@ -97,7 +99,7 @@ func (s *service) ListPublished(ctx context.Context, queryParams DonationQueryPa
 	})
 }
 
-func (s *service) List(ctx context.Context, queryParams DonationQueryParams) pkg.Response {
+func (s *service) ListDonations(ctx context.Context, queryParams DonationQueryParams) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -119,8 +121,11 @@ func (s *service) List(ctx context.Context, queryParams DonationQueryParams) pkg
 	if queryParams.Status != "" {
 		options["status"] = queryParams.Status
 	}
-	if queryParams.Cursor != "" {
-		options["cursor"] = queryParams.Cursor
+	if queryParams.NextCursor != "" {
+		options["next_cursor"] = queryParams.NextCursor
+	}
+	if queryParams.PrevCursor != "" {
+		options["prev_cursor"] = queryParams.PrevCursor
 	}
 
 	donations, err := s.repo.FindAll(ctx, options)
@@ -137,7 +142,7 @@ func (s *service) List(ctx context.Context, queryParams DonationQueryParams) pkg
 
 	// Generate cursors
 	var nextCursor, prevCursor string
-	hasPrev := queryParams.Cursor != ""
+	hasPrev := queryParams.PrevCursor != ""
 
 	if hasNext && len(donations) > 0 {
 		lastDonation := donations[len(donations)-1]
@@ -161,7 +166,7 @@ func (s *service) List(ctx context.Context, queryParams DonationQueryParams) pkg
 	})
 }
 
-func (s *service) GetPublishedBySlug(ctx context.Context, slug string) pkg.Response {
+func (s *service) GetPublishedDonationBySlug(ctx context.Context, slug string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -173,7 +178,7 @@ func (s *service) GetPublishedBySlug(ctx context.Context, slug string) pkg.Respo
 	return pkg.NewResponse(http.StatusOK, "Success", nil, donation)
 }
 
-func (s *service) GetByID(ctx context.Context, id string) pkg.Response {
+func (s *service) GetDonationByID(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 

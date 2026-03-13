@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/app/donation"
+	"github.com/Vilamuzz/yota-backend/app/finance_record"
+	"github.com/Vilamuzz/yota-backend/app/prayer"
 	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	payment_pkg "github.com/Vilamuzz/yota-backend/pkg/payment"
@@ -20,23 +22,27 @@ type Service interface {
 	CreateOfflineTransaction(ctx context.Context, req CreateTransactionRequest) pkg.Response
 	CreateTransaction(ctx context.Context, req CreateTransactionRequest) pkg.Response
 	HandleNotification(ctx context.Context, notification MidtransNotificationRequest) pkg.Response
-	List(ctx context.Context, params QueryParams) pkg.Response
-	GetByID(ctx context.Context, id string) pkg.Response
+	ListTransactions(ctx context.Context, params QueryParams) pkg.Response
+	GetTransactionByID(ctx context.Context, id string) pkg.Response
 }
 
 type service struct {
 	repo           Repository
 	userRepo       user.Repository
 	donationRepo   donation.Repository
+	prayerRepo     prayer.Repository
+	financeRepo    finance_record.Repository
 	midtransClient payment_pkg.Client
 	timeout        time.Duration
 }
 
-func NewService(repo Repository, userRepo user.Repository, donationRepo donation.Repository, midtransClient payment_pkg.Client, timeout time.Duration) Service {
+func NewService(repo Repository, userRepo user.Repository, donationRepo donation.Repository, prayerRepo prayer.Repository, financeRepo finance_record.Repository, midtransClient payment_pkg.Client, timeout time.Duration) Service {
 	return &service{
 		repo:           repo,
 		userRepo:       userRepo,
 		donationRepo:   donationRepo,
+		prayerRepo:     prayerRepo,
+		financeRepo:    financeRepo,
 		midtransClient: midtransClient,
 		timeout:        timeout,
 	}
@@ -98,10 +104,24 @@ func (s *service) CreateOfflineTransaction(ctx context.Context, req CreateTransa
 		PaidAt:            &now,
 		CreatedAt:         now,
 		UpdatedAt:         now,
-	} 
+	}
 	if err := s.repo.Create(ctx, tx); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to save offline transaction", nil, nil)
 	}
+
+	// Auto-create finance record (income)
+	_ = s.financeRepo.Create(ctx, &finance_record.FinanceRecord{
+		ID:              uuid.New().String(),
+		FundType:        finance_record.FundTypeDonation,
+		FundID:          tx.DonationID,
+		SourceType:      finance_record.SourceTypeTransaction,
+		SourceID:        tx.ID,
+		Amount:          tx.GrossAmount,
+		TransactionDate: now,
+		CreatedAt:       now,
+		UpdatedAt:       now,
+	})
+
 	return pkg.NewResponse(http.StatusCreated, "Offline transaction created successfully", nil, toResponse(tx))
 }
 
@@ -187,6 +207,7 @@ func (s *service) CreateTransaction(ctx context.Context, req CreateTransactionRe
 		Provider:          "midtrans",
 		SnapToken:         snapResp.Token,
 		SnapRedirectURL:   snapResp.RedirectURL,
+		PrayerContent:     req.PrayerContent,
 		CreatedAt:         now,
 		UpdatedAt:         now,
 	}
@@ -237,10 +258,40 @@ func (s *service) HandleNotification(ctx context.Context, notification MidtransN
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update transaction", nil, nil)
 	}
 
+	// Create prayer if the transaction has prayer content and is now settled
+	if isSettled && tx.PrayerContent != "" {
+		now := time.Now()
+		newPrayer := &prayer.Prayer{
+			ID:         uuid.New().String(),
+			DonationID: tx.DonationID,
+			UserID:     tx.UserID,
+			Content:    tx.PrayerContent,
+			CreatedAt:  now,
+			UpdatedAt:  now,
+		}
+		_ = s.prayerRepo.Create(ctx, newPrayer)
+	}
+
+	// Auto-create finance record when payment is settled
+	if isSettled {
+		now := time.Now()
+		_ = s.financeRepo.Create(ctx, &finance_record.FinanceRecord{
+			ID:              uuid.New().String(),
+			FundType:        finance_record.FundTypeDonation,
+			FundID:          tx.DonationID,
+			SourceType:      finance_record.SourceTypeTransaction,
+			SourceID:        tx.ID,
+			Amount:          tx.GrossAmount,
+			TransactionDate: now,
+			CreatedAt:       now,
+			UpdatedAt:       now,
+		})
+	}
+
 	return pkg.NewResponse(http.StatusOK, "Notification handled", nil, nil)
 }
 
-func (s *service) List(ctx context.Context, params QueryParams) pkg.Response {
+func (s *service) ListTransactions(ctx context.Context, params QueryParams) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -248,20 +299,36 @@ func (s *service) List(ctx context.Context, params QueryParams) pkg.Response {
 		params.Limit = 10
 	}
 
-	options := map[string]interface{}{
-		"limit":       params.Limit,
-		"status":      params.Status,
-		"donation_id": params.DonationID,
-	}
+	usingPrevCursor := params.PrevCursor != ""
 
-	transactions, err := s.repo.FindAll(ctx, options)
+	transactions, err := s.repo.FindAll(ctx, params)
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch transactions", nil, nil)
 	}
 
-	hasNext := len(transactions) > params.Limit
-	if hasNext {
+	hasMore := len(transactions) > params.Limit
+	if hasMore {
 		transactions = transactions[:params.Limit]
+	}
+
+	// Reverse ASC → DESC when navigating backwards
+	if usingPrevCursor {
+		for i, j := 0, len(transactions)-1; i < j; i, j = i+1, j-1 {
+			transactions[i], transactions[j] = transactions[j], transactions[i]
+		}
+	}
+
+	hasNext := (!usingPrevCursor && hasMore) || (usingPrevCursor && params.NextCursor == "")
+	hasPrev := (usingPrevCursor && hasMore) || (!usingPrevCursor && params.NextCursor != "")
+
+	var nextCursor, prevCursor string
+	if hasNext && len(transactions) > 0 {
+		last := transactions[len(transactions)-1]
+		nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID)
+	}
+	if hasPrev && len(transactions) > 0 {
+		first := transactions[0]
+		prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID)
 	}
 
 	responses := make([]DonationTransactionResponse, len(transactions))
@@ -272,12 +339,17 @@ func (s *service) List(ctx context.Context, params QueryParams) pkg.Response {
 
 	return pkg.NewResponse(http.StatusOK, "Success", nil, map[string]interface{}{
 		"transactions": responses,
-		"has_next":     hasNext,
-		"limit":        params.Limit,
+		"pagination": pkg.CursorPagination{
+			NextCursor: nextCursor,
+			PrevCursor: prevCursor,
+			HasNext:    hasNext,
+			HasPrev:    hasPrev,
+			Limit:      params.Limit,
+		},
 	})
 }
 
-func (s *service) GetByID(ctx context.Context, id string) pkg.Response {
+func (s *service) GetTransactionByID(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
