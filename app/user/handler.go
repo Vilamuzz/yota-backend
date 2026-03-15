@@ -27,7 +27,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 
 	public := r.Group("/public/users")
 	{
-		public.GET("/roles", h.GetRoles)
+		public.GET("/roles", h.ListRoles)
 	}
 
 	me := r.Group("/me")
@@ -41,8 +41,8 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	protected := r.Group("/users")
 	protected.Use(h.middleware.RequireRoles(enum.RoleSuperadmin))
 	{
-		protected.GET("", h.GetUsersList)
-		protected.GET("/:id", h.GetUserDetail)
+		protected.GET("", h.ListUsers)
+		protected.GET("/:id", h.GetUserByID)
 		protected.PUT("/:id", h.UpdateUser)
 	}
 }
@@ -56,9 +56,9 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // @Produce json
 // @Success 200 {object} pkg.Response{data=[]RoleResponse}
 // @Router /api/public/users/roles [get]
-func (h *handler) GetRoles(c *gin.Context) {
+func (h *handler) ListRoles(c *gin.Context) {
 	ctx := c.Request.Context()
-	res := h.service.GetRoles(ctx)
+	res := h.service.ListRoles(ctx)
 	c.JSON(res.Status, res)
 }
 
@@ -78,18 +78,18 @@ func (h *handler) GetRoles(c *gin.Context) {
 // @Param status query boolean false "Status filter"
 // @Success 200 {object} pkg.Response{data=[]UserResponse}
 // @Router /api/users [get]
-func (h *handler) GetUsersList(c *gin.Context) {
+func (h *handler) ListUsers(c *gin.Context) {
 	ctx := c.Request.Context()
 	var queryParam UserQueryParam
 	if err := c.ShouldBindQuery(&queryParam); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
 		return
 	}
-	res := h.service.GetUsersList(ctx, queryParam)
+	res := h.service.ListUsers(ctx, queryParam)
 	c.JSON(res.Status, res)
 }
 
-// GetUserDetail
+// GetUserByID
 //
 // @Summary Get User Detail
 // @Description Get detailed information of a user by ID
@@ -100,10 +100,10 @@ func (h *handler) GetUsersList(c *gin.Context) {
 // @Param id path string true "User ID"
 // @Success 200 {object} pkg.Response{data=UserResponse}
 // @Router /api/users/{id} [get]
-func (h *handler) GetUserDetail(c *gin.Context) {
+func (h *handler) GetUserByID(c *gin.Context) {
 	ctx := c.Request.Context()
 	userID := c.Param("id")
-	res := h.service.GetUserDetail(ctx, userID)
+	res := h.service.GetUserByID(ctx, userID)
 	c.JSON(res.Status, res)
 }
 

@@ -10,9 +10,9 @@ import (
 )
 
 type Service interface {
-	GetRoles(ctx context.Context) pkg.Response
-	GetUsersList(ctx context.Context, queryParams UserQueryParam) pkg.Response
-	GetUserDetail(ctx context.Context, userID string) pkg.Response
+	ListRoles(ctx context.Context) pkg.Response
+	ListUsers(ctx context.Context, queryParams UserQueryParam) pkg.Response
+	GetUserByID(ctx context.Context, userID string) pkg.Response
 	GetProfile(ctx context.Context, userID string) pkg.Response
 	UpdateUser(ctx context.Context, userID string, payload UpdateUserRequest) pkg.Response
 	UpdateProfile(ctx context.Context, userID string, payload UpdateProfileRequest) pkg.Response
@@ -31,7 +31,7 @@ func NewService(r Repository, timeout time.Duration) Service {
 	}
 }
 
-func (s *service) GetRoles(ctx context.Context) pkg.Response {
+func (s *service) ListRoles(ctx context.Context) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -52,7 +52,7 @@ func (s *service) GetRoles(ctx context.Context) pkg.Response {
 	return pkg.NewResponse(http.StatusOK, "Roles retrieved successfully", nil, roleResponses)
 }
 
-func (s *service) GetUsersList(ctx context.Context, queryParams UserQueryParam) pkg.Response {
+func (s *service) ListUsers(ctx context.Context, queryParams UserQueryParam) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -144,7 +144,7 @@ func (s *service) GetUsersList(ctx context.Context, queryParams UserQueryParam) 
 	return pkg.NewResponse(http.StatusOK, "Users list retrieved successfully", nil, resData)
 }
 
-func (s *service) GetUserDetail(ctx context.Context, userID string) pkg.Response {
+func (s *service) GetUserByID(ctx context.Context, userID string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -214,7 +214,7 @@ func (s *service) UpdateUser(ctx context.Context, userID string, payload UpdateU
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"update_data": "No fields to update"}, nil)
 	}
 
-	err := s.repo.UpdateUser(ctx, userID, updateMap)
+	err := s.repo.Update(ctx, userID, updateMap)
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update user", nil, nil)
 	}
@@ -236,7 +236,7 @@ func (s *service) UpdateProfile(ctx context.Context, userID string, payload Upda
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"update_data": "No fields to update"}, nil)
 	}
 
-	err := s.repo.UpdateUser(ctx, userID, updateMap)
+	err := s.repo.Update(ctx, userID, updateMap)
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update profile", nil, nil)
 	}
@@ -279,7 +279,7 @@ func (s *service) UpdatePassword(ctx context.Context, userID string, payload Upd
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to hash new password", nil, nil)
 	}
-	err = s.repo.UpdateUserPassword(ctx, user.ID, string(hashedPassword))
+	err = s.repo.UpdatePassword(ctx, user.ID, string(hashedPassword))
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update password", nil, nil)
 	}
