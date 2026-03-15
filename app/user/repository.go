@@ -11,12 +11,12 @@ import (
 type Repository interface {
 	FindAllRoles(ctx context.Context) ([]Role, error)
 	FindRoleByID(ctx context.Context, roleID int8) (*Role, error)
-	CreateUser(ctx context.Context, user *User) error
+	Create(ctx context.Context, user *User) error
 	FindOne(ctx context.Context, options map[string]interface{}) (*User, error)
 	FindAll(ctx context.Context, options map[string]interface{}) ([]User, error)
-	UpdateUserPassword(ctx context.Context, userID uuid.UUID, hashedPassword string) error
-	UpdateUser(ctx context.Context, userID string, updateData map[string]interface{}) error
-	VerifyUserEmail(ctx context.Context, userID uuid.UUID) error
+	UpdatePassword(ctx context.Context, userID uuid.UUID, hashedPassword string) error
+	Update(ctx context.Context, userID string, updateData map[string]interface{}) error
+	VerifyEmail(ctx context.Context, userID uuid.UUID) error
 }
 
 type repository struct {
@@ -43,7 +43,7 @@ func (r *repository) FindRoleByID(ctx context.Context, roleID int8) (*Role, erro
 	return &role, nil
 }
 
-func (r *repository) CreateUser(ctx context.Context, user *User) error {
+func (r *repository) Create(ctx context.Context, user *User) error {
 	return r.Conn.WithContext(ctx).Create(user).Error
 }
 
@@ -74,15 +74,13 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 
 	// Apply cursor-based pagination
 	if cursor, ok := options["next_cursor"]; ok && cursor != "" {
-		cursorStr := cursor.(string)
-		cursorData, err := pkg.DecodeCursor(cursorStr)
+		cursorData, err := pkg.DecodeCursor(cursor.(string))
 		if err == nil {
 			query = query.Where("created_at < ? OR (created_at = ? AND id < ?)",
 				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
 		}
 	} else if prevCursor, ok := options["prev_cursor"]; ok && prevCursor != "" {
-		cursorStr := prevCursor.(string)
-		cursorData, err := pkg.DecodeCursor(cursorStr)
+		cursorData, err := pkg.DecodeCursor(prevCursor.(string))
 		if err == nil {
 			query = query.Where("created_at > ? OR (created_at = ? AND id > ?)",
 				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID).
@@ -94,7 +92,6 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 		query = query.Order("created_at DESC, id DESC")
 	}
 
-	// Apply limit
 	limit := 10
 	if l, ok := options["limit"]; ok {
 		limit = l.(int)
@@ -107,14 +104,14 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 	return users, nil
 }
 
-func (r *repository) UpdateUserPassword(ctx context.Context, userID uuid.UUID, hashedPassword string) error {
+func (r *repository) UpdatePassword(ctx context.Context, userID uuid.UUID, hashedPassword string) error {
 	return r.Conn.WithContext(ctx).Model(&User{}).Where("id = ?", userID).Update("password", hashedPassword).Error
 }
 
-func (r *repository) UpdateUser(ctx context.Context, userID string, updateData map[string]interface{}) error {
+func (r *repository) Update(ctx context.Context, userID string, updateData map[string]interface{}) error {
 	return r.Conn.WithContext(ctx).Model(&User{}).Where("id = ?", userID).Updates(updateData).Error
 }
 
-func (r *repository) VerifyUserEmail(ctx context.Context, userID uuid.UUID) error {
+func (r *repository) VerifyEmail(ctx context.Context, userID uuid.UUID) error {
 	return r.Conn.WithContext(ctx).Model(&User{}).Where("id = ?", userID).Update("email_verified", true).Error
 }

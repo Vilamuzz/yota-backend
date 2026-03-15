@@ -98,7 +98,7 @@ func (s *service) Register(ctx context.Context, req RegisterRequest) pkg.Respons
 		UpdatedAt:     time.Now(),
 	}
 
-	if err := s.userRepo.CreateUser(ctx, newUser); err != nil {
+	if err := s.userRepo.Create(ctx, newUser); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create user", nil, nil)
 	}
 
@@ -196,7 +196,7 @@ func (s *service) VerifyEmail(ctx context.Context, token string) pkg.Response {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
 
-	if err := s.userRepo.VerifyUserEmail(ctx, verificationToken.UserID); err != nil {
+	if err := s.userRepo.VerifyEmail(ctx, verificationToken.UserID); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to verify email", nil, nil)
 	}
 
@@ -320,7 +320,7 @@ func (s *service) ResetPassword(ctx context.Context, req ResetPasswordRequest) p
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to hash password", nil, nil)
 	}
 
-	if err := s.userRepo.UpdateUserPassword(ctx, resetToken.UserID, string(hashedPassword)); err != nil {
+	if err := s.userRepo.UpdatePassword(ctx, resetToken.UserID, string(hashedPassword)); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update password", nil, nil)
 	}
 
@@ -357,7 +357,7 @@ func (s *service) OAuthLogin(ctx context.Context, provider string, gothUser goth
 			UpdatedAt: time.Now(),
 		}
 
-		if err := s.userRepo.CreateUser(ctx, newUser); err != nil {
+		if err := s.userRepo.Create(ctx, newUser); err != nil {
 			return pkg.NewResponse(http.StatusInternalServerError, "Failed to create user", nil, nil)
 		}
 
