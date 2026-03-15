@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"image"
+	"image/jpeg"
 	"io"
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
@@ -88,14 +91,26 @@ func (c *client) UploadFile(ctx context.Context, file *multipart.FileHeader, fol
 	}
 
 	// Generate a unique file name
-	ext := filepath.Ext(file.Filename)
-	filename := fmt.Sprintf("%s/%s%s", folder, uuid.New().String(), ext)
-
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	
 	// Prepare upload input
 	contentType := file.Header.Get("Content-Type")
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
+
+	// Optimize image with JPEG encoder at 80% quality
+	if strings.Contains(contentType, "image/jpeg") || ext == ".jpg" || ext == ".jpeg" {
+		img, _, err := image.Decode(bytes.NewReader(fileContent))
+		if err == nil {
+			buf := new(bytes.Buffer)
+			if err := jpeg.Encode(buf, img, &jpeg.Options{Quality: 80}); err == nil {
+				fileContent = buf.Bytes()
+			}
+		}
+	}
+
+	filename := fmt.Sprintf("%s/%s%s", folder, uuid.New().String(), ext)
 
 	// Upload the file using bytes.NewReader
 	_, err = c.minioClient.PutObject(ctx, c.bucketName, filename, bytes.NewReader(fileContent), int64(len(fileContent)), minio.PutObjectOptions{

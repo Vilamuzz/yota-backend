@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func seedUsers(db *gorm.DB) error {
+func SeedMockUsers(db *gorm.DB) error {
 	fmt.Println("Seeding users...")
 
 	// Default password for all seeded users
@@ -22,18 +22,6 @@ func seedUsers(db *gorm.DB) error {
 	}
 
 	users := []user.User{
-		// Superadmin
-		{
-			ID:            uuid.New(),
-			Username:      "superadmin",
-			Email:         "superadmin@yota.com",
-			Password:      string(hashedPassword),
-			RoleID:        8, // user.RoleSuperadmin,
-			Status:        true,
-			EmailVerified: true,
-			CreatedAt:     time.Now(),
-			UpdatedAt:     time.Now(),
-		},
 		// Chairman
 		{
 			ID:            uuid.New(),
