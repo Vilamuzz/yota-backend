@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func seedRoles(db *gorm.DB) error {
+func SeedRoles(db *gorm.DB) error {
 	fmt.Println("Seeding roles...")
 	roles := []user.Role{
 		{ID: 1, Role: string(enum.RoleUser)},

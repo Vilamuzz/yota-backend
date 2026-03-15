@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func seedCategories(db *gorm.DB) error {
+func SeedCategories(db *gorm.DB) error {
 	fmt.Println("Seeding categories...")
 
 	categories := []media.CategoryMedia{

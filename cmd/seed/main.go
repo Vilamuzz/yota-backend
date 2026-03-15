@@ -1,10 +1,12 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 
 	"github.com/Vilamuzz/yota-backend/app/user"
+	"github.com/Vilamuzz/yota-backend/cmd/seed/models"
 	"github.com/Vilamuzz/yota-backend/config"
 	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
@@ -17,6 +19,9 @@ func init() {
 }
 
 func main() {
+	mockData := flag.Bool("mock-data", false, "Seed the database with mock categories and test users")
+	flag.Parse()
+
 	fmt.Println("Starting database seeder...")
 
 	db := config.ConnectDB()
@@ -26,35 +31,28 @@ func main() {
 	}
 	defer sqlDB.Close()
 
-	if err := SeedRoles(db); err != nil {
+	if err := models.SeedRoles(db); err != nil {
 		log.Fatalf("Failed to seed roles: %v", err)
 	}
 
-	if err := SeedSuperAdmin(db); err != nil {
+	if err := seedSuperAdmin(db); err != nil {
 		log.Fatalf("Failed to seed super admin: %v", err)
+	}
+
+	if *mockData {
+		fmt.Println("Mock data flag provided. Seeding categories and test users...")
+		if err := models.SeedCategories(db); err != nil {
+			log.Fatalf("Failed to seed categories: %v", err)
+		}
+		if err := models.SeedMockUsers(db); err != nil {
+			log.Fatalf("Failed to seed mock users: %v", err)
+		}
 	}
 
 	fmt.Println("Seeding completed successfully!")
 }
 
-func SeedRoles(db *gorm.DB) error {
-	roles := []user.Role{
-		{ID: 1, Role: "user"},
-		{ID: 2, Role: "admin"},
-		{ID: 3, Role: "superadmin"},
-	}
-
-	for _, role := range roles {
-		// Use FirstOrCreate to prevent duplicates if seeder is run multiple times
-		if err := db.Where(user.Role{ID: role.ID}).Assign(role).FirstOrCreate(&role).Error; err != nil {
-			return fmt.Errorf("failed to seed role %s: %w", role.Role, err)
-		}
-	}
-	fmt.Println("✅ Roles seeded")
-	return nil
-}
-
-func SeedSuperAdmin(db *gorm.DB) error {
+func seedSuperAdmin(db *gorm.DB) error {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte("superadmin123"), bcrypt.DefaultCost)
 	if err != nil {
 		return err
@@ -62,9 +60,9 @@ func SeedSuperAdmin(db *gorm.DB) error {
 
 	admin := user.User{
 		Username:      "superadmin",
-		Email:         "superadmin@example.com",
+		Email:         "superadmin@yota.com",
 		Password:      string(hashedPassword),
-		RoleID:        3, // superadmin role
+		RoleID:        8, // Superadmin role based on seedRoles
 		Status:        true,
 		EmailVerified: true,
 	}
@@ -82,6 +80,6 @@ func SeedSuperAdmin(db *gorm.DB) error {
 		return err
 	}
 
-	fmt.Println("⚠️ SuperAdmin already exists, skipping")
+	fmt.Println("⚠ SuperAdmin already exists, skipping...")
 	return nil
 }
