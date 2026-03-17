@@ -11,71 +11,80 @@ import (
 type Repository interface {
 	Create(ctx context.Context, expense *DonationExpense) error
 	FindByID(ctx context.Context, id string) (*DonationExpense, error)
-	FindAll(ctx context.Context, options QueryParams) ([]DonationExpense, error)
+	FindAll(ctx context.Context, options map[string]interface{}) ([]DonationExpense, error)
 	Update(ctx context.Context, expense *DonationExpense) error
 	Delete(ctx context.Context, id string) error
+	GetTotalExpenseByDonationID(ctx context.Context, donationID string) (float64, error)
 }
 
 type repo struct {
-	db *gorm.DB
+	Conn *gorm.DB
 }
 
-func NewRepository(db *gorm.DB) Repository {
-	return &repo{db: db}
+func NewRepository(conn *gorm.DB) Repository {
+	return &repo{Conn: conn}
 }
 
 func (r *repo) Create(ctx context.Context, expense *DonationExpense) error {
-	return r.db.WithContext(ctx).Create(expense).Error
+	return r.Conn.WithContext(ctx).Create(expense).Error
 }
 
 func (r *repo) FindByID(ctx context.Context, id string) (*DonationExpense, error) {
 	var expense DonationExpense
-	err := r.db.WithContext(ctx).Where("id = ?", id).First(&expense).Error
+	err := r.Conn.WithContext(ctx).Where("id = ?", id).First(&expense).Error
 	return &expense, err
 }
 
-func (r *repo) FindAll(ctx context.Context, options QueryParams) ([]DonationExpense, error) {
+func (r *repo) FindAll(ctx context.Context, options map[string]interface{}) ([]DonationExpense, error) {
 	var expenses []DonationExpense
 
-	usingPrevCursor := options.PrevCursor != ""
+	query := r.Conn.WithContext(ctx)
 
-	order := "created_at DESC, id DESC"
-	if usingPrevCursor {
-		order = "created_at ASC, id ASC"
+	if donationID, ok := options["donation_id"]; ok && donationID.(string) != "" {
+		query = query.Where("donation_id = ?", donationID.(string))
 	}
 
-	limit := options.Limit
-	if limit <= 0 {
-		limit = 10
-	}
-
-	query := r.db.WithContext(ctx).Order(order).Limit(limit + 1)
-
-	if options.DonationID != "" {
-		query = query.Where("donation_id = ?", options.DonationID)
-	}
-	if options.NextCursor != "" {
-		cursorData, err := pkg.DecodeCursor(options.NextCursor)
+	if nextCursor, ok := options["next_cursor"]; ok && nextCursor.(string) != "" {
+		cursorData, err := pkg.DecodeCursor(nextCursor.(string))
 		if err == nil {
 			query = query.Where("(created_at, id) < (?, ?)", cursorData.CreatedAt, cursorData.ID)
 		}
-	}
-	if usingPrevCursor {
-		cursorData, err := pkg.DecodeCursor(options.PrevCursor)
+	} else if prevCursor, ok := options["prev_cursor"]; ok && prevCursor.(string) != "" {
+		cursorData, err := pkg.DecodeCursor(prevCursor.(string))
 		if err == nil {
 			query = query.Where("(created_at, id) > (?, ?)", cursorData.CreatedAt, cursorData.ID)
 		}
 	}
 
+	if _, usingPrevCursor := options["prev_cursor"]; !usingPrevCursor {
+		query = query.Order("created_at DESC, id DESC")
+	}
+
+	limit := 10
+	if l, ok := options["limit"]; ok {
+		limit = l.(int)
+	}
+
+	query = query.Limit(limit + 1)
 	err := query.Find(&expenses).Error
 	return expenses, err
 }
 
 func (r *repo) Update(ctx context.Context, expense *DonationExpense) error {
 	expense.UpdatedAt = time.Now()
-	return r.db.WithContext(ctx).Save(expense).Error
+	return r.Conn.WithContext(ctx).Save(expense).Error
 }
 
 func (r *repo) Delete(ctx context.Context, id string) error {
-	return r.db.WithContext(ctx).Where("id = ?", id).Delete(&DonationExpense{}).Error
+	return r.Conn.WithContext(ctx).Where("id = ?", id).Delete(&DonationExpense{}).Error
+}
+
+func (r *repo) GetTotalExpenseByDonationID(ctx context.Context, donationID string) (float64, error) {
+	var total float64
+	err := r.Conn.WithContext(ctx).
+		Table("donation_expenses").
+		Where("donation_id = ? AND deleted_at IS NULL", donationID).
+		Select("COALESCE(SUM(amount), 0)").
+		Scan(&total).Error
+	return total, err
 }

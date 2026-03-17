@@ -1,4 +1,5 @@
 package user
+import "github.com/Vilamuzz/yota-backend/pkg"
 
 type CreateUserRequest struct {
 	Username string `json:"username" binding:"required,min=3,max=50"`
@@ -22,9 +23,7 @@ type UpdatePasswordRequest struct {
 }
 
 type UserQueryParam struct {
-	Limit      int    `form:"limit"`
-	NextCursor string `form:"next_cursor"`
-	PrevCursor string `form:"prev_cursor"`
+	pkg.PaginationParams
 	Search     string `form:"search"`
 	Role       int8   `form:"role"`
 	Status     *bool  `form:"status"`

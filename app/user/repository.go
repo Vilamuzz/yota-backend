@@ -59,22 +59,18 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 	var users []User
 	query := r.Conn.WithContext(ctx).Preload("Role").Where("role_id != ?", 8)
 
-	// Apply filters
 	if roleID, ok := options["role_id"]; ok && roleID != 0 {
 		query = query.Where("role_id = ?", roleID)
 	}
-
 	if status, ok := options["status"]; ok && status != nil {
 		query = query.Where("status = ?", status)
 	}
-
 	if search, ok := options["search"]; ok && search != "" {
 		query = query.Where("username LIKE ? OR email LIKE ?", "%"+search.(string)+"%", "%"+search.(string)+"%")
 	}
 
-	// Apply cursor-based pagination
-	if cursor, ok := options["next_cursor"]; ok && cursor != "" {
-		cursorData, err := pkg.DecodeCursor(cursor.(string))
+	if nextCursor, ok := options["next_cursor"]; ok && nextCursor != "" {
+		cursorData, err := pkg.DecodeCursor(nextCursor.(string))
 		if err == nil {
 			query = query.Where("created_at < ? OR (created_at = ? AND id < ?)",
 				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
@@ -96,8 +92,8 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 	if l, ok := options["limit"]; ok {
 		limit = l.(int)
 	}
-	query = query.Limit(limit + 1)
 
+	query = query.Limit(limit + 1)
 	if err := query.Find(&users).Error; err != nil {
 		return nil, err
 	}

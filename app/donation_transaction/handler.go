@@ -23,12 +23,10 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 }
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
-	// Public routes (anyone can donate or receive webhook)
 	public := r.Group("/public/donation-transactions")
 	public.POST("", h.CreateTransaction)
 	public.POST("/notification", h.HandleNotification)
 
-	// Admin-only routes
 	protected := r.Group("/donation-transactions")
 	protected.Use(h.middleware.RequireRoles(enum.RoleFinance))
 	{
@@ -121,7 +119,7 @@ func (h *handler) HandleNotification(c *gin.Context) {
 func (h *handler) ListTransactions(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var params QueryParams
+	var params DonationTransactionQueryParams
 	if err := c.ShouldBindQuery(&params); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
 		return

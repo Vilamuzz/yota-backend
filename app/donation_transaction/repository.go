@@ -12,7 +12,7 @@ type Repository interface {
 	FindByID(ctx context.Context, id string) (*DonationTransaction, error)
 	FindByOrderID(ctx context.Context, orderID string) (*DonationTransaction, error)
 	UpdateStatus(ctx context.Context, orderID string, updates map[string]interface{}) error
-	FindAll(ctx context.Context, params QueryParams) ([]DonationTransaction, error)
+	FindAll(ctx context.Context, options map[string]interface{}) ([]DonationTransaction, error)
 }
 
 type repository struct {
@@ -49,42 +49,39 @@ func (r *repository) UpdateStatus(ctx context.Context, orderID string, updates m
 		Updates(updates).Error
 }
 
-func (r *repository) FindAll(ctx context.Context, params QueryParams) ([]DonationTransaction, error) {
+func (r *repository) FindAll(ctx context.Context, options map[string]interface{}) ([]DonationTransaction, error) {
 	var transactions []DonationTransaction
+	query := r.Conn.WithContext(ctx)
 
-	usingPrevCursor := params.PrevCursor != ""
-
-	order := "created_at DESC, id DESC"
-	if usingPrevCursor {
-		order = "created_at ASC, id ASC"
+	if status, ok := options["status"]; ok && status.(string) != "" {
+		query = query.Where("transaction_status = ?", status.(string))
+	}
+	if donationID, ok := options["donation_id"]; ok && donationID.(string) != "" {
+		query = query.Where("donation_id = ?", donationID.(string))
 	}
 
-	limit := params.Limit
-	if limit <= 0 {
-		limit = 10
-	}
-
-	query := r.Conn.WithContext(ctx).Order(order).Limit(limit + 1)
-
-	if params.Status != "" {
-		query = query.Where("transaction_status = ?", params.Status)
-	}
-	if params.DonationID != "" {
-		query = query.Where("donation_id = ?", params.DonationID)
-	}
-	if params.NextCursor != "" {
-		cursorData, err := pkg.DecodeCursor(params.NextCursor)
+	if nextCursor, ok := options["next_cursor"]; ok && nextCursor.(string) != "" {
+		cursorData, err := pkg.DecodeCursor(nextCursor.(string))
 		if err == nil {
 			query = query.Where("(created_at, id) < (?, ?)", cursorData.CreatedAt, cursorData.ID)
 		}
-	}
-	if usingPrevCursor {
-		cursorData, err := pkg.DecodeCursor(params.PrevCursor)
+	} else if prevCursor, ok := options["prev_cursor"]; ok && prevCursor.(string) != "" {
+		cursorData, err := pkg.DecodeCursor(prevCursor.(string))
 		if err == nil {
 			query = query.Where("(created_at, id) > (?, ?)", cursorData.CreatedAt, cursorData.ID)
 		}
 	}
 
+	if _, usingPrevCursor := options["prev_cursor"]; !usingPrevCursor {
+		query = query.Order("created_at DESC, id DESC")
+	}
+
+	limit := 10
+	if l, ok := options["limit"]; ok {
+		limit = l.(int)
+	}
+
+	query = query.Limit(limit + 1)
 	if err := query.Find(&transactions).Error; err != nil {
 		return nil, err
 	}

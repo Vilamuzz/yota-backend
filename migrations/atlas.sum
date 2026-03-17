@@ -1,3 +1,4 @@
-h1:9rqquFk1ScNnRyAr+eX2xBd7X8eyRth5LUq14lMPFk0=
+h1:CjyrBjjRP6DCfNI2CnWUZHixieewaJZ09DC0wV8Y6V0=
 20260312051022_baseline_schema.sql h1:OcEuLUUSiDOEJsHTtTFoWLFUXaNqnOS3+xWJ3TcZARE=
 20260312051118_add_new_tables.sql h1:RDEnQYDIGLP3Q2dLYZR7ci+kLv9iKCcBMCqOUIfaFQQ=
+20260315205122_add_published_at_to_donation_table.sql h1:phqDgHxr4pgMFCcDx+r/JpeHrWaAmZ1sJp0j7KPjZ0Y=

@@ -1,6 +1,10 @@
 package donation_transaction
 
-import "time"
+import (
+	"time"
+
+	"github.com/Vilamuzz/yota-backend/pkg"
+)
 
 type DonationTransactionResponse struct {
 	ID                string     `json:"id"`
@@ -20,7 +24,12 @@ type DonationTransactionResponse struct {
 	CreatedAt         time.Time  `json:"created_at"`
 }
 
-func toResponse(tx *DonationTransaction) DonationTransactionResponse {
+type DonationTransactionListResponse struct {
+	Transactions []DonationTransactionResponse `json:"transactions"`
+	Pagination   pkg.CursorPagination          `json:"pagination"`
+}
+
+func (tx *DonationTransaction) toDonationTransactionResponse() DonationTransactionResponse {
 	return DonationTransactionResponse{
 		ID:                tx.ID,
 		DonationID:        tx.DonationID,
@@ -37,5 +46,19 @@ func toResponse(tx *DonationTransaction) DonationTransactionResponse {
 		SnapRedirectURL:   tx.SnapRedirectURL,
 		PaidAt:            tx.PaidAt,
 		CreatedAt:         tx.CreatedAt,
+	}
+}
+
+func toDonationTransactionListResponse(transactions []DonationTransaction, pagination pkg.CursorPagination) DonationTransactionListResponse {
+	var responses []DonationTransactionResponse
+	for _, t := range transactions {
+		responses = append(responses, t.toDonationTransactionResponse())
+	}
+	if responses == nil {
+		responses = []DonationTransactionResponse{}
+	}
+	return DonationTransactionListResponse{
+		Transactions: responses,
+		Pagination:   pagination,
 	}
 }
