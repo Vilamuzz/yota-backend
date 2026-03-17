@@ -3,6 +3,8 @@ package donation_expense
 import (
 	"mime/multipart"
 	"time"
+
+	"github.com/Vilamuzz/yota-backend/pkg"
 )
 
 type CreateExpenseRequest struct {
@@ -23,9 +25,7 @@ type UpdateExpenseRequest struct {
 	ProofFile *multipart.FileHeader `form:"proof_file"`
 }
 
-type QueryParams struct {
+type DonationExpenseQueryParams struct {
 	DonationID string `form:"donation_id"`
-	NextCursor string `form:"next_cursor"`
-	PrevCursor string `form:"prev_cursor"`
-	Limit      int    `form:"limit"`
+	pkg.PaginationParams
 }

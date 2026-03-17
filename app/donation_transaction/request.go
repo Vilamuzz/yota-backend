@@ -1,5 +1,7 @@
 package donation_transaction
 
+import "github.com/Vilamuzz/yota-backend/pkg"
+
 type CreateTransactionRequest struct {
 	UserID        string  `json:"user_id,omitempty"`
 	DonationID    string  `json:"donation_id"`
@@ -20,10 +22,9 @@ type MidtransNotificationRequest struct {
 	TransactionID     string `json:"transaction_id"`
 }
 
-type QueryParams struct {
+type DonationTransactionQueryParams struct {
 	Status     string `form:"status"`
 	DonationID string `form:"donation_id"`
-	NextCursor string `form:"next_cursor"`
-	PrevCursor string `form:"prev_cursor"`
-	Limit      int    `form:"limit"`
+	UserID     string `form:"user_id"`
+	pkg.PaginationParams
 }

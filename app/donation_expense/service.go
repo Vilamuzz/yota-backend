@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Vilamuzz/yota-backend/app/donation"
 	"github.com/Vilamuzz/yota-backend/app/finance_record"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
@@ -12,60 +13,74 @@ import (
 )
 
 type Service interface {
-	CreateExpense(ctx context.Context, req *CreateExpenseRequest) pkg.Response
-	UpdateExpense(ctx context.Context, req *UpdateExpenseRequest) pkg.Response
+	CreateExpense(ctx context.Context, payload *CreateExpenseRequest) pkg.Response
+	UpdateExpense(ctx context.Context, payload *UpdateExpenseRequest) pkg.Response
 	DeleteExpense(ctx context.Context, id string) pkg.Response
 	GetExpenseByID(ctx context.Context, id string) pkg.Response
-	ListExpenses(ctx context.Context, req *QueryParams) pkg.Response
+	ListExpenses(ctx context.Context, queryParams DonationExpenseQueryParams) pkg.Response
 }
 
 type service struct {
-	repo        Repository
-	financeRepo finance_record.Repository
-	s3Client    s3_pkg.Client
-	timeout     time.Duration
+	repo         Repository
+	financeRepo  finance_record.Repository
+	donationRepo donation.Repository
+	s3Client     s3_pkg.Client
+	timeout      time.Duration
 }
 
-func NewService(repo Repository, financeRepo finance_record.Repository, s3Client s3_pkg.Client, timeout time.Duration) Service {
+func NewService(repo Repository, financeRepo finance_record.Repository, donationRepo donation.Repository, s3Client s3_pkg.Client, timeout time.Duration) Service {
 	return &service{
-		repo:        repo,
-		financeRepo: financeRepo,
-		s3Client:    s3Client,
-		timeout:     timeout,
+		repo:         repo,
+		financeRepo:  financeRepo,
+		donationRepo: donationRepo,
+		s3Client:     s3Client,
+		timeout:      timeout,
 	}
 }
 
-func (s *service) CreateExpense(ctx context.Context, req *CreateExpenseRequest) pkg.Response {
+func (s *service) CreateExpense(ctx context.Context, payload *CreateExpenseRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	errValidation := make(map[string]string)
-
-	if req.DonationID == "" {
+	if payload.DonationID == "" {
 		errValidation["donation_id"] = "Donation ID is required"
-	} else if _, err := uuid.Parse(req.DonationID); err != nil {
+	} else if _, err := uuid.Parse(payload.DonationID); err != nil {
 		errValidation["donation_id"] = "Invalid donation ID format"
 	}
-
-	if req.Title == "" {
+	if payload.Title == "" {
 		errValidation["title"] = "Title is required"
 	}
-
-	if req.Amount <= 0 {
+	if payload.Amount <= 0 {
 		errValidation["amount"] = "Amount must be greater than 0"
 	}
-
-	if req.Date.IsZero() {
+	if payload.Date.IsZero() {
 		errValidation["date"] = "Date is required"
 	}
-
 	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
 
+	// Validate amount to not exceed collected fund
+	d, err := s.donationRepo.FindOne(ctx, map[string]interface{}{"id": payload.DonationID})
+	if err != nil {
+		errValidation["donation_id"] = "Donation not found"
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+	}
+
+	totalExpenses, err := s.repo.GetTotalExpenseByDonationID(ctx, payload.DonationID)
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to calculate total expenses", nil, nil)
+	}
+
+	if totalExpenses+payload.Amount > d.CollectedFund {
+		errValidation["amount"] = "Expense amount exceeds total collected funds for this donation"
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+	}
+
 	var proofFileURL string
-	if req.ProofFile != nil {
-		uploadedURL, err := s.s3Client.UploadFile(ctx, req.ProofFile, "donation-expenses")
+	if payload.ProofFile != nil {
+		uploadedURL, err := s.s3Client.UploadFile(ctx, payload.ProofFile, "donation-expenses")
 		if err != nil {
 			return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload proof file", nil, nil)
 		}
@@ -75,11 +90,11 @@ func (s *service) CreateExpense(ctx context.Context, req *CreateExpenseRequest) 
 	now := time.Now()
 	expense := &DonationExpense{
 		ID:         uuid.New().String(),
-		DonationID: req.DonationID,
-		Title:      req.Title,
-		Amount:     req.Amount,
-		Date:       req.Date,
-		Note:       req.Note,
+		DonationID: payload.DonationID,
+		Title:      payload.Title,
+		Amount:     payload.Amount,
+		Date:       payload.Date,
+		Note:       payload.Note,
 		ProofFile:  proofFileURL,
 		CreatedAt:  now,
 		UpdatedAt:  now,
@@ -102,45 +117,65 @@ func (s *service) CreateExpense(ctx context.Context, req *CreateExpenseRequest) 
 		UpdatedAt:       now,
 	})
 
-	return pkg.NewResponse(http.StatusCreated, "Expense created successfully", nil, expense)
+	return pkg.NewResponse(http.StatusCreated, "Expense created successfully", nil, nil)
 }
 
-func (s *service) UpdateExpense(ctx context.Context, req *UpdateExpenseRequest) pkg.Response {
+func (s *service) UpdateExpense(ctx context.Context, payload *UpdateExpenseRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(req.ID); err != nil {
+	if _, err := uuid.Parse(payload.ID); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid expense ID format"}, nil)
 	}
 
-	existing, err := s.repo.FindByID(ctx, req.ID)
+	existing, err := s.repo.FindByID(ctx, payload.ID)
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "Expense not found", nil, nil)
 	}
 
 	errValidation := make(map[string]string)
-	if req.Amount < 0 {
+	if payload.Amount < 0 {
 		errValidation["amount"] = "Amount must not be negative"
 	}
 	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
 
-	if req.Title != "" {
-		existing.Title = req.Title
-	}
-	if req.Amount > 0 {
-		existing.Amount = req.Amount
-	}
-	if !req.Date.IsZero() {
-		existing.Date = req.Date
-	}
-	if req.Note != "" {
-		existing.Note = req.Note
+	// Validate against collected fund if amount is updating
+	if payload.Amount > 0 && payload.Amount != existing.Amount {
+		d, err := s.donationRepo.FindOne(ctx, map[string]interface{}{"id": existing.DonationID})
+		if err != nil {
+			errValidation["donation_id"] = "Donation not found"
+			return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+		}
+
+		totalExpenses, err := s.repo.GetTotalExpenseByDonationID(ctx, existing.DonationID)
+		if err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to calculate total expenses", nil, nil)
+		}
+
+		// Check if the old amount being replaced + new amount exceeds collected fund
+		if (totalExpenses-existing.Amount)+payload.Amount > d.CollectedFund {
+			errValidation["amount"] = "Expense amount exceeds total collected funds for this donation"
+			return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+		}
 	}
 
-	if req.ProofFile != nil {
-		uploadedURL, err := s.s3Client.UploadFile(ctx, req.ProofFile, "donation-expenses")
+	if payload.Title != "" {
+		existing.Title = payload.Title
+	}
+	if payload.Amount > 0 {
+		existing.Amount = payload.Amount
+	}
+	if !payload.Date.IsZero() {
+		existing.Date = payload.Date
+	}
+	if payload.Note != "" {
+		existing.Note = payload.Note
+	}
+
+	if payload.ProofFile != nil {
+		uploadedURL, err := s.s3Client.UploadFile(ctx, payload.ProofFile, "donation-expenses")
 		if err != nil {
 			return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload proof file", nil, nil)
 		}
@@ -151,7 +186,7 @@ func (s *service) UpdateExpense(ctx context.Context, req *UpdateExpenseRequest) 
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update expense", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Expense updated successfully", nil, existing)
+	return pkg.NewResponse(http.StatusOK, "Expense updated successfully", nil, nil)
 }
 
 func (s *service) DeleteExpense(ctx context.Context, id string) pkg.Response {
@@ -186,57 +221,68 @@ func (s *service) GetExpenseByID(ctx context.Context, id string) pkg.Response {
 		return pkg.NewResponse(http.StatusNotFound, "Expense not found", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Expense found successfully", nil, expense)
+	return pkg.NewResponse(http.StatusOK, "Expense found successfully", nil, expense.toDonationExpenseDetailResponse())
 }
 
-func (s *service) ListExpenses(ctx context.Context, req *QueryParams) pkg.Response {
+func (s *service) ListExpenses(ctx context.Context, queryParams DonationExpenseQueryParams) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if req.Limit <= 0 {
-		req.Limit = 10
+	if queryParams.Limit <= 0 {
+		queryParams.Limit = 10
 	}
 
-	usingPrevCursor := req.PrevCursor != ""
+	usingPrevCursor := queryParams.PrevCursor != ""
 
-	expenses, err := s.repo.FindAll(ctx, *req)
+	options := map[string]interface{}{
+		"limit": queryParams.Limit,
+	}
+	if queryParams.DonationID != "" {
+		options["donation_id"] = queryParams.DonationID
+	}
+	if queryParams.NextCursor != "" {
+		options["next_cursor"] = queryParams.NextCursor
+	}
+	if usingPrevCursor {
+		options["prev_cursor"] = queryParams.PrevCursor
+	}
+
+	expenses, err := s.repo.FindAll(ctx, options)
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch expenses", nil, nil)
 	}
 
-	hasMore := len(expenses) > req.Limit
+	hasMore := len(expenses) > queryParams.Limit
 	if hasMore {
-		expenses = expenses[:req.Limit]
+		expenses = expenses[:queryParams.Limit]
 	}
 
-	// Reverse ASC → DESC when navigating backwards
 	if usingPrevCursor {
 		for i, j := 0, len(expenses)-1; i < j; i, j = i+1, j-1 {
 			expenses[i], expenses[j] = expenses[j], expenses[i]
 		}
 	}
 
-	hasNext := (!usingPrevCursor && hasMore) || (usingPrevCursor && req.NextCursor == "")
-	hasPrev := (usingPrevCursor && hasMore) || (!usingPrevCursor && req.NextCursor != "")
-
 	var nextCursor, prevCursor string
-	if hasNext && len(expenses) > 0 {
-		last := expenses[len(expenses)-1]
-		nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID)
-	}
-	if hasPrev && len(expenses) > 0 {
+	hasNext := (!usingPrevCursor && hasMore) || (usingPrevCursor && queryParams.NextCursor == "")
+	hasPrev := (usingPrevCursor && hasMore) || (!usingPrevCursor && queryParams.NextCursor != "")
+
+	if len(expenses) > 0 {
 		first := expenses[0]
-		prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID)
+		last := expenses[len(expenses)-1]
+		if hasNext {
+			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID)
+		}
+		if hasPrev {
+			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID)
+		}
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Expenses found successfully", nil, map[string]interface{}{
-		"expenses": expenses,
-		"pagination": pkg.CursorPagination{
-			NextCursor: nextCursor,
-			PrevCursor: prevCursor,
-			HasNext:    hasNext,
-			HasPrev:    hasPrev,
-			Limit:      req.Limit,
-		},
-	})
+	return pkg.NewResponse(http.StatusOK, "Expenses found successfully", nil, toDonationExpenseListResponse(expenses, pkg.CursorPagination{
+		NextCursor: nextCursor,
+		PrevCursor: prevCursor,
+		HasNext:    hasNext,
+		HasPrev:    hasPrev,
+		Limit:      queryParams.Limit,
+	}))
 }

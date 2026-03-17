@@ -39,7 +39,6 @@ func (s *service) ListPublishedDonations(ctx context.Context, queryParams Donati
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	// Set default limit
 	if queryParams.Limit == 0 {
 		queryParams.Limit = 10
 	}
@@ -47,7 +46,6 @@ func (s *service) ListPublishedDonations(ctx context.Context, queryParams Donati
 	options := map[string]interface{}{
 		"limit": queryParams.Limit,
 	}
-
 	if queryParams.Search != "" {
 		options["search"] = queryParams.Search
 	}
@@ -66,44 +64,35 @@ func (s *service) ListPublishedDonations(ctx context.Context, queryParams Donati
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch donations", nil, nil)
 	}
 
-	// Check if there are more results
 	hasNext := len(donations) > queryParams.Limit
 	if hasNext {
-		// Remove the extra item
 		donations = donations[:queryParams.Limit]
 	}
 
-	// Generate cursors
 	var nextCursor, prevCursor string
 	hasPrev := queryParams.PrevCursor != ""
-
 	if hasNext && len(donations) > 0 {
 		lastDonation := donations[len(donations)-1]
 		nextCursor = pkg.EncodeCursor(lastDonation.CreatedAt, lastDonation.ID)
 	}
-
 	if hasPrev && len(donations) > 0 {
 		firstDonation := donations[0]
 		prevCursor = pkg.EncodeCursor(firstDonation.CreatedAt, firstDonation.ID)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, map[string]interface{}{
-		"donations": donations,
-		"pagination": map[string]interface{}{
-			"next_cursor": nextCursor,
-			"prev_cursor": prevCursor,
-			"has_next":    hasNext,
-			"has_prev":    hasPrev,
-			"limit":       queryParams.Limit,
-		},
-	})
+	return pkg.NewResponse(http.StatusOK, "Success", nil, toPublishedDonationListResponse(donations, pkg.CursorPagination{
+		NextCursor: nextCursor,
+		PrevCursor: prevCursor,
+		HasNext:    hasNext,
+		HasPrev:    hasPrev,
+		Limit:      queryParams.Limit,
+	}))
 }
 
 func (s *service) ListDonations(ctx context.Context, queryParams DonationQueryParams) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	// Set default limit
 	if queryParams.Limit == 0 {
 		queryParams.Limit = 10
 	}
@@ -111,7 +100,6 @@ func (s *service) ListDonations(ctx context.Context, queryParams DonationQueryPa
 	options := map[string]interface{}{
 		"limit": queryParams.Limit,
 	}
-
 	if queryParams.Category != "" {
 		options["category"] = queryParams.Category
 	}
@@ -133,37 +121,29 @@ func (s *service) ListDonations(ctx context.Context, queryParams DonationQueryPa
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch donations", nil, nil)
 	}
 
-	// Check if there are more results
 	hasNext := len(donations) > queryParams.Limit
 	if hasNext {
-		// Remove the extra item
 		donations = donations[:queryParams.Limit]
 	}
 
-	// Generate cursors
 	var nextCursor, prevCursor string
 	hasPrev := queryParams.PrevCursor != ""
-
 	if hasNext && len(donations) > 0 {
 		lastDonation := donations[len(donations)-1]
 		nextCursor = pkg.EncodeCursor(lastDonation.CreatedAt, lastDonation.ID)
 	}
-
 	if hasPrev && len(donations) > 0 {
 		firstDonation := donations[0]
 		prevCursor = pkg.EncodeCursor(firstDonation.CreatedAt, firstDonation.ID)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, map[string]interface{}{
-		"donations": donations,
-		"pagination": map[string]interface{}{
-			"next_cursor": nextCursor,
-			"prev_cursor": prevCursor,
-			"has_next":    hasNext,
-			"has_prev":    hasPrev,
-			"limit":       queryParams.Limit,
-		},
-	})
+	return pkg.NewResponse(http.StatusOK, "Success", nil, toDonationListResponse(donations, pkg.CursorPagination{
+		NextCursor: nextCursor,
+		PrevCursor: prevCursor,
+		HasNext:    hasNext,
+		HasPrev:    hasPrev,
+		Limit:      queryParams.Limit,
+	}))
 }
 
 func (s *service) GetPublishedDonationBySlug(ctx context.Context, slug string) pkg.Response {
@@ -175,19 +155,18 @@ func (s *service) GetPublishedDonationBySlug(ctx context.Context, slug string) p
 		return pkg.NewResponse(http.StatusNotFound, "Donation not found", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, donation)
+	return pkg.NewResponse(http.StatusOK, "Success", nil, donation.toPublishedDonationResponse())
 }
 
 func (s *service) GetDonationByID(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	// Validate UUID format
 	if _, err := uuid.Parse(id); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid donation ID format"}, nil)
 	}
 
-	donation, err := s.repo.FindByID(ctx, id)
+	donation, err := s.repo.FindOne(ctx, map[string]interface{}{"id": id})
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "Donation not found", nil, nil)
 	}
@@ -199,9 +178,7 @@ func (s *service) CreateDonation(ctx context.Context, req DonationRequest) pkg.R
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	// Field validation
 	errValidation := make(map[string]string)
-
 	if req.Title == "" {
 		errValidation["title"] = "Title is required"
 	} else if len(req.Title) < 3 {
@@ -220,8 +197,8 @@ func (s *service) CreateDonation(ctx context.Context, req DonationRequest) pkg.R
 
 	if req.Category == "" {
 		errValidation["category"] = "Category is required"
-	} else if req.Category != CategoryEducation && req.Category != CategoryHealth && req.Category != CategoryEnvironment {
-		errValidation["category"] = "Invalid category. Must be: education, health, or environment"
+	} else if !req.Category.IsValid() {
+		errValidation["category"] = "Invalid category"
 	}
 
 	if req.FundTarget <= 0 {
@@ -249,8 +226,10 @@ func (s *service) CreateDonation(ctx context.Context, req DonationRequest) pkg.R
 	}
 
 	status := StatusDraft
+	var publishedAt *time.Time
 	if req.Status {
 		status = StatusActive
+		publishedAt = &now
 	}
 
 	donation := &Donation{
@@ -263,6 +242,7 @@ func (s *service) CreateDonation(ctx context.Context, req DonationRequest) pkg.R
 		FundTarget:  req.FundTarget,
 		Status:      status,
 		DateEnd:     req.DateEnd,
+		PublishedAt: publishedAt,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
@@ -278,11 +258,11 @@ func (s *service) UpdateDonation(ctx context.Context, id string, req UpdateDonat
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	// UUID validation before checking existence
 	if _, err := uuid.Parse(id); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid donation ID format"}, nil)
 	}
-	existingDonation, err := s.repo.FindByID(ctx, id)
+
+	existingDonation, err := s.repo.FindOne(ctx, map[string]interface{}{"id": id})
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "Donation not found", nil, nil)
 	}
@@ -290,10 +270,8 @@ func (s *service) UpdateDonation(ctx context.Context, id string, req UpdateDonat
 		return pkg.NewResponse(http.StatusBadRequest, "Donation is completed or expired and cannot be updated", nil, nil)
 	}
 
-	// Field validation & update data
 	errValidation := make(map[string]string)
 	updateData := make(map[string]interface{})
-
 	if req.Title != "" {
 		if len(req.Title) < 3 {
 			errValidation["title"] = "Title must be at least 3 characters"
@@ -315,8 +293,8 @@ func (s *service) UpdateDonation(ctx context.Context, id string, req UpdateDonat
 	}
 
 	if req.Category != "" {
-		if req.Category != CategoryEducation && req.Category != CategoryHealth && req.Category != CategoryEnvironment {
-			errValidation["category"] = "Invalid category. Must be: education, health, or environment"
+		if !req.Category.IsValid() {
+			errValidation["category"] = "Invalid category"
 		} else {
 			updateData["category"] = req.Category
 		}
@@ -337,6 +315,10 @@ func (s *service) UpdateDonation(ctx context.Context, id string, req UpdateDonat
 		if status == StatusActive && time.Now().After(existingDonation.DateEnd) {
 			errValidation["status"] = "Cannot activate donation that has already ended"
 		} else {
+			if status == StatusActive && existingDonation.PublishedAt == nil {
+				now := time.Now()
+				updateData["published_at"] = &now
+			}
 			updateData["status"] = status
 		}
 	}
@@ -378,15 +360,17 @@ func (s *service) DeleteDonation(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	// Validate UUID format
 	if _, err := uuid.Parse(id); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid donation ID format"}, nil)
 	}
 
-	// Check if donation exists
-	_, err := s.repo.FindByID(ctx, id)
+	donation, err := s.repo.FindOne(ctx, map[string]interface{}{"id": id})
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "Donation not found", nil, nil)
+	}
+
+	if donation.Status == StatusCompleted || donation.Status == StatusExpired || donation.Status == StatusActive {
+		return pkg.NewResponse(http.StatusBadRequest, "Donation is active, completed, or expired and cannot be deleted", nil, nil)
 	}
 
 	if err := s.repo.Delete(ctx, id); err != nil {

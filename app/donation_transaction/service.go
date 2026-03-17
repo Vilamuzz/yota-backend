@@ -22,7 +22,7 @@ type Service interface {
 	CreateOfflineTransaction(ctx context.Context, req CreateTransactionRequest) pkg.Response
 	CreateTransaction(ctx context.Context, req CreateTransactionRequest) pkg.Response
 	HandleNotification(ctx context.Context, notification MidtransNotificationRequest) pkg.Response
-	ListTransactions(ctx context.Context, params QueryParams) pkg.Response
+	ListTransactions(ctx context.Context, queryParams DonationTransactionQueryParams) pkg.Response
 	GetTransactionByID(ctx context.Context, id string) pkg.Response
 }
 
@@ -56,7 +56,7 @@ func (s *service) CreateOfflineTransaction(ctx context.Context, req CreateTransa
 	if req.DonationID == "" {
 		errValidation["donation_id"] = "Donation ID is required"
 	} else {
-		_, err := s.donationRepo.FindActiveByID(ctx, req.DonationID)
+		_, err := s.donationRepo.FindOne(ctx, map[string]interface{}{"id": req.DonationID, "status": donation.StatusActive})
 		if err != nil {
 			errValidation["donation_id"] = "Donation not found"
 		}
@@ -68,11 +68,9 @@ func (s *service) CreateOfflineTransaction(ctx context.Context, req CreateTransa
 			errValidation["user_id"] = "User not found"
 		}
 	}
-
 	if req.GrossAmount <= 0 {
 		errValidation["gross_amount"] = "Gross amount must be greater than 0"
 	}
-
 	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
@@ -89,7 +87,7 @@ func (s *service) CreateOfflineTransaction(ctx context.Context, req CreateTransa
 	userID := req.UserID
 	now := time.Now()
 
-	tx := &DonationTransaction{
+	transaction := &DonationTransaction{
 		ID:                uuid.New().String(),
 		DonationID:        req.DonationID,
 		UserID:            userID,
@@ -105,7 +103,7 @@ func (s *service) CreateOfflineTransaction(ctx context.Context, req CreateTransa
 		CreatedAt:         now,
 		UpdatedAt:         now,
 	}
-	if err := s.repo.Create(ctx, tx); err != nil {
+	if err := s.repo.Create(ctx, transaction); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to save offline transaction", nil, nil)
 	}
 
@@ -113,16 +111,16 @@ func (s *service) CreateOfflineTransaction(ctx context.Context, req CreateTransa
 	_ = s.financeRepo.Create(ctx, &finance_record.FinanceRecord{
 		ID:              uuid.New().String(),
 		FundType:        finance_record.FundTypeDonation,
-		FundID:          tx.DonationID,
+		FundID:          transaction.DonationID,
 		SourceType:      finance_record.SourceTypeTransaction,
-		SourceID:        tx.ID,
-		Amount:          tx.GrossAmount,
+		SourceID:        transaction.ID,
+		Amount:          transaction.GrossAmount,
 		TransactionDate: now,
 		CreatedAt:       now,
 		UpdatedAt:       now,
 	})
 
-	return pkg.NewResponse(http.StatusCreated, "Offline transaction created successfully", nil, toResponse(tx))
+	return pkg.NewResponse(http.StatusCreated, "Offline transaction created successfully", nil, transaction.toDonationTransactionResponse())
 }
 
 func (s *service) CreateTransaction(ctx context.Context, req CreateTransactionRequest) pkg.Response {
@@ -134,7 +132,7 @@ func (s *service) CreateTransaction(ctx context.Context, req CreateTransactionRe
 	if req.DonationID == "" {
 		errValidation["donation_id"] = "Donation ID is required"
 	} else {
-		_, err := s.donationRepo.FindActiveByID(ctx, req.DonationID)
+		_, err := s.donationRepo.FindOne(ctx, map[string]interface{}{"id": req.DonationID, "status": donation.StatusActive})
 		if err != nil {
 			errValidation["donation_id"] = "Donation not found"
 		}
@@ -193,7 +191,7 @@ func (s *service) CreateTransaction(ctx context.Context, req CreateTransactionRe
 	}
 
 	now := time.Now()
-	tx := &DonationTransaction{
+	transaction := &DonationTransaction{
 		ID:                uuid.New().String(),
 		DonationID:        req.DonationID,
 		UserID:            userID, // attach here
@@ -212,11 +210,11 @@ func (s *service) CreateTransaction(ctx context.Context, req CreateTransactionRe
 		UpdatedAt:         now,
 	}
 
-	if err := s.repo.Create(ctx, tx); err != nil {
+	if err := s.repo.Create(ctx, transaction); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to save transaction", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusCreated, "Transaction created successfully", nil, toResponse(tx))
+	return pkg.NewResponse(http.StatusCreated, "Transaction created successfully", nil, transaction.toDonationTransactionResponse())
 }
 
 func (s *service) HandleNotification(ctx context.Context, notification MidtransNotificationRequest) pkg.Response {
@@ -231,12 +229,12 @@ func (s *service) HandleNotification(ctx context.Context, notification MidtransN
 		return pkg.NewResponse(http.StatusUnauthorized, "Invalid signature", nil, nil)
 	}
 
-	tx, err := s.repo.FindByOrderID(ctx, notification.OrderID)
+	transaction, err := s.repo.FindByOrderID(ctx, notification.OrderID)
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "Transaction not found", nil, nil)
 	}
 
-	if notification.TransactionStatus == tx.TransactionStatus {
+	if notification.TransactionStatus == transaction.TransactionStatus {
 		return pkg.NewResponse(http.StatusOK, "No status change", nil, nil)
 	}
 
@@ -259,13 +257,13 @@ func (s *service) HandleNotification(ctx context.Context, notification MidtransN
 	}
 
 	// Create prayer if the transaction has prayer content and is now settled
-	if isSettled && tx.PrayerContent != "" {
+	if isSettled && transaction.PrayerContent != "" {
 		now := time.Now()
 		newPrayer := &prayer.Prayer{
 			ID:         uuid.New().String(),
-			DonationID: tx.DonationID,
-			UserID:     tx.UserID,
-			Content:    tx.PrayerContent,
+			DonationID: transaction.DonationID,
+			UserID:     transaction.UserID,
+			Content:    transaction.PrayerContent,
 			CreatedAt:  now,
 			UpdatedAt:  now,
 		}
@@ -278,10 +276,10 @@ func (s *service) HandleNotification(ctx context.Context, notification MidtransN
 		_ = s.financeRepo.Create(ctx, &finance_record.FinanceRecord{
 			ID:              uuid.New().String(),
 			FundType:        finance_record.FundTypeDonation,
-			FundID:          tx.DonationID,
+			FundID:          transaction.DonationID,
 			SourceType:      finance_record.SourceTypeTransaction,
-			SourceID:        tx.ID,
-			Amount:          tx.GrossAmount,
+			SourceID:        transaction.ID,
+			Amount:          transaction.GrossAmount,
 			TransactionDate: now,
 			CreatedAt:       now,
 			UpdatedAt:       now,
@@ -291,7 +289,7 @@ func (s *service) HandleNotification(ctx context.Context, notification MidtransN
 	return pkg.NewResponse(http.StatusOK, "Notification handled", nil, nil)
 }
 
-func (s *service) ListTransactions(ctx context.Context, params QueryParams) pkg.Response {
+func (s *service) ListTransactions(ctx context.Context, params DonationTransactionQueryParams) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -301,7 +299,23 @@ func (s *service) ListTransactions(ctx context.Context, params QueryParams) pkg.
 
 	usingPrevCursor := params.PrevCursor != ""
 
-	transactions, err := s.repo.FindAll(ctx, params)
+	options := map[string]interface{}{
+		"limit": params.Limit,
+	}
+	if params.Status != "" {
+		options["status"] = params.Status
+	}
+	if params.DonationID != "" {
+		options["donation_id"] = params.DonationID
+	}
+	if params.NextCursor != "" {
+		options["next_cursor"] = params.NextCursor
+	}
+	if params.PrevCursor != "" {
+		options["prev_cursor"] = params.PrevCursor
+	}
+
+	transactions, err := s.repo.FindAll(ctx, options)
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch transactions", nil, nil)
 	}
@@ -311,7 +325,6 @@ func (s *service) ListTransactions(ctx context.Context, params QueryParams) pkg.
 		transactions = transactions[:params.Limit]
 	}
 
-	// Reverse ASC → DESC when navigating backwards
 	if usingPrevCursor {
 		for i, j := 0, len(transactions)-1; i < j; i, j = i+1, j-1 {
 			transactions[i], transactions[j] = transactions[j], transactions[i]
@@ -322,31 +335,24 @@ func (s *service) ListTransactions(ctx context.Context, params QueryParams) pkg.
 	hasPrev := (usingPrevCursor && hasMore) || (!usingPrevCursor && params.NextCursor != "")
 
 	var nextCursor, prevCursor string
-	if hasNext && len(transactions) > 0 {
-		last := transactions[len(transactions)-1]
-		nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID)
-	}
-	if hasPrev && len(transactions) > 0 {
+	if len(transactions) > 0 {
 		first := transactions[0]
-		prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID)
+		last := transactions[len(transactions)-1]
+		if hasNext {
+			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID)
+		}
+		if hasPrev {
+			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID)
+		}
 	}
 
-	responses := make([]DonationTransactionResponse, len(transactions))
-	for i, tx := range transactions {
-		txCopy := tx
-		responses[i] = toResponse(&txCopy)
-	}
-
-	return pkg.NewResponse(http.StatusOK, "Success", nil, map[string]interface{}{
-		"transactions": responses,
-		"pagination": pkg.CursorPagination{
-			NextCursor: nextCursor,
-			PrevCursor: prevCursor,
-			HasNext:    hasNext,
-			HasPrev:    hasPrev,
-			Limit:      params.Limit,
-		},
-	})
+	return pkg.NewResponse(http.StatusOK, "Success", nil, toDonationTransactionListResponse(transactions, pkg.CursorPagination{
+		NextCursor: nextCursor,
+		PrevCursor: prevCursor,
+		HasNext:    hasNext,
+		HasPrev:    hasPrev,
+		Limit:      params.Limit,
+	}))
 }
 
 func (s *service) GetTransactionByID(ctx context.Context, id string) pkg.Response {
@@ -357,10 +363,10 @@ func (s *service) GetTransactionByID(ctx context.Context, id string) pkg.Respons
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid transaction ID format"}, nil)
 	}
 
-	tx, err := s.repo.FindByID(ctx, id)
+	transaction, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "Transaction not found", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, toResponse(tx))
+	return pkg.NewResponse(http.StatusOK, "Success", nil, transaction.toDonationTransactionResponse())
 }

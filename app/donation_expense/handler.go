@@ -130,11 +130,11 @@ func (h *handler) GetExpenseByID(c *gin.Context) {
 // @Success 200 {object} pkg.Response
 // @Router /api/donation-expenses/ [get]
 func (h *handler) ListExpenses(c *gin.Context) {
-	var req QueryParams
+	var req DonationExpenseQueryParams
 	if err := c.ShouldBindQuery(&req); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
 		return
 	}
-	resp := h.service.ListExpenses(c.Request.Context(), &req)
+	resp := h.service.ListExpenses(c.Request.Context(), req)
 	c.JSON(resp.Status, resp)
 }

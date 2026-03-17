@@ -12,6 +12,12 @@ type CursorData struct {
 	ID        string
 }
 
+type PaginationParams struct {
+	Limit      int    `json:"limit" form:"limit"`
+	NextCursor string `json:"next_cursor" form:"next_cursor"`
+	PrevCursor string `json:"prev_cursor" form:"prev_cursor"`
+}
+
 func EncodeCursor(createdAt time.Time, id string) string {
 	cursorStr := fmt.Sprintf("%d|%s", createdAt.UTC().UnixNano(), id)
 	return base64.URLEncoding.EncodeToString([]byte(cursorStr))

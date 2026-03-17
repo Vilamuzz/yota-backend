@@ -158,7 +158,7 @@ func (c *Container) initServices() {
 	c.MediaService = media.NewService(c.MediaRepo, c.S3Client)
 	c.GalleryService = gallery.NewService(c.GalleryRepo, c.MediaService, c.Timeout)
 	c.TransactionDonationService = donation_transaction.NewService(c.TransactionDonationRepo, c.UserRepo, c.DonationRepo, c.PrayerRepo, c.FinanceRecordRepo, c.MidtransClient, c.Timeout)
-	c.DonationExpenseService = donation_expense.NewService(c.DonationExpenseRepo, c.FinanceRecordRepo, c.S3Client, c.Timeout)
+	c.DonationExpenseService = donation_expense.NewService(c.DonationExpenseRepo, c.FinanceRecordRepo, c.DonationRepo, c.S3Client, c.Timeout)
 	c.FinanceRecordService = finance_record.NewService(c.FinanceRecordRepo, c.Timeout)
 }
 

@@ -11,12 +11,12 @@ import (
 
 type Service interface {
 	ListRoles(ctx context.Context) pkg.Response
-	ListUsers(ctx context.Context, queryParams UserQueryParam) pkg.Response
-	GetUserByID(ctx context.Context, userID string) pkg.Response
-	GetProfile(ctx context.Context, userID string) pkg.Response
-	UpdateUser(ctx context.Context, userID string, payload UpdateUserRequest) pkg.Response
-	UpdateProfile(ctx context.Context, userID string, payload UpdateProfileRequest) pkg.Response
-	UpdatePassword(ctx context.Context, userID string, payload UpdatePasswordRequest) pkg.Response
+	ListUsers(ctx context.Context, params UserQueryParam) pkg.Response
+	GetUserByID(ctx context.Context, id string) pkg.Response
+	GetProfile(ctx context.Context, id string) pkg.Response
+	UpdateUser(ctx context.Context, id string, payload UpdateUserRequest) pkg.Response
+	UpdateProfile(ctx context.Context, id string, payload UpdateProfileRequest) pkg.Response
+	UpdatePassword(ctx context.Context, id string, payload UpdatePasswordRequest) pkg.Response
 }
 
 type service struct {
@@ -40,46 +40,36 @@ func (s *service) ListRoles(ctx context.Context) pkg.Response {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to retrieve roles", nil, nil)
 	}
 
-	// Map to RoleResponse
-	var roleResponses []RoleResponse
-	for _, role := range roles {
-		roleResponses = append(roleResponses, RoleResponse{
-			ID:   role.ID,
-			Role: role.Role,
-		})
-	}
-
-	return pkg.NewResponse(http.StatusOK, "Roles retrieved successfully", nil, roleResponses)
+	return pkg.NewResponse(http.StatusOK, "Roles retrieved successfully", nil, toRoleListResponse(roles))
 }
 
-func (s *service) ListUsers(ctx context.Context, queryParams UserQueryParam) pkg.Response {
+func (s *service) ListUsers(ctx context.Context, params UserQueryParam) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if queryParams.Limit == 0 {
-		queryParams.Limit = 10
+	if params.Limit == 0 {
+		params.Limit = 10
 	}
 
-	usingPrevCursor := queryParams.PrevCursor != ""
+	usingPrevCursor := params.PrevCursor != ""
 
 	options := map[string]interface{}{
-		"limit": queryParams.Limit,
+		"limit": params.Limit,
 	}
-
-	if queryParams.Role != 0 {
-		options["role_id"] = queryParams.Role
+	if params.Role != 0 {
+		options["role_id"] = params.Role
 	}
-	if queryParams.Status != nil {
-		options["status"] = *queryParams.Status
+	if params.Status != nil {
+		options["status"] = *params.Status
 	}
-	if queryParams.Search != "" {
-		options["search"] = queryParams.Search
+	if params.Search != "" {
+		options["search"] = params.Search
 	}
-	if queryParams.NextCursor != "" {
-		options["next_cursor"] = queryParams.NextCursor
+	if params.NextCursor != "" {
+		options["next_cursor"] = params.NextCursor
 	}
 	if usingPrevCursor {
-		options["prev_cursor"] = queryParams.PrevCursor
+		options["prev_cursor"] = params.PrevCursor
 	}
 
 	users, err := s.repo.FindAll(ctx, options)
@@ -87,61 +77,38 @@ func (s *service) ListUsers(ctx context.Context, queryParams UserQueryParam) pkg
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to retrieve users", nil, nil)
 	}
 
-	// When traversing backwards the repo returns ASC order; check overflow then reverse
-	hasMore := len(users) > queryParams.Limit
+	hasMore := len(users) > params.Limit
 	if hasMore {
-		users = users[:queryParams.Limit]
+		users = users[:params.Limit]
 	}
-
-	// Reverse the slice when using prev_cursor so the page is in DESC order
 	if usingPrevCursor {
 		for i, j := 0, len(users)-1; i < j; i, j = i+1, j-1 {
 			users[i], users[j] = users[j], users[i]
 		}
 	}
 
-	// Map to UserResponse
-	var userProfiles []UserResponse
-	for _, user := range users {
-		userProfiles = append(userProfiles, UserResponse{
-			ID:        user.ID.String(),
-			Username:  user.Username,
-			Email:     user.Email,
-			Status:    user.Status,
-			Role:      user.Role,
-			CreatedAt: user.CreatedAt,
-		})
-	}
-
 	var nextCursor, prevCursor string
+	hasNext := (!usingPrevCursor && hasMore) || (usingPrevCursor && params.NextCursor == "")
+	hasPrev := (usingPrevCursor && hasMore) || (!usingPrevCursor && params.NextCursor != "")
 
-	hasNext := (!usingPrevCursor && hasMore) || (usingPrevCursor && queryParams.NextCursor == "")
-	hasPrev := (usingPrevCursor && hasMore) || (!usingPrevCursor && queryParams.NextCursor != "")
-
-	if len(userProfiles) > 0 {
-		first := userProfiles[0]
-		last := userProfiles[len(userProfiles)-1]
-
+	if len(users) > 0 {
+		first := users[0]
+		last := users[len(users)-1]
 		if hasNext {
-			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID)
+			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID.String())
 		}
 		if hasPrev {
-			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID)
+			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID.String())
 		}
 	}
 
-	resData := UserListResponse{
-		Users: userProfiles,
-		Pagination: pkg.CursorPagination{
-			NextCursor: nextCursor,
-			PrevCursor: prevCursor,
-			HasNext:    hasNext,
-			HasPrev:    hasPrev,
-			Limit:      queryParams.Limit,
-		},
-	}
-
-	return pkg.NewResponse(http.StatusOK, "Users list retrieved successfully", nil, resData)
+	return pkg.NewResponse(http.StatusOK, "Users list retrieved successfully", nil, toUserListResponse(users, pkg.CursorPagination{
+		NextCursor: nextCursor,
+		PrevCursor: prevCursor,
+		HasNext:    hasNext,
+		HasPrev:    hasPrev,
+		Limit:      params.Limit,
+	}))
 }
 
 func (s *service) GetUserByID(ctx context.Context, userID string) pkg.Response {
@@ -153,17 +120,7 @@ func (s *service) GetUserByID(ctx context.Context, userID string) pkg.Response {
 		return pkg.NewResponse(http.StatusNotFound, "User not found", nil, nil)
 	}
 
-	// Map to UserProfile response
-	userProfile := UserResponse{
-		ID:        user.ID.String(),
-		Username:  user.Username,
-		Email:     user.Email,
-		Status:    user.Status,
-		Role:      user.Role,
-		CreatedAt: user.CreatedAt,
-	}
-
-	return pkg.NewResponse(http.StatusOK, "User details retrieved successfully", nil, userProfile)
+	return pkg.NewResponse(http.StatusOK, "User details retrieved successfully", nil, user.toUserResponse())
 }
 
 func (s *service) GetProfile(ctx context.Context, userID string) pkg.Response {
@@ -175,15 +132,7 @@ func (s *service) GetProfile(ctx context.Context, userID string) pkg.Response {
 		return pkg.NewResponse(http.StatusNotFound, "User not found", nil, nil)
 	}
 
-	// Map to UserProfile response
-	userProfile := UserProfileResponse{
-		ID:       user.ID.String(),
-		Username: user.Username,
-		Email:    user.Email,
-		Role:     user.Role.Role,
-	}
-
-	return pkg.NewResponse(http.StatusOK, "User profile retrieved successfully", nil, userProfile)
+	return pkg.NewResponse(http.StatusOK, "User profile retrieved successfully", nil, user.toUserProfileResponse())
 }
 
 func (s *service) UpdateUser(ctx context.Context, userID string, payload UpdateUserRequest) pkg.Response {
@@ -202,11 +151,9 @@ func (s *service) UpdateUser(ctx context.Context, userID string, payload UpdateU
 	if payload.RoleID != 0 {
 		updateMap["role_id"] = payload.RoleID
 	}
-
 	if payload.Status != nil {
 		updateMap["status"] = *payload.Status
 	}
-
 	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
@@ -261,7 +208,6 @@ func (s *service) UpdatePassword(ctx context.Context, userID string, payload Upd
 	if !pkg.IsStrongPassword(payload.NewPassword) {
 		errValidation["new_password"] = "New password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character"
 	}
-
 	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
@@ -270,7 +216,6 @@ func (s *service) UpdatePassword(ctx context.Context, userID string, payload Upd
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "User not found", nil, nil)
 	}
-
 	if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(payload.CurrentPassword)); err != nil {
 		return pkg.NewResponse(http.StatusUnauthorized, "Current password is incorrect", nil, nil)
 	}
@@ -279,10 +224,10 @@ func (s *service) UpdatePassword(ctx context.Context, userID string, payload Upd
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to hash new password", nil, nil)
 	}
+
 	err = s.repo.UpdatePassword(ctx, user.ID, string(hashedPassword))
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update password", nil, nil)
 	}
-
 	return pkg.NewResponse(http.StatusOK, "Password updated successfully", nil, nil)
 }

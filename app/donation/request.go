@@ -3,6 +3,8 @@ package donation
 import (
 	"mime/multipart"
 	"time"
+
+	"github.com/Vilamuzz/yota-backend/pkg"
 )
 
 type DonationRequest struct {
@@ -26,10 +28,8 @@ type UpdateDonationRequest struct {
 }
 
 type DonationQueryParams struct {
-	Search     string `form:"search"`
-	Category   string `form:"category"`
-	Status     string `form:"status"`
-	Limit      int    `form:"limit"`
-	NextCursor string `form:"next_cursor"`
-	PrevCursor string `form:"prev_cursor"`
+	Search   string `form:"search"`
+	Category string `form:"category"`
+	Status   string `form:"status"`
+	pkg.PaginationParams
 }
