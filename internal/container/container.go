@@ -7,6 +7,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Vilamuzz/yota-backend/app/ambulance"
+	"github.com/Vilamuzz/yota-backend/app/ambulance_history"
+	"github.com/Vilamuzz/yota-backend/app/ambulance_request"
 	"github.com/Vilamuzz/yota-backend/app/auth"
 	"github.com/Vilamuzz/yota-backend/app/donation"
 	"github.com/Vilamuzz/yota-backend/app/donation_expense"
@@ -47,6 +50,9 @@ type Container struct {
 	TransactionDonationRepo donation_transaction.Repository
 	DonationExpenseRepo     donation_expense.Repository
 	FinanceRecordRepo       finance_record.Repository
+	AmbulanceRepo           ambulance.Repository
+	AmbulanceHistoryRepo    ambulance_history.Repository
+	AmbulanceRequestRepo    ambulance_request.Repository
 
 	// Services
 	AuthService                auth.Service
@@ -58,6 +64,9 @@ type Container struct {
 	TransactionDonationService donation_transaction.Service
 	DonationExpenseService     donation_expense.Service
 	FinanceRecordService       finance_record.Service
+	AmbulanceService           ambulance.Service
+	AmbulanceHistoryService    ambulance_history.Service
+	AmbulanceRequestService    ambulance_request.Service
 
 	// Middleware
 	Middleware *middleware.AppMiddleware
@@ -148,6 +157,9 @@ func (c *Container) initRepositories() {
 	c.TransactionDonationRepo = donation_transaction.NewRepository(c.DB)
 	c.DonationExpenseRepo = donation_expense.NewRepository(c.DB)
 	c.FinanceRecordRepo = finance_record.NewRepository(c.DB)
+	c.AmbulanceRepo = ambulance.NewRepository(c.DB)
+	c.AmbulanceHistoryRepo = ambulance_history.NewRepository(c.DB)
+	c.AmbulanceRequestRepo = ambulance_request.NewRepository(c.DB)
 }
 
 func (c *Container) initServices() {
@@ -160,6 +172,9 @@ func (c *Container) initServices() {
 	c.TransactionDonationService = donation_transaction.NewService(c.TransactionDonationRepo, c.UserRepo, c.DonationRepo, c.PrayerRepo, c.FinanceRecordRepo, c.MidtransClient, c.Timeout)
 	c.DonationExpenseService = donation_expense.NewService(c.DonationExpenseRepo, c.FinanceRecordRepo, c.DonationRepo, c.S3Client, c.Timeout)
 	c.FinanceRecordService = finance_record.NewService(c.FinanceRecordRepo, c.Timeout)
+	c.AmbulanceService = ambulance.NewService(c.AmbulanceRepo, c.S3Client, c.Timeout)
+	c.AmbulanceHistoryService = ambulance_history.NewService(c.AmbulanceHistoryRepo, c.AmbulanceRepo, c.Timeout)
+	c.AmbulanceRequestService = ambulance_request.NewService(c.AmbulanceRequestRepo, c.Timeout)
 }
 
 func (c *Container) initMiddleware() {
@@ -190,6 +205,9 @@ func (c *Container) RegisterHandlers(router *gin.RouterGroup) {
 	news.NewHandler(router, c.NewsService, c.S3Client, *c.Middleware)
 	gallery.NewHandler(router, c.GalleryService, c.MediaService, *c.Middleware)
 	donation_transaction.NewHandler(router, c.TransactionDonationService, *c.Middleware)
-	donation_expense.NewHandler(router.Group("/donation-expenses"), c.DonationExpenseService, *c.Middleware)
-	finance_record.NewHandler(router.Group("/finance-records"), c.FinanceRecordService, *c.Middleware)
+	donation_expense.NewHandler(router, c.DonationExpenseService, *c.Middleware)
+	finance_record.NewHandler(router, c.FinanceRecordService, *c.Middleware)
+	ambulance.NewHandler(router, c.AmbulanceService, *c.Middleware)
+	ambulance_history.NewHandler(router, c.AmbulanceHistoryService, *c.Middleware)
+	ambulance_request.NewHandler(router, c.AmbulanceRequestService, *c.Middleware)
 }
