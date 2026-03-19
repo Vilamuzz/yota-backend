@@ -23,7 +23,7 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 }
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
-	protected := r.Group("/")
+	protected := r.Group("/finance-records")
 	protected.Use(h.middleware.RequireRoles(enum.RoleFinance))
 	{
 		protected.GET("/", h.ListRecords)

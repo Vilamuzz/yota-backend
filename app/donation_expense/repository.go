@@ -12,7 +12,7 @@ type Repository interface {
 	Create(ctx context.Context, expense *DonationExpense) error
 	FindByID(ctx context.Context, id string) (*DonationExpense, error)
 	FindAll(ctx context.Context, options map[string]interface{}) ([]DonationExpense, error)
-	Update(ctx context.Context, expense *DonationExpense) error
+	Update(ctx context.Context, id string, updateData map[string]interface{}) error
 	Delete(ctx context.Context, id string) error
 	GetTotalExpenseByDonationID(ctx context.Context, donationID string) (float64, error)
 }
@@ -70,9 +70,9 @@ func (r *repo) FindAll(ctx context.Context, options map[string]interface{}) ([]D
 	return expenses, err
 }
 
-func (r *repo) Update(ctx context.Context, expense *DonationExpense) error {
-	expense.UpdatedAt = time.Now()
-	return r.Conn.WithContext(ctx).Save(expense).Error
+func (r *repo) Update(ctx context.Context, id string, updateData map[string]interface{}) error {
+	updateData["updated_at"] = time.Now()
+	return r.Conn.WithContext(ctx).Model(&DonationExpense{}).Where("id = ?", id).Updates(updateData).Error
 }
 
 func (r *repo) Delete(ctx context.Context, id string) error {
