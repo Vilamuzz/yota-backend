@@ -44,7 +44,8 @@ func (s *service) ListPublishedDonations(ctx context.Context, queryParams Donati
 	}
 
 	options := map[string]interface{}{
-		"limit": queryParams.Limit,
+		"limit":     queryParams.Limit,
+		"published": true,
 	}
 	if queryParams.Search != "" {
 		options["search"] = queryParams.Search
@@ -59,7 +60,7 @@ func (s *service) ListPublishedDonations(ctx context.Context, queryParams Donati
 		options["prev_cursor"] = queryParams.PrevCursor
 	}
 
-	donations, err := s.repo.FindPublished(ctx, options)
+	donations, err := s.repo.FindAll(ctx, options)
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch donations", nil, nil)
 	}
@@ -150,7 +151,7 @@ func (s *service) GetPublishedDonationBySlug(ctx context.Context, slug string) p
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	donation, err := s.repo.FindPublishedBySlug(ctx, slug)
+	donation, err := s.repo.FindOne(ctx, map[string]interface{}{"slug": slug, "published": true})
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "Donation not found", nil, nil)
 	}
@@ -336,6 +337,10 @@ func (s *service) UpdateDonation(ctx context.Context, id string, req UpdateDonat
 	}
 
 	if req.Image != nil {
+		existingDonationImage := s3_pkg.ExtractObjectNameFromURL(existingDonation.ImageURL)
+		if err := s.s3Client.DeleteFile(ctx, existingDonationImage); err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to delete existing image", nil, nil)
+		}
 		uploadedURL, err := s.s3Client.UploadFile(ctx, req.Image, "donations")
 		if err != nil {
 			return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload image", nil, nil)
@@ -352,7 +357,6 @@ func (s *service) UpdateDonation(ctx context.Context, id string, req UpdateDonat
 	if err := s.repo.Update(ctx, id, updateData); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update donation", nil, nil)
 	}
-
 	return pkg.NewResponse(http.StatusOK, "Donation updated successfully", nil, nil)
 }
 

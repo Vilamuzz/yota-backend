@@ -38,6 +38,85 @@ func NewService(repo Repository, financeRepo finance_record.Repository, donation
 	}
 }
 
+func (s *service) ListExpenses(ctx context.Context, queryParams DonationExpenseQueryParams) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	if queryParams.Limit <= 0 {
+		queryParams.Limit = 10
+	}
+
+	usingPrevCursor := queryParams.PrevCursor != ""
+
+	options := map[string]interface{}{
+		"limit": queryParams.Limit,
+	}
+	if queryParams.DonationID != "" {
+		options["donation_id"] = queryParams.DonationID
+	}
+	if queryParams.NextCursor != "" {
+		options["next_cursor"] = queryParams.NextCursor
+	}
+	if usingPrevCursor {
+		options["prev_cursor"] = queryParams.PrevCursor
+	}
+
+	expenses, err := s.repo.FindAll(ctx, options)
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch expenses", nil, nil)
+	}
+
+	hasMore := len(expenses) > queryParams.Limit
+	if hasMore {
+		expenses = expenses[:queryParams.Limit]
+	}
+
+	if usingPrevCursor {
+		for i, j := 0, len(expenses)-1; i < j; i, j = i+1, j-1 {
+			expenses[i], expenses[j] = expenses[j], expenses[i]
+		}
+	}
+
+	var nextCursor, prevCursor string
+	hasNext := (!usingPrevCursor && hasMore) || (usingPrevCursor && queryParams.NextCursor == "")
+	hasPrev := (usingPrevCursor && hasMore) || (!usingPrevCursor && queryParams.NextCursor != "")
+
+	if len(expenses) > 0 {
+		first := expenses[0]
+		last := expenses[len(expenses)-1]
+		if hasNext {
+			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID)
+		}
+		if hasPrev {
+			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID)
+		}
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Expenses found successfully", nil, toDonationExpenseListResponse(expenses, pkg.CursorPagination{
+		NextCursor: nextCursor,
+		PrevCursor: prevCursor,
+		HasNext:    hasNext,
+		HasPrev:    hasPrev,
+		Limit:      queryParams.Limit,
+	}))
+}
+
+func (s *service) GetExpenseByID(ctx context.Context, id string) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	if _, err := uuid.Parse(id); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid expense ID format"}, nil)
+	}
+
+	expense, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return pkg.NewResponse(http.StatusNotFound, "Expense not found", nil, nil)
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Expense found successfully", nil, expense.toDonationExpenseDetailResponse())
+}
+
 func (s *service) CreateExpense(ctx context.Context, payload *CreateExpenseRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
@@ -133,6 +212,7 @@ func (s *service) UpdateExpense(ctx context.Context, payload *UpdateExpenseReque
 		return pkg.NewResponse(http.StatusNotFound, "Expense not found", nil, nil)
 	}
 
+	updateData := make(map[string]interface{})
 	errValidation := make(map[string]string)
 	if payload.Amount < 0 {
 		errValidation["amount"] = "Amount must not be negative"
@@ -162,16 +242,16 @@ func (s *service) UpdateExpense(ctx context.Context, payload *UpdateExpenseReque
 	}
 
 	if payload.Title != "" {
-		existing.Title = payload.Title
+		updateData["title"] = payload.Title
 	}
 	if payload.Amount > 0 {
-		existing.Amount = payload.Amount
+		updateData["amount"] = payload.Amount
 	}
 	if !payload.Date.IsZero() {
-		existing.Date = payload.Date
+		updateData["date"] = payload.Date
 	}
 	if payload.Note != "" {
-		existing.Note = payload.Note
+		updateData["note"] = payload.Note
 	}
 
 	if payload.ProofFile != nil {
@@ -179,10 +259,10 @@ func (s *service) UpdateExpense(ctx context.Context, payload *UpdateExpenseReque
 		if err != nil {
 			return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload proof file", nil, nil)
 		}
-		existing.ProofFile = uploadedURL
+		updateData["proof_file"] = uploadedURL
 	}
 
-	if err := s.repo.Update(ctx, existing); err != nil {
+	if err := s.repo.Update(ctx, existing.ID, updateData); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update expense", nil, nil)
 	}
 
@@ -206,83 +286,4 @@ func (s *service) DeleteExpense(ctx context.Context, id string) pkg.Response {
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Expense deleted successfully", nil, nil)
-}
-
-func (s *service) GetExpenseByID(ctx context.Context, id string) pkg.Response {
-	ctx, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	if _, err := uuid.Parse(id); err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid expense ID format"}, nil)
-	}
-
-	expense, err := s.repo.FindByID(ctx, id)
-	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Expense not found", nil, nil)
-	}
-
-	return pkg.NewResponse(http.StatusOK, "Expense found successfully", nil, expense.toDonationExpenseDetailResponse())
-}
-
-func (s *service) ListExpenses(ctx context.Context, queryParams DonationExpenseQueryParams) pkg.Response {
-	ctx, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	if queryParams.Limit <= 0 {
-		queryParams.Limit = 10
-	}
-
-	usingPrevCursor := queryParams.PrevCursor != ""
-
-	options := map[string]interface{}{
-		"limit": queryParams.Limit,
-	}
-	if queryParams.DonationID != "" {
-		options["donation_id"] = queryParams.DonationID
-	}
-	if queryParams.NextCursor != "" {
-		options["next_cursor"] = queryParams.NextCursor
-	}
-	if usingPrevCursor {
-		options["prev_cursor"] = queryParams.PrevCursor
-	}
-
-	expenses, err := s.repo.FindAll(ctx, options)
-	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch expenses", nil, nil)
-	}
-
-	hasMore := len(expenses) > queryParams.Limit
-	if hasMore {
-		expenses = expenses[:queryParams.Limit]
-	}
-
-	if usingPrevCursor {
-		for i, j := 0, len(expenses)-1; i < j; i, j = i+1, j-1 {
-			expenses[i], expenses[j] = expenses[j], expenses[i]
-		}
-	}
-
-	var nextCursor, prevCursor string
-	hasNext := (!usingPrevCursor && hasMore) || (usingPrevCursor && queryParams.NextCursor == "")
-	hasPrev := (usingPrevCursor && hasMore) || (!usingPrevCursor && queryParams.NextCursor != "")
-
-	if len(expenses) > 0 {
-		first := expenses[0]
-		last := expenses[len(expenses)-1]
-		if hasNext {
-			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID)
-		}
-		if hasPrev {
-			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID)
-		}
-	}
-
-	return pkg.NewResponse(http.StatusOK, "Expenses found successfully", nil, toDonationExpenseListResponse(expenses, pkg.CursorPagination{
-		NextCursor: nextCursor,
-		PrevCursor: prevCursor,
-		HasNext:    hasNext,
-		HasPrev:    hasPrev,
-		Limit:      queryParams.Limit,
-	}))
 }
