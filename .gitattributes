@@ -1,0 +1,3 @@
+# Ensure migration files always use LF to maintain consistent Atlas hashes across OS environments
+migrations/*.sql text eol=lf
+migrations/atlas.sum text eol=lf
