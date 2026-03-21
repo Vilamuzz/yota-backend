@@ -228,6 +228,7 @@ func (h *handler) OAuthCallback(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, errorMsg, nil, nil))
 	}
 
+	// test
 	res := h.service.OAuthLogin(ctx, provider, gothUser)
 
 	if res.Status == http.StatusOK {
