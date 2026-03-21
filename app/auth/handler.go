@@ -220,7 +220,12 @@ func (h *handler) OAuthCallback(c *gin.Context) {
 
 	gothUser, err := gothic.CompleteUserAuth(c.Writer, c.Request)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "OAuth authentication failed", nil, nil))
+		// Log the actual error for debugging
+		c.Error(fmt.Errorf("OAuth callback error for provider %s: %v", provider, err))
+
+		// Return error details (useful for development/debugging)
+		errorMsg := fmt.Sprintf("OAuth authentication failed: %v", err.Error())
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, errorMsg, nil, nil))
 		return
 	}
 
