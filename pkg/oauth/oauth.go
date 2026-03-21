@@ -21,13 +21,8 @@ func InitOAuth() {
 	store.MaxAge(maxAge)
 	store.Options.Path = "/"
 	store.Options.HttpOnly = true
-	if os.Getenv("APP_ENV") == "production" {
-		store.Options.Secure = true
-		store.Options.SameSite = http.SameSiteNoneMode
-	} else {
-		store.Options.Secure = false
-		store.Options.SameSite = http.SameSiteLaxMode
-	}
+	store.Options.Secure = os.Getenv("APP_ENV") == "production"
+	store.Options.SameSite = http.SameSiteLaxMode
 
 	gothic.Store = store
 
