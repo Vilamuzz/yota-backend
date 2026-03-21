@@ -124,7 +124,7 @@ jobs:
             --url "${{ secrets.PROD_DATABASE_URL }}"
 
   deploy:
-    needs: migrate
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Update Dokploy application image
