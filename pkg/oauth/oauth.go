@@ -14,7 +14,6 @@ import (
 func InitOAuth() {
 	cfg := config.GetOAuthConfig()
 
-	// Set session store with proper configuration
 	key := []byte(cfg.SessionSecret)
 	maxAge := 86400 * 30 // 30 days
 
@@ -23,7 +22,7 @@ func InitOAuth() {
 	store.Options.Path = "/"
 	store.Options.HttpOnly = true
 	store.Options.Secure = os.Getenv("APP_ENV") == "production"
-	store.Options.SameSite = http.SameSiteLaxMode
+	store.Options.SameSite = http.SameSiteNoneMode
 
 	gothic.Store = store
 
