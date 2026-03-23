@@ -14,14 +14,15 @@ type handler struct {
 	middleware middleware.AppMiddleware
 }
 
-func NewHandler(service Service, m middleware.AppMiddleware) handler {
-	return handler{service: service, middleware: m}
+func NewHandler(r *gin.RouterGroup, service Service, m middleware.AppMiddleware) {
+	h := &handler{service: service, middleware: m}
+	h.RegisterRoutes(r)
 }
 
-func (h *handler) RegisterRoutes(router *gin.Engine) {
+func (h *handler) RegisterRoutes(router *gin.RouterGroup) {
 	public := router.Group("/prayers")
 	public.GET("/:id", h.FindPrayerByID)
-	public.GET("/", h.ListPrayers)
+	public.GET("", h.ListPrayers)
 	public.PUT("/:id/increment-count", h.IncrementPrayerCount)
 	public.PUT("/:id/decrement-count", h.DecrementPrayerCount)
 	public.PUT("/:id/report", h.ReportPrayer)
@@ -65,7 +66,7 @@ func (h *handler) ReportPrayer(c *gin.Context) {
 // @Failure 400 {object} pkg.Response
 // @Failure 404 {object} pkg.Response
 // @Failure 500 {object} pkg.Response
-// @Router /prayers/{id} [get]
+// @Router /api/prayers/{id} [get]
 func (h *handler) FindPrayerByID(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
@@ -78,13 +79,14 @@ func (h *handler) FindPrayerByID(c *gin.Context) {
 // @Tags Prayer
 // @Accept json
 // @Produce json
-// @Param page query int false "Page number"
-// @Param limit query int false "Items per page"
-// @Param search query string false "Search query"
+// @Param donation_id query string false "Filter by donation ID"
+// @Param limit query int false "Pagination limit"
+// @Param next_cursor query string false "Pagination cursor (next page)"
+// @Param prev_cursor query string false "Pagination cursor (prev page)"
 // @Success 200 {object} pkg.Response{data=PrayerListResponse}
 // @Failure 400 {object} pkg.Response
 // @Failure 500 {object} pkg.Response
-// @Router /prayers [get]
+// @Router /api/prayers [get]
 func (h *handler) ListPrayers(c *gin.Context) {
 	ctx := c.Request.Context()
 	var params PrayerQueryParams
@@ -107,7 +109,7 @@ func (h *handler) ListPrayers(c *gin.Context) {
 // @Success 200 {object} pkg.Response{data=PrayerListResponse}
 // @Failure 400 {object} pkg.Response
 // @Failure 500 {object} pkg.Response
-// @Router /protected/prayers [get]
+// @Router /api/protected/prayers [get]
 func (h *handler) ListReportedPrayers(c *gin.Context) {
 	ctx := c.Request.Context()
 	var params PrayerQueryParams
@@ -129,7 +131,7 @@ func (h *handler) ListReportedPrayers(c *gin.Context) {
 // @Failure 400 {object} pkg.Response
 // @Failure 404 {object} pkg.Response
 // @Failure 500 {object} pkg.Response
-// @Router /protected/prayers/{id} [delete]
+// @Router /api/protected/prayers/{id} [delete]
 func (h *handler) DeletePrayer(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")

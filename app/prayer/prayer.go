@@ -1,6 +1,10 @@
 package prayer
 
-import "time"
+import (
+	"time"
+
+	"github.com/Vilamuzz/yota-backend/app/user"
+)
 
 type Prayer struct {
 	ID          string    `json:"id" gorm:"primary_key"`
@@ -11,4 +15,6 @@ type Prayer struct {
 	ReportCount int       `json:"report_count" gorm:"default:0"`
 	CreatedAt   time.Time `json:"created_at" gorm:"not null"`
 	UpdatedAt   time.Time `json:"updated_at" gorm:"not null"`
+
+	User *user.User `json:"user" gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }

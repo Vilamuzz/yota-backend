@@ -41,7 +41,7 @@ func (r *repository) FindByID(ctx context.Context, id string) (*Prayer, error) {
 
 func (r *repository) FindAll(ctx context.Context, options map[string]interface{}) ([]Prayer, error) {
 	var prayers []Prayer
-	query := r.Conn
+	query := r.Conn.WithContext(ctx).Preload("User")
 
 	if donationID, ok := options["donation_id"]; ok {
 		query = query.Where("donation_id = ?", donationID)
