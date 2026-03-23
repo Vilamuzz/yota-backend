@@ -3,12 +3,11 @@ package prayer
 import "github.com/Vilamuzz/yota-backend/pkg"
 
 type PrayerResponse struct {
-	ID         string `json:"id"`
-	DonationID string `json:"donation_id"`
-	UserID     string `json:"user_id"`
-	Content    string `json:"content"`
-	LikeCount  int    `json:"like_count"`
-	CreatedAt  string `json:"created_at"`
+	ID        string `json:"id"`
+	Username  string `json:"username"`
+	Content   string `json:"content"`
+	LikeCount int    `json:"like_count"`
+	CreatedAt string `json:"created_at"`
 }
 
 type PrayerListResponse struct {
@@ -18,12 +17,11 @@ type PrayerListResponse struct {
 
 func (p *Prayer) toPrayerResponse() PrayerResponse {
 	return PrayerResponse{
-		ID:         p.ID,
-		DonationID: p.DonationID,
-		UserID:     p.UserID,
-		Content:    p.Content,
-		LikeCount:  p.LikeCount,
-		CreatedAt:  p.CreatedAt.Format("2006-01-02 15:04:05"),
+		ID:        p.ID,
+		Username:  p.User.Username,
+		Content:   p.Content,
+		LikeCount: p.LikeCount,
+		CreatedAt: p.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 }
 
@@ -43,8 +41,7 @@ func toPrayerListResponse(prayers []Prayer, pagination pkg.CursorPagination) Pra
 
 type PrayerReportedResponse struct {
 	ID          string `json:"id"`
-	DonationID  string `json:"donation_id"`
-	UserID      string `json:"user_id"`
+	Username    string `json:"username"`
 	Content     string `json:"content"`
 	LikeCount   int    `json:"like_count"`
 	ReportCount int    `json:"report_count"`
@@ -59,8 +56,7 @@ type PrayerReportedListResponse struct {
 func (p *Prayer) toPrayerReportedResponse() PrayerReportedResponse {
 	return PrayerReportedResponse{
 		ID:          p.ID,
-		DonationID:  p.DonationID,
-		UserID:      p.UserID,
+		Username:    p.User.Username,
 		Content:     p.Content,
 		LikeCount:   p.LikeCount,
 		ReportCount: p.ReportCount,

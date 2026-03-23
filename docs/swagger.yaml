@@ -1,4 +1,43 @@
 definitions:
+  ambulance.CreateAmbulanceRequest:
+    type: object
+  ambulance.UpdateAmbulanceRequest:
+    type: object
+  ambulance_history.CreateAmbulanceHistoryRequest:
+    properties:
+      ambulance_id:
+        type: integer
+      service_category:
+        $ref: '#/definitions/ambulance_history.ServiceCategory'
+      user_id:
+        type: integer
+    type: object
+  ambulance_history.ServiceCategory:
+    enum:
+    - social_service
+    - mortuary_service
+    - patient_service
+    - emergency_service
+    - other_service
+    type: string
+    x-enum-varnames:
+    - SocialService
+    - MortuaryService
+    - PatientService
+    - EmergencyService
+    - OtherService
+  ambulance_history.UpdateAmbulanceHistoryRequest:
+    properties:
+      service_category:
+        $ref: '#/definitions/ambulance_history.ServiceCategory'
+    type: object
+  ambulance_request.UpdateAmbulanceRequest:
+    properties:
+      reject_reason:
+        type: string
+      status:
+        type: string
+    type: object
   auth.ForgetPasswordRequest:
     properties:
       email:
@@ -228,15 +267,11 @@ definitions:
         type: string
       created_at:
         type: string
-      donation_id:
-        type: string
       id:
         type: string
-      is_reported:
-        type: boolean
       like_count:
         type: integer
-      user_id:
+      username:
         type: string
     type: object
   user.Role:
@@ -310,6 +345,434 @@ definitions:
 info:
   contact: {}
 paths:
+  /ambulance-history:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of ambulance history records with pagination
+      parameters:
+      - description: Filter by ambulance ID
+        in: query
+        name: ambulance_id
+        type: integer
+      - description: Filter by service category
+        in: query
+        name: service_category
+        type: string
+      - description: Number of items to return
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for next page
+        in: query
+        name: next_cursor
+        type: string
+      - description: Cursor for previous page
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: List ambulance history
+      tags:
+      - Ambulance History
+    post:
+      consumes:
+      - application/json
+      description: Create a new ambulance history record with the provided details
+      parameters:
+      - description: Ambulance history details
+        in: body
+        name: ambulance_history
+        required: true
+        schema:
+          $ref: '#/definitions/ambulance_history.CreateAmbulanceHistoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a new ambulance history record
+      tags:
+      - Ambulance History
+  /ambulance-history/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an existing ambulance history record by ID
+      parameters:
+      - description: Ambulance History ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete an existing ambulance history record
+      tags:
+      - Ambulance History
+    put:
+      consumes:
+      - application/json
+      description: Update the details of an existing ambulance history record by ID
+      parameters:
+      - description: Ambulance History ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated ambulance history details
+        in: body
+        name: ambulance_history
+        required: true
+        schema:
+          $ref: '#/definitions/ambulance_history.UpdateAmbulanceHistoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update an existing ambulance history record
+      tags:
+      - Ambulance History
+  /ambulance-requests:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of ambulance requests with pagination
+      parameters:
+      - description: Number of items to return
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for next page
+        in: query
+        name: next_cursor
+        type: string
+      - description: Cursor for previous page
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List ambulance requests
+      tags:
+      - Ambulance Requests
+  /ambulance-requests/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get the details of an ambulance request by its ID
+      parameters:
+      - description: Ambulance Request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get ambulance request by ID
+      tags:
+      - Ambulance Requests
+    put:
+      consumes:
+      - application/json
+      description: Update the details of an ambulance request by its ID
+      parameters:
+      - description: Ambulance Request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Ambulance request details to update
+        in: body
+        name: ambulance_request
+        required: true
+        schema:
+          $ref: '#/definitions/ambulance_request.UpdateAmbulanceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update ambulance request
+      tags:
+      - Ambulance Requests
+  /ambulance-requests/me:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of ambulance requests created by the authenticated user
+        with pagination
+      parameters:
+      - description: Number of items to return
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for next page
+        in: query
+        name: next_cursor
+        type: string
+      - description: Cursor for previous page
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List my ambulance requests
+      tags:
+      - Ambulance Requests
+  /ambulances:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of ambulances with pagination
+      parameters:
+      - description: Number of items to return
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for next page
+        in: query
+        name: next_cursor
+        type: string
+      - description: Cursor for previous page
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: List ambulances
+      tags:
+      - Ambulances
+    post:
+      consumes:
+      - application/json
+      description: Create a new ambulance with the provided details
+      parameters:
+      - description: Ambulance details
+        in: body
+        name: ambulance
+        required: true
+        schema:
+          $ref: '#/definitions/ambulance.CreateAmbulanceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a new ambulance
+      tags:
+      - Ambulances
+  /ambulances/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an existing ambulance by ID
+      parameters:
+      - description: Ambulance ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete an existing ambulance
+      tags:
+      - Ambulances
+    put:
+      consumes:
+      - application/json
+      description: Update the details of an existing ambulance by ID
+      parameters:
+      - description: Ambulance ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated ambulance details
+        in: body
+        name: ambulance
+        required: true
+        schema:
+          $ref: '#/definitions/ambulance.UpdateAmbulanceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update an existing ambulance
+      tags:
+      - Ambulances
   /api/auth/forget-password:
     post:
       consumes:
@@ -1319,6 +1782,163 @@ paths:
       summary: Update News
       tags:
       - News
+  /api/prayers:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of prayers
+      parameters:
+      - description: Filter by donation ID
+        in: query
+        name: donation_id
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/prayer.PrayerListResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: List Prayers
+      tags:
+      - Prayer
+  /api/prayers/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a prayer by its ID
+      parameters:
+      - description: Prayer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/prayer.PrayerResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Get Prayer by ID
+      tags:
+      - Prayer
+  /api/protected/prayers:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of reported prayers
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Search query
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/prayer.PrayerListResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: List Reported Prayers
+      tags:
+      - Prayer
+  /api/protected/prayers/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a prayer by its ID
+      parameters:
+      - description: Prayer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Delete Prayer
+      tags:
+      - Prayer
   /api/public/donation-transactions:
     post:
       consumes:
@@ -1603,85 +2223,6 @@ paths:
       summary: Update User
       tags:
       - Users
-  /prayers:
-    get:
-      consumes:
-      - application/json
-      description: Get a list of prayers
-      parameters:
-      - description: Page number
-        in: query
-        name: page
-        type: integer
-      - description: Items per page
-        in: query
-        name: limit
-        type: integer
-      - description: Search query
-        in: query
-        name: search
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/pkg.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/prayer.PrayerListResponse'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      summary: List Prayers
-      tags:
-      - Prayer
-  /prayers/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Get a prayer by its ID
-      parameters:
-      - description: Prayer ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/pkg.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/prayer.PrayerResponse'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      summary: Get Prayer by ID
-      tags:
-      - Prayer
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.

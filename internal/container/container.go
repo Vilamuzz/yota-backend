@@ -62,6 +62,7 @@ type Container struct {
 	GalleryService             gallery.Service
 	MediaService               media.Service
 	TransactionDonationService donation_transaction.Service
+	PrayerService              prayer.Service
 	DonationExpenseService     donation_expense.Service
 	FinanceRecordService       finance_record.Service
 	AmbulanceService           ambulance.Service
@@ -170,6 +171,7 @@ func (c *Container) initServices() {
 	c.MediaService = media.NewService(c.MediaRepo, c.S3Client)
 	c.GalleryService = gallery.NewService(c.GalleryRepo, c.MediaService, c.Timeout)
 	c.TransactionDonationService = donation_transaction.NewService(c.TransactionDonationRepo, c.UserRepo, c.DonationRepo, c.PrayerRepo, c.FinanceRecordRepo, c.MidtransClient, c.Timeout)
+	c.PrayerService = prayer.NewService(c.PrayerRepo, c.Timeout)
 	c.DonationExpenseService = donation_expense.NewService(c.DonationExpenseRepo, c.FinanceRecordRepo, c.DonationRepo, c.S3Client, c.Timeout)
 	c.FinanceRecordService = finance_record.NewService(c.FinanceRecordRepo, c.Timeout)
 	c.AmbulanceService = ambulance.NewService(c.AmbulanceRepo, c.S3Client, c.Timeout)
@@ -205,6 +207,7 @@ func (c *Container) RegisterHandlers(router *gin.RouterGroup) {
 	news.NewHandler(router, c.NewsService, c.S3Client, *c.Middleware)
 	gallery.NewHandler(router, c.GalleryService, c.MediaService, *c.Middleware)
 	donation_transaction.NewHandler(router, c.TransactionDonationService, *c.Middleware)
+	prayer.NewHandler(router, c.PrayerService, *c.Middleware)
 	donation_expense.NewHandler(router, c.DonationExpenseService, *c.Middleware)
 	finance_record.NewHandler(router, c.FinanceRecordService, *c.Middleware)
 	ambulance.NewHandler(router, c.AmbulanceService, *c.Middleware)
