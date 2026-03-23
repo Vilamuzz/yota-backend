@@ -252,6 +252,11 @@ definitions:
           type: string
         type: object
     type: object
+  prayer.PrayerAmenRequest:
+    properties:
+      prayer_id:
+        type: string
+    type: object
   prayer.PrayerListResponse:
     properties:
       pagination:
@@ -263,15 +268,22 @@ definitions:
     type: object
   prayer.PrayerResponse:
     properties:
+      amen_count:
+        type: integer
       content:
         type: string
       created_at:
         type: string
       id:
         type: string
-      like_count:
-        type: integer
       username:
+        type: string
+    type: object
+  prayer.ReportPrayerRequest:
+    properties:
+      prayer_id:
+        type: string
+      reason:
         type: string
     type: object
   user.Role:
@@ -1865,6 +1877,78 @@ paths:
       summary: Get Prayer by ID
       tags:
       - Prayer
+  /api/prayers/amen:
+    post:
+      consumes:
+      - application/json
+      description: Toggle amen on a prayer
+      parameters:
+      - description: Amen Prayer Payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/prayer.PrayerAmenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Toggle Amen on Prayer
+      tags:
+      - Prayer
+  /api/prayers/report:
+    post:
+      consumes:
+      - application/json
+      description: Report a prayer
+      parameters:
+      - description: Report Prayer Payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/prayer.ReportPrayerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Report Prayer
+      tags:
+      - Prayer
   /api/protected/prayers:
     get:
       consumes:
@@ -1903,6 +1987,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
       summary: List Reported Prayers
       tags:
       - Prayer
@@ -1936,6 +2022,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
       summary: Delete Prayer
       tags:
       - Prayer

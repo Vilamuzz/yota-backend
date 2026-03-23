@@ -6,6 +6,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/Vilamuzz/yota-backend/pkg/enum"
+	jwt_pkg "github.com/Vilamuzz/yota-backend/pkg/jwt"
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,17 +16,25 @@ type handler struct {
 }
 
 func NewHandler(r *gin.RouterGroup, service Service, m middleware.AppMiddleware) {
-	h := &handler{service: service, middleware: m}
-	h.RegisterRoutes(r)
+	handler := &handler{
+		service:    service,
+		middleware: m,
+	}
+	handler.RegisterRoutes(r)
 }
 
 func (h *handler) RegisterRoutes(router *gin.RouterGroup) {
 	public := router.Group("/prayers")
-	public.GET("/:id", h.FindPrayerByID)
 	public.GET("", h.ListPrayers)
-	public.PUT("/:id/increment-count", h.IncrementPrayerCount)
-	public.PUT("/:id/decrement-count", h.DecrementPrayerCount)
-	public.PUT("/:id/report", h.ReportPrayer)
+	public.GET("/:id", h.FindPrayerByID)
+
+	publicProtected := router.Group("/prayers")
+	publicProtected.Use(h.middleware.AuthRequired())
+	{
+		publicProtected.POST("/amen", h.PrayerAmen)
+		publicProtected.POST("/report", h.ReportPrayer)
+
+	}
 
 	protected := router.Group("/protected/prayers")
 	protected.Use(h.middleware.RequireRoles(enum.RoleFinance))
@@ -35,24 +44,54 @@ func (h *handler) RegisterRoutes(router *gin.RouterGroup) {
 	}
 }
 
-func (h *handler) IncrementPrayerCount(c *gin.Context) {
+// @Summary Toggle Amen on Prayer
+// @Description Toggle amen on a prayer
+// @Tags Prayer
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param payload body PrayerAmenRequest true "Amen Prayer Payload"
+// @Success 200 {object} pkg.Response
+// @Failure 400 {object} pkg.Response
+// @Failure 404 {object} pkg.Response
+// @Failure 500 {object} pkg.Response
+// @Router /api/prayers/amen [post]
+func (h *handler) PrayerAmen(c *gin.Context) {
 	ctx := c.Request.Context()
-	id := c.Param("id")
-	res := h.service.IncrementPrayerCount(ctx, id)
+	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
+	userID := claims.UserID
+	var payload PrayerAmenRequest
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
+		return
+	}
+
+	res := h.service.PrayerAmen(ctx, payload, userID)
 	c.JSON(res.Status, res)
 }
 
-func (h *handler) DecrementPrayerCount(c *gin.Context) {
-	ctx := c.Request.Context()
-	id := c.Param("id")
-	res := h.service.DecrementPrayerCount(ctx, id)
-	c.JSON(res.Status, res)
-}
-
+// @Summary Report Prayer
+// @Description Report a prayer
+// @Tags Prayer
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param payload body ReportPrayerRequest true "Report Prayer Payload"
+// @Success 200 {object} pkg.Response
+// @Failure 400 {object} pkg.Response
+// @Failure 404 {object} pkg.Response
+// @Failure 500 {object} pkg.Response
+// @Router /api/prayers/report [post]
 func (h *handler) ReportPrayer(c *gin.Context) {
 	ctx := c.Request.Context()
-	id := c.Param("id")
-	res := h.service.ReportPrayer(ctx, id)
+	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
+	userID := claims.UserID
+	var payload ReportPrayerRequest
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
+		return
+	}
+	res := h.service.CreateReportPrayer(ctx, payload, userID)
 	c.JSON(res.Status, res)
 }
 
@@ -101,6 +140,7 @@ func (h *handler) ListPrayers(c *gin.Context) {
 // @Summary List Reported Prayers
 // @Description Get a list of reported prayers
 // @Tags Prayer
+// @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param page query int false "Page number"
@@ -124,6 +164,7 @@ func (h *handler) ListReportedPrayers(c *gin.Context) {
 // @Summary Delete Prayer
 // @Description Delete a prayer by its ID
 // @Tags Prayer
+// @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param id path string true "Prayer ID"

@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type Service interface {
@@ -13,9 +15,8 @@ type Service interface {
 	ListPrayers(ctx context.Context, params PrayerQueryParams) pkg.Response
 	ListReportedPrayers(ctx context.Context, params PrayerQueryParams) pkg.Response
 	DeletePrayer(ctx context.Context, id string) pkg.Response
-	IncrementPrayerCount(ctx context.Context, id string) pkg.Response
-	DecrementPrayerCount(ctx context.Context, id string) pkg.Response
-	ReportPrayer(ctx context.Context, id string) pkg.Response
+	PrayerAmen(ctx context.Context, payload PrayerAmenRequest, userID string) pkg.Response
+	CreateReportPrayer(ctx context.Context, payload ReportPrayerRequest, userID string) pkg.Response
 }
 
 type service struct {
@@ -27,44 +28,73 @@ func NewService(repo Repository, timeout time.Duration) Service {
 	return &service{repo: repo, timeout: timeout}
 }
 
-func (s *service) IncrementPrayerCount(ctx context.Context, id string) pkg.Response {
+func (s *service) PrayerAmen(ctx context.Context, payload PrayerAmenRequest, userID string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
-	prayer, err := s.repo.FindByID(ctx, id)
+
+	_, err := s.repo.FindByID(ctx, payload.PrayerID)
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return pkg.NewResponse(http.StatusNotFound, "Prayer not found", nil, nil)
+		}
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to find prayer", nil, nil)
 	}
-	prayer.LikeCount++
-	if err := s.repo.Update(ctx, prayer); err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update prayer", nil, nil)
+
+	rowsAffected, err := s.repo.DeleteAmen(ctx, payload.PrayerID, userID)
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to delete amen", nil, nil)
 	}
-	return pkg.NewResponse(http.StatusOK, "Prayer count incremented successfully", nil, nil)
+
+	// If deletion was successful, return success
+	if rowsAffected > 0 {
+		return pkg.NewResponse(http.StatusOK, "Amen deleted successfully", nil, nil)
+	}
+
+	// If no amen was deleted, create a new one
+	amen := &PrayerAmen{
+		ID:       uuid.New().String(),
+		PrayerID: payload.PrayerID,
+		UserID:   userID,
+	}
+	if err := s.repo.CreateAmen(ctx, amen); err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create amen", nil, nil)
+	}
+	return pkg.NewResponse(http.StatusOK, "Amen created successfully", nil, nil)
 }
 
-func (s *service) DecrementPrayerCount(ctx context.Context, id string) pkg.Response {
+func (s *service) CreateReportPrayer(ctx context.Context, payload ReportPrayerRequest, userID string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
-	prayer, err := s.repo.FindByID(ctx, id)
+	_, err := s.repo.FindByID(ctx, payload.PrayerID)
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return pkg.NewResponse(http.StatusNotFound, "Prayer not found", nil, nil)
+		}
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to find prayer", nil, nil)
 	}
-	prayer.LikeCount--
-	if err := s.repo.Update(ctx, prayer); err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update prayer", nil, nil)
-	}
-	return pkg.NewResponse(http.StatusOK, "Prayer count decremented successfully", nil, nil)
-}
 
-func (s *service) ReportPrayer(ctx context.Context, id string) pkg.Response {
-	ctx, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-	prayer, err := s.repo.FindByID(ctx, id)
-	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to find prayer", nil, nil)
+	if payload.Reason == "" {
+		return pkg.NewResponse(http.StatusBadRequest, "Validation Error", map[string]string{
+			"reason": "Reason is required",
+		}, nil)
 	}
-	prayer.ReportCount++
-	if err := s.repo.Update(ctx, prayer); err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update prayer", nil, nil)
+
+	_, err = s.repo.FindReport(ctx, map[string]interface{}{
+		"prayer_id": payload.PrayerID,
+		"user_id":   userID,
+	})
+	if err == nil {
+		return pkg.NewResponse(http.StatusOK, "Prayer reported successfully", nil, nil)
+	}
+
+	report := &PrayerReport{
+		ID:       uuid.New().String(),
+		PrayerID: payload.PrayerID,
+		UserID:   userID,
+		Reason:   payload.Reason,
+	}
+	if err := s.repo.CreateReport(ctx, report); err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create report", nil, nil)
 	}
 	return pkg.NewResponse(http.StatusOK, "Prayer reported successfully", nil, nil)
 }
@@ -74,6 +104,9 @@ func (s *service) FindPrayerByID(ctx context.Context, id string) pkg.Response {
 	defer cancel()
 	prayer, err := s.repo.FindByID(ctx, id)
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return pkg.NewResponse(http.StatusNotFound, "Prayer not found", nil, nil)
+		}
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to find prayer", nil, nil)
 	}
 	return pkg.NewResponse(http.StatusOK, "Prayer found successfully", nil, prayer.toPrayerResponse())
@@ -124,16 +157,11 @@ func (s *service) ListPrayers(ctx context.Context, params PrayerQueryParams) pkg
 	if len(prayers) > 0 {
 		first := prayers[0]
 		last := prayers[len(prayers)-1]
-		if !usingPrevCursor {
-			nextCursor = last.ID
-			if hasMore {
-				prevCursor = first.ID
-			}
-		} else {
-			prevCursor = first.ID
-			if hasMore {
-				nextCursor = last.ID
-			}
+		if hasNext {
+			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID)
+		}
+		if hasPrev {
+			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID)
 		}
 	}
 
@@ -194,16 +222,11 @@ func (s *service) ListReportedPrayers(ctx context.Context, params PrayerQueryPar
 	if len(prayers) > 0 {
 		first := prayers[0]
 		last := prayers[len(prayers)-1]
-		if !usingPrevCursor {
-			nextCursor = last.ID
-			if hasMore {
-				prevCursor = first.ID
-			}
-		} else {
-			prevCursor = first.ID
-			if hasMore {
-				nextCursor = last.ID
-			}
+		if hasNext {
+			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID)
+		}
+		if hasPrev {
+			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID)
 		}
 	}
 
@@ -221,6 +244,15 @@ func (s *service) ListReportedPrayers(ctx context.Context, params PrayerQueryPar
 func (s *service) DeletePrayer(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
+
+	_, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return pkg.NewResponse(http.StatusNotFound, "Prayer not found", nil, nil)
+		}
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to find prayer", nil, nil)
+	}
+
 	if err := s.repo.Delete(ctx, id); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to delete prayer", nil, nil)
 	}
