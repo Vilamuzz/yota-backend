@@ -5,7 +5,9 @@ import (
 	"context"
 	"fmt"
 	"image"
+	_ "image/gif"
 	"image/jpeg"
+	_ "image/png"
 	"io"
 	"mime/multipart"
 	"os"
@@ -14,6 +16,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
+	_ "golang.org/x/image/webp"
 )
 
 type Client interface {
@@ -92,20 +95,24 @@ func (c *client) UploadFile(ctx context.Context, file *multipart.FileHeader, fol
 
 	// Generate a unique file name
 	ext := strings.ToLower(filepath.Ext(file.Filename))
-	
+
 	// Prepare upload input
 	contentType := file.Header.Get("Content-Type")
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
 
-	// Optimize image with JPEG encoder at 80% quality
-	if strings.Contains(contentType, "image/jpeg") || ext == ".jpg" || ext == ".jpeg" {
+	// Convert any decodable image format to JPEG at 80% quality.
+	isImageUpload := strings.HasPrefix(contentType, "image/") ||
+		ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".gif" || ext == ".webp"
+	if isImageUpload {
 		img, _, err := image.Decode(bytes.NewReader(fileContent))
 		if err == nil {
 			buf := new(bytes.Buffer)
 			if err := jpeg.Encode(buf, img, &jpeg.Options{Quality: 80}); err == nil {
 				fileContent = buf.Bytes()
+				ext = ".jpg"
+				contentType = "image/jpeg"
 			}
 		}
 	}
