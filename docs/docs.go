@@ -2316,6 +2316,120 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/prayers/amen": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Toggle amen on a prayer",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Prayer"
+                ],
+                "summary": "Toggle Amen on Prayer",
+                "parameters": [
+                    {
+                        "description": "Amen Prayer Payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/prayer.PrayerAmenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/prayers/report": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Report a prayer",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Prayer"
+                ],
+                "summary": "Report Prayer",
+                "parameters": [
+                    {
+                        "description": "Report Prayer Payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/prayer.ReportPrayerRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/prayers/{id}": {
             "get": {
                 "description": "Get a prayer by its ID",
@@ -2380,6 +2494,11 @@ const docTemplate = `{
         },
         "/api/protected/prayers": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get a list of reported prayers",
                 "consumes": [
                     "application/json"
@@ -2447,6 +2566,11 @@ const docTemplate = `{
         },
         "/api/protected/prayers/{id}": {
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Delete a prayer by its ID",
                 "consumes": [
                     "application/json"
@@ -3337,6 +3461,14 @@ const docTemplate = `{
                 }
             }
         },
+        "prayer.PrayerAmenRequest": {
+            "type": "object",
+            "properties": {
+                "prayer_id": {
+                    "type": "string"
+                }
+            }
+        },
         "prayer.PrayerListResponse": {
             "type": "object",
             "properties": {
@@ -3354,6 +3486,9 @@ const docTemplate = `{
         "prayer.PrayerResponse": {
             "type": "object",
             "properties": {
+                "amen_count": {
+                    "type": "integer"
+                },
                 "content": {
                     "type": "string"
                 },
@@ -3363,10 +3498,18 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "like_count": {
-                    "type": "integer"
-                },
                 "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "prayer.ReportPrayerRequest": {
+            "type": "object",
+            "properties": {
+                "prayer_id": {
+                    "type": "string"
+                },
+                "reason": {
                     "type": "string"
                 }
             }

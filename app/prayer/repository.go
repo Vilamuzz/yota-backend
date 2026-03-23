@@ -8,6 +8,10 @@ import (
 )
 
 type Repository interface {
+	CreateAmen(ctx context.Context, amen *PrayerAmen) error
+	DeleteAmen(ctx context.Context, prayerID, userID string) (int64, error)
+	CreateReport(ctx context.Context, report *PrayerReport) error
+	FindReport(ctx context.Context, options map[string]interface{}) (*PrayerReport, error)
 	Create(ctx context.Context, prayer *Prayer) error
 	Update(ctx context.Context, prayer *Prayer) error
 	FindByID(ctx context.Context, id string) (*Prayer, error)
@@ -23,17 +27,55 @@ func NewRepository(conn *gorm.DB) Repository {
 	return &repository{Conn: conn}
 }
 
+func (r *repository) CreateAmen(ctx context.Context, amen *PrayerAmen) error {
+	if err := r.Conn.WithContext(ctx).Create(amen).Error; err != nil {
+		return err
+	}
+	// Increment amen count
+	return r.Conn.WithContext(ctx).Model(&Prayer{}).Where("id = ?", amen.PrayerID).Update("amen_count", gorm.Expr("amen_count + ?", 1)).Error
+}
+
+func (r *repository) DeleteAmen(ctx context.Context, prayerID, userID string) (int64, error) {
+	result := r.Conn.WithContext(ctx).Where("prayer_id = ? AND user_id = ?", prayerID, userID).Delete(&PrayerAmen{})
+	if result.Error != nil {
+		return 0, result.Error
+	}
+	if result.RowsAffected > 0 {
+		// Decrement amen count only if a row was actually deleted
+		err := r.Conn.WithContext(ctx).Model(&Prayer{}).Where("id = ?", prayerID).Update("amen_count", gorm.Expr("GREATEST(amen_count - ?, 0)", result.RowsAffected)).Error
+		return result.RowsAffected, err
+	}
+	return 0, nil
+}
+
+func (r *repository) CreateReport(ctx context.Context, report *PrayerReport) error {
+	if err := r.Conn.WithContext(ctx).Create(report).Error; err != nil {
+		return err
+	}
+	// Increment report count
+	return r.Conn.WithContext(ctx).Model(&Prayer{}).Where("id = ?", report.PrayerID).Update("report_count", gorm.Expr("report_count + ?", 1)).Error
+}
+
+func (r *repository) FindReport(ctx context.Context, options map[string]interface{}) (*PrayerReport, error) {
+	var report PrayerReport
+	query := r.Conn.WithContext(ctx).Where(options).First(&report)
+	if query.Error != nil {
+		return nil, query.Error
+	}
+	return &report, nil
+}
+
 func (r *repository) Create(ctx context.Context, prayer *Prayer) error {
-	return r.Conn.Create(prayer).Error
+	return r.Conn.WithContext(ctx).Create(prayer).Error
 }
 
 func (r *repository) Update(ctx context.Context, prayer *Prayer) error {
-	return r.Conn.Save(prayer).Error
+	return r.Conn.WithContext(ctx).Save(prayer).Error
 }
 
 func (r *repository) FindByID(ctx context.Context, id string) (*Prayer, error) {
 	var prayer Prayer
-	if err := r.Conn.First(&prayer, id).Error; err != nil {
+	if err := r.Conn.WithContext(ctx).Preload("User").Where("id = ?", id).First(&prayer).Error; err != nil {
 		return nil, err
 	}
 	return &prayer, nil
@@ -83,5 +125,5 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 }
 
 func (r *repository) Delete(ctx context.Context, id string) error {
-	return r.Conn.Delete(&Prayer{}, id).Error
+	return r.Conn.WithContext(ctx).Where("id = ?", id).Delete(&Prayer{}).Error
 }

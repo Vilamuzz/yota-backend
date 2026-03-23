@@ -1,12 +1,15 @@
 package prayer
 
-import "github.com/Vilamuzz/yota-backend/pkg"
+import (
+	"github.com/Vilamuzz/yota-backend/app/user"
+	"github.com/Vilamuzz/yota-backend/pkg"
+)
 
 type PrayerResponse struct {
 	ID        string `json:"id"`
 	Username  string `json:"username"`
 	Content   string `json:"content"`
-	LikeCount int    `json:"like_count"`
+	AmenCount int    `json:"amen_count"`
 	CreatedAt string `json:"created_at"`
 }
 
@@ -16,11 +19,14 @@ type PrayerListResponse struct {
 }
 
 func (p *Prayer) toPrayerResponse() PrayerResponse {
+	if p.User == nil {
+		p.User = &user.User{Username: "Anonymous"}
+	}
 	return PrayerResponse{
 		ID:        p.ID,
 		Username:  p.User.Username,
 		Content:   p.Content,
-		LikeCount: p.LikeCount,
+		AmenCount: p.AmenCount,
 		CreatedAt: p.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 }
@@ -43,7 +49,7 @@ type PrayerReportedResponse struct {
 	ID          string `json:"id"`
 	Username    string `json:"username"`
 	Content     string `json:"content"`
-	LikeCount   int    `json:"like_count"`
+	AmenCount   int    `json:"amen_count"`
 	ReportCount int    `json:"report_count"`
 	CreatedAt   string `json:"created_at"`
 }
@@ -54,11 +60,14 @@ type PrayerReportedListResponse struct {
 }
 
 func (p *Prayer) toPrayerReportedResponse() PrayerReportedResponse {
+	if p.User == nil {
+		p.User = &user.User{Username: "Anonymous"}
+	}
 	return PrayerReportedResponse{
 		ID:          p.ID,
 		Username:    p.User.Username,
 		Content:     p.Content,
-		LikeCount:   p.LikeCount,
+		AmenCount:   p.AmenCount,
 		ReportCount: p.ReportCount,
 		CreatedAt:   p.CreatedAt.Format("2006-01-02 15:04:05"),
 	}

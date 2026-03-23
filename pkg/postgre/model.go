@@ -28,6 +28,8 @@ func GetAllModels() []interface{} {
 		&social_program.SocialProgram{},
 		&donation_transaction.DonationTransaction{},
 		&prayer.Prayer{},
+		&prayer.PrayerAmen{},
+		&prayer.PrayerReport{},
 		&donation_expense.DonationExpense{},
 		&finance_record.FinanceRecord{},
 	}
