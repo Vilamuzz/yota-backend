@@ -1,12 +1,11 @@
 package app
 
 import (
-	"io"
 	"os"
-	"strconv"
 
 	"github.com/Vilamuzz/yota-backend/docs"
 	"github.com/Vilamuzz/yota-backend/internal/container"
+	"github.com/Vilamuzz/yota-backend/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -52,13 +51,11 @@ func (a *App) Run(addr string) error {
 }
 
 func setupLogger() {
-	writers := make([]io.Writer, 0)
-	if logSTDOUT, _ := strconv.ParseBool(os.Getenv("LOG_TO_STDOUT")); logSTDOUT {
-		writers = append(writers, os.Stdout)
+	appName := os.Getenv("APP_NAME")
+	if appName == "" {
+		appName = "yota-backend"
 	}
-
-	logrus.SetFormatter(&logrus.JSONFormatter{})
-	logrus.SetOutput(io.MultiWriter(writers...))
+	logger.Setup(appName)
 	gin.DefaultWriter = logrus.StandardLogger().Writer()
 }
 

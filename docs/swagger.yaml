@@ -110,6 +110,48 @@ definitions:
       prayer_content:
         type: string
     type: object
+  donation_transaction.DonationTransactionListResponse:
+    properties:
+      pagination:
+        $ref: '#/definitions/pkg.CursorPagination'
+      transactions:
+        items:
+          $ref: '#/definitions/donation_transaction.DonationTransactionResponse'
+        type: array
+    type: object
+  donation_transaction.DonationTransactionResponse:
+    properties:
+      created_at:
+        type: string
+      donation_id:
+        type: string
+      donor_email:
+        type: string
+      donor_name:
+        type: string
+      fraud_status:
+        type: string
+      gross_amount:
+        type: number
+      id:
+        type: string
+      order_id:
+        type: string
+      paid_at:
+        type: string
+      provider:
+        type: string
+      snap_redirect_url:
+        type: string
+      snap_token:
+        type: string
+      source:
+        type: boolean
+      transaction_id:
+        type: string
+      transaction_status:
+        type: string
+    type: object
   donation_transaction.MidtransNotificationRequest:
     properties:
       fraud_status:
@@ -1121,17 +1163,34 @@ paths:
         in: query
         name: donation_id
         type: string
+      - description: Filter by user ID
+        in: query
+        name: user_id
+        type: string
       - description: Items per page
         in: query
         name: limit
         type: integer
+      - description: Cursor for next page
+        in: query
+        name: next_cursor
+        type: string
+      - description: Cursor for previous page
+        in: query
+        name: prev_cursor
+        type: string
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/pkg.Response'
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/donation_transaction.DonationTransactionListResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: List Donation Transactions
@@ -1556,6 +1615,46 @@ paths:
       summary: Update Gallery
       tags:
       - Gallery
+  /api/logs:
+    get:
+      description: Retrieve a paginated list of admin audit log entries
+      parameters:
+      - description: Filter by entity type (e.g. donation_transaction, prayer)
+        in: query
+        name: entity_type
+        type: string
+      - description: Filter by entity ID
+        in: query
+        name: entity_id
+        type: string
+      - description: Filter by acting user ID
+        in: query
+        name: user_id
+        type: string
+      - description: Filter by action (e.g. CREATE, DELETE)
+        in: query
+        name: action
+        type: string
+      - description: Items per page (max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for next page
+        in: query
+        name: next_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List audit logs
+      tags:
+      - Logs
   /api/me:
     get:
       consumes:
@@ -2047,6 +2146,70 @@ paths:
           schema:
             $ref: '#/definitions/pkg.Response'
       summary: Create Donation Transaction
+      tags:
+      - Donation Transactions
+  /api/public/donation-transactions/me:
+    get:
+      description: Retrieve a paginated list of donation transactions for the authenticated
+        user
+      parameters:
+      - description: Filter by payment status
+        in: query
+        name: status
+        type: string
+      - description: Filter by donation ID
+        in: query
+        name: donation_id
+        type: string
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for next page
+        in: query
+        name: next_cursor
+        type: string
+      - description: Cursor for previous page
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/donation_transaction.DonationTransactionListResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List My Donation Transactions
+      tags:
+      - Donation Transactions
+  /api/public/donation-transactions/me/{id}:
+    get:
+      description: Retrieve a specific donation transaction owned by the authenticated
+        user
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get My Donation Transaction by ID
       tags:
       - Donation Transactions
   /api/public/donation-transactions/notification:

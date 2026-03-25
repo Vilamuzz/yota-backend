@@ -7,9 +7,12 @@ import (
 
 	"github.com/Vilamuzz/yota-backend/app/donation"
 	"github.com/Vilamuzz/yota-backend/app/finance_record"
+	app_log "github.com/Vilamuzz/yota-backend/app/log"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type Service interface {
@@ -25,15 +28,17 @@ type service struct {
 	financeRepo  finance_record.Repository
 	donationRepo donation.Repository
 	s3Client     s3_pkg.Client
+	logService   app_log.Service
 	timeout      time.Duration
 }
 
-func NewService(repo Repository, financeRepo finance_record.Repository, donationRepo donation.Repository, s3Client s3_pkg.Client, timeout time.Duration) Service {
+func NewService(repo Repository, financeRepo finance_record.Repository, donationRepo donation.Repository, s3Client s3_pkg.Client, logService app_log.Service, timeout time.Duration) Service {
 	return &service{
 		repo:         repo,
 		financeRepo:  financeRepo,
 		donationRepo: donationRepo,
 		s3Client:     s3Client,
+		logService:   logService,
 		timeout:      timeout,
 	}
 }
@@ -44,6 +49,9 @@ func (s *service) ListExpenses(ctx context.Context, queryParams DonationExpenseQ
 
 	if queryParams.Limit <= 0 {
 		queryParams.Limit = 10
+	}
+	if queryParams.Limit > 100 {
+		queryParams.Limit = 100
 	}
 
 	usingPrevCursor := queryParams.PrevCursor != ""
@@ -63,6 +71,9 @@ func (s *service) ListExpenses(ctx context.Context, queryParams DonationExpenseQ
 
 	expenses, err := s.repo.FindAll(ctx, options)
 	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "donation_expense.service",
+		}).WithError(err).Error("failed to fetch expenses")
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch expenses", nil, nil)
 	}
 
@@ -111,6 +122,10 @@ func (s *service) GetExpenseByID(ctx context.Context, id string) pkg.Response {
 
 	expense, err := s.repo.FindByID(ctx, id)
 	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":  "donation_expense.service",
+			"expense_id": id,
+		}).WithError(err).Error("failed to fetch expense")
 		return pkg.NewResponse(http.StatusNotFound, "Expense not found", nil, nil)
 	}
 
@@ -149,6 +164,11 @@ func (s *service) CreateExpense(ctx context.Context, payload *CreateExpenseReque
 
 	totalExpenses, err := s.repo.GetTotalExpenseByDonationID(ctx, payload.DonationID)
 	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":   "donation_expense.service",
+			"donation_id": payload.DonationID,
+		}).WithError(err).Error("failed to calculate total expenses")
+
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to calculate total expenses", nil, nil)
 	}
 
@@ -180,6 +200,10 @@ func (s *service) CreateExpense(ctx context.Context, payload *CreateExpenseReque
 	}
 
 	if err := s.repo.Create(ctx, expense); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":  "donation_expense.service",
+			"expense_id": expense.ID,
+		}).WithError(err).Error("failed to create expense")
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create expense", nil, nil)
 	}
 
@@ -196,6 +220,8 @@ func (s *service) CreateExpense(ctx context.Context, payload *CreateExpenseReque
 		UpdatedAt:       now,
 	})
 
+	s.logService.CreateLog(ctx, nil, "CREATE", "donation_expense", expense.ID, nil, expense.toDonationExpenseDetailResponse())
+
 	return pkg.NewResponse(http.StatusCreated, "Expense created successfully", nil, nil)
 }
 
@@ -209,7 +235,14 @@ func (s *service) UpdateExpense(ctx context.Context, payload *UpdateExpenseReque
 
 	existing, err := s.repo.FindByID(ctx, payload.ID)
 	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Expense not found", nil, nil)
+		if err == gorm.ErrRecordNotFound {
+			return pkg.NewResponse(http.StatusNotFound, "Expense not found", nil, nil)
+		}
+		logrus.WithFields(logrus.Fields{
+			"component":  "donation_expense.service",
+			"expense_id": payload.ID,
+		}).WithError(err).Error("failed to fetch expense")
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch expense", nil, nil)
 	}
 
 	updateData := make(map[string]interface{})
@@ -278,10 +311,21 @@ func (s *service) DeleteExpense(ctx context.Context, id string) pkg.Response {
 	}
 
 	if _, err := s.repo.FindByID(ctx, id); err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Expense not found", nil, nil)
+		if err == gorm.ErrRecordNotFound {
+			return pkg.NewResponse(http.StatusNotFound, "Expense not found", nil, nil)
+		}
+		logrus.WithFields(logrus.Fields{
+			"component":  "donation_expense.service",
+			"expense_id": id,
+		}).WithError(err).Error("failed to fetch expense")
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch expense", nil, nil)
 	}
 
 	if err := s.repo.Delete(ctx, id); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":  "donation_expense.service",
+			"expense_id": id,
+		}).WithError(err).Error("failed to delete expense")
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to delete expense", nil, nil)
 	}
 

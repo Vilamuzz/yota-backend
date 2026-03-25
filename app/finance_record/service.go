@@ -44,14 +44,20 @@ func (s *service) ListRecords(ctx context.Context, params RecordQueryParams) pkg
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	options := make(map[string]interface{})
-	if params.FundID != "" {
-		options["fund_id"] = params.FundID
-	}
 	if params.Limit <= 0 {
 		params.Limit = 10
 	}
-	options["limit"] = params.Limit
+	if params.Limit > 100 {
+		params.Limit = 100
+	}
+	usingPrevCursor := params.PrevCursor != ""
+	options := map[string]interface{}{
+		"limit": params.Limit,
+	}
+
+	if params.FundID != "" {
+		options["fund_id"] = params.FundID
+	}
 	if params.SourceType != "" {
 		options["source_type"] = params.SourceType
 	}
@@ -61,7 +67,6 @@ func (s *service) ListRecords(ctx context.Context, params RecordQueryParams) pkg
 	if params.PrevCursor != "" {
 		options["prev_cursor"] = params.PrevCursor
 	}
-	usingPrevCursor := params.PrevCursor != ""
 
 	records, err := s.repo.FindAll(ctx, options)
 	if err != nil {

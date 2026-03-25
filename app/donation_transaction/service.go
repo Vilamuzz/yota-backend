@@ -9,6 +9,7 @@ import (
 
 	"github.com/Vilamuzz/yota-backend/app/donation"
 	"github.com/Vilamuzz/yota-backend/app/finance_record"
+	app_log "github.com/Vilamuzz/yota-backend/app/log"
 	"github.com/Vilamuzz/yota-backend/app/prayer"
 	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/pkg"
@@ -16,14 +17,18 @@ import (
 	"github.com/google/uuid"
 	"github.com/midtrans/midtrans-go"
 	"github.com/midtrans/midtrans-go/snap"
+	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type Service interface {
-	CreateOfflineTransaction(ctx context.Context, req CreateTransactionRequest) pkg.Response
+	CreateOfflineTransaction(ctx context.Context, req CreateTransactionRequest, actorID string) pkg.Response
 	CreateTransaction(ctx context.Context, req CreateTransactionRequest, userID string) pkg.Response
 	HandleNotification(ctx context.Context, notification MidtransNotificationRequest) pkg.Response
 	ListTransactions(ctx context.Context, queryParams DonationTransactionQueryParams) pkg.Response
+	ListMyTransactions(ctx context.Context, queryParams DonationTransactionQueryParams, userID string) pkg.Response
 	GetTransactionByID(ctx context.Context, id string) pkg.Response
+	GetMyTransactionByID(ctx context.Context, id, userID string) pkg.Response
 }
 
 type service struct {
@@ -33,10 +38,11 @@ type service struct {
 	prayerRepo     prayer.Repository
 	financeRepo    finance_record.Repository
 	midtransClient payment_pkg.Client
+	logService     app_log.Service
 	timeout        time.Duration
 }
 
-func NewService(repo Repository, userRepo user.Repository, donationRepo donation.Repository, prayerRepo prayer.Repository, financeRepo finance_record.Repository, midtransClient payment_pkg.Client, timeout time.Duration) Service {
+func NewService(repo Repository, userRepo user.Repository, donationRepo donation.Repository, prayerRepo prayer.Repository, financeRepo finance_record.Repository, midtransClient payment_pkg.Client, logService app_log.Service, timeout time.Duration) Service {
 	return &service{
 		repo:           repo,
 		userRepo:       userRepo,
@@ -44,11 +50,12 @@ func NewService(repo Repository, userRepo user.Repository, donationRepo donation
 		prayerRepo:     prayerRepo,
 		financeRepo:    financeRepo,
 		midtransClient: midtransClient,
+		logService:     logService,
 		timeout:        timeout,
 	}
 }
 
-func (s *service) CreateOfflineTransaction(ctx context.Context, req CreateTransactionRequest) pkg.Response {
+func (s *service) CreateOfflineTransaction(ctx context.Context, req CreateTransactionRequest, actorID string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 	errValidation := make(map[string]string)
@@ -96,11 +103,15 @@ func (s *service) CreateOfflineTransaction(ctx context.Context, req CreateTransa
 		UpdatedAt:         now,
 	}
 	if err := s.repo.Create(ctx, transaction); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":   "donation_transaction.service",
+			"donation_id": req.DonationID,
+		}).WithError(err).Error("failed to save offline transaction")
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to save offline transaction", nil, nil)
 	}
 
 	// Auto-create finance record (income)
-	_ = s.financeRepo.Create(ctx, &finance_record.FinanceRecord{
+	if err := s.financeRepo.Create(ctx, &finance_record.FinanceRecord{
 		ID:              uuid.New().String(),
 		FundType:        finance_record.FundTypeDonation,
 		FundID:          transaction.DonationID,
@@ -110,7 +121,14 @@ func (s *service) CreateOfflineTransaction(ctx context.Context, req CreateTransa
 		TransactionDate: now,
 		CreatedAt:       now,
 		UpdatedAt:       now,
-	})
+	}); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":      "donation_transaction.service",
+			"transaction_id": transaction.ID,
+		}).WithError(err).Warn("failed to create finance record for offline transaction")
+	}
+
+	s.logService.CreateLog(ctx, &actorID, "CREATE", "donation_transaction", transaction.ID, nil, transaction.toDonationTransactionResponse())
 
 	return pkg.NewResponse(http.StatusCreated, "Offline transaction created successfully", nil, transaction.toDonationTransactionResponse())
 }
@@ -202,6 +220,11 @@ func (s *service) CreateTransaction(ctx context.Context, req CreateTransactionRe
 	}
 
 	if err := s.repo.Create(ctx, transaction); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":   "donation_transaction.service",
+			"donation_id": req.DonationID,
+			"order_id":    orderID,
+		}).WithError(err).Error("failed to save online transaction")
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to save transaction", nil, nil)
 	}
 
@@ -244,10 +267,14 @@ func (s *service) HandleNotification(ctx context.Context, notification MidtransN
 	}
 
 	if err := s.repo.UpdateStatus(ctx, notification.OrderID, updates); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":      "donation_transaction.service",
+			"transaction_id": transaction.ID,
+			"order_id":       notification.OrderID,
+		}).WithError(err).Error("failed to update transaction")
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update transaction", nil, nil)
 	}
 
-	// Create prayer if the transaction has prayer content and is now settled
 	if isSettled && transaction.PrayerContent != "" {
 		now := time.Now()
 		newPrayer := &prayer.Prayer{
@@ -258,13 +285,18 @@ func (s *service) HandleNotification(ctx context.Context, notification MidtransN
 			CreatedAt:  now,
 			UpdatedAt:  now,
 		}
-		_ = s.prayerRepo.Create(ctx, newPrayer)
+		if err := s.prayerRepo.Create(ctx, newPrayer); err != nil {
+			logrus.WithFields(logrus.Fields{
+				"component":      "donation_transaction.service",
+				"transaction_id": transaction.ID,
+				"order_id":       notification.OrderID,
+			}).WithError(err).Warn("failed to create prayer after settlement")
+		}
 	}
 
-	// Auto-create finance record when payment is settled
 	if isSettled {
 		now := time.Now()
-		_ = s.financeRepo.Create(ctx, &finance_record.FinanceRecord{
+		if err := s.financeRepo.Create(ctx, &finance_record.FinanceRecord{
 			ID:              uuid.New().String(),
 			FundType:        finance_record.FundTypeDonation,
 			FundID:          transaction.DonationID,
@@ -274,7 +306,20 @@ func (s *service) HandleNotification(ctx context.Context, notification MidtransN
 			TransactionDate: now,
 			CreatedAt:       now,
 			UpdatedAt:       now,
-		})
+		}); err != nil {
+			logrus.WithFields(logrus.Fields{
+				"component":      "donation_transaction.service",
+				"transaction_id": transaction.ID,
+				"order_id":       notification.OrderID,
+			}).WithError(err).Warn("failed to create finance record after settlement")
+		}
+		logrus.WithFields(logrus.Fields{
+			"component":      "donation_transaction.service",
+			"transaction_id": transaction.ID,
+			"order_id":       notification.OrderID,
+			"donation_id":    transaction.DonationID,
+			"amount":         transaction.GrossAmount,
+		}).Info("transaction settled")
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Notification handled", nil, nil)
@@ -284,8 +329,11 @@ func (s *service) ListTransactions(ctx context.Context, params DonationTransacti
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if params.Limit == 0 {
+	if params.Limit <= 0 {
 		params.Limit = 10
+	}
+	if params.Limit > 100 {
+		params.Limit = 100
 	}
 
 	usingPrevCursor := params.PrevCursor != ""
@@ -299,6 +347,9 @@ func (s *service) ListTransactions(ctx context.Context, params DonationTransacti
 	if params.DonationID != "" {
 		options["donation_id"] = params.DonationID
 	}
+	if params.UserID != "" {
+		options["user_id"] = params.UserID
+	}
 	if params.NextCursor != "" {
 		options["next_cursor"] = params.NextCursor
 	}
@@ -308,6 +359,10 @@ func (s *service) ListTransactions(ctx context.Context, params DonationTransacti
 
 	transactions, err := s.repo.FindAll(ctx, options)
 	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "donation_transaction.service",
+		}).WithError(err).Error("failed to fetch transactions")
+
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch transactions", nil, nil)
 	}
 
@@ -346,6 +401,11 @@ func (s *service) ListTransactions(ctx context.Context, params DonationTransacti
 	}))
 }
 
+func (s *service) ListMyTransactions(ctx context.Context, params DonationTransactionQueryParams, userID string) pkg.Response {
+	params.UserID = userID
+	return s.ListTransactions(ctx, params)
+}
+
 func (s *service) GetTransactionByID(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
@@ -356,7 +416,39 @@ func (s *service) GetTransactionByID(ctx context.Context, id string) pkg.Respons
 
 	transaction, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Transaction not found", nil, nil)
+		if err == gorm.ErrRecordNotFound {
+			return pkg.NewResponse(http.StatusNotFound, "Transaction not found", nil, nil)
+		}
+		logrus.WithFields(logrus.Fields{
+			"component":      "donation_transaction.service",
+			"transaction_id": id,
+		}).WithError(err).Error("failed to fetch transaction")
+
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch transaction", nil, nil)
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Success", nil, transaction.toDonationTransactionResponse())
+}
+
+func (s *service) GetMyTransactionByID(ctx context.Context, id, userID string) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	if _, err := uuid.Parse(id); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid transaction ID format"}, nil)
+	}
+
+	transaction, err := s.repo.FindByIDAndUser(ctx, id, userID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return pkg.NewResponse(http.StatusNotFound, "Transaction not found", nil, nil)
+		}
+		logrus.WithFields(logrus.Fields{
+			"component":      "donation_transaction.service",
+			"transaction_id": id,
+			"user_id":        userID,
+		}).WithError(err).Error("failed to fetch transaction")
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch transaction", nil, nil)
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Success", nil, transaction.toDonationTransactionResponse())

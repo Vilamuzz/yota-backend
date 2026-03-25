@@ -18,7 +18,12 @@ func (m *RecoveryMiddleware) Recovery() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				logrus.Error("Panic Recover : ", err)
+				logrus.WithFields(logrus.Fields{
+					"component": "recovery.middleware",
+					"method":    c.Request.Method,
+					"path":      c.Request.URL.Path,
+					"client_ip": c.ClientIP(),
+				}).Error("panic recovered: ", err)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, pkg.NewResponse(
 					http.StatusInternalServerError,
 					"Something went wrong",
