@@ -292,11 +292,6 @@ definitions:
           type: string
         type: object
     type: object
-  prayer.PrayerAmenRequest:
-    properties:
-      prayer_id:
-        type: string
-    type: object
   prayer.PrayerListResponse:
     properties:
       pagination:
@@ -323,8 +318,6 @@ definitions:
     type: object
   prayer.ReportPrayerRequest:
     properties:
-      prayer_id:
-        type: string
       reason:
         type: string
     type: object
@@ -1976,18 +1969,17 @@ paths:
       summary: Get Prayer by ID
       tags:
       - Prayer
-  /api/prayers/amen:
+  /api/prayers/{id}/amen:
     post:
       consumes:
       - application/json
       description: Toggle amen on a prayer
       parameters:
-      - description: Amen Prayer Payload
-        in: body
-        name: payload
+      - description: Prayer ID
+        in: path
+        name: id
         required: true
-        schema:
-          $ref: '#/definitions/prayer.PrayerAmenRequest'
+        type: string
       produces:
       - application/json
       responses:
@@ -2012,12 +2004,17 @@ paths:
       summary: Toggle Amen on Prayer
       tags:
       - Prayer
-  /api/prayers/report:
+  /api/prayers/{id}/report:
     post:
       consumes:
       - application/json
       description: Report a prayer
       parameters:
+      - description: Prayer ID
+        in: path
+        name: id
+        required: true
+        type: string
       - description: Report Prayer Payload
         in: body
         name: payload

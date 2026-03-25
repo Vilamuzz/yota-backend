@@ -8,11 +8,6 @@ type PrayerQueryParams struct {
 	pkg.PaginationParams
 }
 
-type PrayerAmenRequest struct {
-	PrayerID string `json:"prayer_id"`
-}
-
 type ReportPrayerRequest struct {
-	PrayerID string `json:"prayer_id"`
-	Reason   string `json:"reason"`
+	Reason string `json:"reason"`
 }

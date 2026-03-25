@@ -16,8 +16,8 @@ type Service interface {
 	ListPrayers(ctx context.Context, params PrayerQueryParams, userID string) pkg.Response
 	ListReportedPrayers(ctx context.Context, params PrayerQueryParams) pkg.Response
 	DeletePrayer(ctx context.Context, id string) pkg.Response
-	PrayerAmen(ctx context.Context, payload PrayerAmenRequest, userID string) pkg.Response
-	CreateReportPrayer(ctx context.Context, payload ReportPrayerRequest, userID string) pkg.Response
+	PrayerAmen(ctx context.Context, prayerID, userID string) pkg.Response
+	CreateReportPrayer(ctx context.Context, payload ReportPrayerRequest, prayerID, userID string) pkg.Response
 }
 
 type service struct {
@@ -29,11 +29,11 @@ func NewService(repo Repository, timeout time.Duration) Service {
 	return &service{repo: repo, timeout: timeout}
 }
 
-func (s *service) PrayerAmen(ctx context.Context, payload PrayerAmenRequest, userID string) pkg.Response {
+func (s *service) PrayerAmen(ctx context.Context, prayerID, userID string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	_, err := s.repo.FindByID(ctx, payload.PrayerID)
+	_, err := s.repo.FindByID(ctx, prayerID)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return pkg.NewResponse(http.StatusNotFound, "Prayer not found", nil, nil)
@@ -41,11 +41,11 @@ func (s *service) PrayerAmen(ctx context.Context, payload PrayerAmenRequest, use
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to find prayer", nil, nil)
 	}
 
-	rowsAffected, err := s.repo.DeleteAmen(ctx, payload.PrayerID, userID)
+	rowsAffected, err := s.repo.DeleteAmen(ctx, prayerID, userID)
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"component": "prayer.service",
-			"prayer_id": payload.PrayerID,
+			"prayer_id": prayerID,
 			"user_id":   userID,
 		}).WithError(err).Error("failed to delete amen")
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to delete amen", nil, nil)
@@ -61,13 +61,13 @@ func (s *service) PrayerAmen(ctx context.Context, payload PrayerAmenRequest, use
 	// If no amen was deleted, create a new one
 	amen := &PrayerAmen{
 		ID:       uuid.New().String(),
-		PrayerID: payload.PrayerID,
+		PrayerID: prayerID,
 		UserID:   userID,
 	}
 	if err := s.repo.CreateAmen(ctx, amen); err != nil {
 		logrus.WithFields(logrus.Fields{
 			"component": "prayer.service",
-			"prayer_id": payload.PrayerID,
+			"prayer_id": prayerID,
 			"user_id":   userID,
 		}).WithError(err).Error("failed to create amen")
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create amen", nil, nil)
@@ -77,10 +77,10 @@ func (s *service) PrayerAmen(ctx context.Context, payload PrayerAmenRequest, use
 	})
 }
 
-func (s *service) CreateReportPrayer(ctx context.Context, payload ReportPrayerRequest, userID string) pkg.Response {
+func (s *service) CreateReportPrayer(ctx context.Context, payload ReportPrayerRequest, prayerID string, userID string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
-	_, err := s.repo.FindByID(ctx, payload.PrayerID)
+	_, err := s.repo.FindByID(ctx, prayerID)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return pkg.NewResponse(http.StatusNotFound, "Prayer not found", nil, nil)
@@ -95,7 +95,7 @@ func (s *service) CreateReportPrayer(ctx context.Context, payload ReportPrayerRe
 	}
 
 	_, err = s.repo.FindReport(ctx, map[string]interface{}{
-		"prayer_id": payload.PrayerID,
+		"prayer_id": prayerID,
 		"user_id":   userID,
 	})
 	if err == nil {
@@ -104,14 +104,14 @@ func (s *service) CreateReportPrayer(ctx context.Context, payload ReportPrayerRe
 
 	report := &PrayerReport{
 		ID:       uuid.New().String(),
-		PrayerID: payload.PrayerID,
+		PrayerID: prayerID,
 		UserID:   userID,
 		Reason:   payload.Reason,
 	}
 	if err := s.repo.CreateReport(ctx, report); err != nil {
 		logrus.WithFields(logrus.Fields{
 			"component": "prayer.service",
-			"prayer_id": payload.PrayerID,
+			"prayer_id": prayerID,
 			"user_id":   userID,
 		}).WithError(err).Error("failed to create prayer report")
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create report", nil, nil)
