@@ -32,8 +32,8 @@ func (h *handler) RegisterRoutes(router *gin.RouterGroup) {
 	publicProtected := router.Group("/prayers")
 	publicProtected.Use(h.middleware.AuthRequired())
 	{
-		publicProtected.POST("/amen", h.PrayerAmen)
-		publicProtected.POST("/report", h.ReportPrayer)
+		publicProtected.POST("/:id/amen", h.PrayerAmen)
+		publicProtected.POST("/:id/report", h.ReportPrayer)
 
 	}
 
@@ -51,23 +51,19 @@ func (h *handler) RegisterRoutes(router *gin.RouterGroup) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param payload body PrayerAmenRequest true "Amen Prayer Payload"
+// @Param id path string true "Prayer ID"
 // @Success 200 {object} pkg.Response
 // @Failure 400 {object} pkg.Response
 // @Failure 404 {object} pkg.Response
 // @Failure 500 {object} pkg.Response
-// @Router /api/prayers/amen [post]
+// @Router /api/prayers/{id}/amen [post]
 func (h *handler) PrayerAmen(c *gin.Context) {
 	ctx := c.Request.Context()
 	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
 	userID := claims.UserID
-	var payload PrayerAmenRequest
-	if err := c.ShouldBindJSON(&payload); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
-		return
-	}
+	prayerID := c.Param("id")
 
-	res := h.service.PrayerAmen(ctx, payload, userID)
+	res := h.service.PrayerAmen(ctx, prayerID, userID)
 	c.JSON(res.Status, res)
 }
 
@@ -77,12 +73,13 @@ func (h *handler) PrayerAmen(c *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
+// @Param id path string true "Prayer ID"
 // @Param payload body ReportPrayerRequest true "Report Prayer Payload"
 // @Success 200 {object} pkg.Response
 // @Failure 400 {object} pkg.Response
 // @Failure 404 {object} pkg.Response
 // @Failure 500 {object} pkg.Response
-// @Router /api/prayers/report [post]
+// @Router /api/prayers/{id}/report [post]
 func (h *handler) ReportPrayer(c *gin.Context) {
 	ctx := c.Request.Context()
 	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
@@ -92,7 +89,8 @@ func (h *handler) ReportPrayer(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
 		return
 	}
-	res := h.service.CreateReportPrayer(ctx, payload, userID)
+	prayerID := c.Param("id")
+	res := h.service.CreateReportPrayer(ctx, payload, prayerID, userID)
 	c.JSON(res.Status, res)
 }
 
