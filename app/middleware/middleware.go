@@ -40,6 +40,10 @@ func (m *AppMiddleware) AuthRequired() gin.HandlerFunc {
 	return m.JWT.AuthRequired()
 }
 
+func (m *AppMiddleware) AuthOptional() gin.HandlerFunc {
+	return m.JWT.AuthOptional()
+}
+
 func (m *AppMiddleware) RequireRoles(roles ...enum.RoleName) gin.HandlerFunc {
 	return m.JWT.RequireRoles(roles...)
 }

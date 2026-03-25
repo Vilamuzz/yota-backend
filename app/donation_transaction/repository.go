@@ -10,6 +10,7 @@ import (
 type Repository interface {
 	Create(ctx context.Context, tx *DonationTransaction) error
 	FindByID(ctx context.Context, id string) (*DonationTransaction, error)
+	FindByIDAndUser(ctx context.Context, id, userID string) (*DonationTransaction, error)
 	FindByOrderID(ctx context.Context, orderID string) (*DonationTransaction, error)
 	UpdateStatus(ctx context.Context, orderID string, updates map[string]interface{}) error
 	FindAll(ctx context.Context, options map[string]interface{}) ([]DonationTransaction, error)
@@ -30,6 +31,14 @@ func (r *repository) Create(ctx context.Context, tx *DonationTransaction) error 
 func (r *repository) FindByID(ctx context.Context, id string) (*DonationTransaction, error) {
 	var tx DonationTransaction
 	if err := r.Conn.WithContext(ctx).Where("id = ?", id).First(&tx).Error; err != nil {
+		return nil, err
+	}
+	return &tx, nil
+}
+
+func (r *repository) FindByIDAndUser(ctx context.Context, id, userID string) (*DonationTransaction, error) {
+	var tx DonationTransaction
+	if err := r.Conn.WithContext(ctx).Where("id = ? AND user_id = ?", id, userID).First(&tx).Error; err != nil {
 		return nil, err
 	}
 	return &tx, nil
@@ -58,6 +67,9 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 	}
 	if donationID, ok := options["donation_id"]; ok && donationID.(string) != "" {
 		query = query.Where("donation_id = ?", donationID.(string))
+	}
+	if userID, ok := options["user_id"]; ok && userID.(string) != "" {
+		query = query.Where("user_id = ?", userID.(string))
 	}
 
 	if nextCursor, ok := options["next_cursor"]; ok && nextCursor.(string) != "" {

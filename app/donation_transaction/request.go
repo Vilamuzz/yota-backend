@@ -3,7 +3,6 @@ package donation_transaction
 import "github.com/Vilamuzz/yota-backend/pkg"
 
 type CreateTransactionRequest struct {
-	UserID        string  `json:"user_id,omitempty"`
 	DonationID    string  `json:"donation_id"`
 	DonorName     string  `json:"donor_name"`
 	DonorEmail    string  `json:"donor_email"`

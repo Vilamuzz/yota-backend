@@ -4,7 +4,7 @@ import "time"
 
 type Log struct {
 	ID         string    `json:"id" gorm:"primary_key"`
-	UserID     string    `json:"user_id" gorm:"not null"`
+	UserID     *string   `json:"user_id" gorm:"index"`
 	Action     string    `json:"action" gorm:"not null"`
 	EntityType string    `json:"entity_type" gorm:"not null"`
 	EntityID   string    `json:"entity_id" gorm:"not null"`

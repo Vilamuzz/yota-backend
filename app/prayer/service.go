@@ -7,12 +7,13 @@ import (
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
 type Service interface {
-	FindPrayerByID(ctx context.Context, id string) pkg.Response
-	ListPrayers(ctx context.Context, params PrayerQueryParams) pkg.Response
+	FindPrayerByID(ctx context.Context, id string, userID string) pkg.Response
+	ListPrayers(ctx context.Context, params PrayerQueryParams, userID string) pkg.Response
 	ListReportedPrayers(ctx context.Context, params PrayerQueryParams) pkg.Response
 	DeletePrayer(ctx context.Context, id string) pkg.Response
 	PrayerAmen(ctx context.Context, payload PrayerAmenRequest, userID string) pkg.Response
@@ -42,12 +43,19 @@ func (s *service) PrayerAmen(ctx context.Context, payload PrayerAmenRequest, use
 
 	rowsAffected, err := s.repo.DeleteAmen(ctx, payload.PrayerID, userID)
 	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "prayer.service",
+			"prayer_id": payload.PrayerID,
+			"user_id":   userID,
+		}).WithError(err).Error("failed to delete amen")
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to delete amen", nil, nil)
 	}
 
 	// If deletion was successful, return success
 	if rowsAffected > 0 {
-		return pkg.NewResponse(http.StatusOK, "Amen deleted successfully", nil, nil)
+		return pkg.NewResponse(http.StatusOK, "Amen deleted successfully", nil, map[string]interface{}{
+			"is_amen": false,
+		})
 	}
 
 	// If no amen was deleted, create a new one
@@ -57,9 +65,16 @@ func (s *service) PrayerAmen(ctx context.Context, payload PrayerAmenRequest, use
 		UserID:   userID,
 	}
 	if err := s.repo.CreateAmen(ctx, amen); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "prayer.service",
+			"prayer_id": payload.PrayerID,
+			"user_id":   userID,
+		}).WithError(err).Error("failed to create amen")
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create amen", nil, nil)
 	}
-	return pkg.NewResponse(http.StatusOK, "Amen created successfully", nil, nil)
+	return pkg.NewResponse(http.StatusOK, "Amen created successfully", nil, map[string]interface{}{
+		"is_amen": true,
+	})
 }
 
 func (s *service) CreateReportPrayer(ctx context.Context, payload ReportPrayerRequest, userID string) pkg.Response {
@@ -94,12 +109,17 @@ func (s *service) CreateReportPrayer(ctx context.Context, payload ReportPrayerRe
 		Reason:   payload.Reason,
 	}
 	if err := s.repo.CreateReport(ctx, report); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "prayer.service",
+			"prayer_id": payload.PrayerID,
+			"user_id":   userID,
+		}).WithError(err).Error("failed to create prayer report")
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create report", nil, nil)
 	}
 	return pkg.NewResponse(http.StatusOK, "Prayer reported successfully", nil, nil)
 }
 
-func (s *service) FindPrayerByID(ctx context.Context, id string) pkg.Response {
+func (s *service) FindPrayerByID(ctx context.Context, id string, userID string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 	prayer, err := s.repo.FindByID(ctx, id)
@@ -109,10 +129,19 @@ func (s *service) FindPrayerByID(ctx context.Context, id string) pkg.Response {
 		}
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to find prayer", nil, nil)
 	}
+
+	if userID != "" {
+		isAmen, err := s.repo.ExistsAmen(ctx, prayer.ID, userID)
+		if err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to determine amen status", nil, nil)
+		}
+		prayer.IsAmen = isAmen
+	}
+
 	return pkg.NewResponse(http.StatusOK, "Prayer found successfully", nil, prayer.toPrayerResponse())
 }
 
-func (s *service) ListPrayers(ctx context.Context, params PrayerQueryParams) pkg.Response {
+func (s *service) ListPrayers(ctx context.Context, params PrayerQueryParams, userID string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -147,6 +176,22 @@ func (s *service) ListPrayers(ctx context.Context, params PrayerQueryParams) pkg
 	if usingPrevCursor {
 		for i, j := 0, len(prayers)-1; i < j; i, j = i+1, j-1 {
 			prayers[i], prayers[j] = prayers[j], prayers[i]
+		}
+	}
+
+	if userID != "" && len(prayers) > 0 {
+		prayerIDs := make([]string, 0, len(prayers))
+		for _, prayer := range prayers {
+			prayerIDs = append(prayerIDs, prayer.ID)
+		}
+
+		amenPrayerIDs, err := s.repo.FindAmenPrayerIDs(ctx, userID, prayerIDs)
+		if err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to determine amen status", nil, nil)
+		}
+
+		for i := range prayers {
+			prayers[i].IsAmen = amenPrayerIDs[prayers[i].ID]
 		}
 	}
 

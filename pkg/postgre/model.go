@@ -7,6 +7,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/donation_transaction"
 	"github.com/Vilamuzz/yota-backend/app/finance_record"
 	"github.com/Vilamuzz/yota-backend/app/gallery"
+	"github.com/Vilamuzz/yota-backend/app/log"
 	"github.com/Vilamuzz/yota-backend/app/media"
 	"github.com/Vilamuzz/yota-backend/app/news"
 	"github.com/Vilamuzz/yota-backend/app/prayer"
@@ -16,6 +17,7 @@ import (
 
 func GetAllModels() []interface{} {
 	return []interface{}{
+		&log.Log{},
 		&user.Role{},
 		&user.User{},
 		&auth.PasswordResetToken{},

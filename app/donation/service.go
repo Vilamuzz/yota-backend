@@ -5,9 +5,11 @@ import (
 	"net/http"
 	"time"
 
+	app_log "github.com/Vilamuzz/yota-backend/app/log"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
 type Service interface {
@@ -22,16 +24,18 @@ type Service interface {
 }
 
 type service struct {
-	repo     Repository
-	s3Client s3_pkg.Client
-	timeout  time.Duration
+	repo       Repository
+	logService app_log.Service
+	s3Client   s3_pkg.Client
+	timeout    time.Duration
 }
 
-func NewService(repo Repository, s3Client s3_pkg.Client, timeout time.Duration) Service {
+func NewService(repo Repository, logService app_log.Service, s3Client s3_pkg.Client, timeout time.Duration) Service {
 	return &service{
-		repo:     repo,
-		s3Client: s3Client,
-		timeout:  timeout,
+		repo:       repo,
+		logService: logService,
+		s3Client:   s3Client,
+		timeout:    timeout,
 	}
 }
 
@@ -39,8 +43,11 @@ func (s *service) ListPublishedDonations(ctx context.Context, queryParams Donati
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if queryParams.Limit == 0 {
+	if queryParams.Limit <= 0 {
 		queryParams.Limit = 10
+	}
+	if queryParams.Limit > 100 {
+		queryParams.Limit = 100
 	}
 
 	options := map[string]interface{}{
@@ -94,8 +101,11 @@ func (s *service) ListDonations(ctx context.Context, queryParams DonationQueryPa
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if queryParams.Limit == 0 {
+	if queryParams.Limit <= 0 {
 		queryParams.Limit = 10
+	}
+	if queryParams.Limit > 100 {
+		queryParams.Limit = 100
 	}
 
 	options := map[string]interface{}{
@@ -249,10 +259,15 @@ func (s *service) CreateDonation(ctx context.Context, req DonationRequest) pkg.R
 	}
 
 	if err := s.repo.Create(ctx, donation); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "donation.service",
+			"title":     req.Title,
+		}).WithError(err).Error("failed to create donation")
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create donation", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusCreated, "Donation successfully created", nil, donation)
+	s.logService.CreateLog(ctx, nil, "CREATE", "donation", donation.ID, nil, donation.toDonationResponse())
+	return pkg.NewResponse(http.StatusCreated, "Donation successfully created", nil, donation.toDonationResponse())
 }
 
 func (s *service) UpdateDonation(ctx context.Context, id string, req UpdateDonationRequest) pkg.Response {
@@ -355,8 +370,14 @@ func (s *service) UpdateDonation(ctx context.Context, id string, req UpdateDonat
 	updateData["updated_at"] = time.Now()
 
 	if err := s.repo.Update(ctx, id, updateData); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":   "donation.service",
+			"donation_id": id,
+		}).WithError(err).Error("failed to update donation")
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update donation", nil, nil)
 	}
+
+	s.logService.CreateLog(ctx, nil, "UPDATE", "donation", id, existingDonation.toDonationResponse(), updateData)
 	return pkg.NewResponse(http.StatusOK, "Donation updated successfully", nil, nil)
 }
 
@@ -378,9 +399,14 @@ func (s *service) DeleteDonation(ctx context.Context, id string) pkg.Response {
 	}
 
 	if err := s.repo.Delete(ctx, id); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":   "donation.service",
+			"donation_id": id,
+		}).WithError(err).Error("failed to delete donation")
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to delete donation", nil, nil)
 	}
 
+	s.logService.CreateLog(ctx, nil, "DELETE", "donation", id, donation.toDonationResponse(), nil)
 	return pkg.NewResponse(http.StatusOK, "Donation deleted successfully", nil, nil)
 }
 

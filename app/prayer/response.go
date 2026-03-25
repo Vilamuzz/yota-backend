@@ -10,6 +10,7 @@ type PrayerResponse struct {
 	Username  string `json:"username"`
 	Content   string `json:"content"`
 	AmenCount int    `json:"amen_count"`
+	IsAmen    bool   `json:"is_amen"`
 	CreatedAt string `json:"created_at"`
 }
 
@@ -27,6 +28,7 @@ func (p *Prayer) toPrayerResponse() PrayerResponse {
 		Username:  p.User.Username,
 		Content:   p.Content,
 		AmenCount: p.AmenCount,
+		IsAmen:    p.IsAmen,
 		CreatedAt: p.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 }
