@@ -168,16 +168,16 @@ func (c *Container) initRepositories() {
 }
 
 func (c *Container) initServices() {
+	c.LogService = app_log.NewService(c.LogRepo, c.Timeout)
 	c.AuthService = auth.NewService(c.AuthRepo, c.UserRepo, c.Timeout)
 	c.UserService = user.NewService(c.UserRepo, c.Timeout)
-	c.DonationService = donation.NewService(c.DonationRepo, c.S3Client, c.Timeout)
+	c.DonationService = donation.NewService(c.DonationRepo, c.LogService, c.S3Client, c.Timeout)
 	c.NewsService = news.NewService(c.NewsRepo, c.Timeout)
 	c.MediaService = media.NewService(c.MediaRepo, c.S3Client)
 	c.GalleryService = gallery.NewService(c.GalleryRepo, c.MediaService, c.Timeout)
-	c.LogService = app_log.NewService(c.LogRepo, c.Timeout)
 	c.TransactionDonationService = donation_transaction.NewService(c.TransactionDonationRepo, c.UserRepo, c.DonationRepo, c.PrayerRepo, c.FinanceRecordRepo, c.MidtransClient, c.LogService, c.Timeout)
 	c.PrayerService = prayer.NewService(c.PrayerRepo, c.Timeout)
-	c.DonationExpenseService = donation_expense.NewService(c.DonationExpenseRepo, c.FinanceRecordRepo, c.DonationRepo, c.S3Client, c.Timeout)
+	c.DonationExpenseService = donation_expense.NewService(c.DonationExpenseRepo, c.FinanceRecordRepo, c.DonationRepo, c.S3Client, c.LogService, c.Timeout)
 	c.FinanceRecordService = finance_record.NewService(c.FinanceRecordRepo, c.Timeout)
 	c.AmbulanceService = ambulance.NewService(c.AmbulanceRepo, c.S3Client, c.Timeout)
 	c.AmbulanceHistoryService = ambulance_history.NewService(c.AmbulanceHistoryRepo, c.AmbulanceRepo, c.Timeout)
