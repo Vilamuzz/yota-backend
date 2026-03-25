@@ -11,8 +11,8 @@ import (
 )
 
 type Service interface {
-	FindPrayerByID(ctx context.Context, id string) pkg.Response
-	ListPrayers(ctx context.Context, params PrayerQueryParams) pkg.Response
+	FindPrayerByID(ctx context.Context, id string, userID string) pkg.Response
+	ListPrayers(ctx context.Context, params PrayerQueryParams, userID string) pkg.Response
 	ListReportedPrayers(ctx context.Context, params PrayerQueryParams) pkg.Response
 	DeletePrayer(ctx context.Context, id string) pkg.Response
 	PrayerAmen(ctx context.Context, payload PrayerAmenRequest, userID string) pkg.Response
@@ -99,7 +99,7 @@ func (s *service) CreateReportPrayer(ctx context.Context, payload ReportPrayerRe
 	return pkg.NewResponse(http.StatusOK, "Prayer reported successfully", nil, nil)
 }
 
-func (s *service) FindPrayerByID(ctx context.Context, id string) pkg.Response {
+func (s *service) FindPrayerByID(ctx context.Context, id string, userID string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 	prayer, err := s.repo.FindByID(ctx, id)
@@ -109,10 +109,19 @@ func (s *service) FindPrayerByID(ctx context.Context, id string) pkg.Response {
 		}
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to find prayer", nil, nil)
 	}
+
+	if userID != "" {
+		isAmen, err := s.repo.ExistsAmen(ctx, prayer.ID, userID)
+		if err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to determine amen status", nil, nil)
+		}
+		prayer.IsAmen = isAmen
+	}
+
 	return pkg.NewResponse(http.StatusOK, "Prayer found successfully", nil, prayer.toPrayerResponse())
 }
 
-func (s *service) ListPrayers(ctx context.Context, params PrayerQueryParams) pkg.Response {
+func (s *service) ListPrayers(ctx context.Context, params PrayerQueryParams, userID string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -147,6 +156,22 @@ func (s *service) ListPrayers(ctx context.Context, params PrayerQueryParams) pkg
 	if usingPrevCursor {
 		for i, j := 0, len(prayers)-1; i < j; i, j = i+1, j-1 {
 			prayers[i], prayers[j] = prayers[j], prayers[i]
+		}
+	}
+
+	if userID != "" && len(prayers) > 0 {
+		prayerIDs := make([]string, 0, len(prayers))
+		for _, prayer := range prayers {
+			prayerIDs = append(prayerIDs, prayer.ID)
+		}
+
+		amenPrayerIDs, err := s.repo.FindAmenPrayerIDs(ctx, userID, prayerIDs)
+		if err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to determine amen status", nil, nil)
+		}
+
+		for i := range prayers {
+			prayers[i].IsAmen = amenPrayerIDs[prayers[i].ID]
 		}
 	}
 

@@ -12,6 +12,7 @@ type Prayer struct {
 	UserID      string    `json:"user_id"`
 	Content     string    `json:"content" gorm:"not null"`
 	AmenCount   int       `json:"amen_count" gorm:"default:0"`
+	IsAmen      bool      `json:"is_amen" gorm:"-"`
 	ReportCount int       `json:"report_count" gorm:"default:0"`
 	CreatedAt   time.Time `json:"created_at" gorm:"not null"`
 	UpdatedAt   time.Time `json:"updated_at" gorm:"not null"`

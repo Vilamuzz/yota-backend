@@ -20,7 +20,7 @@ import (
 
 type Service interface {
 	CreateOfflineTransaction(ctx context.Context, req CreateTransactionRequest) pkg.Response
-	CreateTransaction(ctx context.Context, req CreateTransactionRequest) pkg.Response
+	CreateTransaction(ctx context.Context, req CreateTransactionRequest, userID string) pkg.Response
 	HandleNotification(ctx context.Context, notification MidtransNotificationRequest) pkg.Response
 	ListTransactions(ctx context.Context, queryParams DonationTransactionQueryParams) pkg.Response
 	GetTransactionByID(ctx context.Context, id string) pkg.Response
@@ -62,12 +62,6 @@ func (s *service) CreateOfflineTransaction(ctx context.Context, req CreateTransa
 		}
 	}
 
-	if req.UserID != "" {
-		_, err := s.userRepo.FindOne(ctx, map[string]interface{}{"id": req.UserID})
-		if err != nil {
-			errValidation["user_id"] = "User not found"
-		}
-	}
 	if req.GrossAmount <= 0 {
 		errValidation["gross_amount"] = "Gross amount must be greater than 0"
 	}
@@ -84,13 +78,11 @@ func (s *service) CreateOfflineTransaction(ctx context.Context, req CreateTransa
 		donorEmail = req.DonorEmail
 	}
 
-	userID := req.UserID
 	now := time.Now()
 
 	transaction := &DonationTransaction{
 		ID:                uuid.New().String(),
 		DonationID:        req.DonationID,
-		UserID:            userID,
 		OrderID:           fmt.Sprintf("OFF-%s", uuid.New().String()),
 		DonorName:         donorName,
 		DonorEmail:        donorEmail,
@@ -123,7 +115,7 @@ func (s *service) CreateOfflineTransaction(ctx context.Context, req CreateTransa
 	return pkg.NewResponse(http.StatusCreated, "Offline transaction created successfully", nil, transaction.toDonationTransactionResponse())
 }
 
-func (s *service) CreateTransaction(ctx context.Context, req CreateTransactionRequest) pkg.Response {
+func (s *service) CreateTransaction(ctx context.Context, req CreateTransactionRequest, userID string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -138,8 +130,8 @@ func (s *service) CreateTransaction(ctx context.Context, req CreateTransactionRe
 		}
 	}
 
-	if req.UserID != "" {
-		_, err := s.userRepo.FindOne(ctx, map[string]interface{}{"id": req.UserID})
+	if userID != "" {
+		_, err := s.userRepo.FindOne(ctx, map[string]interface{}{"id": userID})
 		if err != nil {
 			errValidation["user_id"] = "User not found"
 		}
@@ -161,7 +153,6 @@ func (s *service) CreateTransaction(ctx context.Context, req CreateTransactionRe
 	if req.DonorEmail != "" {
 		donorEmail = req.DonorEmail
 	}
-	userID := req.UserID
 
 	orderID := fmt.Sprintf("DON-%s", uuid.New().String())
 	grossAmountInt := int64(req.GrossAmount)

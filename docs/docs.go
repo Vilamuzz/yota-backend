@@ -3241,9 +3241,6 @@ const docTemplate = `{
                 },
                 "prayer_content": {
                     "type": "string"
-                },
-                "user_id": {
-                    "type": "string"
                 }
             }
         },
@@ -3497,6 +3494,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "is_amen": {
+                    "type": "boolean"
                 },
                 "username": {
                     "type": "string"

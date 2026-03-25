@@ -40,6 +40,30 @@ func (m *JWTMiddleware) AuthRequired() gin.HandlerFunc {
 	}
 }
 
+func (m *JWTMiddleware) AuthOptional() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		reqToken := c.GetHeader("Authorization")
+		if reqToken == "" {
+			c.Next()
+			return
+		}
+
+		claims, err := m.extractAndValidateToken(c)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, pkg.NewResponse(
+				http.StatusUnauthorized,
+				err.Error(),
+				nil,
+				nil,
+			))
+			return
+		}
+
+		c.Set("user_data", *claims)
+		c.Next()
+	}
+}
+
 func (m *JWTMiddleware) RequireRoles(allowedRoles ...enum.RoleName) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claims, err := m.extractAndValidateToken(c)

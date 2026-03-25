@@ -3230,9 +3230,6 @@
                 },
                 "prayer_content": {
                     "type": "string"
-                },
-                "user_id": {
-                    "type": "string"
                 }
             }
         },
@@ -3486,6 +3483,9 @@
                 },
                 "id": {
                     "type": "string"
+                },
+                "is_amen": {
+                    "type": "boolean"
                 },
                 "username": {
                     "type": "string"

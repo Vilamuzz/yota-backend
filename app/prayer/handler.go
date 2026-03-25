@@ -25,6 +25,7 @@ func NewHandler(r *gin.RouterGroup, service Service, m middleware.AppMiddleware)
 
 func (h *handler) RegisterRoutes(router *gin.RouterGroup) {
 	public := router.Group("/prayers")
+	public.Use(h.middleware.AuthOptional())
 	public.GET("", h.ListPrayers)
 	public.GET("/:id", h.FindPrayerByID)
 
@@ -109,7 +110,13 @@ func (h *handler) ReportPrayer(c *gin.Context) {
 func (h *handler) FindPrayerByID(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
-	res := h.service.FindPrayerByID(ctx, id)
+	userID := ""
+	if userData, exists := c.Get("user_data"); exists {
+		if claims, ok := userData.(jwt_pkg.UserJWTClaims); ok {
+			userID = claims.UserID
+		}
+	}
+	res := h.service.FindPrayerByID(ctx, id, userID)
 	c.JSON(res.Status, res)
 }
 
@@ -133,7 +140,13 @@ func (h *handler) ListPrayers(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
 		return
 	}
-	res := h.service.ListPrayers(ctx, params)
+	userID := ""
+	if userData, exists := c.Get("user_data"); exists {
+		if claims, ok := userData.(jwt_pkg.UserJWTClaims); ok {
+			userID = claims.UserID
+		}
+	}
+	res := h.service.ListPrayers(ctx, params, userID)
 	c.JSON(res.Status, res)
 }
 

@@ -10,6 +10,8 @@ import (
 type Repository interface {
 	CreateAmen(ctx context.Context, amen *PrayerAmen) error
 	DeleteAmen(ctx context.Context, prayerID, userID string) (int64, error)
+	ExistsAmen(ctx context.Context, prayerID, userID string) (bool, error)
+	FindAmenPrayerIDs(ctx context.Context, userID string, prayerIDs []string) (map[string]bool, error)
 	CreateReport(ctx context.Context, report *PrayerReport) error
 	FindReport(ctx context.Context, options map[string]interface{}) (*PrayerReport, error)
 	Create(ctx context.Context, prayer *Prayer) error
@@ -46,6 +48,41 @@ func (r *repository) DeleteAmen(ctx context.Context, prayerID, userID string) (i
 		return result.RowsAffected, err
 	}
 	return 0, nil
+}
+
+func (r *repository) ExistsAmen(ctx context.Context, prayerID, userID string) (bool, error) {
+	var count int64
+	err := r.Conn.WithContext(ctx).
+		Model(&PrayerAmen{}).
+		Where("prayer_id = ? AND user_id = ?", prayerID, userID).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (r *repository) FindAmenPrayerIDs(ctx context.Context, userID string, prayerIDs []string) (map[string]bool, error) {
+	amenMap := make(map[string]bool)
+	if len(prayerIDs) == 0 {
+		return amenMap, nil
+	}
+
+	var records []PrayerAmen
+	err := r.Conn.WithContext(ctx).
+		Model(&PrayerAmen{}).
+		Select("prayer_id").
+		Where("user_id = ? AND prayer_id IN ?", userID, prayerIDs).
+		Find(&records).Error
+	if err != nil {
+		return nil, err
+	}
+
+	for _, record := range records {
+		amenMap[record.PrayerID] = true
+	}
+
+	return amenMap, nil
 }
 
 func (r *repository) CreateReport(ctx context.Context, report *PrayerReport) error {

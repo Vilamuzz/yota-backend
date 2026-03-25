@@ -6,6 +6,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/Vilamuzz/yota-backend/pkg/enum"
+	jwt_pkg "github.com/Vilamuzz/yota-backend/pkg/jwt"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,7 +25,7 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	public := r.Group("/public/donation-transactions")
-	public.POST("", h.CreateTransaction)
+	public.POST("", h.CreateTransaction).Use(h.middleware.AuthOptional())
 	public.POST("/notification", h.HandleNotification)
 
 	protected := r.Group("/donation-transactions")
@@ -71,13 +72,19 @@ func (h *handler) CreateOfflineTransaction(c *gin.Context) {
 func (h *handler) CreateTransaction(c *gin.Context) {
 	ctx := c.Request.Context()
 
+	userID := ""
+	if userData, exists := c.Get("user_data"); exists {
+		if claims, ok := userData.(jwt_pkg.UserJWTClaims); ok {
+			userID = claims.UserID
+		}
+	}
 	var req CreateTransactionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
 		return
 	}
 
-	res := h.service.CreateTransaction(ctx, req)
+	res := h.service.CreateTransaction(ctx, req, userID)
 	c.JSON(res.Status, res)
 }
 
