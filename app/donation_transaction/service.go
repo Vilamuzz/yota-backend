@@ -5,6 +5,7 @@ import (
 	"crypto/sha512"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/app/donation"
@@ -277,11 +278,15 @@ func (s *service) HandleNotification(ctx context.Context, notification MidtransN
 
 	if isSettled && transaction.PrayerContent != "" {
 		now := time.Now()
-		userID := transaction.UserID
+		var userID *string
+		if strings.TrimSpace(transaction.UserID) != "" {
+			uid := transaction.UserID
+			userID = &uid
+		}
 		newPrayer := &prayer.Prayer{
 			ID:         uuid.New().String(),
 			DonationID: transaction.DonationID,
-			UserID:     &userID,
+			UserID:     userID,
 			Content:    transaction.PrayerContent,
 			CreatedAt:  now,
 			UpdatedAt:  now,
