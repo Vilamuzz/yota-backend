@@ -277,10 +277,11 @@ func (s *service) HandleNotification(ctx context.Context, notification MidtransN
 
 	if isSettled && transaction.PrayerContent != "" {
 		now := time.Now()
+		userID := transaction.UserID
 		newPrayer := &prayer.Prayer{
 			ID:         uuid.New().String(),
 			DonationID: transaction.DonationID,
-			UserID:     transaction.UserID,
+			UserID:     &userID,
 			Content:    transaction.PrayerContent,
 			CreatedAt:  now,
 			UpdatedAt:  now,

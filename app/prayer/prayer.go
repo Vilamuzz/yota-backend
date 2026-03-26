@@ -9,7 +9,7 @@ import (
 type Prayer struct {
 	ID          string    `json:"id" gorm:"primary_key"`
 	DonationID  string    `json:"donation_id" gorm:"not null"`
-	UserID      string    `json:"user_id"`
+	UserID      *string   `json:"user_id"`
 	Content     string    `json:"content" gorm:"not null"`
 	AmenCount   int       `json:"amen_count" gorm:"default:0"`
 	IsAmen      bool      `json:"is_amen" gorm:"-"`
