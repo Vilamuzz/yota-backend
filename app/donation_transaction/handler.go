@@ -25,13 +25,14 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	public := r.Group("/public/donation-transactions")
+	public.POST("/notification", h.HandleNotification)
+	public.POST("", h.CreateTransaction).Use(h.middleware.AuthOptional())
+
 	public.Use(h.middleware.AuthRequired())
 	{
 		public.GET("/me", h.ListMyTransactions)
 		public.GET("/me/:id", h.GetMyTransactionByID)
 	}
-	public.POST("", h.CreateTransaction).Use(h.middleware.AuthOptional())
-	public.POST("/notification", h.HandleNotification)
 
 	protected := r.Group("/donation-transactions")
 	protected.Use(h.middleware.RequireRoles(enum.RoleFinance))
