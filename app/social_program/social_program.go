@@ -6,8 +6,9 @@ type SocialProgram struct {
 	ID            string    `json:"id" gorm:"primary_key"`
 	Title         string    `json:"title" gorm:"not null"`
 	Description   string    `json:"description" gorm:"not null"`
-	Image         string    `json:"image"`
-	Status        string    `json:"status" gorm:"type:varchar(20);not null;default:'active'"`
+	ImageURL      string    `json:"image_url" gorm:"not null"`
+	Status        Status    `json:"status" gorm:"type:varchar(20);not null;default:'active'"`
+	IsSubscribed  bool      `json:"is_subscribed" gorm:"-"`
 	MinimumAmount float64   `json:"minimum_amount" gorm:"not null"`
 	BillingDay    int       `json:"billing_day" gorm:"not null"`
 	CreatedAt     time.Time `json:"created_at"`
@@ -19,6 +20,7 @@ type Status string
 
 const (
 	StatusActive    Status = "active"
-	StatusInactive  Status = "inactive"
 	StatusCompleted Status = "completed"
+	StatusStopped   Status = "stopped"
+	StatusDraft     Status = "draft"
 )
