@@ -35,7 +35,6 @@ func (s *service) CreateRecord(ctx context.Context, record *FinanceRecord) error
 		record.TransactionDate = now
 	}
 	record.CreatedAt = now
-	record.UpdatedAt = now
 
 	return s.repo.Create(ctx, record)
 }

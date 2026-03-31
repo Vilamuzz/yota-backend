@@ -24,6 +24,5 @@ func toResponse(r *FinanceRecord) FinanceRecordResponse {
 		Amount:          r.Amount,
 		TransactionDate: r.TransactionDate,
 		CreatedAt:       r.CreatedAt,
-		UpdatedAt:       r.UpdatedAt,
 	}
 }

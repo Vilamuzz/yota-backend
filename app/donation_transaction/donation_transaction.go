@@ -2,6 +2,8 @@ package donation_transaction
 
 import (
 	"time"
+
+	"github.com/Vilamuzz/yota-backend/app/prayer"
 )
 
 type DonationTransaction struct {
@@ -19,10 +21,11 @@ type DonationTransaction struct {
 	TransactionID     string     `json:"transaction_id"`
 	SnapToken         string     `json:"snap_token"`
 	SnapRedirectURL   string     `json:"snap_redirect_url"`
-	PrayerContent     string     `json:"prayer_content" gorm:"column:prayer_content"`
 	PaidAt            *time.Time `json:"paid_at"`
 	CreatedAt         time.Time  `json:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at"`
+
+	Prayer *prayer.Prayer `json:"prayer" gorm:"foreignKey:DonationTransactionID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 type TransactionStatus string

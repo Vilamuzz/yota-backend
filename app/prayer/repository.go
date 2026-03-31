@@ -16,7 +16,7 @@ type Repository interface {
 	FindReport(ctx context.Context, options map[string]interface{}) (*PrayerReport, error)
 	Create(ctx context.Context, prayer *Prayer) error
 	Update(ctx context.Context, prayer *Prayer) error
-	FindByID(ctx context.Context, id string) (*Prayer, error)
+	FindOne(ctx context.Context, options map[string]interface{}) (*Prayer, error)
 	FindAll(ctx context.Context, options map[string]interface{}) ([]Prayer, error)
 	Delete(ctx context.Context, id string) error
 }
@@ -110,9 +110,10 @@ func (r *repository) Update(ctx context.Context, prayer *Prayer) error {
 	return r.Conn.WithContext(ctx).Save(prayer).Error
 }
 
-func (r *repository) FindByID(ctx context.Context, id string) (*Prayer, error) {
+func (r *repository) FindOne(ctx context.Context, options map[string]interface{}) (*Prayer, error) {
 	var prayer Prayer
-	if err := r.Conn.WithContext(ctx).Preload("User").Where("id = ?", id).First(&prayer).Error; err != nil {
+	query := r.Conn.WithContext(ctx).Preload("User").Where(options)
+	if err := query.First(&prayer).Error; err != nil {
 		return nil, err
 	}
 	return &prayer, nil

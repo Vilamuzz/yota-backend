@@ -5,7 +5,6 @@ import (
 	"crypto/sha512"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/app/donation"
@@ -121,7 +120,6 @@ func (s *service) CreateOfflineTransaction(ctx context.Context, req CreateTransa
 		Amount:          transaction.GrossAmount,
 		TransactionDate: now,
 		CreatedAt:       now,
-		UpdatedAt:       now,
 	}); err != nil {
 		logrus.WithFields(logrus.Fields{
 			"component":      "donation_transaction.service",
@@ -215,7 +213,6 @@ func (s *service) CreateTransaction(ctx context.Context, req CreateTransactionRe
 		Provider:          "midtrans",
 		SnapToken:         snapResp.Token,
 		SnapRedirectURL:   snapResp.RedirectURL,
-		PrayerContent:     req.PrayerContent,
 		CreatedAt:         now,
 		UpdatedAt:         now,
 	}
@@ -227,6 +224,26 @@ func (s *service) CreateTransaction(ctx context.Context, req CreateTransactionRe
 			"order_id":    orderID,
 		}).WithError(err).Error("failed to save online transaction")
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to save transaction", nil, nil)
+	}
+
+	if req.PrayerContent != "" {
+		newPrayer := &prayer.Prayer{
+			ID:                    uuid.New().String(),
+			DonationID:            req.DonationID,
+			DonationTransactionID: transaction.ID,
+			UserID:                &userID,
+			Content:               req.PrayerContent,
+			Status:                false, // pending, will be published on settlement
+			CreatedAt:             now,
+			UpdatedAt:             now,
+		}
+		if err := s.prayerRepo.Create(ctx, newPrayer); err != nil {
+			logrus.WithFields(logrus.Fields{
+				"component":      "donation_transaction.service",
+				"transaction_id": transaction.ID,
+				"order_id":       transaction.OrderID,
+			}).WithError(err).Warn("failed to create prayer")
+		}
 	}
 
 	return pkg.NewResponse(http.StatusCreated, "Transaction created successfully", nil, transaction.toDonationTransactionResponse())
@@ -276,27 +293,22 @@ func (s *service) HandleNotification(ctx context.Context, notification MidtransN
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update transaction", nil, nil)
 	}
 
-	if isSettled && transaction.PrayerContent != "" {
-		now := time.Now()
-		var userID *string
-		if strings.TrimSpace(transaction.UserID) != "" {
-			uid := transaction.UserID
-			userID = &uid
-		}
-		newPrayer := &prayer.Prayer{
-			ID:         uuid.New().String(),
-			DonationID: transaction.DonationID,
-			UserID:     userID,
-			Content:    transaction.PrayerContent,
-			CreatedAt:  now,
-			UpdatedAt:  now,
-		}
-		if err := s.prayerRepo.Create(ctx, newPrayer); err != nil {
-			logrus.WithFields(logrus.Fields{
-				"component":      "donation_transaction.service",
-				"transaction_id": transaction.ID,
-				"order_id":       notification.OrderID,
-			}).WithError(err).Warn("failed to create prayer after settlement")
+	if isSettled {
+		// Find and publish the prayer that was created during transaction creation
+		prayers, err := s.prayerRepo.FindOne(ctx, map[string]interface{}{
+			"donation_transaction_id": transaction.ID,
+		})
+		if err == nil {
+			prayers.Status = true // published
+			prayers.UpdatedAt = time.Now()
+			if err := s.prayerRepo.Update(ctx, prayers); err != nil {
+				logrus.WithFields(logrus.Fields{
+					"component":      "donation_transaction.service",
+					"transaction_id": transaction.ID,
+					"order_id":       notification.OrderID,
+					"prayer_id":      prayers.ID,
+				}).WithError(err).Warn("failed to publish prayer after settlement")
+			}
 		}
 	}
 
@@ -311,7 +323,6 @@ func (s *service) HandleNotification(ctx context.Context, notification MidtransN
 			Amount:          transaction.GrossAmount,
 			TransactionDate: now,
 			CreatedAt:       now,
-			UpdatedAt:       now,
 		}); err != nil {
 			logrus.WithFields(logrus.Fields{
 				"component":      "donation_transaction.service",
