@@ -217,7 +217,6 @@ func (s *service) CreateExpense(ctx context.Context, payload *CreateExpenseReque
 		Amount:          expense.Amount,
 		TransactionDate: expense.Date,
 		CreatedAt:       now,
-		UpdatedAt:       now,
 	})
 
 	s.logService.CreateLog(ctx, nil, "CREATE", "donation_expense", expense.ID, nil, expense.toDonationExpenseDetailResponse())

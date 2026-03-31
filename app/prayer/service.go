@@ -33,7 +33,7 @@ func (s *service) PrayerAmen(ctx context.Context, prayerID, userID string) pkg.R
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	_, err := s.repo.FindByID(ctx, prayerID)
+	_, err := s.repo.FindOne(ctx, map[string]interface{}{"id": prayerID})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return pkg.NewResponse(http.StatusNotFound, "Prayer not found", nil, nil)
@@ -80,7 +80,7 @@ func (s *service) PrayerAmen(ctx context.Context, prayerID, userID string) pkg.R
 func (s *service) CreateReportPrayer(ctx context.Context, payload ReportPrayerRequest, prayerID string, userID string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
-	_, err := s.repo.FindByID(ctx, prayerID)
+	_, err := s.repo.FindOne(ctx, map[string]interface{}{"id": prayerID})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return pkg.NewResponse(http.StatusNotFound, "Prayer not found", nil, nil)
@@ -122,7 +122,7 @@ func (s *service) CreateReportPrayer(ctx context.Context, payload ReportPrayerRe
 func (s *service) FindPrayerByID(ctx context.Context, id string, userID string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
-	prayer, err := s.repo.FindByID(ctx, id)
+	prayer, err := s.repo.FindOne(ctx, map[string]interface{}{"id": id})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return pkg.NewResponse(http.StatusNotFound, "Prayer not found", nil, nil)
@@ -290,7 +290,7 @@ func (s *service) DeletePrayer(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	_, err := s.repo.FindByID(ctx, id)
+	_, err := s.repo.FindOne(ctx, map[string]interface{}{"id": id})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return pkg.NewResponse(http.StatusNotFound, "Prayer not found", nil, nil)

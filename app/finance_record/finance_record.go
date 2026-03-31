@@ -24,5 +24,4 @@ type FinanceRecord struct {
 	Amount          float64   `json:"amount"`
 	TransactionDate time.Time `json:"transaction_date"`
 	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
 }
