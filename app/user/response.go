@@ -7,10 +7,10 @@ import (
 )
 
 type UserProfileResponse struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Role     string `json:"role"`
+	ID       string   `json:"id"`
+	Username string   `json:"username"`
+	Email    string   `json:"email"`
+	Roles    []string `json:"roles"`
 }
 
 type UserResponse struct {
@@ -18,7 +18,7 @@ type UserResponse struct {
 	Username  string    `json:"username"`
 	Email     string    `json:"email"`
 	Status    bool      `json:"status"`
-	Role      Role      `json:"role"`
+	Roles     []string  `json:"roles"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -37,22 +37,30 @@ type RoleListResponse struct {
 }
 
 func (u *User) toUserResponse() UserResponse {
+	userRoles := make([]string, len(u.Roles))
+	for i, role := range u.Roles {
+		userRoles[i] = role.Role
+	}
 	return UserResponse{
 		ID:        u.ID.String(),
 		Username:  u.Username,
 		Email:     u.Email,
 		Status:    u.Status,
-		Role:      u.Role,
+		Roles:     userRoles,
 		CreatedAt: u.CreatedAt,
 	}
 }
 
 func (u *User) toUserProfileResponse() UserProfileResponse {
+	userRoles := make([]string, len(u.Roles))
+	for i, role := range u.Roles {
+		userRoles[i] = role.Role
+	}
 	return UserProfileResponse{
 		ID:       u.ID.String(),
 		Username: u.Username,
 		Email:    u.Email,
-		Role:     u.Role.Role,
+		Roles:    userRoles,
 	}
 }
 

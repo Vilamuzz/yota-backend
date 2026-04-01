@@ -909,6 +909,45 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/auth/switch-role": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Switch user role",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Switch Role",
+                "parameters": [
+                    {
+                        "description": "Switch Role",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.SwitchRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/auth/verify-email": {
             "post": {
                 "description": "Verify user email with token",
@@ -3414,6 +3453,17 @@ const docTemplate = `{
                 }
             }
         },
+        "auth.SwitchRoleRequest": {
+            "type": "object",
+            "required": [
+                "role"
+            ],
+            "properties": {
+                "role": {
+                    "type": "string"
+                }
+            }
+        },
         "auth.VerifyEmailRequest": {
             "type": "object",
             "required": [
@@ -3768,17 +3818,6 @@ const docTemplate = `{
                 }
             }
         },
-        "user.Role": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "integer"
-                },
-                "role": {
-                    "type": "string"
-                }
-            }
-        },
         "user.RoleResponse": {
             "type": "object",
             "properties": {
@@ -3840,8 +3879,11 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "role": {
-                    "type": "string"
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "username": {
                     "type": "string"
@@ -3860,8 +3902,11 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "role": {
-                    "$ref": "#/definitions/user.Role"
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "status": {
                     "type": "boolean"

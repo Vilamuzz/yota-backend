@@ -33,3 +33,7 @@ type VerifyEmailRequest struct {
 type ResendVerificationRequest struct {
 	Email string `json:"email" binding:"required,email"`
 }
+
+type SwitchRoleRequest struct {
+	Role string `json:"role" binding:"required"`
+}

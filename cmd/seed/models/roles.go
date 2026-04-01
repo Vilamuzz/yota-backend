@@ -16,8 +16,8 @@ func SeedRoles(db *gorm.DB) error {
 		{ID: 3, Role: string(enum.RoleSocialManager)},
 		{ID: 4, Role: string(enum.RoleFinance)},
 		{ID: 5, Role: string(enum.RoleAmbulanceManager)},
-		{ID: 6, Role: string(enum.RolePublicationManager)},
-		{ID: 7, Role: string(enum.RoleAmbulanceDriver)},
+		{ID: 6, Role: string(enum.RoleAmbulanceDriver)},
+		{ID: 7, Role: string(enum.RolePublicationManager)},
 		{ID: 8, Role: string(enum.RoleSuperadmin)},
 	}
 

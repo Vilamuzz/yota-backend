@@ -146,25 +146,28 @@ func (s *service) UpdateUser(ctx context.Context, userID string, payload UpdateU
 			errValidation["role"] = "Invalid role"
 		}
 	}
-
-	updateMap := make(map[string]interface{})
-	if payload.RoleID != 0 {
-		updateMap["role_id"] = payload.RoleID
-	}
-	if payload.Status != nil {
-		updateMap["status"] = *payload.Status
-	}
 	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
-	if len(updateMap) == 0 {
+
+	if payload.RoleID == 0 && payload.Status == nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"update_data": "No fields to update"}, nil)
 	}
 
-	err := s.repo.Update(ctx, userID, updateMap)
-	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update user", nil, nil)
+	// Update roles via the join table if provided
+	if payload.RoleID != 0 {
+		if err := s.repo.UpdateUserRoles(ctx, userID, payload.RoleID); err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to update user role", nil, nil)
+		}
 	}
+
+	// Update direct user columns (status, etc.) if provided
+	if payload.Status != nil {
+		if err := s.repo.Update(ctx, userID, map[string]interface{}{"status": *payload.Status}); err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to update user", nil, nil)
+		}
+	}
+
 	return pkg.NewResponse(http.StatusOK, "User updated successfully", nil, nil)
 }
 
@@ -225,7 +228,7 @@ func (s *service) UpdatePassword(ctx context.Context, userID string, payload Upd
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to hash new password", nil, nil)
 	}
 
-	err = s.repo.UpdatePassword(ctx, user.ID, string(hashedPassword))
+	err = s.repo.Update(ctx, userID, map[string]interface{}{"password": string(hashedPassword)})
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update password", nil, nil)
 	}

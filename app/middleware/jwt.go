@@ -79,7 +79,7 @@ func (m *JWTMiddleware) RequireRoles(allowedRoles ...enum.RoleName) gin.HandlerF
 
 		hasRole := false
 		for _, role := range allowedRoles {
-			if claims.Role == string(role) {
+			if claims.ActiveRole == string(role) {
 				hasRole = true
 				break
 			}

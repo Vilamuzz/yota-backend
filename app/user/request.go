@@ -1,30 +1,31 @@
 package user
+
 import "github.com/Vilamuzz/yota-backend/pkg"
 
 type CreateUserRequest struct {
-	Username string `json:"username" binding:"required,min=3,max=50"`
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type UpdateUserRequest struct {
-	RoleID int8  `json:"role_id" binding:"omitempty"`
-	Status *bool `json:"status" binding:"omitempty"`
+	RoleID int8  `json:"role_id"`
+	Status *bool `json:"status"`
 }
 
 type UpdateProfileRequest struct {
-	Username string `json:"username" binding:"omitempty,min=3,max=50"`
-	Email    string `json:"email" binding:"omitempty,email"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
 }
 
 type UpdatePasswordRequest struct {
-	CurrentPassword string `json:"current_password" binding:"required,min=6"`
-	NewPassword     string `json:"new_password" binding:"required,min=6"`
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
 }
 
 type UserQueryParam struct {
 	pkg.PaginationParams
-	Search     string `form:"search"`
-	Role       int8   `form:"role"`
-	Status     *bool  `form:"status"`
+	Search string `form:"search"`
+	Role   int8   `form:"role"`
+	Status *bool  `form:"status"`
 }

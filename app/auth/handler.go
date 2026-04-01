@@ -9,6 +9,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/pkg"
+	jwt_pkg "github.com/Vilamuzz/yota-backend/pkg/jwt"
 	"github.com/gin-gonic/gin"
 	"github.com/markbates/goth/gothic"
 )
@@ -42,6 +43,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	api.POST("/resend-verification", h.middleware.CustomRateLimitHandler(3, 1*time.Minute), h.ResendVerification)
 	api.GET("/oauth/:provider", h.middleware.CustomRateLimitHandler(10, 1*time.Minute), h.OAuthLogin)
 	api.GET("/oauth/:provider/callback", h.OAuthCallback)
+	api.POST("/switch-role", authRateLimit, h.middleware.AuthRequired(), h.SwitchRole)
 }
 
 // Register
@@ -233,5 +235,41 @@ func (h *handler) OAuthCallback(c *gin.Context) {
 		return
 	}
 
+	c.JSON(res.Status, res)
+}
+
+// SwitchRole
+//
+// @Summary Switch Role
+// @Description Switch user role
+// @Tags Auth
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param payload body SwitchRoleRequest true "Switch Role"
+// @Success 200 {object} pkg.Response
+// @Router /api/auth/switch-role [post]
+func (h *handler) SwitchRole(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	userData, exists := c.Get("user_data")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "User not authenticated", nil, nil))
+		return
+	}
+
+	userClaims, ok := userData.(jwt_pkg.UserJWTClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "Invalid user session", nil, nil))
+		return
+	}
+
+	var req SwitchRoleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
+		return
+	}
+
+	res := h.service.SwitchRole(ctx, userClaims, req)
 	c.JSON(res.Status, res)
 }
