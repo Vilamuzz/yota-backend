@@ -25,6 +25,7 @@ type Service interface {
 	OAuthLogin(ctx context.Context, provider string, gothUser goth.User) pkg.Response
 	VerifyEmail(ctx context.Context, token string) pkg.Response
 	ResendVerificationEmail(ctx context.Context, email string) pkg.Response
+	SwitchRole(ctx context.Context, claims jwt_pkg.UserJWTClaims, req SwitchRoleRequest) pkg.Response
 }
 
 type service struct {
@@ -91,15 +92,24 @@ func (s *service) Register(ctx context.Context, req RegisterRequest) pkg.Respons
 		Username:      req.Username,
 		Email:         req.Email,
 		Password:      string(hashedPassword),
-		RoleID:        1, // Default to regular user role
 		Status:        true,
 		EmailVerified: false,
+		DefaultRoleID: 1,
 		CreatedAt:     time.Now(),
 		UpdatedAt:     time.Now(),
 	}
 
+	newRoleUser := &user.UserRole{
+		UserID: newUser.ID,
+		RoleID: 1,
+	}
+
 	if err := s.userRepo.Create(ctx, newUser); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create user", nil, nil)
+	}
+
+	if err := s.userRepo.CreateUserRole(ctx, newRoleUser); err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create user role", nil, nil)
 	}
 
 	tokenBytes := make([]byte, 32)
@@ -152,10 +162,20 @@ func (s *service) Login(ctx context.Context, req LoginRequest) pkg.Response {
 		return pkg.NewResponse(http.StatusForbidden, "Please verify your email before logging in", nil, nil)
 	}
 
+	if len(existingUser.Roles) == 0 {
+		return pkg.NewResponse(http.StatusForbidden, "User has no assigned roles", nil, nil)
+	}
+
+	userRoles := make([]string, len(existingUser.Roles))
+	for i, role := range existingUser.Roles {
+		userRoles[i] = role.Role
+	}
+
 	ttl := config.GetJWTTTL()
 	claims := &jwt_pkg.UserJWTClaims{
-		UserID: existingUser.ID.String(),
-		Role:   existingUser.Role.Role,
+		UserID:     existingUser.ID.String(),
+		Role:       userRoles,
+		ActiveRole: existingUser.DefaultRole.Role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(ttl) * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -178,12 +198,12 @@ func (s *service) VerifyEmail(ctx context.Context, token string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.contextTimeout)
 	defer cancel()
 
-	errValidation := make(map[string]string)
 	verificationToken, err := s.resetTokenRepo.FetchEmailVerificationToken(ctx, token)
 	if err != nil {
-		errValidation["token"] = "Invalid or expired verification token"
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"token": "Invalid or expired verification token"}, nil)
 	}
 
+	errValidation := make(map[string]string)
 	if verificationToken.Used {
 		errValidation["token"] = "Verification token already used"
 	}
@@ -196,7 +216,7 @@ func (s *service) VerifyEmail(ctx context.Context, token string) pkg.Response {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
 
-	if err := s.userRepo.VerifyEmail(ctx, verificationToken.UserID); err != nil {
+	if err := s.userRepo.VerifyEmail(ctx, verificationToken.UserID.String()); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to verify email", nil, nil)
 	}
 
@@ -299,20 +319,21 @@ func (s *service) ResetPassword(ctx context.Context, req ResetPasswordRequest) p
 		errValidation["new_password"] = "Password must contain uppercase, lowercase, and number"
 	}
 
+	if len(errValidation) > 0 {
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+	}
+
 	resetToken, err := s.resetTokenRepo.FetchPasswordResetToken(ctx, req.Token)
 	if err != nil {
-		errValidation["token"] = "Invalid or expired reset token"
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"token": "Invalid or expired reset token"}, nil)
 	}
 
 	if resetToken.Used {
-		errValidation["token"] = "Reset token already used"
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"token": "Reset token already used"}, nil)
 	}
 
 	if time.Now().After(resetToken.ExpiresAt) {
-		errValidation["token"] = "Reset token has expired"
-	}
-	if len(errValidation) > 0 {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"token": "Reset token has expired"}, nil)
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
@@ -320,7 +341,7 @@ func (s *service) ResetPassword(ctx context.Context, req ResetPasswordRequest) p
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to hash password", nil, nil)
 	}
 
-	if err := s.userRepo.UpdatePassword(ctx, resetToken.UserID, string(hashedPassword)); err != nil {
+	if err := s.userRepo.Update(ctx, resetToken.UserID.String(), map[string]interface{}{"password": string(hashedPassword)}); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update password", nil, nil)
 	}
 
@@ -347,21 +368,35 @@ func (s *service) OAuthLogin(ctx context.Context, provider string, gothUser goth
 		}
 
 		newUser := &user.User{
-			ID:        uuid.New(),
-			Username:  username,
-			Email:     gothUser.Email,
-			Password:  "",
-			RoleID:    1, // Default to regular user role
-			Status:    true,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			ID:            uuid.New(),
+			Username:      username,
+			Email:         gothUser.Email,
+			Password:      "",
+			Status:        true,
+			DefaultRoleID: 1,
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+		}
+
+		newRoleUser := &user.UserRole{
+			UserID: newUser.ID,
+			RoleID: 1,
 		}
 
 		if err := s.userRepo.Create(ctx, newUser); err != nil {
 			return pkg.NewResponse(http.StatusInternalServerError, "Failed to create user", nil, nil)
 		}
 
-		currentUser = newUser
+		if err := s.userRepo.CreateUserRole(ctx, newRoleUser); err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to create user role", nil, nil)
+		}
+
+		// Reload the new user from DB to get populated Roles association
+		loadedUser, err := s.userRepo.FindOne(ctx, map[string]interface{}{"id": newUser.ID})
+		if err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to load user data", nil, nil)
+		}
+		currentUser = loadedUser
 	} else {
 		if !existingUser.Status {
 			return pkg.NewResponse(http.StatusForbidden, "Your account has been banned", nil, nil)
@@ -369,10 +404,20 @@ func (s *service) OAuthLogin(ctx context.Context, provider string, gothUser goth
 		currentUser = existingUser
 	}
 
+	if len(currentUser.Roles) == 0 {
+		return pkg.NewResponse(http.StatusForbidden, "User has no assigned roles", nil, nil)
+	}
+
+	userRoles := make([]string, len(currentUser.Roles))
+	for i, role := range currentUser.Roles {
+		userRoles[i] = role.Role
+	}
+
 	ttl := config.GetJWTTTL()
 	claims := &jwt_pkg.UserJWTClaims{
-		UserID: currentUser.ID.String(),
-		Role:   currentUser.Role.Role,
+		UserID:     currentUser.ID.String(),
+		Role:       userRoles,
+		ActiveRole: currentUser.DefaultRole.Role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(ttl) * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -389,4 +434,40 @@ func (s *service) OAuthLogin(ctx context.Context, provider string, gothUser goth
 	}
 
 	return pkg.NewResponse(http.StatusOK, "OAuth login successful", nil, authResponse)
+}
+
+func (s *service) SwitchRole(ctx context.Context, claims jwt_pkg.UserJWTClaims, req SwitchRoleRequest) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.contextTimeout)
+	defer cancel()
+
+	errValidation := make(map[string]string)
+	if req.Role == "" {
+		errValidation["role"] = "Role is required"
+	}
+
+	if len(errValidation) > 0 {
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+	}
+
+	// Validate the requested role is actually assigned to this user
+	hasRole := false
+	for _, r := range claims.Role {
+		if r == req.Role {
+			hasRole = true
+			break
+		}
+	}
+	if !hasRole {
+		return pkg.NewResponse(http.StatusForbidden, "Access denied: role not assigned to user", nil, nil)
+	}
+
+	claims.ActiveRole = req.Role
+	newToken, err := jwt_pkg.GenerateJWTToken(claims)
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to generate new token", nil, nil)
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Role switched successfully", nil, AuthResponse{
+		Token: newToken,
+	})
 }

@@ -11,12 +11,13 @@ import (
 type Repository interface {
 	FindAllRoles(ctx context.Context) ([]Role, error)
 	FindRoleByID(ctx context.Context, roleID int8) (*Role, error)
+	CreateUserRole(ctx context.Context, userRole *UserRole) error
+	UpdateUserRoles(ctx context.Context, userID string, roleID int8) error
 	Create(ctx context.Context, user *User) error
+	Update(ctx context.Context, userID string, updateData map[string]interface{}) error
 	FindOne(ctx context.Context, options map[string]interface{}) (*User, error)
 	FindAll(ctx context.Context, options map[string]interface{}) ([]User, error)
-	UpdatePassword(ctx context.Context, userID uuid.UUID, hashedPassword string) error
-	Update(ctx context.Context, userID string, updateData map[string]interface{}) error
-	VerifyEmail(ctx context.Context, userID uuid.UUID) error
+	VerifyEmail(ctx context.Context, userID string) error
 }
 
 type repository struct {
@@ -49,7 +50,7 @@ func (r *repository) Create(ctx context.Context, user *User) error {
 
 func (r *repository) FindOne(ctx context.Context, options map[string]interface{}) (*User, error) {
 	var user User
-	if err := r.Conn.WithContext(ctx).Where(options).Preload("Role").First(&user).Error; err != nil {
+	if err := r.Conn.WithContext(ctx).Where(options).Preload("Roles").Preload("DefaultRole").First(&user).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil
@@ -57,10 +58,12 @@ func (r *repository) FindOne(ctx context.Context, options map[string]interface{}
 
 func (r *repository) FindAll(ctx context.Context, options map[string]interface{}) ([]User, error) {
 	var users []User
-	query := r.Conn.WithContext(ctx).Preload("Role").Where("role_id != ?", 8)
+	// Exclude superadmins (role_id=8) via the join table; preload all roles
+	query := r.Conn.WithContext(ctx).Preload("Roles").
+		Where("id NOT IN (?)", r.Conn.Table("user_roles").Select("user_id").Where("role_id = ?", 8))
 
 	if roleID, ok := options["role_id"]; ok && roleID != 0 {
-		query = query.Where("role_id = ?", roleID)
+		query = query.Where("id IN (?)", r.Conn.Table("user_roles").Select("user_id").Where("role_id = ?", roleID))
 	}
 	if status, ok := options["status"]; ok && status != nil {
 		query = query.Where("status = ?", status)
@@ -100,14 +103,23 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 	return users, nil
 }
 
-func (r *repository) UpdatePassword(ctx context.Context, userID uuid.UUID, hashedPassword string) error {
-	return r.Conn.WithContext(ctx).Model(&User{}).Where("id = ?", userID).Update("password", hashedPassword).Error
-}
-
 func (r *repository) Update(ctx context.Context, userID string, updateData map[string]interface{}) error {
 	return r.Conn.WithContext(ctx).Model(&User{}).Where("id = ?", userID).Updates(updateData).Error
 }
 
-func (r *repository) VerifyEmail(ctx context.Context, userID uuid.UUID) error {
+func (r *repository) VerifyEmail(ctx context.Context, userID string) error {
 	return r.Conn.WithContext(ctx).Model(&User{}).Where("id = ?", userID).Update("email_verified", true).Error
+}
+
+func (r *repository) CreateUserRole(ctx context.Context, userRole *UserRole) error {
+	return r.Conn.WithContext(ctx).Create(userRole).Error
+}
+
+func (r *repository) UpdateUserRoles(ctx context.Context, userID string, roleID int8) error {
+	return r.Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("user_id = ?", userID).Delete(&UserRole{}).Error; err != nil {
+			return err
+		}
+		return tx.Create(&UserRole{UserID: uuid.MustParse(userID), RoleID: roleID}).Error
+	})
 }

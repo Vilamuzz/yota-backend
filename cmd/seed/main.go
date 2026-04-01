@@ -8,6 +8,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/cmd/seed/models"
 	"github.com/Vilamuzz/yota-backend/config"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -58,28 +59,43 @@ func seedSuperAdmin(db *gorm.DB) error {
 		return err
 	}
 
+	// Make sure we only create if user doesn't exist
+	var existing user.User
+	if err := db.Where("email = ? OR username = ?", "superadmin@yota.com", "superadmin").First(&existing).Error; err == nil {
+		fmt.Println("⚠ SuperAdmin already exists, skipping...")
+		return nil
+	}
+
 	admin := user.User{
+		ID:            uuid.New(),
 		Username:      "superadmin",
 		Email:         "superadmin@yota.com",
 		Password:      string(hashedPassword),
-		RoleID:        8, // Superadmin role based on seedRoles
 		Status:        true,
 		EmailVerified: true,
+		DefaultRoleID: 8,
 	}
 
-	// Make sure we only create if user doesn't exist
-	var existing user.User
-	if err := db.Where("email = ? OR username = ?", admin.Email, admin.Username).First(&existing).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			if err := db.Create(&admin).Error; err != nil {
-				return fmt.Errorf("failed to seed superadmin: %w", err)
-			}
-			fmt.Println("✅ SuperAdmin seeded")
-			return nil
-		}
-		return err
+	if err := db.Create(&admin).Error; err != nil {
+		return fmt.Errorf("failed to seed superadmin: %w", err)
 	}
 
-	fmt.Println("⚠ SuperAdmin already exists, skipping...")
+	// Assign superadmin role (ID=8) via the join table
+	superadminRole := user.UserRole{
+		UserID: admin.ID,
+		RoleID: 8,
+	}
+	financeRole := user.UserRole{
+		UserID: admin.ID,
+		RoleID: 3,
+	}
+	if err := db.Create(&superadminRole).Error; err != nil {
+		return fmt.Errorf("failed to assign superadmin role: %w", err)
+	}
+	if err := db.Create(&financeRole).Error; err != nil {
+		return fmt.Errorf("failed to assign finance role: %w", err)
+	}
+
+	fmt.Println("✅ SuperAdmin seeded")
 	return nil
 }

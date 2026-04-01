@@ -11,6 +11,12 @@ import (
 	"gorm.io/gorm"
 )
 
+// userSeed holds a user definition together with the role to assign after creation.
+type userSeed struct {
+	user   user.User
+	roleID int8
+}
+
 func SeedMockUsers(db *gorm.DB) error {
 	fmt.Println("Seeding users...")
 
@@ -21,118 +27,30 @@ func SeedMockUsers(db *gorm.DB) error {
 		return fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	users := []user.User{
+	seeds := []userSeed{
 		// Chairman
-		{
-			ID:            uuid.New(),
-			Username:      "chairman",
-			Email:         "chairman@yota.com",
-			Password:      string(hashedPassword),
-			RoleID:        2, // user.RoleChairman,
-			Status:        true,
-			EmailVerified: true,
-			CreatedAt:     time.Now(),
-			UpdatedAt:     time.Now(),
-		},
+		{user: user.User{ID: uuid.New(), Username: "chairman", Email: "chairman@yota.com", Password: string(hashedPassword), Status: true, EmailVerified: true, DefaultRoleID: 2, CreatedAt: time.Now(), UpdatedAt: time.Now()}, roleID: 2},
 		// Social Manager
-		{
-			ID:            uuid.New(),
-			Username:      "social_manager",
-			Email:         "social@yota.com",
-			Password:      string(hashedPassword),
-			RoleID:        3, // user.RoleSocialManager,
-			Status:        true,
-			EmailVerified: true,
-			CreatedAt:     time.Now(),
-			UpdatedAt:     time.Now(),
-		},
+		{user: user.User{ID: uuid.New(), Username: "social_manager", Email: "social@yota.com", Password: string(hashedPassword), Status: true, EmailVerified: true, DefaultRoleID: 3, CreatedAt: time.Now(), UpdatedAt: time.Now()}, roleID: 3},
 		// Finance
-		{
-			ID:            uuid.New(),
-			Username:      "finance",
-			Email:         "finance@yota.com",
-			Password:      string(hashedPassword),
-			RoleID:        4, // user.RoleFinance,
-			Status:        true,
-			EmailVerified: true,
-			CreatedAt:     time.Now(),
-			UpdatedAt:     time.Now(),
-		},
+		{user: user.User{ID: uuid.New(), Username: "finance", Email: "finance@yota.com", Password: string(hashedPassword), Status: true, EmailVerified: true, DefaultRoleID: 4, CreatedAt: time.Now(), UpdatedAt: time.Now()}, roleID: 4},
 		// Ambulance Manager
-		{
-			ID:            uuid.New(),
-			Username:      "ambulance_manager",
-			Email:         "ambulance@yota.com",
-			Password:      string(hashedPassword),
-			RoleID:        5, // user.RoleAmbulanceManager,
-			Status:        true,
-			EmailVerified: true,
-			CreatedAt:     time.Now(),
-			UpdatedAt:     time.Now(),
-		},
+		{user: user.User{ID: uuid.New(), Username: "ambulance_manager", Email: "ambulance@yota.com", Password: string(hashedPassword), Status: true, EmailVerified: true, DefaultRoleID: 5, CreatedAt: time.Now(), UpdatedAt: time.Now()}, roleID: 5},
 		// Publication Manager
-		{
-			ID:            uuid.New(),
-			Username:      "publication_manager",
-			Email:         "publication@yota.com",
-			Password:      string(hashedPassword),
-			RoleID:        6, // user.RolePublicationManager,
-			Status:        true,
-			EmailVerified: true,
-			CreatedAt:     time.Now(),
-			UpdatedAt:     time.Now(),
-		},
+		{user: user.User{ID: uuid.New(), Username: "publication_manager", Email: "publication@yota.com", Password: string(hashedPassword), Status: true, EmailVerified: true, DefaultRoleID: 7, CreatedAt: time.Now(), UpdatedAt: time.Now()}, roleID: 7},
 		// Regular User 1
-		{
-			ID:            uuid.New(),
-			Username:      "user1",
-			Email:         "user1@yota.com",
-			Password:      string(hashedPassword),
-			RoleID:        1, // user.RoleUser,
-			Status:        true,
-			EmailVerified: true,
-			CreatedAt:     time.Now(),
-			UpdatedAt:     time.Now(),
-		},
+		{user: user.User{ID: uuid.New(), Username: "user1", Email: "user1@yota.com", Password: string(hashedPassword), Status: true, EmailVerified: true, DefaultRoleID: 1, CreatedAt: time.Now(), UpdatedAt: time.Now()}, roleID: 1},
 		// Regular User 2
-		{
-			ID:            uuid.New(),
-			Username:      "user2",
-			Email:         "user2@yota.com",
-			Password:      string(hashedPassword),
-			RoleID:        1, // user.RoleUser,
-			Status:        true,
-			EmailVerified: true,
-			CreatedAt:     time.Now(),
-			UpdatedAt:     time.Now(),
-		},
+		{user: user.User{ID: uuid.New(), Username: "user2", Email: "user2@yota.com", Password: string(hashedPassword), Status: true, EmailVerified: true, DefaultRoleID: 1, CreatedAt: time.Now(), UpdatedAt: time.Now()}, roleID: 1},
 		// Regular User 3 (unverified email)
-		{
-			ID:            uuid.New(),
-			Username:      "user3",
-			Email:         "user3@yota.com",
-			Password:      string(hashedPassword),
-			RoleID:        1, // user.RoleUser,
-			Status:        true,
-			EmailVerified: false,
-			CreatedAt:     time.Now(),
-			UpdatedAt:     time.Now(),
-		},
+		{user: user.User{ID: uuid.New(), Username: "user3", Email: "user3@yota.com", Password: string(hashedPassword), Status: true, EmailVerified: false, DefaultRoleID: 1, CreatedAt: time.Now(), UpdatedAt: time.Now()}, roleID: 1},
 		// Banned User
-		{
-			ID:            uuid.New(),
-			Username:      "banned_user",
-			Email:         "banned@yota.com",
-			Password:      string(hashedPassword),
-			RoleID:        1, // user.RoleUser,
-			Status:        false,
-			EmailVerified: true,
-			CreatedAt:     time.Now(),
-			UpdatedAt:     time.Now(),
-		},
+		{user: user.User{ID: uuid.New(), Username: "banned_user", Email: "banned@yota.com", Password: string(hashedPassword), Status: false, EmailVerified: true, DefaultRoleID: 1, CreatedAt: time.Now(), UpdatedAt: time.Now()}, roleID: 1},
 	}
 
-	for _, u := range users {
+	for _, s := range seeds {
+		u := s.user
+
 		// Check if user already exists
 		var existingUser user.User
 		if err := db.Where("email = ? OR username = ?", u.Email, u.Username).First(&existingUser).Error; err == nil {
@@ -144,8 +62,12 @@ func SeedMockUsers(db *gorm.DB) error {
 			log.Printf("Warning: Failed to create user %s: %v", u.Username, err)
 			continue
 		}
-		fmt.Printf("✓ Created user: %-20s | Email: %-25s | Role: %-20d\n", u.Username, u.Email, u.RoleID)
 
+		// Assign the configured role in the join table
+		userRole := user.UserRole{UserID: u.ID, RoleID: s.roleID}
+		if err := db.Create(&userRole).Error; err != nil {
+			log.Printf("Warning: Failed to assign role for user %s: %v", u.Username, err)
+		}
 	}
 
 	fmt.Println("\n================================================================================")
@@ -155,17 +77,17 @@ func SeedMockUsers(db *gorm.DB) error {
 	fmt.Println("\nUser Accounts:")
 	fmt.Println("--------------------------------------------------------------------------------")
 
-	for _, u := range users {
+	for _, s := range seeds {
 		verified := "✓ Verified"
-		if !u.EmailVerified {
+		if !s.user.EmailVerified {
 			verified = "✗ Not Verified"
 		}
 		status := "Active"
-		if !u.Status {
+		if !s.user.Status {
 			status = "Banned"
 		}
-		fmt.Printf("%-20s | %-25s | %-20d | %-15s | %s\n",
-			u.Username, u.Email, u.RoleID, verified, status)
+		fmt.Printf("%-20s | %-25s | %-15s | %s\n",
+			s.user.Username, s.user.Email, verified, status)
 	}
 
 	fmt.Println("================================================================================")
