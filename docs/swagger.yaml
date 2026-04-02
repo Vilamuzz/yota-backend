@@ -338,33 +338,32 @@ definitions:
   user.UpdatePasswordRequest:
     properties:
       current_password:
-        minLength: 6
         type: string
       new_password:
-        minLength: 6
         type: string
-    required:
-    - current_password
-    - new_password
     type: object
   user.UpdateProfileRequest:
     properties:
       email:
         type: string
       username:
-        maxLength: 50
-        minLength: 3
         type: string
     type: object
   user.UpdateUserRequest:
     properties:
-      role_id:
+      default_role_id:
         type: integer
+      roles:
+        items:
+          type: integer
+        type: array
       status:
         type: boolean
     type: object
   user.UserProfileResponse:
     properties:
+      default_role:
+        type: string
       email:
         type: string
       id:
@@ -379,6 +378,8 @@ definitions:
   user.UserResponse:
     properties:
       created_at:
+        type: string
+      default_role:
         type: string
       email:
         type: string

@@ -7,19 +7,21 @@ import (
 )
 
 type UserProfileResponse struct {
-	ID       string   `json:"id"`
-	Username string   `json:"username"`
-	Email    string   `json:"email"`
-	Roles    []string `json:"roles"`
+	ID          string   `json:"id"`
+	Username    string   `json:"username"`
+	Email       string   `json:"email"`
+	DefaultRole string   `json:"default_role"`
+	Roles       []string `json:"roles"`
 }
 
 type UserResponse struct {
-	ID        string    `json:"id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	Status    bool      `json:"status"`
-	Roles     []string  `json:"roles"`
-	CreatedAt time.Time `json:"created_at"`
+	ID          string    `json:"id"`
+	Username    string    `json:"username"`
+	Email       string    `json:"email"`
+	Status      bool      `json:"status"`
+	DefaultRole string    `json:"default_role"`
+	Roles       []string  `json:"roles"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type RoleResponse struct {
@@ -42,12 +44,13 @@ func (u *User) toUserResponse() UserResponse {
 		userRoles[i] = role.Role
 	}
 	return UserResponse{
-		ID:        u.ID.String(),
-		Username:  u.Username,
-		Email:     u.Email,
-		Status:    u.Status,
-		Roles:     userRoles,
-		CreatedAt: u.CreatedAt,
+		ID:          u.ID.String(),
+		Username:    u.Username,
+		Email:       u.Email,
+		Status:      u.Status,
+		DefaultRole: u.DefaultRole.Role,
+		Roles:       userRoles,
+		CreatedAt:   u.CreatedAt,
 	}
 }
 
@@ -57,10 +60,11 @@ func (u *User) toUserProfileResponse() UserProfileResponse {
 		userRoles[i] = role.Role
 	}
 	return UserProfileResponse{
-		ID:       u.ID.String(),
-		Username: u.Username,
-		Email:    u.Email,
-		Roles:    userRoles,
+		ID:          u.ID.String(),
+		Username:    u.Username,
+		Email:       u.Email,
+		DefaultRole: u.DefaultRole.Role,
+		Roles:       userRoles,
 	}
 }
 

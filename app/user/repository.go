@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -12,7 +11,7 @@ type Repository interface {
 	FindAllRoles(ctx context.Context) ([]Role, error)
 	FindRoleByID(ctx context.Context, roleID int8) (*Role, error)
 	CreateUserRole(ctx context.Context, userRole *UserRole) error
-	UpdateUserRoles(ctx context.Context, userID string, roleID int8) error
+	UpdateUserRoles(ctx context.Context, userID string, roles []UserRole) error
 	Create(ctx context.Context, user *User) error
 	Update(ctx context.Context, userID string, updateData map[string]interface{}) error
 	FindOne(ctx context.Context, options map[string]interface{}) (*User, error)
@@ -115,11 +114,16 @@ func (r *repository) CreateUserRole(ctx context.Context, userRole *UserRole) err
 	return r.Conn.WithContext(ctx).Create(userRole).Error
 }
 
-func (r *repository) UpdateUserRoles(ctx context.Context, userID string, roleID int8) error {
+func (r *repository) UpdateUserRoles(ctx context.Context, userID string, roles []UserRole) error {
 	return r.Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("user_id = ?", userID).Delete(&UserRole{}).Error; err != nil {
 			return err
 		}
-		return tx.Create(&UserRole{UserID: uuid.MustParse(userID), RoleID: roleID}).Error
+
+		if err := tx.Create(&roles).Error; err != nil {
+			return err
+		}
+
+		return nil
 	})
 }

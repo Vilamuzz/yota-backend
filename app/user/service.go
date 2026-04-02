@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -140,31 +141,71 @@ func (s *service) UpdateUser(ctx context.Context, userID string, payload UpdateU
 	defer cancel()
 
 	errValidation := make(map[string]string)
-	if payload.RoleID != 0 {
-		_, err := s.repo.FindRoleByID(ctx, payload.RoleID)
+
+	user, err := s.repo.FindOne(ctx, map[string]interface{}{"id": userID})
+	if err != nil {
+		return pkg.NewResponse(http.StatusNotFound, "User not found", nil, nil)
+	}
+
+	defaultRoleID := user.DefaultRoleID
+	if payload.DefaultRoleID != 0 {
+		_, err := s.repo.FindRoleByID(ctx, payload.DefaultRoleID)
 		if err != nil {
-			errValidation["role"] = "Invalid role"
+			errValidation["default_role"] = "Invalid default role"
+		} else {
+			defaultRoleID = payload.DefaultRoleID
 		}
 	}
+
+	if payload.Roles != nil {
+		hasDefault := false
+		for _, roleID := range payload.Roles {
+			_, err := s.repo.FindRoleByID(ctx, roleID)
+			if err != nil {
+				errValidation["roles"] = "Invalid role"
+				break
+			}
+			if roleID == defaultRoleID {
+				hasDefault = true
+			}
+		}
+		if errValidation["roles"] == "" && !hasDefault {
+			errValidation["roles"] = "User's default role must be included in the roles list"
+		}
+	}
+
 	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
 
-	if payload.RoleID == 0 && payload.Status == nil {
+	if payload.Roles == nil && payload.Status == nil && payload.DefaultRoleID == 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"update_data": "No fields to update"}, nil)
 	}
 
-	// Update roles via the join table if provided
-	if payload.RoleID != 0 {
-		if err := s.repo.UpdateUserRoles(ctx, userID, payload.RoleID); err != nil {
-			return pkg.NewResponse(http.StatusInternalServerError, "Failed to update user role", nil, nil)
+	updateMap := make(map[string]interface{})
+	if payload.Status != nil {
+		updateMap["status"] = *payload.Status
+	}
+	if payload.DefaultRoleID != 0 && payload.DefaultRoleID != user.DefaultRoleID {
+		updateMap["default_role_id"] = payload.DefaultRoleID
+	}
+
+	if len(updateMap) > 0 {
+		if err := s.repo.Update(ctx, userID, updateMap); err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to update user", nil, nil)
 		}
 	}
 
-	// Update direct user columns (status, etc.) if provided
-	if payload.Status != nil {
-		if err := s.repo.Update(ctx, userID, map[string]interface{}{"status": *payload.Status}); err != nil {
-			return pkg.NewResponse(http.StatusInternalServerError, "Failed to update user", nil, nil)
+	if payload.Roles != nil {
+		userRoles := make([]UserRole, 0, len(payload.Roles))
+		for _, roleID := range payload.Roles {
+			userRoles = append(userRoles, UserRole{
+				UserID: uuid.MustParse(userID),
+				RoleID: roleID,
+			})
+		}
+		if err := s.repo.UpdateUserRoles(ctx, userID, userRoles); err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to update user roles", nil, nil)
 		}
 	}
 

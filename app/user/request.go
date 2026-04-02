@@ -9,8 +9,9 @@ type CreateUserRequest struct {
 }
 
 type UpdateUserRequest struct {
-	RoleID int8  `json:"role_id"`
-	Status *bool `json:"status"`
+	DefaultRoleID int8   `json:"default_role_id"`
+	Roles         []int8 `json:"roles"`
+	Status        *bool  `json:"status"`
 }
 
 type UpdateProfileRequest struct {

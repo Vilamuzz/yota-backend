@@ -3831,18 +3831,12 @@ const docTemplate = `{
         },
         "user.UpdatePasswordRequest": {
             "type": "object",
-            "required": [
-                "current_password",
-                "new_password"
-            ],
             "properties": {
                 "current_password": {
-                    "type": "string",
-                    "minLength": 6
+                    "type": "string"
                 },
                 "new_password": {
-                    "type": "string",
-                    "minLength": 6
+                    "type": "string"
                 }
             }
         },
@@ -3853,17 +3847,21 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "username": {
-                    "type": "string",
-                    "maxLength": 50,
-                    "minLength": 3
+                    "type": "string"
                 }
             }
         },
         "user.UpdateUserRequest": {
             "type": "object",
             "properties": {
-                "role_id": {
+                "default_role_id": {
                     "type": "integer"
+                },
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 },
                 "status": {
                     "type": "boolean"
@@ -3873,6 +3871,9 @@ const docTemplate = `{
         "user.UserProfileResponse": {
             "type": "object",
             "properties": {
+                "default_role": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 },
@@ -3894,6 +3895,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "created_at": {
+                    "type": "string"
+                },
+                "default_role": {
                     "type": "string"
                 },
                 "email": {
