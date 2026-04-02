@@ -58,7 +58,7 @@ func (r *repository) FindOne(ctx context.Context, options map[string]interface{}
 func (r *repository) FindAll(ctx context.Context, options map[string]interface{}) ([]User, error) {
 	var users []User
 	// Exclude superadmins (role_id=8) via the join table; preload all roles
-	query := r.Conn.WithContext(ctx).Preload("Roles").
+	query := r.Conn.WithContext(ctx).Preload("Roles").Preload("DefaultRole").
 		Where("id NOT IN (?)", r.Conn.Table("user_roles").Select("user_id").Where("role_id = ?", 8))
 
 	if roleID, ok := options["role_id"]; ok && roleID != 0 {
