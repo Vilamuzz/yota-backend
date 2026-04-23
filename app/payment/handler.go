@@ -38,9 +38,11 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // @Tags Payments
 // @Accept json
 // @Produce json
-// @Param body body payment_pkg.MidtransNotificationRequest true "Midtrans notification payload"
+// @Param body body MidtransNotificationRequest true "Midtrans notification payload"
 // @Success 200 {object} pkg.Response
 // @Router /api/webhooks/midtrans/notification [post]
+// MidtransNotificationRequest is an alias for swagger docs
+type MidtransNotificationRequest payment_pkg.MidtransNotificationRequest
 func (h *handler) HandleMidtransNotification(c *gin.Context) {
 	ctx := c.Request.Context()
 

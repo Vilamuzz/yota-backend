@@ -27,14 +27,15 @@ definitions:
       role_name:
         type: string
     type: object
-  account.AddAccountRoleRequest:
+  account.SetAccountBanStatusRequest:
+    properties:
+      ban_status:
+        type: boolean
+    type: object
+  account.UpdateAccountRoleRequest:
     properties:
       is_active:
         type: boolean
-      is_default:
-        type: boolean
-      role_id:
-        type: integer
     type: object
   account.UpdatePasswordRequest:
     properties:
@@ -225,25 +226,6 @@ definitions:
       transaction_status:
         type: string
     type: object
-  donation_program_transaction.MidtransNotificationRequest:
-    properties:
-      fraud_status:
-        type: string
-      gross_amount:
-        type: string
-      order_id:
-        type: string
-      payment_type:
-        type: string
-      signature_key:
-        type: string
-      status_code:
-        type: string
-      transaction_id:
-        type: string
-      transaction_status:
-        type: string
-    type: object
   foster_children.Category:
     enum:
     - yatim
@@ -267,11 +249,13 @@ definitions:
     - pending
     - accepted
     - rejected
+    - canceled
     type: string
     x-enum-varnames:
     - StatusPending
     - StatusAccepted
     - StatusRejected
+    - StatusCanceled
   foster_children.UpdateFosterChildrenCandidateStatusRequest:
     properties:
       rejection_reason:
@@ -324,25 +308,6 @@ definitions:
       snap_redirect_url:
         type: string
       snap_token:
-        type: string
-      transaction_id:
-        type: string
-      transaction_status:
-        type: string
-    type: object
-  foster_children_transaction.MidtransNotificationRequest:
-    properties:
-      fraud_status:
-        type: string
-      gross_amount:
-        type: string
-      order_id:
-        type: string
-      payment_type:
-        type: string
-      signature_key:
-        type: string
-      status_code:
         type: string
       transaction_id:
         type: string
@@ -566,44 +531,12 @@ definitions:
       title:
         type: string
     type: object
-  social_program_invoice.SocialProgramInvoiceRequest:
-    properties:
-      amount:
-        type: number
-      billing_period:
-        type: string
-      due_date:
-        type: string
-      status:
-        $ref: '#/definitions/social_program_invoice.Status'
-      subscription_id:
-        type: string
-    required:
-    - amount
-    - billing_period
-    - due_date
-    - status
-    - subscription_id
-    type: object
-  social_program_invoice.Status:
-    enum:
-    - active
-    - paid
-    - unpaid
-    type: string
-    x-enum-varnames:
-    - StatusActive
-    - StatusPaid
-    - StatusUnpaid
   social_program_subscription.CreateSocialProgramSubscriptionRequest:
     properties:
       amount:
         type: number
       social_program_id:
         type: string
-    required:
-    - amount
-    - social_program_id
     type: object
   social_program_subscription.Status:
     enum:
@@ -619,33 +552,12 @@ definitions:
     properties:
       status:
         $ref: '#/definitions/social_program_subscription.Status'
-    required:
-    - status
     type: object
   social_program_transaction.CreateTransactionRequest:
     properties:
       gross_amount:
         type: number
       social_program_invoice_id:
-        type: string
-    type: object
-  social_program_transaction.MidtransNotificationRequest:
-    properties:
-      fraud_status:
-        type: string
-      gross_amount:
-        type: string
-      order_id:
-        type: string
-      payment_type:
-        type: string
-      signature_key:
-        type: string
-      status_code:
-        type: string
-      transaction_id:
-        type: string
-      transaction_status:
         type: string
     type: object
 info:
@@ -1093,18 +1005,6 @@ paths:
       - application/json
       description: Get a list of accounts
       parameters:
-      - description: Pagination limit
-        in: query
-        name: limit
-        type: integer
-      - description: Pagination cursor (next page)
-        in: query
-        name: next_cursor
-        type: string
-      - description: Pagination cursor (prev page)
-        in: query
-        name: prev_cursor
-        type: string
       - description: Search query
         in: query
         name: search
@@ -1117,6 +1017,26 @@ paths:
         in: query
         name: is_banned
         type: boolean
+      - description: Sort by
+        in: query
+        name: sort_by
+        type: string
+      - description: Sort order
+        in: query
+        name: sort_order
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
       produces:
       - application/json
       responses:
@@ -1136,7 +1056,7 @@ paths:
       summary: Get Accounts List
       tags:
       - Account
-  /api/admin/accounts/{id}:
+  /api/admin/accounts/{accountId}:
     get:
       consumes:
       - application/json
@@ -1144,7 +1064,7 @@ paths:
       parameters:
       - description: Account ID
         in: path
-        name: id
+        name: accountId
         required: true
         type: string
       produces:
@@ -1164,17 +1084,23 @@ paths:
       summary: Get Account Detail
       tags:
       - Account
-  /api/admin/accounts/{id}/ban:
+  /api/admin/accounts/{accountId}/ban:
     post:
       consumes:
       - application/json
-      description: Ban account by ID
+      description: Set ban status of an account by ID
       parameters:
       - description: Account ID
         in: path
-        name: id
+        name: accountId
         required: true
         type: string
+      - description: Ban status
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/account.SetAccountBanStatusRequest'
       produces:
       - application/json
       responses:
@@ -1184,39 +1110,10 @@ paths:
             $ref: '#/definitions/pkg.Response'
       security:
       - BearerAuth: []
-      summary: Ban Account
+      summary: Set Account Ban Status
       tags:
       - Account
-  /api/admin/accounts/{id}/roles:
-    post:
-      consumes:
-      - application/json
-      description: Add a new role for an account
-      parameters:
-      - description: Account ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Add Account Role Data
-        in: body
-        name: payload
-        required: true
-        schema:
-          $ref: '#/definitions/account.AddAccountRoleRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Add Account Role
-      tags:
-      - Account
-  /api/admin/accounts/{id}/roles/{roleId}:
+  /api/admin/accounts/{accountId}/roles/{roleId}:
     patch:
       consumes:
       - application/json
@@ -1224,7 +1121,7 @@ paths:
       parameters:
       - description: Account ID
         in: path
-        name: id
+        name: accountId
         required: true
         type: string
       - description: Role ID
@@ -1232,6 +1129,12 @@ paths:
         name: roleId
         required: true
         type: integer
+      - description: Update Role
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/account.UpdateAccountRoleRequest'
       produces:
       - application/json
       responses:
@@ -1242,6 +1145,33 @@ paths:
       security:
       - BearerAuth: []
       summary: Update Account Role
+      tags:
+      - Account
+    post:
+      consumes:
+      - application/json
+      description: Add a new role for an account
+      parameters:
+      - description: Account ID
+        in: path
+        name: accountId
+        required: true
+        type: string
+      - description: Role ID
+        in: path
+        name: roleId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Add Account Role
       tags:
       - Account
   /api/admin/donation-programs:
@@ -2205,262 +2135,6 @@ paths:
       summary: Delete Prayer
       tags:
       - Prayer
-  /api/admin/social-program-invoices:
-    get:
-      consumes:
-      - application/json
-      description: Retrieve a paginated list of social program invoices
-      parameters:
-      - description: Filter by subscription ID
-        in: query
-        name: subscription_id
-        type: string
-      - description: Filter by status
-        in: query
-        name: status
-        type: string
-      - description: Pagination limit
-        in: query
-        name: limit
-        type: integer
-      - description: Pagination cursor (next page)
-        in: query
-        name: next_cursor
-        type: string
-      - description: Pagination cursor (prev page)
-        in: query
-        name: prev_cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: List Social Program Invoices
-      tags:
-      - Social Program Invoices
-    post:
-      consumes:
-      - application/json
-      description: Create a new social program invoice manually (requires authentication
-        and proper role)
-      parameters:
-      - description: Invoice Data
-        in: body
-        name: payload
-        required: true
-        schema:
-          $ref: '#/definitions/social_program_invoice.SocialProgramInvoiceRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Create Social Program Invoice
-      tags:
-      - Social Program Invoices
-  /api/admin/social-program-invoices/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a social program invoice (requires authentication and proper
-        role)
-      parameters:
-      - description: Invoice ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Delete Social Program Invoice
-      tags:
-      - Social Program Invoices
-    get:
-      consumes:
-      - application/json
-      description: Get detailed information of a specific social program invoice
-      parameters:
-      - description: Invoice ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Get Social Program Invoice by ID
-      tags:
-      - Social Program Invoices
-    put:
-      consumes:
-      - application/json
-      description: Update an existing social program invoice (requires authentication
-        and proper role)
-      parameters:
-      - description: Invoice ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Invoice Data
-        in: body
-        name: payload
-        required: true
-        schema:
-          $ref: '#/definitions/social_program_invoice.SocialProgramInvoiceRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Update Social Program Invoice
-      tags:
-      - Social Program Invoices
-  /api/admin/social-program-subscriptions:
-    get:
-      consumes:
-      - application/json
-      description: Retrieve a list of all social program subscriptions (admin only)
-      parameters:
-      - description: Filter by social program ID
-        in: query
-        name: social_program_id
-        type: string
-      - description: Filter by account ID
-        in: query
-        name: account_id
-        type: string
-      - description: Filter by status
-        in: query
-        name: status
-        type: string
-      - description: Pagination limit
-        in: query
-        name: limit
-        type: integer
-      - description: Pagination cursor (next page)
-        in: query
-        name: next_cursor
-        type: string
-      - description: Pagination cursor (prev page)
-        in: query
-        name: prev_cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: List All Social Program Subscriptions
-      tags:
-      - Social Program Subscriptions
-  /api/admin/social-program-subscriptions/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Retrieve a specific social program subscription by its ID
-      parameters:
-      - description: Subscription ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Get Social Program Subscription By ID
-      tags:
-      - Social Program Subscriptions
-  /api/admin/social-program-transactions:
-    get:
-      description: Retrieve a paginated list of social program transactions (admin
-        only)
-      parameters:
-      - description: Filter by payment status
-        in: query
-        name: status
-        type: string
-      - description: Items per page
-        in: query
-        name: limit
-        type: integer
-      - description: Cursor for next page
-        in: query
-        name: next_cursor
-        type: string
-      - description: Cursor for previous page
-        in: query
-        name: prev_cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: List Social Program Transactions
-      tags:
-      - Social Program Transactions
-  /api/admin/social-program-transactions/{id}:
-    get:
-      description: Retrieve a specific social program transaction (admin only)
-      parameters:
-      - description: Transaction ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Get Social Program Transaction by ID
-      tags:
-      - Social Program Transactions
   /api/admin/social-programs:
     get:
       consumes:
@@ -2506,15 +2180,12 @@ paths:
       parameters:
       - in: formData
         name: billing_day
-        required: true
         type: integer
       - in: formData
         name: description
-        required: true
         type: string
       - in: formData
         name: minimum_amount
-        required: true
         type: number
       - enum:
         - active
@@ -2523,7 +2194,6 @@ paths:
         - draft
         in: formData
         name: status
-        required: true
         type: string
         x-enum-varnames:
         - StatusActive
@@ -2532,7 +2202,6 @@ paths:
         - StatusDraft
       - in: formData
         name: title
-        required: true
         type: string
       - description: Social Program Cover Image
         in: formData
@@ -2586,15 +2255,12 @@ paths:
         type: string
       - in: formData
         name: billing_day
-        required: true
         type: integer
       - in: formData
         name: description
-        required: true
         type: string
       - in: formData
         name: minimum_amount
-        required: true
         type: number
       - enum:
         - active
@@ -2603,7 +2269,6 @@ paths:
         - draft
         in: formData
         name: status
-        required: true
         type: string
         x-enum-varnames:
         - StatusActive
@@ -2612,7 +2277,6 @@ paths:
         - StatusDraft
       - in: formData
         name: title
-        required: true
         type: string
       - description: Social Program Cover Image
         in: formData
@@ -2644,18 +2308,15 @@ paths:
         type: string
       - in: formData
         name: amount
-        required: true
         type: number
       - in: formData
         name: expense_date
-        required: true
         type: string
       - in: formData
         name: note
         type: string
       - in: formData
         name: title
-        required: true
         type: string
       - description: Proof File
         in: formData
@@ -2673,7 +2334,7 @@ paths:
       summary: Create Social Program Expense
       tags:
       - Social Program Expenses
-  /api/admin/social-programs/expenses/{expense_id}:
+  /api/admin/social-programs/expenses/{id}:
     delete:
       consumes:
       - application/json
@@ -2682,7 +2343,7 @@ paths:
       parameters:
       - description: Expense ID
         in: path
-        name: expense_id
+        name: id
         required: true
         type: string
       produces:
@@ -2697,6 +2358,125 @@ paths:
       summary: Delete Social Program Expense
       tags:
       - Social Program Expenses
+  /api/admin/social-programs/subscriptions:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all social program subscriptions (admin only)
+      parameters:
+      - description: Filter by social program ID
+        in: query
+        name: social_program_id
+        type: string
+      - description: Filter by account ID
+        in: query
+        name: account_id
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List All Social Program Subscriptions
+      tags:
+      - Social Programs
+  /api/admin/social-programs/subscriptions/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a specific social program subscription by its ID
+      parameters:
+      - description: Subscription ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Social Program Subscription By ID
+      tags:
+      - Social Programs
+  /api/admin/social-programs/transactions:
+    get:
+      description: Retrieve a paginated list of social program transactions (admin
+        only)
+      parameters:
+      - description: Filter by payment status
+        in: query
+        name: status
+        type: string
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for next page
+        in: query
+        name: next_cursor
+        type: string
+      - description: Cursor for previous page
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List Social Program Transactions
+      tags:
+      - Social Programs
+  /api/admin/social-programs/transactions/{id}:
+    get:
+      description: Retrieve a specific social program transaction (admin only)
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Social Program Transaction by ID
+      tags:
+      - Social Programs
   /api/auth/forget-password:
     post:
       consumes:
@@ -3009,28 +2789,6 @@ paths:
       summary: Create Donation Program Transaction
       tags:
       - Donation Programs
-  /api/donation-programs/transactions/notification:
-    post:
-      consumes:
-      - application/json
-      description: Webhook endpoint for Midtrans to send payment status updates
-      parameters:
-      - description: Midtrans notification payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/donation_program_transaction.MidtransNotificationRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      summary: Midtrans Payment Notification
-      tags:
-      - Donation Programs
   /api/foster-children:
     get:
       consumes:
@@ -3195,29 +2953,6 @@ paths:
       summary: Create Foster Children Candidate
       tags:
       - Foster Children Candidates
-  /api/foster-children/transactions/notification:
-    post:
-      consumes:
-      - application/json
-      description: Webhook endpoint for Midtrans to send payment status updates for
-        foster children transactions
-      parameters:
-      - description: Midtrans notification payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/foster_children_transaction.MidtransNotificationRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      summary: Midtrans Payment Notification (Foster Children)
-      tags:
-      - Foster Children
   /api/galleries/:
     get:
       consumes:
@@ -3706,7 +3441,7 @@ paths:
       summary: Update User Profile
       tags:
       - Account
-  /api/me/social-program-transactions:
+  /api/me/social-programs/transactions:
     get:
       description: Retrieve a paginated list of social program transactions for the
         authenticated user
@@ -3738,8 +3473,8 @@ paths:
       - BearerAuth: []
       summary: List My Social Program Transactions
       tags:
-      - Social Program Transactions
-  /api/me/social-program-transactions/{id}:
+      - Social Programs
+  /api/me/social-programs/transactions/{id}:
     get:
       description: Retrieve a specific social program transaction owned by the authenticated
         user
@@ -3760,7 +3495,106 @@ paths:
       - BearerAuth: []
       summary: Get My Social Program Transaction by ID
       tags:
-      - Social Program Transactions
+      - Social Programs
+  /api/me/subscriptions:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of the authenticated user's social program subscriptions
+      parameters:
+      - description: Filter by social program ID
+        in: query
+        name: social_program_id
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List My Social Program Subscriptions
+      tags:
+      - Social Programs
+  /api/me/subscriptions/{id}/invoices:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a paginated list of social program invoices
+      parameters:
+      - description: Filter by subscription ID
+        in: query
+        name: subscription_id
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List Social Program Invoices
+      tags:
+      - Social Programs
+  /api/me/subscriptions/invoices/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific social program invoice
+      parameters:
+      - description: Invoice ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Social Program Invoice by ID
+      tags:
+      - Social Programs
   /api/news/:
     get:
       consumes:
@@ -4068,162 +3902,6 @@ paths:
       summary: Get Published Gallery
       tags:
       - Gallery
-  /api/social-program-subscriptions:
-    get:
-      consumes:
-      - application/json
-      description: Retrieve a list of the authenticated user's social program subscriptions
-      parameters:
-      - description: Filter by social program ID
-        in: query
-        name: social_program_id
-        type: string
-      - description: Filter by status
-        in: query
-        name: status
-        type: string
-      - description: Pagination limit
-        in: query
-        name: limit
-        type: integer
-      - description: Pagination cursor (next page)
-        in: query
-        name: next_cursor
-        type: string
-      - description: Pagination cursor (prev page)
-        in: query
-        name: prev_cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: List My Social Program Subscriptions
-      tags:
-      - Social Program Subscriptions
-    post:
-      consumes:
-      - application/json
-      description: Subscribe to a social program
-      parameters:
-      - description: Subscription Data
-        in: body
-        name: payload
-        required: true
-        schema:
-          $ref: '#/definitions/social_program_subscription.CreateSocialProgramSubscriptionRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Create Social Program Subscription
-      tags:
-      - Social Program Subscriptions
-  /api/social-program-subscriptions/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a social program subscription
-      parameters:
-      - description: Subscription ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Delete Social Program Subscription
-      tags:
-      - Social Program Subscriptions
-    put:
-      consumes:
-      - application/json
-      description: Update the status of a social program subscription
-      parameters:
-      - description: Subscription ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Subscription Update Data
-        in: body
-        name: payload
-        required: true
-        schema:
-          $ref: '#/definitions/social_program_subscription.UpdateSocialProgramSubscriptionRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Update Social Program Subscription
-      tags:
-      - Social Program Subscriptions
-  /api/social-program-transactions:
-    post:
-      consumes:
-      - application/json
-      description: Initiate a Midtrans Snap payment for a social program invoice
-      parameters:
-      - description: Transaction request
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/social_program_transaction.CreateTransactionRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      summary: Create Social Program Transaction
-      tags:
-      - Social Program Transactions
-  /api/social-program-transactions/notification:
-    post:
-      consumes:
-      - application/json
-      description: Webhook endpoint for Midtrans to send payment status updates
-      parameters:
-      - description: Midtrans notification payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/social_program_transaction.MidtransNotificationRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      summary: Midtrans Payment Notification
-      tags:
-      - Social Program Transactions
   /api/social-programs:
     get:
       consumes:
@@ -4258,27 +3936,6 @@ paths:
           schema:
             $ref: '#/definitions/pkg.Response'
       summary: List Social Programs
-      tags:
-      - Social Programs
-  /api/social-programs/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Get detailed information of a specific social program
-      parameters:
-      - description: Social Program ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      summary: Get Social Program by ID
       tags:
       - Social Programs
   /api/social-programs/{id}/expenses:
@@ -4319,7 +3976,28 @@ paths:
       summary: List Social Program Expenses
       tags:
       - Social Program Expenses
-  /api/social-programs/expenses/{expense_id}:
+  /api/social-programs/{slug}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific social program
+      parameters:
+      - description: Social Program Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Get Social Program by ID
+      tags:
+      - Social Programs
+  /api/social-programs/expenses/{id}:
     get:
       consumes:
       - application/json
@@ -4327,7 +4005,7 @@ paths:
       parameters:
       - description: Expense ID
         in: path
-        name: expense_id
+        name: id
         required: true
         type: string
       produces:
@@ -4345,6 +4023,81 @@ paths:
       summary: Get Social Program Expense by ID
       tags:
       - Social Program Expenses
+  /api/social-programs/subscriptions:
+    post:
+      consumes:
+      - application/json
+      description: Subscribe to a social program
+      parameters:
+      - description: Subscription Data
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/social_program_subscription.CreateSocialProgramSubscriptionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Social Program Subscription
+      tags:
+      - Social Programs
+  /api/social-programs/subscriptions/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Update the status of a social program subscription
+      parameters:
+      - description: Subscription ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Subscription Update Data
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/social_program_subscription.UpdateSocialProgramSubscriptionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Social Program Subscription
+      tags:
+      - Social Programs
+  /api/social-programs/transactions:
+    post:
+      consumes:
+      - application/json
+      description: Initiate a Midtrans Snap payment for a social program invoice
+      parameters:
+      - description: Transaction request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/social_program_transaction.CreateTransactionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Create Social Program Transaction
+      tags:
+      - Social Programs
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.

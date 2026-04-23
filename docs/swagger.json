@@ -705,24 +705,6 @@
                 "summary": "Get Accounts List",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Pagination limit",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (next page)",
-                        "name": "next_cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (prev page)",
-                        "name": "prev_cursor",
-                        "in": "query"
-                    },
-                    {
                         "type": "string",
                         "description": "Search query",
                         "name": "search",
@@ -738,6 +720,36 @@
                         "type": "boolean",
                         "description": "Status filter",
                         "name": "is_banned",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort order",
+                        "name": "sort_order",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
                         "in": "query"
                     }
                 ],
@@ -766,7 +778,7 @@
                 }
             }
         },
-        "/api/admin/accounts/{id}": {
+        "/api/admin/accounts/{accountId}": {
             "get": {
                 "security": [
                     {
@@ -788,7 +800,7 @@
                     {
                         "type": "string",
                         "description": "Account ID",
-                        "name": "id",
+                        "name": "accountId",
                         "in": "path",
                         "required": true
                     }
@@ -815,14 +827,14 @@
                 }
             }
         },
-        "/api/admin/accounts/{id}/ban": {
+        "/api/admin/accounts/{accountId}/ban": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Ban account by ID",
+                "description": "Set ban status of an account by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -832,14 +844,23 @@
                 "tags": [
                     "Account"
                 ],
-                "summary": "Ban Account",
+                "summary": "Set Account Ban Status",
                 "parameters": [
                     {
                         "type": "string",
                         "description": "Account ID",
-                        "name": "id",
+                        "name": "accountId",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "Ban status",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/account.SetAccountBanStatusRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -852,7 +873,7 @@
                 }
             }
         },
-        "/api/admin/accounts/{id}/roles": {
+        "/api/admin/accounts/{accountId}/roles/{roleId}": {
             "post": {
                 "security": [
                     {
@@ -874,18 +895,16 @@
                     {
                         "type": "string",
                         "description": "Account ID",
-                        "name": "id",
+                        "name": "accountId",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Add Account Role Data",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/account.AddAccountRoleRequest"
-                        }
+                        "type": "integer",
+                        "description": "Role ID",
+                        "name": "roleId",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -896,9 +915,7 @@
                         }
                     }
                 }
-            }
-        },
-        "/api/admin/accounts/{id}/roles/{roleId}": {
+            },
             "patch": {
                 "security": [
                     {
@@ -920,7 +937,7 @@
                     {
                         "type": "string",
                         "description": "Account ID",
-                        "name": "id",
+                        "name": "accountId",
                         "in": "path",
                         "required": true
                     },
@@ -930,6 +947,15 @@
                         "name": "roleId",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "Update Role",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/account.UpdateAccountRoleRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -2428,407 +2454,6 @@
                 }
             }
         },
-        "/api/admin/social-program-invoices": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve a paginated list of social program invoices",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Social Program Invoices"
-                ],
-                "summary": "List Social Program Invoices",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by subscription ID",
-                        "name": "subscription_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by status",
-                        "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Pagination limit",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (next page)",
-                        "name": "next_cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (prev page)",
-                        "name": "prev_cursor",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Create a new social program invoice manually (requires authentication and proper role)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Social Program Invoices"
-                ],
-                "summary": "Create Social Program Invoice",
-                "parameters": [
-                    {
-                        "description": "Invoice Data",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/social_program_invoice.SocialProgramInvoiceRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/admin/social-program-invoices/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get detailed information of a specific social program invoice",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Social Program Invoices"
-                ],
-                "summary": "Get Social Program Invoice by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Invoice ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update an existing social program invoice (requires authentication and proper role)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Social Program Invoices"
-                ],
-                "summary": "Update Social Program Invoice",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Invoice ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Invoice Data",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/social_program_invoice.SocialProgramInvoiceRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Delete a social program invoice (requires authentication and proper role)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Social Program Invoices"
-                ],
-                "summary": "Delete Social Program Invoice",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Invoice ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/admin/social-program-subscriptions": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve a list of all social program subscriptions (admin only)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Social Program Subscriptions"
-                ],
-                "summary": "List All Social Program Subscriptions",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by social program ID",
-                        "name": "social_program_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by account ID",
-                        "name": "account_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by status",
-                        "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Pagination limit",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (next page)",
-                        "name": "next_cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (prev page)",
-                        "name": "prev_cursor",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/admin/social-program-subscriptions/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve a specific social program subscription by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Social Program Subscriptions"
-                ],
-                "summary": "Get Social Program Subscription By ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Subscription ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/admin/social-program-transactions": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve a paginated list of social program transactions (admin only)",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Social Program Transactions"
-                ],
-                "summary": "List Social Program Transactions",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by payment status",
-                        "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Items per page",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Cursor for next page",
-                        "name": "next_cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Cursor for previous page",
-                        "name": "prev_cursor",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/admin/social-program-transactions/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve a specific social program transaction (admin only)",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Social Program Transactions"
-                ],
-                "summary": "Get Social Program Transaction by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Transaction ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
         "/api/admin/social-programs": {
             "get": {
                 "security": [
@@ -2909,20 +2534,17 @@
                     {
                         "type": "integer",
                         "name": "billing_day",
-                        "in": "formData",
-                        "required": true
+                        "in": "formData"
                     },
                     {
                         "type": "string",
                         "name": "description",
-                        "in": "formData",
-                        "required": true
+                        "in": "formData"
                     },
                     {
                         "type": "number",
                         "name": "minimum_amount",
-                        "in": "formData",
-                        "required": true
+                        "in": "formData"
                     },
                     {
                         "enum": [
@@ -2939,14 +2561,12 @@
                             "StatusDraft"
                         ],
                         "name": "status",
-                        "in": "formData",
-                        "required": true
+                        "in": "formData"
                     },
                     {
                         "type": "string",
                         "name": "title",
-                        "in": "formData",
-                        "required": true
+                        "in": "formData"
                     },
                     {
                         "type": "file",
@@ -2966,7 +2586,7 @@
                 }
             }
         },
-        "/api/admin/social-programs/expenses/{expense_id}": {
+        "/api/admin/social-programs/expenses/{id}": {
             "delete": {
                 "security": [
                     {
@@ -2988,7 +2608,195 @@
                     {
                         "type": "string",
                         "description": "Expense ID",
-                        "name": "expense_id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/social-programs/subscriptions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a list of all social program subscriptions (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "List All Social Program Subscriptions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by social program ID",
+                        "name": "social_program_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by account ID",
+                        "name": "account_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/social-programs/subscriptions/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific social program subscription by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "Get Social Program Subscription By ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Subscription ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/social-programs/transactions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a paginated list of social program transactions (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "List Social Program Transactions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by payment status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for next page",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for previous page",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/social-programs/transactions/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific social program transaction (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "Get Social Program Transaction by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Transaction ID",
+                        "name": "id",
                         "in": "path",
                         "required": true
                     }
@@ -3032,20 +2840,17 @@
                     {
                         "type": "integer",
                         "name": "billing_day",
-                        "in": "formData",
-                        "required": true
+                        "in": "formData"
                     },
                     {
                         "type": "string",
                         "name": "description",
-                        "in": "formData",
-                        "required": true
+                        "in": "formData"
                     },
                     {
                         "type": "number",
                         "name": "minimum_amount",
-                        "in": "formData",
-                        "required": true
+                        "in": "formData"
                     },
                     {
                         "enum": [
@@ -3062,14 +2867,12 @@
                             "StatusDraft"
                         ],
                         "name": "status",
-                        "in": "formData",
-                        "required": true
+                        "in": "formData"
                     },
                     {
                         "type": "string",
                         "name": "title",
-                        "in": "formData",
-                        "required": true
+                        "in": "formData"
                     },
                     {
                         "type": "file",
@@ -3152,14 +2955,12 @@
                     {
                         "type": "number",
                         "name": "amount",
-                        "in": "formData",
-                        "required": true
+                        "in": "formData"
                     },
                     {
                         "type": "string",
                         "name": "expense_date",
-                        "in": "formData",
-                        "required": true
+                        "in": "formData"
                     },
                     {
                         "type": "string",
@@ -3169,8 +2970,7 @@
                     {
                         "type": "string",
                         "name": "title",
-                        "in": "formData",
-                        "required": true
+                        "in": "formData"
                     },
                     {
                         "type": "file",
@@ -3538,40 +3338,6 @@
                 }
             }
         },
-        "/api/donation-programs/transactions/notification": {
-            "post": {
-                "description": "Webhook endpoint for Midtrans to send payment status updates",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Donation Programs"
-                ],
-                "summary": "Midtrans Payment Notification",
-                "parameters": [
-                    {
-                        "description": "Midtrans notification payload",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/donation_program_transaction.MidtransNotificationRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
         "/api/donation-programs/{slug}": {
             "get": {
                 "description": "Get detailed information of a specific published donation program",
@@ -3876,40 +3642,6 @@
                 "responses": {
                     "201": {
                         "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/foster-children/transactions/notification": {
-            "post": {
-                "description": "Webhook endpoint for Midtrans to send payment status updates for foster children transactions",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Foster Children"
-                ],
-                "summary": "Midtrans Payment Notification (Foster Children)",
-                "parameters": [
-                    {
-                        "description": "Midtrans notification payload",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/foster_children_transaction.MidtransNotificationRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/pkg.Response"
                         }
@@ -4774,7 +4506,7 @@
                 }
             }
         },
-        "/api/me/social-program-transactions": {
+        "/api/me/social-programs/transactions": {
             "get": {
                 "security": [
                     {
@@ -4786,7 +4518,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Social Program Transactions"
+                    "Social Programs"
                 ],
                 "summary": "List My Social Program Transactions",
                 "parameters": [
@@ -4825,7 +4557,7 @@
                 }
             }
         },
-        "/api/me/social-program-transactions/{id}": {
+        "/api/me/social-programs/transactions/{id}": {
             "get": {
                 "security": [
                     {
@@ -4837,7 +4569,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Social Program Transactions"
+                    "Social Programs"
                 ],
                 "summary": "Get My Social Program Transaction by ID",
                 "parameters": [
@@ -4847,6 +4579,163 @@
                         "name": "id",
                         "in": "path",
                         "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/me/subscriptions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a list of the authenticated user's social program subscriptions",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "List My Social Program Subscriptions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by social program ID",
+                        "name": "social_program_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/me/subscriptions/invoices/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information of a specific social program invoice",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "Get Social Program Invoice by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Invoice ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/me/subscriptions/{id}/invoices": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a paginated list of social program invoices",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "List Social Program Invoices",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by subscription ID",
+                        "name": "subscription_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -5339,252 +5228,6 @@
                 }
             }
         },
-        "/api/social-program-subscriptions": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve a list of the authenticated user's social program subscriptions",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Social Program Subscriptions"
-                ],
-                "summary": "List My Social Program Subscriptions",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by social program ID",
-                        "name": "social_program_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by status",
-                        "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Pagination limit",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (next page)",
-                        "name": "next_cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (prev page)",
-                        "name": "prev_cursor",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Subscribe to a social program",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Social Program Subscriptions"
-                ],
-                "summary": "Create Social Program Subscription",
-                "parameters": [
-                    {
-                        "description": "Subscription Data",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/social_program_subscription.CreateSocialProgramSubscriptionRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/social-program-subscriptions/{id}": {
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update the status of a social program subscription",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Social Program Subscriptions"
-                ],
-                "summary": "Update Social Program Subscription",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Subscription ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Subscription Update Data",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/social_program_subscription.UpdateSocialProgramSubscriptionRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Delete a social program subscription",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Social Program Subscriptions"
-                ],
-                "summary": "Delete Social Program Subscription",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Subscription ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/social-program-transactions": {
-            "post": {
-                "description": "Initiate a Midtrans Snap payment for a social program invoice",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Social Program Transactions"
-                ],
-                "summary": "Create Social Program Transaction",
-                "parameters": [
-                    {
-                        "description": "Transaction request",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/social_program_transaction.CreateTransactionRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/social-program-transactions/notification": {
-            "post": {
-                "description": "Webhook endpoint for Midtrans to send payment status updates",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Social Program Transactions"
-                ],
-                "summary": "Midtrans Payment Notification",
-                "parameters": [
-                    {
-                        "description": "Midtrans notification payload",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/social_program_transaction.MidtransNotificationRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
         "/api/social-programs": {
             "get": {
                 "description": "Retrieve a list of social programs",
@@ -5640,7 +5283,7 @@
                 }
             }
         },
-        "/api/social-programs/expenses/{expense_id}": {
+        "/api/social-programs/expenses/{id}": {
             "get": {
                 "description": "Get detailed information of a specific social program expense",
                 "consumes": [
@@ -5657,7 +5300,7 @@
                     {
                         "type": "string",
                         "description": "Expense ID",
-                        "name": "expense_id",
+                        "name": "id",
                         "in": "path",
                         "required": true
                     }
@@ -5684,9 +5327,14 @@
                 }
             }
         },
-        "/api/social-programs/{id}": {
-            "get": {
-                "description": "Get detailed information of a specific social program",
+        "/api/social-programs/subscriptions": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Subscribe to a social program",
                 "consumes": [
                     "application/json"
                 ],
@@ -5696,19 +5344,101 @@
                 "tags": [
                     "Social Programs"
                 ],
-                "summary": "Get Social Program by ID",
+                "summary": "Create Social Program Subscription",
+                "parameters": [
+                    {
+                        "description": "Subscription Data",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/social_program_subscription.CreateSocialProgramSubscriptionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/social-programs/subscriptions/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update the status of a social program subscription",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "Update Social Program Subscription",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Social Program ID",
+                        "description": "Subscription ID",
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "Subscription Update Data",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/social_program_subscription.UpdateSocialProgramSubscriptionRequest"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/social-programs/transactions": {
+            "post": {
+                "description": "Initiate a Midtrans Snap payment for a social program invoice",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "Create Social Program Transaction",
+                "parameters": [
+                    {
+                        "description": "Transaction request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/social_program_transaction.CreateTransactionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/pkg.Response"
                         }
@@ -5777,6 +5507,38 @@
                     }
                 }
             }
+        },
+        "/api/social-programs/{slug}": {
+            "get": {
+                "description": "Get detailed information of a specific social program",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "Get Social Program by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Social Program Slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -5823,17 +5585,19 @@
                 }
             }
         },
-        "account.AddAccountRoleRequest": {
+        "account.SetAccountBanStatusRequest": {
+            "type": "object",
+            "properties": {
+                "ban_status": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "account.UpdateAccountRoleRequest": {
             "type": "object",
             "properties": {
                 "is_active": {
                     "type": "boolean"
-                },
-                "is_default": {
-                    "type": "boolean"
-                },
-                "role_id": {
-                    "type": "integer"
                 }
             }
         },
@@ -6115,35 +5879,6 @@
                 }
             }
         },
-        "donation_program_transaction.MidtransNotificationRequest": {
-            "type": "object",
-            "properties": {
-                "fraud_status": {
-                    "type": "string"
-                },
-                "gross_amount": {
-                    "type": "string"
-                },
-                "order_id": {
-                    "type": "string"
-                },
-                "payment_type": {
-                    "type": "string"
-                },
-                "signature_key": {
-                    "type": "string"
-                },
-                "status_code": {
-                    "type": "string"
-                },
-                "transaction_id": {
-                    "type": "string"
-                },
-                "transaction_status": {
-                    "type": "string"
-                }
-            }
-        },
         "foster_children.Category": {
             "type": "string",
             "enum": [
@@ -6173,12 +5908,14 @@
             "enum": [
                 "pending",
                 "accepted",
-                "rejected"
+                "rejected",
+                "canceled"
             ],
             "x-enum-varnames": [
                 "StatusPending",
                 "StatusAccepted",
-                "StatusRejected"
+                "StatusRejected",
+                "StatusCanceled"
             ]
         },
         "foster_children.UpdateFosterChildrenCandidateStatusRequest": {
@@ -6260,35 +5997,6 @@
                     "type": "string"
                 },
                 "snap_token": {
-                    "type": "string"
-                },
-                "transaction_id": {
-                    "type": "string"
-                },
-                "transaction_status": {
-                    "type": "string"
-                }
-            }
-        },
-        "foster_children_transaction.MidtransNotificationRequest": {
-            "type": "object",
-            "properties": {
-                "fraud_status": {
-                    "type": "string"
-                },
-                "gross_amount": {
-                    "type": "string"
-                },
-                "order_id": {
-                    "type": "string"
-                },
-                "payment_type": {
-                    "type": "string"
-                },
-                "signature_key": {
-                    "type": "string"
-                },
-                "status_code": {
                     "type": "string"
                 },
                 "transaction_id": {
@@ -6624,52 +6332,8 @@
                 }
             }
         },
-        "social_program_invoice.SocialProgramInvoiceRequest": {
-            "type": "object",
-            "required": [
-                "amount",
-                "billing_period",
-                "due_date",
-                "status",
-                "subscription_id"
-            ],
-            "properties": {
-                "amount": {
-                    "type": "number"
-                },
-                "billing_period": {
-                    "type": "string"
-                },
-                "due_date": {
-                    "type": "string"
-                },
-                "status": {
-                    "$ref": "#/definitions/social_program_invoice.Status"
-                },
-                "subscription_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "social_program_invoice.Status": {
-            "type": "string",
-            "enum": [
-                "active",
-                "paid",
-                "unpaid"
-            ],
-            "x-enum-varnames": [
-                "StatusActive",
-                "StatusPaid",
-                "StatusUnpaid"
-            ]
-        },
         "social_program_subscription.CreateSocialProgramSubscriptionRequest": {
             "type": "object",
-            "required": [
-                "amount",
-                "social_program_id"
-            ],
             "properties": {
                 "amount": {
                     "type": "number"
@@ -6694,9 +6358,6 @@
         },
         "social_program_subscription.UpdateSocialProgramSubscriptionRequest": {
             "type": "object",
-            "required": [
-                "status"
-            ],
             "properties": {
                 "status": {
                     "$ref": "#/definitions/social_program_subscription.Status"
@@ -6710,35 +6371,6 @@
                     "type": "number"
                 },
                 "social_program_invoice_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "social_program_transaction.MidtransNotificationRequest": {
-            "type": "object",
-            "properties": {
-                "fraud_status": {
-                    "type": "string"
-                },
-                "gross_amount": {
-                    "type": "string"
-                },
-                "order_id": {
-                    "type": "string"
-                },
-                "payment_type": {
-                    "type": "string"
-                },
-                "signature_key": {
-                    "type": "string"
-                },
-                "status_code": {
-                    "type": "string"
-                },
-                "transaction_id": {
-                    "type": "string"
-                },
-                "transaction_status": {
                     "type": "string"
                 }
             }
