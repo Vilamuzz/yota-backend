@@ -109,7 +109,6 @@ func (s *service) ListLogs(ctx context.Context, params LogQueryParams) pkg.Respo
 		"logs": responses,
 		"pagination": pkg.CursorPagination{
 			NextCursor: nextCursor,
-			HasNext:    hasMore,
 			Limit:      params.Limit,
 		},
 	})

@@ -52,13 +52,13 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // @Router /ambulance-requests/me [get]
 func (h *handler) ListMyAmbulanceRequests(c *gin.Context) {
 	ctx := c.Request.Context()
-	userID := c.MustGet("userID").(string)
+	accountID := c.MustGet("accountID").(string)
 	var queryParams AmbulanceRequestQueryParams
 	if err := c.ShouldBindQuery(&queryParams); err != nil {
 		c.JSON(400, pkg.NewResponse(400, "Invalid query parameters", nil, nil))
 		return
 	}
-	queryParams.UserID = userID
+	queryParams.AccountID = accountID
 	res := h.service.ListAmbulanceRequest(ctx, queryParams)
 	c.JSON(res.Status, res)
 }

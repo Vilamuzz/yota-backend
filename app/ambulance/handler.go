@@ -2,7 +2,6 @@ package ambulance
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/pkg"
@@ -64,12 +63,7 @@ func (h *handler) ListAmbulances(c *gin.Context) {
 
 func (h *handler) GetAmbulanceByID(c *gin.Context) {
 	ctx := c.Request.Context()
-	id := c.Param("id")
-	ambulanceID, err := strconv.Atoi(id)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid ambulance ID", nil, nil))
-		return
-	}
+	ambulanceID := c.Param("id")
 	res := h.service.FindAmbulanceById(ctx, ambulanceID)
 	c.JSON(res.Status, res)
 }
@@ -79,9 +73,10 @@ func (h *handler) GetAmbulanceByID(c *gin.Context) {
 // @Description Create a new ambulance with the provided details
 // @Tags Ambulances
 // @Security BearerAuth
-// @Accept json
+// @Accept mpfd
 // @Produce json
-// @Param ambulance body CreateAmbulanceRequest true "Ambulance details"
+// @Param ambulance formData CreateAmbulanceRequest true "Ambulance details"
+// @Param image formData file false "Ambulance Image"
 // @Success 200 {object} pkg.Response
 // @Failure 400 {object} pkg.Response
 // @Failure 500 {object} pkg.Response
@@ -102,22 +97,19 @@ func (h *handler) CreateAmbulance(c *gin.Context) {
 // @Description Update the details of an existing ambulance by ID
 // @Tags Ambulances
 // @Security BearerAuth
-// @Accept json
+// @Accept mpfd
 // @Produce json
-// @Param id path int true "Ambulance ID"
-// @Param ambulance body UpdateAmbulanceRequest true "Updated ambulance details"
+// @Param id path string true "Ambulance ID"
+// @Param ambulance formData UpdateAmbulanceRequest true "Updated ambulance details"
+// @Param image formData file false "Ambulance Image"
 // @Success 200 {object} pkg.Response
 // @Failure 400 {object} pkg.Response
 // @Failure 500 {object} pkg.Response
 // @Router /ambulances/{id} [put]
 func (h *handler) UpdateAmbulance(c *gin.Context) {
 	ctx := c.Request.Context()
-	id := c.Param("id")
-	ambulanceID, err := strconv.Atoi(id)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid ambulance ID", nil, nil))
-		return
-	}
+	ambulanceID := c.Param("id")
+
 	var req UpdateAmbulanceRequest
 	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
@@ -134,19 +126,14 @@ func (h *handler) UpdateAmbulance(c *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param id path int true "Ambulance ID"
+// @Param id path string true "Ambulance ID"
 // @Success 200 {object} pkg.Response
 // @Failure 400 {object} pkg.Response
 // @Failure 500 {object} pkg.Response
 // @Router /ambulances/{id} [delete]
 func (h *handler) DeleteAmbulance(c *gin.Context) {
 	ctx := c.Request.Context()
-	id := c.Param("id")
-	ambulanceID, err := strconv.Atoi(id)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid ambulance ID", nil, nil))
-		return
-	}
+	ambulanceID := c.Param("id")
 	res := h.service.DeleteAmbulance(ctx, ambulanceID)
 	c.JSON(res.Status, res)
 }

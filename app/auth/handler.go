@@ -6,24 +6,25 @@ import (
 	"os"
 	"time"
 
+	"github.com/Vilamuzz/yota-backend/app/account"
 	"github.com/Vilamuzz/yota-backend/app/middleware"
-	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/pkg"
+	jwt_pkg "github.com/Vilamuzz/yota-backend/pkg/jwt"
 	"github.com/gin-gonic/gin"
 	"github.com/markbates/goth/gothic"
 )
 
 type handler struct {
-	service     Service
-	userService user.Service
-	middleware  middleware.AppMiddleware
+	service        Service
+	accountService account.Service
+	middleware     middleware.AppMiddleware
 }
 
-func NewHandler(r *gin.RouterGroup, s Service, u user.Service, m middleware.AppMiddleware) {
+func NewHandler(r *gin.RouterGroup, s Service, a account.Service, m middleware.AppMiddleware) {
 	handler := &handler{
-		service:     s,
-		userService: u,
-		middleware:  m,
+		service:        s,
+		accountService: a,
+		middleware:     m,
 	}
 	handler.RegisterRoutes(r)
 }
@@ -34,14 +35,15 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	// Apply strict rate limiting to auth endpoints
 	authRateLimit := h.middleware.AuthRateLimitHandler()
 
-	api.POST("/register", authRateLimit, h.Register)
-	api.POST("/login", authRateLimit, h.Login)
+	api.POST("/register", h.Register)
+	api.POST("/login", h.Login)
 	api.POST("/forget-password", h.middleware.CustomRateLimitHandler(5, 1*time.Minute), h.ForgetPassword)
 	api.POST("/reset-password", authRateLimit, h.ResetPassword)
 	api.POST("/verify-email", h.VerifyEmail)
 	api.POST("/resend-verification", h.middleware.CustomRateLimitHandler(3, 1*time.Minute), h.ResendVerification)
 	api.GET("/oauth/:provider", h.middleware.CustomRateLimitHandler(10, 1*time.Minute), h.OAuthLogin)
 	api.GET("/oauth/:provider/callback", h.OAuthCallback)
+	api.POST("/switch-role", authRateLimit, h.middleware.AuthRequired(), h.SwitchRole)
 }
 
 // Register
@@ -233,5 +235,41 @@ func (h *handler) OAuthCallback(c *gin.Context) {
 		return
 	}
 
+	c.JSON(res.Status, res)
+}
+
+// SwitchRole
+//
+// @Summary Switch Active Role
+// @Description Switch active role of current session
+// @Tags Auth
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param payload body SwitchRoleRequest true "Switch Role"
+// @Success 200 {object} pkg.Response
+// @Router /api/auth/switch-role [post]
+func (h *handler) SwitchRole(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var req SwitchRoleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
+		return
+	}
+
+	userData, exists := c.Get("user_data")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "User not authenticated", nil, nil))
+		return
+	}
+
+	claims, ok := userData.(jwt_pkg.UserJWTClaims)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Invalid user data", nil, nil))
+		return
+	}
+
+	res := h.service.SwitchRole(ctx, claims, req)
 	c.JSON(res.Status, res)
 }

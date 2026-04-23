@@ -3,7 +3,7 @@ package enum
 type RoleName string
 
 const (
-	RoleUser               RoleName = "user"
+	RoleOrangTuaAsuh       RoleName = "orang_tua_asuh"
 	RoleChairman           RoleName = "chairman"
 	RoleSocialManager      RoleName = "social_manager"
 	RoleFinance            RoleName = "finance"

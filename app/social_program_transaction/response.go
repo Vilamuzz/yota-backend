@@ -10,8 +10,8 @@ type SocialProgramTransactionResponse struct {
 	ID                     string     `json:"id"`
 	SocialProgramInvoiceID string     `json:"social_program_invoice_id"`
 	OrderID                string     `json:"order_id"`
-	UserID                 string     `json:"user_id"`
-	Source                 bool       `json:"source"`
+	AccountID              string     `json:"account_id"`
+	IsOnline               bool       `json:"is_online"`
 	GrossAmount            float64    `json:"gross_amount"`
 	FraudStatus            string     `json:"fraud_status"`
 	TransactionStatus      string     `json:"transaction_status"`
@@ -30,11 +30,11 @@ type SocialProgramTransactionListResponse struct {
 
 func (tx *SocialProgramTransaction) toSocialProgramTransactionResponse() SocialProgramTransactionResponse {
 	return SocialProgramTransactionResponse{
-		ID:                     tx.ID,
-		SocialProgramInvoiceID: tx.SocialProgramInvoiceID,
+		ID:                     tx.ID.String(),
+		SocialProgramInvoiceID: tx.SocialProgramInvoiceID.String(),
 		OrderID:                tx.OrderID,
-		UserID:                 tx.UserID,
-		Source:                 tx.Source,
+		AccountID:              tx.AccountID.String(),
+		IsOnline:               tx.IsOnline,
 		GrossAmount:            tx.GrossAmount,
 		FraudStatus:            tx.FraudStatus,
 		TransactionStatus:      tx.TransactionStatus,

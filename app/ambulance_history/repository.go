@@ -9,10 +9,10 @@ import (
 
 type Repository interface {
 	Create(ctx context.Context, ambulance AmbulanceHistory) error
-	FindByID(ctx context.Context, id int) (AmbulanceHistory, error)
+	FindByID(ctx context.Context, id string) (AmbulanceHistory, error)
 	FindAll(ctx context.Context, options map[string]interface{}) ([]AmbulanceHistory, error)
 	Update(ctx context.Context, ambulance AmbulanceHistory) error
-	Delete(ctx context.Context, id int) error
+	Delete(ctx context.Context, id string) error
 }
 
 type repository struct {
@@ -27,7 +27,7 @@ func (r *repository) Create(ctx context.Context, ambulance AmbulanceHistory) err
 	return r.Conn.Create(&ambulance).Error
 }
 
-func (r *repository) FindByID(ctx context.Context, id int) (AmbulanceHistory, error) {
+func (r *repository) FindByID(ctx context.Context, id string) (AmbulanceHistory, error) {
 	var ambulance AmbulanceHistory
 	if err := r.Conn.First(&ambulance, id).Error; err != nil {
 		return AmbulanceHistory{}, err
@@ -82,6 +82,6 @@ func (r *repository) Update(ctx context.Context, ambulance AmbulanceHistory) err
 	return r.Conn.Save(&ambulance).Error
 }
 
-func (r *repository) Delete(ctx context.Context, id int) error {
+func (r *repository) Delete(ctx context.Context, id string) error {
 	return r.Conn.Delete(&AmbulanceHistory{}, id).Error
 }

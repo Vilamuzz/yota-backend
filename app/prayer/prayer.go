@@ -3,36 +3,34 @@ package prayer
 import (
 	"time"
 
-	"github.com/Vilamuzz/yota-backend/app/user"
+	"github.com/google/uuid"
 )
 
-type Prayer struct {
-	ID                    string    `json:"id" gorm:"primary_key"`
-	DonationID            string    `json:"donation_id" gorm:"not null"`
-	DonationTransactionID string    `json:"donation_transaction_id" gorm:"not null"`
-	UserID                *string   `json:"user_id"`
-	Content               string    `json:"content" gorm:"not null"`
-	Status                bool      `json:"status" gorm:"default:false"` // true = published, false = pending
-	AmenCount             int       `json:"amen_count" gorm:"default:0"`
-	IsAmen                bool      `json:"is_amen" gorm:"-"`
-	ReportCount           int       `json:"report_count" gorm:"default:0"`
-	CreatedAt             time.Time `json:"created_at" gorm:"not null"`
-	UpdatedAt             time.Time `json:"updated_at" gorm:"not null"`
+type DonationProgramTransaction struct {
+	ID        uuid.UUID `gorm:"primaryKey"`
+	DonorName string
+}
 
-	User          *user.User     `json:"user" gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	PrayerAmes    []PrayerAmen   `json:"prayer_ames" gorm:"foreignKey:PrayerID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	PrayerReports []PrayerReport `json:"prayer_reports" gorm:"foreignKey:PrayerID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+type Prayer struct {
+	ID                    uuid.UUID `json:"id" gorm:"primaryKey"`
+	DonationTransactionID uuid.UUID `json:"donation_program_transaction_id" gorm:"uniqueIndex;not null"`
+	Content               string    `json:"content" gorm:"not null"`
+	IsPublished           bool      `json:"is_published" gorm:"default:false;index"`
+	CreatedAt             time.Time `json:"created_at" gorm:"not null"`
+	DeletedAt             time.Time `json:"deleted_at" gorm:"index;not null"`
+
+	DonationProgramTransaction DonationProgramTransaction `json:"-" gorm:"foreignKey:DonationTransactionID"`
+	PrayerAmens                []PrayerAmen               `json:"amens" gorm:"foreignKey:PrayerID;references:ID"`
+	PrayerReports              []PrayerReport             `json:"reports" gorm:"foreignKey:PrayerID;references:ID"`
 }
 
 type PrayerAmen struct {
-	ID       string `json:"id" gorm:"primary_key"`
-	PrayerID string `json:"prayer_id" gorm:"not null"`
-	UserID   string `json:"user_id" gorm:"not null"`
+	PrayerID  uuid.UUID `json:"prayer_id" gorm:"primaryKey;not null"`
+	AccountID uuid.UUID `json:"account_id" gorm:"primaryKey;not null"`
 }
 
 type PrayerReport struct {
-	ID       string `json:"id" gorm:"primary_key"`
-	PrayerID string `json:"prayer_id" gorm:"not null"`
-	UserID   string `json:"user_id" gorm:"not null"`
-	Reason   string `json:"reason" gorm:"not null"`
+	PrayerID  uuid.UUID `json:"prayer_id" gorm:"primaryKey;not null"`
+	AccountID uuid.UUID `json:"account_id" gorm:"primaryKey;not null"`
+	Reason    string    `json:"reason" gorm:"not null"`
 }

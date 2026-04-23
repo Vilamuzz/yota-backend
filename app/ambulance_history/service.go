@@ -3,19 +3,19 @@ package ambulance_history
 import (
 	"context"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/app/ambulance"
 	"github.com/Vilamuzz/yota-backend/pkg"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type Service interface {
 	ListAmbulanceHistory(ctx context.Context, queryParams AmbulanceHistoryQueryParams) pkg.Response
 	CreateAmbulanceHistory(ctx context.Context, payload CreateAmbulanceHistoryRequest) pkg.Response
-	UpdateAmbulanceHistory(ctx context.Context, id int, payload UpdateAmbulanceHistoryRequest) pkg.Response
-	DeleteAmbulanceHistory(ctx context.Context, id int) pkg.Response
+	UpdateAmbulanceHistory(ctx context.Context, id string, payload UpdateAmbulanceHistoryRequest) pkg.Response
+	DeleteAmbulanceHistory(ctx context.Context, id string) pkg.Response
 }
 
 type service struct {
@@ -70,18 +70,16 @@ func (s *service) ListAmbulanceHistory(ctx context.Context, queryParams Ambulanc
 	hasPrev := queryParams.PrevCursor != ""
 	if hasNext && len(histories) > 0 {
 		lastHistory := histories[len(histories)-1]
-		nextCursor = pkg.EncodeCursor(lastHistory.CreatedAt, strconv.Itoa(lastHistory.ID))
+		nextCursor = pkg.EncodeCursor(lastHistory.CreatedAt, lastHistory.ID.String())
 	}
 	if hasPrev && len(histories) > 0 {
 		firstHistory := histories[0]
-		prevCursor = pkg.EncodeCursor(firstHistory.CreatedAt, strconv.Itoa(firstHistory.ID))
+		prevCursor = pkg.EncodeCursor(firstHistory.CreatedAt, firstHistory.ID.String())
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Success", nil, toAmbulanceHistoriesToListResponse(histories, pkg.CursorPagination{
 		NextCursor: nextCursor,
 		PrevCursor: prevCursor,
-		HasNext:    hasNext,
-		HasPrev:    hasPrev,
 		Limit:      queryParams.Limit,
 	}))
 }
@@ -91,9 +89,9 @@ func (s *service) CreateAmbulanceHistory(ctx context.Context, payload CreateAmbu
 	defer cancel()
 
 	errValidation := make(map[string]string)
-	if payload.AmbulanceID == 0 {
+	if payload.AmbulanceID == "" {
 		errValidation["ambulance_id"] = "Ambulance ID is required"
-	} else if payload.AmbulanceID != 0 {
+	} else if payload.AmbulanceID != "" {
 		_, err := s.ambulanceRepo.FindByID(ctx, payload.AmbulanceID)
 		if err != nil {
 			if err.Error() == gorm.ErrRecordNotFound.Error() {
@@ -116,10 +114,9 @@ func (s *service) CreateAmbulanceHistory(ctx context.Context, payload CreateAmbu
 
 	now := time.Now()
 	ambulanceHistory := AmbulanceHistory{
-		AmbulanceID:     payload.AmbulanceID,
+		AmbulanceID:     uuid.MustParse(payload.AmbulanceID),
 		ServiceCategory: payload.ServiceCategory,
 		CreatedAt:       now,
-		UpdatedAt:       now,
 	}
 	if err := s.repo.Create(ctx, ambulanceHistory); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create ambulance history", nil, nil)
@@ -127,7 +124,7 @@ func (s *service) CreateAmbulanceHistory(ctx context.Context, payload CreateAmbu
 	return pkg.NewResponse(http.StatusCreated, "Ambulance history created successfully", nil, nil)
 }
 
-func (s *service) UpdateAmbulanceHistory(ctx context.Context, id int, payload UpdateAmbulanceHistoryRequest) pkg.Response {
+func (s *service) UpdateAmbulanceHistory(ctx context.Context, id string, payload UpdateAmbulanceHistoryRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 	ambulanceHistory, err := s.repo.FindByID(ctx, id)
@@ -141,7 +138,7 @@ func (s *service) UpdateAmbulanceHistory(ctx context.Context, id int, payload Up
 	return pkg.NewResponse(http.StatusOK, "Ambulance history updated successfully", nil, nil)
 }
 
-func (s *service) DeleteAmbulanceHistory(ctx context.Context, id int) pkg.Response {
+func (s *service) DeleteAmbulanceHistory(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 

@@ -34,7 +34,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // @Tags Logs
 // @Security BearerAuth
 // @Produce json
-// @Param entity_type query string false "Filter by entity type (e.g. donation_transaction, prayer)"
+// @Param entity_type query string false "Filter by entity type (e.g. donation_program_transaction, prayer)"
 // @Param entity_id   query string false "Filter by entity ID"
 // @Param user_id     query string false "Filter by acting user ID"
 // @Param action      query string false "Filter by action (e.g. CREATE, DELETE)"

@@ -9,10 +9,10 @@ import (
 
 type Repository interface {
 	Create(ctx context.Context, ambulance Ambulance) error
-	FindByID(ctx context.Context, id int) (Ambulance, error)
+	FindByID(ctx context.Context, id string) (Ambulance, error)
 	FindAll(ctx context.Context, options map[string]interface{}) ([]Ambulance, error)
-	Update(ctx context.Context, id int, updateData map[string]interface{}) error
-	Delete(ctx context.Context, id int) error
+	Update(ctx context.Context, id string, updateData map[string]interface{}) error
+	Delete(ctx context.Context, id string) error
 }
 
 type repository struct {
@@ -27,7 +27,7 @@ func (r *repository) Create(ctx context.Context, ambulance Ambulance) error {
 	return r.Conn.WithContext(ctx).Create(&ambulance).Error
 }
 
-func (r *repository) FindByID(ctx context.Context, id int) (Ambulance, error) {
+func (r *repository) FindByID(ctx context.Context, id string) (Ambulance, error) {
 	var ambulance Ambulance
 	if err := r.Conn.WithContext(ctx).First(&ambulance, id).Error; err != nil {
 		return Ambulance{}, err
@@ -74,10 +74,10 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 	return ambulances, nil
 }
 
-func (r *repository) Update(ctx context.Context, id int, updateData map[string]interface{}) error {
+func (r *repository) Update(ctx context.Context, id string, updateData map[string]interface{}) error {
 	return r.Conn.WithContext(ctx).Model(&Ambulance{}).Where("id = ?", id).Updates(updateData).Error
 }
 
-func (r *repository) Delete(ctx context.Context, id int) error {
+func (r *repository) Delete(ctx context.Context, id string) error {
 	return r.Conn.WithContext(ctx).Delete(&Ambulance{}, id).Error
 }

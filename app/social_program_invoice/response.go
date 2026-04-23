@@ -5,10 +5,10 @@ import "github.com/Vilamuzz/yota-backend/pkg"
 type SocialProgramInvoiceResponse struct {
 	ID             string  `json:"id"`
 	SubscriptionID string  `json:"subscription_id"`
-	Year           int     `json:"year"`
-	Month          int     `json:"month"`
-	MinimumAmount  float64 `json:"minimum_amount"`
+	BillingPeriod  string  `json:"billing_period"`
+	Amount         float64 `json:"amount"`
 	Status         string  `json:"status"`
+	DueDate        string  `json:"due_date"`
 }
 
 type SocialProgramInvoiceListResponse struct {
@@ -18,12 +18,12 @@ type SocialProgramInvoiceListResponse struct {
 
 func (r *SocialProgramInvoice) toSocialProgramInvoiceResponse() SocialProgramInvoiceResponse {
 	return SocialProgramInvoiceResponse{
-		ID:             r.ID,
-		SubscriptionID: r.SubscriptionID,
-		Year:           r.Year,
-		Month:          r.Month,
-		MinimumAmount:  r.MinimumAmount,
+		ID:             r.ID.String(),
+		SubscriptionID: r.SubscriptionID.String(),
+		BillingPeriod:  r.BillingPeriod.Format("2006-01-02 15:04:05"),
+		Amount:         r.Amount,
 		Status:         string(r.Status),
+		DueDate:        r.DueDate.Format("2006-01-02 15:04:05"),
 	}
 }
 

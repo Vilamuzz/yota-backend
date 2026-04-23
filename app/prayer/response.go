@@ -1,7 +1,6 @@
 package prayer
 
 import (
-	"github.com/Vilamuzz/yota-backend/app/user"
 	"github.com/Vilamuzz/yota-backend/pkg"
 )
 
@@ -9,8 +8,6 @@ type PrayerResponse struct {
 	ID        string `json:"id"`
 	Username  string `json:"username"`
 	Content   string `json:"content"`
-	AmenCount int    `json:"amen_count"`
-	IsAmen    bool   `json:"is_amen"`
 	CreatedAt string `json:"created_at"`
 }
 
@@ -20,15 +17,15 @@ type PrayerListResponse struct {
 }
 
 func (p *Prayer) toPrayerResponse() PrayerResponse {
-	if p.User == nil {
-		p.User = &user.User{Username: "Anonymous"}
+	username := p.DonationProgramTransaction.DonorName
+	if username == "" {
+		username = "Anonymous"
 	}
+
 	return PrayerResponse{
-		ID:        p.ID,
-		Username:  p.User.Username,
+		ID:        p.ID.String(),
+		Username:  username,
 		Content:   p.Content,
-		AmenCount: p.AmenCount,
-		IsAmen:    p.IsAmen,
 		CreatedAt: p.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 }
@@ -48,12 +45,10 @@ func toPrayerListResponse(prayers []Prayer, pagination pkg.CursorPagination) Pra
 }
 
 type PrayerReportedResponse struct {
-	ID          string `json:"id"`
-	Username    string `json:"username"`
-	Content     string `json:"content"`
-	AmenCount   int    `json:"amen_count"`
-	ReportCount int    `json:"report_count"`
-	CreatedAt   string `json:"created_at"`
+	ID        string `json:"id"`
+	Username  string `json:"username"`
+	Content   string `json:"content"`
+	CreatedAt string `json:"created_at"`
 }
 
 type PrayerReportedListResponse struct {
@@ -62,16 +57,16 @@ type PrayerReportedListResponse struct {
 }
 
 func (p *Prayer) toPrayerReportedResponse() PrayerReportedResponse {
-	if p.User == nil {
-		p.User = &user.User{Username: "Anonymous"}
+	username := p.DonationProgramTransaction.DonorName
+	if username == "" {
+		username = "Anonymous"
 	}
+
 	return PrayerReportedResponse{
-		ID:          p.ID,
-		Username:    p.User.Username,
-		Content:     p.Content,
-		AmenCount:   p.AmenCount,
-		ReportCount: p.ReportCount,
-		CreatedAt:   p.CreatedAt.Format("2006-01-02 15:04:05"),
+		ID:        p.ID.String(),
+		Username:  username,
+		Content:   p.Content,
+		CreatedAt: p.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 }
 

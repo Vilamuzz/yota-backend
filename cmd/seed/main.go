@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Vilamuzz/yota-backend/app/user"
+	"time"
+
+	"github.com/Vilamuzz/yota-backend/app/account"
 	"github.com/Vilamuzz/yota-backend/cmd/seed/models"
 	"github.com/Vilamuzz/yota-backend/config"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -41,9 +44,6 @@ func main() {
 
 	if *mockData {
 		fmt.Println("Mock data flag provided. Seeding categories and test users...")
-		if err := models.SeedCategories(db); err != nil {
-			log.Fatalf("Failed to seed categories: %v", err)
-		}
 		if err := models.SeedMockUsers(db); err != nil {
 			log.Fatalf("Failed to seed mock users: %v", err)
 		}
@@ -53,23 +53,73 @@ func main() {
 }
 
 func seedSuperAdmin(db *gorm.DB) error {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte("superadmin123"), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte("Password123"), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
 
-	admin := user.User{
-		Username:      "superadmin",
+	admin := account.Account{
+		ID:            uuid.New(),
 		Email:         "superadmin@yota.com",
 		Password:      string(hashedPassword),
-		RoleID:        8, // Superadmin role based on seedRoles
-		Status:        true,
+		IsBanned:      false,
 		EmailVerified: true,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+		UserProfile: account.UserProfile{
+			ID:        uuid.New(),
+			Username:  "superadmin",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+		AccountRoles: []account.AccountRole{
+			{
+				RoleID:    8, // Superadmin role based on seedRoles
+				IsDefault: true,
+				IsActive:  true,
+			},
+			{
+				RoleID:    1,
+				IsDefault: false,
+				IsActive:  true,
+			},
+			{
+				RoleID:    2,
+				IsDefault: false,
+				IsActive:  true,
+			},
+			{
+				RoleID:    3,
+				IsDefault: false,
+				IsActive:  true,
+			},
+			{
+				RoleID:    4,
+				IsDefault: false,
+				IsActive:  true,
+			},
+			{
+				RoleID:    5,
+				IsDefault: false,
+				IsActive:  true,
+			},
+			{
+				RoleID:    6,
+				IsDefault: false,
+				IsActive:  true,
+			},
+			{
+				RoleID:    7,
+				IsDefault: false,
+				IsActive:  true,
+			},
+		},
 	}
 
 	// Make sure we only create if user doesn't exist
-	var existing user.User
-	if err := db.Where("email = ? OR username = ?", admin.Email, admin.Username).First(&existing).Error; err != nil {
+	var existing account.Account
+	// Just check by email to simplify
+	if err := db.Where("email = ?", admin.Email).First(&existing).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			if err := db.Create(&admin).Error; err != nil {
 				return fmt.Errorf("failed to seed superadmin: %w", err)

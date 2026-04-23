@@ -7,22 +7,12 @@ import (
 	"github.com/Vilamuzz/yota-backend/pkg"
 )
 
-type CreateSocialProgramExpenseRequest struct {
-	DonationID string               `form:"donation_id"`
-	Title      string               `form:"title"`
-	Amount     float64              `form:"amount"`
-	Date       time.Time            `form:"date" time_format:"2006-01-02"`
-	Note       string               `form:"note"`
-	ProofFile  multipart.FileHeader `form:"proof_file"`
-}
-
-type UpdateSocialProgramExpenseRequest struct {
-	ID        string               `form:"id"`
-	Title     string               `form:"title"`
-	Amount    float64              `form:"amount"`
-	Date      time.Time            `form:"date" time_format:"2006-01-02"`
-	Note      string               `form:"note"`
-	ProofFile multipart.FileHeader `form:"proof_file"`
+type SocialProgramExpenseRequest struct {
+	Title       string                `form:"title"`
+	Amount      float64               `form:"amount"`
+	ExpenseDate time.Time             `form:"expense_date" time_format:"2006-01-02"`
+	Note        string                `form:"note"`
+	ProofFile   *multipart.FileHeader `form:"proof_file" swaggerignore:"true"`
 }
 
 type SocialProgramExpenseQueryParams struct {

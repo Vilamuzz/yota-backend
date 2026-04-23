@@ -4,16 +4,17 @@ import (
 	"context"
 	"time"
 
+	"github.com/Vilamuzz/yota-backend/app/account"
 	"gorm.io/gorm"
 )
 
 type Repository interface {
 	CreatePasswordResetToken(ctx context.Context, token *PasswordResetToken) error
 	FetchPasswordResetToken(ctx context.Context, token string) (*PasswordResetToken, error)
-	UpdatePasswordResetToken(ctx context.Context, token *PasswordResetToken) error
 	CreateEmailVerificationToken(ctx context.Context, token *EmailVerificationToken) error
 	FetchEmailVerificationToken(ctx context.Context, token string) (*EmailVerificationToken, error)
 	UpdateEmailVerificationToken(ctx context.Context, token *EmailVerificationToken) error
+	ResetPassword(ctx context.Context, accountID, resetTokenID, newPasswordHash string) error
 }
 
 type repository struct {
@@ -32,14 +33,10 @@ func (r *repository) CreatePasswordResetToken(ctx context.Context, token *Passwo
 
 func (r *repository) FetchPasswordResetToken(ctx context.Context, token string) (*PasswordResetToken, error) {
 	var resetToken PasswordResetToken
-	if err := r.Conn.WithContext(ctx).Where("token = ? AND used = ? AND expires_at > ?", token, false, time.Now()).First(&resetToken).Error; err != nil {
+	if err := r.Conn.WithContext(ctx).Where("token = ? AND is_used = ? AND expired_at > ?", token, false, time.Now()).First(&resetToken).Error; err != nil {
 		return nil, err
 	}
 	return &resetToken, nil
-}
-
-func (r *repository) UpdatePasswordResetToken(ctx context.Context, token *PasswordResetToken) error {
-	return r.Conn.WithContext(ctx).Save(token).Error
 }
 
 func (r *repository) CreateEmailVerificationToken(ctx context.Context, token *EmailVerificationToken) error {
@@ -56,4 +53,19 @@ func (r *repository) FetchEmailVerificationToken(ctx context.Context, token stri
 
 func (r *repository) UpdateEmailVerificationToken(ctx context.Context, token *EmailVerificationToken) error {
 	return r.Conn.WithContext(ctx).Save(token).Error
+}
+
+func (r *repository) ResetPassword(ctx context.Context, accountID, resetTokenID, newPasswordHash string) error {
+	return r.Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+
+		if err := tx.Model(&account.Account{}).Where("id = ?", accountID).Update("password", newPasswordHash).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Model(&PasswordResetToken{}).Where("id = ?", resetTokenID).Update("is_used", true).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }

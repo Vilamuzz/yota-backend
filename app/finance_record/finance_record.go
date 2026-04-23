@@ -4,7 +4,9 @@ import "time"
 
 // FundType identifies what fund the record belongs to
 const (
-	FundTypeDonation = "donation"
+	FundTypeDonation       = "donation"
+	FundTypeFosterChildren = "foster_children"
+	FundTypeSocialProgram  = "social_program"
 )
 
 // SourceType identifies what triggered the record

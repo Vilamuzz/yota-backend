@@ -1,35 +1,39 @@
 package auth
 
 type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type RegisterRequest struct {
-	Username string `json:"username" binding:"required,min=3,max=50"`
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type ForgetPasswordRequest struct {
-	Email string `json:"email" binding:"required,email"`
+	Email string `json:"email"`
 }
 
 type ResetPasswordRequest struct {
-	Token       string `json:"token" binding:"required"`
-	NewPassword string `json:"newPassword" binding:"required,min=6"`
+	Token       string `json:"token"`
+	NewPassword string `json:"newPassword"`
 }
 
 type OAuthCallbackRequest struct {
-	Provider string `json:"provider" binding:"required"`
-	Code     string `json:"code" binding:"required"`
-	State    string `json:"state" binding:"required"`
+	Provider string `json:"provider"`
+	Code     string `json:"code"`
+	State    string `json:"state"`
 }
 
 type VerifyEmailRequest struct {
-	Token string `json:"token" binding:"required"`
+	Token string `json:"token"`
 }
 
 type ResendVerificationRequest struct {
-	Email string `json:"email" binding:"required,email"`
+	Email string `json:"email"`
+}
+
+type SwitchRoleRequest struct {
+	Role string `json:"role"`
 }

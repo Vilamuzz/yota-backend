@@ -48,3 +48,14 @@ func (m *midtransClient) CreateSnapTransaction(req *snap.Request) (*snap.Respons
 func (m *midtransClient) GetServerKey() string {
 	return m.serverKey
 }
+// MidtransNotificationRequest represents the notification payload from Midtrans.
+type MidtransNotificationRequest struct {
+	OrderID           string `json:"order_id"`
+	StatusCode        string `json:"status_code"`
+	GrossAmount       string `json:"gross_amount"`
+	SignatureKey      string `json:"signature_key"`
+	TransactionStatus string `json:"transaction_status"`
+	FraudStatus       string `json:"fraud_status"`
+	PaymentType       string `json:"payment_type"`
+	TransactionID     string `json:"transaction_id"`
+}

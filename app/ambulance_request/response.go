@@ -4,14 +4,14 @@ import "github.com/Vilamuzz/yota-backend/pkg"
 
 type AmbulanceRequestResponse struct {
 	ID               string `json:"id"`
-	UserID           int    `json:"user_id"`
+	AccountID        string `json:"account_id"`
 	ApplicantName    string `json:"applicant_name"`
 	ApplicantPhone   string `json:"applicant_phone"`
 	ApplicantAddress string `json:"applicant_address"`
-	Date             string `json:"date"`
-	Reason           string `json:"reason"`
+	RequestDate      string `json:"request_date"`
+	RequestReason    string `json:"request_reason"`
 	Status           Status `json:"status"`
-	RejectReason     string `json:"reject_reason"`
+	RejectionReason  string `json:"rejection_reason"`
 	CreatedAt        string `json:"created_at"`
 }
 
@@ -22,15 +22,15 @@ type AmbulanceRequestListResponse struct {
 
 func (a *AmbulanceRequest) toAmbulanceRequestResponse() AmbulanceRequestResponse {
 	return AmbulanceRequestResponse{
-		ID:               a.ID,
-		UserID:           a.UserID,
+		ID:               a.ID.String(),
+		AccountID:        a.AccountID.String(),
 		ApplicantName:    a.ApplicantName,
 		ApplicantPhone:   a.ApplicantPhone,
 		ApplicantAddress: a.ApplicantAddress,
-		Date:             a.Date.Format("2006-01-02 15:04:05"),
-		Reason:           a.Reason,
+		RequestDate:      a.RequestDate.Format("2006-01-02 15:04:05"),
+		RequestReason:    a.RequestReason,
 		Status:           a.Status,
-		RejectReason:     a.RejectReason,
+		RejectionReason:  a.RejectionReason,
 		CreatedAt:        a.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 }

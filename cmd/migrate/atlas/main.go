@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"ariga.io/atlas-provider-gorm/gormschema"
-	postgre_pkg "github.com/Vilamuzz/yota-backend/pkg/postgre"
+	postgre_models "github.com/Vilamuzz/yota-backend/models"
 )
 
 func main() {
@@ -15,7 +15,7 @@ func main() {
 	log.SetOutput(io.Discard)
 
 	// Get all models
-	models := postgre_pkg.GetAllModels()
+	models := postgre_models.GetAllModels()
 
 	// Generate the SQL schema string
 	stmts, err := gormschema.New("postgres").Load(models...)

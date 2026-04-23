@@ -535,7 +535,7 @@ const docTemplate = `{
                 ],
                 "description": "Create a new ambulance with the provided details",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -546,13 +546,20 @@ const docTemplate = `{
                 "summary": "Create a new ambulance",
                 "parameters": [
                     {
-                        "description": "Ambulance details",
-                        "name": "ambulance",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/ambulance.CreateAmbulanceRequest"
-                        }
+                        "type": "string",
+                        "name": "phone",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "plate_number",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Ambulance Image",
+                        "name": "image",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -586,7 +593,7 @@ const docTemplate = `{
                 ],
                 "description": "Update the details of an existing ambulance by ID",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -597,20 +604,27 @@ const docTemplate = `{
                 "summary": "Update an existing ambulance",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "Ambulance ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Updated ambulance details",
-                        "name": "ambulance",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/ambulance.UpdateAmbulanceRequest"
-                        }
+                        "type": "string",
+                        "name": "phone",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "plate_number",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Ambulance Image",
+                        "name": "image",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -653,7 +667,7 @@ const docTemplate = `{
                 "summary": "Delete an existing ambulance",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "Ambulance ID",
                         "name": "id",
                         "in": "path",
@@ -675,6 +689,2510 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/accounts": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a list of accounts",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Account"
+                ],
+                "summary": "Get Accounts List",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Role ID filter",
+                        "name": "role_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Status filter",
+                        "name": "is_banned",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/account.AccountResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/accounts/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information of an account by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Account"
+                ],
+                "summary": "Get Account Detail",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/account.AccountResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/accounts/{id}/ban": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Ban account by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Account"
+                ],
+                "summary": "Ban Account",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/accounts/{id}/roles": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Add a new role for an account",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Account"
+                ],
+                "summary": "Add Account Role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Add Account Role Data",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/account.AddAccountRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/accounts/{id}/roles/{roleId}": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update role status or default for an account",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Account"
+                ],
+                "summary": "Update Account Role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Role ID",
+                        "name": "roleId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/donation-programs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a list of all donation programs with cursor-based pagination and optional filters",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Get All Donation Programs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by category",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Status filter",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new donation program entry (requires authentication and proper role)",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Create Donation Program",
+                "parameters": [
+                    {
+                        "enum": [
+                            "education",
+                            "health",
+                            "environment",
+                            "social",
+                            "disaster",
+                            "humanity",
+                            "other"
+                        ],
+                        "type": "string",
+                        "x-enum-varnames": [
+                            "CategoryEducation",
+                            "CategoryHealth",
+                            "CategoryEnvironment",
+                            "CategorySocial",
+                            "CategoryDisaster",
+                            "CategoryHumanity",
+                            "CategoryOther"
+                        ],
+                        "name": "category",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "end_date",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "number",
+                        "name": "fund_target",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "start_date",
+                        "in": "formData"
+                    },
+                    {
+                        "enum": [
+                            "active",
+                            "draft",
+                            "complete",
+                            "expired"
+                        ],
+                        "type": "string",
+                        "x-enum-varnames": [
+                            "StatusActive",
+                            "StatusDraft",
+                            "StatusCompleted",
+                            "StatusExpired"
+                        ],
+                        "name": "status",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "title",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Donation Program Cover Image",
+                        "name": "cover_image",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/donation-programs/expenses/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information of a specific donation program expense entry (requires authentication and proper role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Get Donation Program Expense by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Expense ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a donation program expense entry (requires authentication and proper role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Delete Donation Program Expense",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Expense ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/donation-programs/transactions/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific donation transaction (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Get Donation Program Transaction by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Transaction ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/donation-programs/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information of a specific donation program",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Get Donation Program by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Donation Program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing donation program (requires authentication and proper role)",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Update Donation Program",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Donation Program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "enum": [
+                            "education",
+                            "health",
+                            "environment",
+                            "social",
+                            "disaster",
+                            "humanity",
+                            "other"
+                        ],
+                        "type": "string",
+                        "x-enum-varnames": [
+                            "CategoryEducation",
+                            "CategoryHealth",
+                            "CategoryEnvironment",
+                            "CategorySocial",
+                            "CategoryDisaster",
+                            "CategoryHumanity",
+                            "CategoryOther"
+                        ],
+                        "name": "category",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "end_date",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "number",
+                        "name": "fund_target",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "start_date",
+                        "in": "formData"
+                    },
+                    {
+                        "enum": [
+                            "active",
+                            "draft",
+                            "complete",
+                            "expired"
+                        ],
+                        "type": "string",
+                        "x-enum-varnames": [
+                            "StatusActive",
+                            "StatusDraft",
+                            "StatusCompleted",
+                            "StatusExpired"
+                        ],
+                        "name": "status",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "title",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Donation Program Cover Image",
+                        "name": "cover_image",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a donation program (requires authentication and proper role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Delete Donation Program",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/donation-programs/{id}/expenses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information of all expenses (requires authentication and proper role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Get Donation Program Expense List",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Donation Program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for pagination",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new donation program expense entry (requires authentication and proper role)",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Create Donation Program Expense",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Donation Program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "name": "amount",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "expense_date",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "note",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "title",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Proof File",
+                        "name": "proof_file",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/donation-programs/{id}/transactions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a paginated list of donation transactions (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "List Donation Programs Transactions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by donation program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by payment status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for next page",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for previous page",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/donation_program_transaction.DonationProgramTransactionListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a donation transaction without initiating a Midtrans payment (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Create Offline Donation Program Transaction",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Donation Program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Offline transaction request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/donation_program_transaction.CreateDonationProgramTransactionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/foster-children": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new foster child entry (requires authentication and social_manager role)",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children"
+                ],
+                "summary": "Create Foster Children",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "address",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "birth_date",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "birth_place",
+                        "in": "formData"
+                    },
+                    {
+                        "enum": [
+                            "yatim",
+                            "piatu",
+                            "yatim piatu"
+                        ],
+                        "type": "string",
+                        "x-enum-varnames": [
+                            "CategoryFatherless",
+                            "CategoryMotherless",
+                            "CategoryOrphan"
+                        ],
+                        "name": "category",
+                        "in": "formData"
+                    },
+                    {
+                        "enum": [
+                            "male",
+                            "female"
+                        ],
+                        "type": "string",
+                        "x-enum-varnames": [
+                            "Male",
+                            "Female"
+                        ],
+                        "name": "gender",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "name": "is_graduated",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Profile Picture",
+                        "name": "profile_picture",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Family Card",
+                        "name": "family_card",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "SKTM",
+                        "name": "sktm",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Achievements",
+                        "name": "achievements",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/foster-children/candidates": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a list of all foster children candidates (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children Candidates"
+                ],
+                "summary": "List All Foster Children Candidates",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by account id",
+                        "name": "account_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/foster-children/candidates/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a specific foster children candidate",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children Candidates"
+                ],
+                "summary": "Get Foster Children Candidate By ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Candidate ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Accept or reject a foster children candidate",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children Candidates"
+                ],
+                "summary": "Update Foster Children Candidate Status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Candidate ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Status Update Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/foster_children.UpdateFosterChildrenCandidateStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/foster-children/expenses/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information of a specific foster children expense entry (requires authentication and proper role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children"
+                ],
+                "summary": "Get Foster Children Expense by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Expense ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a foster children expense entry (requires authentication and proper role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children"
+                ],
+                "summary": "Delete Foster Children Expense",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Expense ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/foster-children/transactions/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific foster children transaction (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children"
+                ],
+                "summary": "Get Foster Children Transaction by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Transaction ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/foster-children/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing foster child entry (requires authentication and social_manager role)",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children"
+                ],
+                "summary": "Update Foster Children",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Foster Children ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "address",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "birth_date",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "birth_place",
+                        "in": "formData"
+                    },
+                    {
+                        "enum": [
+                            "yatim",
+                            "piatu",
+                            "yatim piatu"
+                        ],
+                        "type": "string",
+                        "x-enum-varnames": [
+                            "CategoryFatherless",
+                            "CategoryMotherless",
+                            "CategoryOrphan"
+                        ],
+                        "name": "category",
+                        "in": "formData"
+                    },
+                    {
+                        "enum": [
+                            "male",
+                            "female"
+                        ],
+                        "type": "string",
+                        "x-enum-varnames": [
+                            "Male",
+                            "Female"
+                        ],
+                        "name": "gender",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "name": "is_graduated",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Profile Picture",
+                        "name": "profile_picture",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Family Card",
+                        "name": "family_card",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "SKTM",
+                        "name": "sktm",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Achievements",
+                        "name": "achievements",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a foster child entry (requires authentication and social_manager role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children"
+                ],
+                "summary": "Delete Foster Children",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Foster Children ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/foster-children/{id}/expenses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information of all expenses for a foster child (requires authentication and proper role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children"
+                ],
+                "summary": "Get Foster Children Expense List",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Foster Children ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for pagination",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new foster children expense entry (requires authentication and proper role)",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children"
+                ],
+                "summary": "Create Foster Children Expense",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Foster Children ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "name": "amount",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "expense_date",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "note",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "title",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Proof File",
+                        "name": "proof_file",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/foster-children/{id}/transactions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a paginated list of foster children transactions (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children"
+                ],
+                "summary": "List Foster Children Transactions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by foster children ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by payment status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for next page",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for previous page",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/foster_children_transaction.FosterChildrenTransactionListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a foster children transaction without initiating a Midtrans payment (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children"
+                ],
+                "summary": "Create Offline Foster Children Transaction",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Foster Children ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Offline transaction request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/foster_children_transaction.CreateFosterChildrenTransactionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/prayers": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a list of reported prayers",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Prayer"
+                ],
+                "summary": "List Reported Prayers",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/prayer.PrayerListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/prayers/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a prayer by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Prayer"
+                ],
+                "summary": "Delete Prayer",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Prayer ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/social-program-invoices": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a paginated list of social program invoices",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Program Invoices"
+                ],
+                "summary": "List Social Program Invoices",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by subscription ID",
+                        "name": "subscription_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new social program invoice manually (requires authentication and proper role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Program Invoices"
+                ],
+                "summary": "Create Social Program Invoice",
+                "parameters": [
+                    {
+                        "description": "Invoice Data",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/social_program_invoice.SocialProgramInvoiceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/social-program-invoices/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information of a specific social program invoice",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Program Invoices"
+                ],
+                "summary": "Get Social Program Invoice by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Invoice ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing social program invoice (requires authentication and proper role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Program Invoices"
+                ],
+                "summary": "Update Social Program Invoice",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Invoice ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Invoice Data",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/social_program_invoice.SocialProgramInvoiceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a social program invoice (requires authentication and proper role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Program Invoices"
+                ],
+                "summary": "Delete Social Program Invoice",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Invoice ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/social-program-subscriptions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a list of all social program subscriptions (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Program Subscriptions"
+                ],
+                "summary": "List All Social Program Subscriptions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by social program ID",
+                        "name": "social_program_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by account ID",
+                        "name": "account_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/social-program-subscriptions/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific social program subscription by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Program Subscriptions"
+                ],
+                "summary": "Get Social Program Subscription By ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Subscription ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/social-program-transactions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a paginated list of social program transactions (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Program Transactions"
+                ],
+                "summary": "List Social Program Transactions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by payment status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for next page",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for previous page",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/social-program-transactions/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific social program transaction (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Program Transactions"
+                ],
+                "summary": "Get Social Program Transaction by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Transaction ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/social-programs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a list of social programs for admin",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "List Admin Social Programs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Status filter",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new social program entry",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "Create Social Program",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "name": "billing_day",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "description",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "name": "minimum_amount",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "enum": [
+                            "active",
+                            "completed",
+                            "stopped",
+                            "draft"
+                        ],
+                        "type": "string",
+                        "x-enum-varnames": [
+                            "StatusActive",
+                            "StatusCompleted",
+                            "StatusStopped",
+                            "StatusDraft"
+                        ],
+                        "name": "status",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "title",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Social Program Cover Image",
+                        "name": "cover_image",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/social-programs/expenses/{expense_id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a social program expense (requires authentication and admin role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Program Expenses"
+                ],
+                "summary": "Delete Social Program Expense",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Expense ID",
+                        "name": "expense_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/social-programs/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing social program",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "Update Social Program",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Social Program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "name": "billing_day",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "description",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "name": "minimum_amount",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "enum": [
+                            "active",
+                            "completed",
+                            "stopped",
+                            "draft"
+                        ],
+                        "type": "string",
+                        "x-enum-varnames": [
+                            "StatusActive",
+                            "StatusCompleted",
+                            "StatusStopped",
+                            "StatusDraft"
+                        ],
+                        "name": "status",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "title",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Social Program Cover Image",
+                        "name": "cover_image",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a social program",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "Delete Social Program",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Social Program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/social-programs/{id}/expenses": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new expense for a social program (requires authentication and admin role)",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Program Expenses"
+                ],
+                "summary": "Create Social Program Expense",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Social Program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "name": "amount",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "expense_date",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "note",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "title",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Proof File",
+                        "name": "proof_file",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/pkg.Response"
                         }
@@ -909,6 +3427,45 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/auth/switch-role": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Switch active role of current session",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Switch Active Role",
+                "parameters": [
+                    {
+                        "description": "Switch Role",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.SwitchRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/auth/verify-email": {
             "post": {
                 "description": "Verify user email with token",
@@ -943,14 +3500,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/donation-expenses/": {
+        "/api/donation-programs": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get detailed information of all expenses (requires authentication and proper role)",
+                "description": "Retrieve a list of published (active) donation programs",
                 "consumes": [
                     "application/json"
                 ],
@@ -958,274 +3510,147 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Donation Expenses"
+                    "Donation Programs"
                 ],
-                "summary": "List Expenses",
+                "summary": "List Published Donation Programs",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Filter by donation ID",
-                        "name": "donation_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Cursor for pagination",
-                        "name": "cursor",
+                        "description": "Filter by category",
+                        "name": "category",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Items per page",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Create a new expense entry (requires authentication and proper role)",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Donation Expenses"
-                ],
-                "summary": "Create Expense",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Donation ID",
-                        "name": "donation_id",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "number",
-                        "description": "Expense Amount",
-                        "name": "amount",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Expense Description",
-                        "name": "description",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "file",
-                        "description": "Expense Image File",
-                        "name": "image",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/donation-expenses/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get detailed information of a specific expense entry (requires authentication and proper role)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Donation Expenses"
-                ],
-                "summary": "Get Expense by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Expense ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update an existing expense entry (requires authentication and proper role)",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Donation Expenses"
-                ],
-                "summary": "Update Expense",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Expense ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Donation ID",
-                        "name": "donation_id",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "number",
-                        "description": "Expense Amount",
-                        "name": "amount",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Expense Description",
-                        "name": "description",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "file",
-                        "description": "Expense Image File",
-                        "name": "image",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Delete an existing expense entry (requires authentication and proper role)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Donation Expenses"
-                ],
-                "summary": "Delete Expense",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Expense ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/donation-transactions": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve a paginated list of donation transactions (admin only)",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Donation Transactions"
-                ],
-                "summary": "List Donation Transactions",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by payment status",
-                        "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by donation ID",
-                        "name": "donation_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by user ID",
-                        "name": "user_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Items per page",
+                        "description": "Pagination limit",
                         "name": "limit",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Cursor for next page",
+                        "description": "Pagination cursor (next page)",
                         "name": "next_cursor",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Cursor for previous page",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/donation-programs/transactions/notification": {
+            "post": {
+                "description": "Webhook endpoint for Midtrans to send payment status updates",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Midtrans Payment Notification",
+                "parameters": [
+                    {
+                        "description": "Midtrans notification payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/donation_program_transaction.MidtransNotificationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/donation-programs/{slug}": {
+            "get": {
+                "description": "Get detailed information of a specific published donation program",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Get Published Donation Program by Slug",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Donation Program Slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/donation-programs/{slug}/prayers": {
+            "get": {
+                "description": "Get a list of prayers",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Prayer"
+                ],
+                "summary": "List Prayers",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Donation Program Slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
                         "name": "prev_cursor",
                         "in": "query"
                     }
@@ -1242,7 +3667,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/donation_transaction.DonationTransactionListResponse"
+                                            "$ref": "#/definitions/prayer.PrayerListResponse"
                                         }
                                     }
                                 }
@@ -1250,14 +3675,11 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
+            }
+        },
+        "/api/donation-programs/{slug}/transactions": {
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Create a donation transaction without initiating a Midtrans payment (admin only)",
+                "description": "Initiate a Midtrans Snap payment for a donation",
                 "consumes": [
                     "application/json"
                 ],
@@ -1265,17 +3687,24 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Donation Transactions"
+                    "Donation Programs"
                 ],
-                "summary": "Create Offline Donation Transaction",
+                "summary": "Create Donation Program Transaction",
                 "parameters": [
                     {
-                        "description": "Offline transaction request",
+                        "type": "string",
+                        "description": "Donation Program Slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Transaction request",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/donation_transaction.CreateTransactionRequest"
+                            "$ref": "#/definitions/donation_program_transaction.CreateDonationProgramTransactionRequest"
                         }
                     }
                 ],
@@ -1289,28 +3718,49 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/donation-transactions/{id}": {
+        "/api/foster-children": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
+                "description": "Retrieve a list of foster children with cursor-based pagination and optional filters",
+                "consumes": [
+                    "application/json"
                 ],
-                "description": "Retrieve a specific donation transaction (admin only)",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Donation Transactions"
+                    "Foster Children"
                 ],
-                "summary": "Get Donation Transaction by ID",
+                "summary": "List Foster Children",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Transaction ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
+                        "description": "Search by name",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by category",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -1323,66 +3773,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/donations/": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve a list of all donations with cursor-based pagination and optional filters",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Donations"
-                ],
-                "summary": "Get All Donations",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by category (education, health, environment)",
-                        "name": "category",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by status (active, inactive, completed)",
-                        "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Cursor for pagination (encoded string)",
-                        "name": "cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Items per page (default: 10, max: 100)",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            },
+        "/api/foster-children/candidates/submit": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Create a new donation entry (requires authentication and proper role)",
+                "description": "Submit a request to propose a new foster child candidate",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -1390,54 +3788,98 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Donations"
+                    "Foster Children Candidates"
                 ],
-                "summary": "Create Donation",
+                "summary": "Create Foster Children Candidate",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Donation Title",
-                        "name": "title",
-                        "in": "formData",
-                        "required": true
+                        "name": "address",
+                        "in": "formData"
                     },
                     {
                         "type": "string",
-                        "description": "Donation Description",
-                        "name": "description",
+                        "name": "birth_date",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "birth_place",
+                        "in": "formData"
+                    },
+                    {
+                        "enum": [
+                            "yatim",
+                            "piatu",
+                            "yatim piatu"
+                        ],
+                        "type": "string",
+                        "x-enum-varnames": [
+                            "CategoryFatherless",
+                            "CategoryMotherless",
+                            "CategoryOrphan"
+                        ],
+                        "name": "category",
+                        "in": "formData"
+                    },
+                    {
+                        "enum": [
+                            "male",
+                            "female"
+                        ],
+                        "type": "string",
+                        "x-enum-varnames": [
+                            "Male",
+                            "Female"
+                        ],
+                        "name": "gender",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "submitter_address",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "submitter_name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "submitter_phone",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Profile Picture",
+                        "name": "profile_picture",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "file",
-                        "description": "Donation Image File",
-                        "name": "image",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Donation Category",
-                        "name": "category",
+                        "description": "Family Card",
+                        "name": "family_card",
                         "in": "formData",
                         "required": true
                     },
                     {
-                        "type": "string",
-                        "description": "Donation Status",
-                        "name": "status",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "number",
-                        "description": "Fund Target",
-                        "name": "fund_target",
+                        "type": "file",
+                        "description": "SKTM",
+                        "name": "sktm",
                         "in": "formData",
                         "required": true
                     },
                     {
-                        "type": "string",
-                        "description": "End Date",
-                        "name": "date_end",
+                        "type": "file",
+                        "description": "Submitter ID Card",
+                        "name": "submitter_id_card",
                         "in": "formData",
                         "required": true
                     }
@@ -1452,14 +3894,43 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/donations/{id}": {
+        "/api/foster-children/transactions/notification": {
+            "post": {
+                "description": "Webhook endpoint for Midtrans to send payment status updates for foster children transactions",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children"
+                ],
+                "summary": "Midtrans Payment Notification (Foster Children)",
+                "parameters": [
+                    {
+                        "description": "Midtrans notification payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/foster_children_transaction.MidtransNotificationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/foster-children/{id}": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get detailed information of a specific donation",
+                "description": "Get detailed information of a specific foster child",
                 "consumes": [
                     "application/json"
                 ],
@@ -1467,13 +3938,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Donations"
+                    "Foster Children"
                 ],
-                "summary": "Get Donation by ID",
+                "summary": "Get Foster Children by ID",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Donation ID",
+                        "description": "Foster Children ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1487,113 +3958,42 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update an existing donation (requires authentication and proper role)",
+            }
+        },
+        "/api/foster-children/{id}/transactions": {
+            "post": {
+                "description": "Initiate a Midtrans Snap payment for a foster children donation",
                 "consumes": [
-                    "multipart/form-data"
+                    "application/json"
                 ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Donations"
+                    "Foster Children"
                 ],
-                "summary": "Update Donation",
+                "summary": "Create Foster Children Transaction",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Donation ID",
+                        "description": "Foster Children ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "type": "string",
-                        "description": "Donation Title",
-                        "name": "title",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Donation Description",
-                        "name": "description",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "file",
-                        "description": "Donation Image File",
-                        "name": "image",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Donation Category",
-                        "name": "category",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "number",
-                        "description": "Fund Target",
-                        "name": "fund_target",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Status",
-                        "name": "status",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "End Date",
-                        "name": "date_end",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
+                        "description": "Transaction request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
                         "schema": {
-                            "$ref": "#/definitions/pkg.Response"
+                            "$ref": "#/definitions/foster_children_transaction.CreateFosterChildrenTransactionRequest"
                         }
                     }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Delete a donation (requires authentication and proper role)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Donations"
-                ],
-                "summary": "Delete Donation",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Donation ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/pkg.Response"
                         }
@@ -1921,7 +4321,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Filter by entity type (e.g. donation_transaction, prayer)",
+                        "description": "Filter by entity type (e.g. donation_program_transaction, prayer)",
                         "name": "entity_type",
                         "in": "query"
                     },
@@ -1981,7 +4381,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Users"
+                    "Account"
                 ],
                 "summary": "Get Current User",
                 "responses": {
@@ -1996,7 +4396,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/user.UserProfileResponse"
+                                            "$ref": "#/definitions/account.UserProfileResponse"
                                         }
                                     }
                                 }
@@ -2004,33 +4404,275 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
-            "put": {
+            }
+        },
+        "/api/me/donation-programs/transactions": {
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update profile information of the currently authenticated user",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Retrieve a paginated list of donation transactions for the authenticated user",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Users"
+                    "Donation Programs"
                 ],
-                "summary": "Update User Profile",
+                "summary": "List My Donation Programs Transactions",
                 "parameters": [
                     {
-                        "description": "Update Profile",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
+                        "type": "string",
+                        "description": "Filter by payment status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for next page",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for previous page",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/user.UpdateProfileRequest"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/donation_program_transaction.DonationProgramTransactionListResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
+                    }
+                }
+            }
+        },
+        "/api/me/donation-programs/transactions/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific donation transaction owned by the authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Get My Donation Program Transaction by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Transaction ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/me/foster-children/candidates": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a list of the authenticated user's foster children candidates",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children Candidates"
+                ],
+                "summary": "List My Foster Children Candidates",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/me/foster-children/candidates/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cancel a pending foster children candidate",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children Candidates"
+                ],
+                "summary": "Cancel Foster Children Candidate",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Candidate ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/me/foster-children/transactions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a paginated list of foster children transactions for the authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children"
+                ],
+                "summary": "List My Foster Children Transactions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by payment status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for next page",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for previous page",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/foster_children_transaction.FosterChildrenTransactionListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/me/foster-children/transactions/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific foster children transaction owned by the authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children"
+                ],
+                "summary": "Get My Foster Children Transaction by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Transaction ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -2044,7 +4686,7 @@ const docTemplate = `{
             }
         },
         "/api/me/password": {
-            "put": {
+            "patch": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -2058,7 +4700,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Users"
+                    "Account"
                 ],
                 "summary": "Update User Password",
                 "parameters": [
@@ -2068,8 +4710,154 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/user.UpdatePasswordRequest"
+                            "$ref": "#/definitions/account.UpdatePasswordRequest"
                         }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/me/profile": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update profile information of the currently authenticated user",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Account"
+                ],
+                "summary": "Update User Profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "address",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "default_account_role_id",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "email",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "phone",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "username",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Profile Picture",
+                        "name": "profile_picture",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/me/social-program-transactions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a paginated list of social program transactions for the authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Program Transactions"
+                ],
+                "summary": "List My Social Program Transactions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by payment status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for next page",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for previous page",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/me/social-program-transactions/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific social program transaction owned by the authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Program Transactions"
+                ],
+                "summary": "Get My Social Program Transaction by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Transaction ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -2336,79 +5124,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/prayers": {
-            "get": {
-                "description": "Get a list of prayers",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Prayer"
-                ],
-                "summary": "List Prayers",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by donation ID",
-                        "name": "donation_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Pagination limit",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (next page)",
-                        "name": "next_cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (prev page)",
-                        "name": "prev_cursor",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/pkg.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/prayer.PrayerListResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
         "/api/prayers/{id}": {
             "get": {
                 "description": "Get a prayer by its ID",
@@ -2449,24 +5164,6 @@ const docTemplate = `{
                                 }
                             ]
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
                     }
                 }
             }
@@ -2504,24 +5201,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/pkg.Response"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
                     }
                 }
             }
@@ -2554,409 +5233,12 @@ const docTemplate = `{
                     },
                     {
                         "description": "Report Prayer Payload",
-                        "name": "payload",
+                        "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/prayer.ReportPrayerRequest"
                         }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/protected/prayers": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get a list of reported prayers",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Prayer"
-                ],
-                "summary": "List Reported Prayers",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Page number",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Items per page",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Search query",
-                        "name": "search",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/pkg.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/prayer.PrayerListResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/protected/prayers/{id}": {
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Delete a prayer by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Prayer"
-                ],
-                "summary": "Delete Prayer",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Prayer ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/public/donation-transactions": {
-            "post": {
-                "description": "Initiate a Midtrans Snap payment for a donation",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Donation Transactions"
-                ],
-                "summary": "Create Donation Transaction",
-                "parameters": [
-                    {
-                        "description": "Transaction request",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/donation_transaction.CreateTransactionRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/public/donation-transactions/me": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve a paginated list of donation transactions for the authenticated user",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Donation Transactions"
-                ],
-                "summary": "List My Donation Transactions",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by payment status",
-                        "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by donation ID",
-                        "name": "donation_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Items per page",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Cursor for next page",
-                        "name": "next_cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Cursor for previous page",
-                        "name": "prev_cursor",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/pkg.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/donation_transaction.DonationTransactionListResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/public/donation-transactions/me/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve a specific donation transaction owned by the authenticated user",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Donation Transactions"
-                ],
-                "summary": "Get My Donation Transaction by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Transaction ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/public/donation-transactions/notification": {
-            "post": {
-                "description": "Webhook endpoint for Midtrans to send payment status updates",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Donation Transactions"
-                ],
-                "summary": "Midtrans Payment Notification",
-                "parameters": [
-                    {
-                        "description": "Midtrans notification payload",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/donation_transaction.MidtransNotificationRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/public/donations/": {
-            "get": {
-                "description": "Retrieve a list of published (active) donations",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Donations"
-                ],
-                "summary": "List Published Donations",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by category",
-                        "name": "category",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Pagination limit",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (next page)",
-                        "name": "next_cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (prev page)",
-                        "name": "prev_cursor",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/public/donations/{slug}": {
-            "get": {
-                "description": "Get detailed information of a specific published donation",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Donations"
-                ],
-                "summary": "Get Published Donation by Slug",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Donation Slug",
-                        "name": "slug",
-                        "in": "path",
-                        "required": true
                     }
                 ],
                 "responses": {
@@ -3068,52 +5350,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/public/users/roles": {
-            "get": {
-                "description": "Get a list of roles",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Users"
-                ],
-                "summary": "Get Roles",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/pkg.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/user.RoleResponse"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/users": {
+        "/api/social-program-subscriptions": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a list of users",
+                "description": "Retrieve a list of the authenticated user's social program subscriptions",
                 "consumes": [
                     "application/json"
                 ],
@@ -3121,10 +5365,22 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Users"
+                    "Social Program Subscriptions"
                 ],
-                "summary": "Get Users List",
+                "summary": "List My Social Program Subscriptions",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by social program ID",
+                        "name": "social_program_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
                     {
                         "type": "integer",
                         "description": "Pagination limit",
@@ -3142,59 +5398,24 @@ const docTemplate = `{
                         "description": "Pagination cursor (prev page)",
                         "name": "prev_cursor",
                         "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Search query",
-                        "name": "search",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Role ID filter",
-                        "name": "role",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Status filter",
-                        "name": "status",
-                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/pkg.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/user.UserResponse"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/pkg.Response"
                         }
                     }
                 }
-            }
-        },
-        "/api/users/{id}": {
-            "get": {
+            },
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get detailed information of a user by ID",
+                "description": "Subscribe to a social program",
                 "consumes": [
                     "application/json"
                 ],
@@ -3202,46 +5423,38 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Users"
+                    "Social Program Subscriptions"
                 ],
-                "summary": "Get User Detail",
+                "summary": "Create Social Program Subscription",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "User ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
+                        "description": "Subscription Data",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/social_program_subscription.CreateSocialProgramSubscriptionRequest"
+                        }
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
+                    "201": {
+                        "description": "Created",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/pkg.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/user.UserResponse"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/pkg.Response"
                         }
                     }
                 }
-            },
+            }
+        },
+        "/api/social-program-subscriptions/{id}": {
             "put": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update user information by ID",
+                "description": "Update the status of a social program subscription",
                 "consumes": [
                     "application/json"
                 ],
@@ -3249,24 +5462,127 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Users"
+                    "Social Program Subscriptions"
                 ],
-                "summary": "Update User",
+                "summary": "Update Social Program Subscription",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "User ID",
+                        "description": "Subscription ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Update User Data",
+                        "description": "Subscription Update Data",
                         "name": "payload",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/user.UpdateUserRequest"
+                            "$ref": "#/definitions/social_program_subscription.UpdateSocialProgramSubscriptionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a social program subscription",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Program Subscriptions"
+                ],
+                "summary": "Delete Social Program Subscription",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Subscription ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/social-program-transactions": {
+            "post": {
+                "description": "Initiate a Midtrans Snap payment for a social program invoice",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Program Transactions"
+                ],
+                "summary": "Create Social Program Transaction",
+                "parameters": [
+                    {
+                        "description": "Transaction request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/social_program_transaction.CreateTransactionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/social-program-transactions/notification": {
+            "post": {
+                "description": "Webhook endpoint for Midtrans to send payment status updates",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Program Transactions"
+                ],
+                "summary": "Midtrans Payment Notification",
+                "parameters": [
+                    {
+                        "description": "Midtrans notification payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/social_program_transaction.MidtransNotificationRequest"
                         }
                     }
                 ],
@@ -3279,26 +5595,313 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/social-programs": {
+            "get": {
+                "description": "Retrieve a list of social programs",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "List Social Programs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Status filter",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/social-programs/expenses/{expense_id}": {
+            "get": {
+                "description": "Get detailed information of a specific social program expense",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Program Expenses"
+                ],
+                "summary": "Get Social Program Expense by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Expense ID",
+                        "name": "expense_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/social_program_expense.SocialProgramExpenseDetailResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/social-programs/{id}": {
+            "get": {
+                "description": "Get detailed information of a specific social program",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "Get Social Program by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Social Program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/social-programs/{id}/expenses": {
+            "get": {
+                "description": "Retrieve a paginated list of expenses for a specific social program",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Program Expenses"
+                ],
+                "summary": "List Social Program Expenses",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Social Program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/social_program_expense.SocialProgramExpenseListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
-        "ambulance.CreateAmbulanceRequest": {
-            "type": "object"
+        "account.AccountResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_banned": {
+                    "type": "boolean"
+                },
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/account.AccountRolesResponse"
+                    }
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
         },
-        "ambulance.UpdateAmbulanceRequest": {
-            "type": "object"
+        "account.AccountRolesResponse": {
+            "type": "object",
+            "properties": {
+                "is_active": {
+                    "type": "boolean"
+                },
+                "is_default": {
+                    "type": "boolean"
+                },
+                "role_id": {
+                    "type": "integer"
+                },
+                "role_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "account.AddAccountRoleRequest": {
+            "type": "object",
+            "properties": {
+                "is_active": {
+                    "type": "boolean"
+                },
+                "is_default": {
+                    "type": "boolean"
+                },
+                "role_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "account.UpdatePasswordRequest": {
+            "type": "object",
+            "properties": {
+                "current_password": {
+                    "type": "string"
+                },
+                "new_password": {
+                    "type": "string"
+                }
+            }
+        },
+        "account.UserProfileResponse": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "profile_picture": {
+                    "type": "string"
+                },
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/account.AccountRolesResponse"
+                    }
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
         },
         "ambulance_history.CreateAmbulanceHistoryRequest": {
             "type": "object",
             "properties": {
                 "ambulance_id": {
-                    "type": "integer"
+                    "type": "string"
+                },
+                "driver_id": {
+                    "type": "string"
+                },
+                "note": {
+                    "type": "string"
                 },
                 "service_category": {
                     "$ref": "#/definitions/ambulance_history.ServiceCategory"
-                },
-                "user_id": {
-                    "type": "integer"
                 }
             }
         },
@@ -3330,7 +5933,7 @@ const docTemplate = `{
         "ambulance_request.UpdateAmbulanceRequest": {
             "type": "object",
             "properties": {
-                "reject_reason": {
+                "rejection_reason": {
                     "type": "string"
                 },
                 "status": {
@@ -3340,9 +5943,6 @@ const docTemplate = `{
         },
         "auth.ForgetPasswordRequest": {
             "type": "object",
-            "required": [
-                "email"
-            ],
             "properties": {
                 "email": {
                     "type": "string"
@@ -3351,47 +5951,31 @@ const docTemplate = `{
         },
         "auth.LoginRequest": {
             "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
             "properties": {
                 "email": {
                     "type": "string"
                 },
                 "password": {
-                    "type": "string",
-                    "minLength": 6
+                    "type": "string"
                 }
             }
         },
         "auth.RegisterRequest": {
             "type": "object",
-            "required": [
-                "email",
-                "password",
-                "username"
-            ],
             "properties": {
                 "email": {
                     "type": "string"
                 },
                 "password": {
-                    "type": "string",
-                    "minLength": 6
+                    "type": "string"
                 },
                 "username": {
-                    "type": "string",
-                    "maxLength": 50,
-                    "minLength": 3
+                    "type": "string"
                 }
             }
         },
         "auth.ResendVerificationRequest": {
             "type": "object",
-            "required": [
-                "email"
-            ],
             "properties": {
                 "email": {
                     "type": "string"
@@ -3400,37 +5984,70 @@ const docTemplate = `{
         },
         "auth.ResetPasswordRequest": {
             "type": "object",
-            "required": [
-                "newPassword",
-                "token"
-            ],
             "properties": {
                 "newPassword": {
-                    "type": "string",
-                    "minLength": 6
+                    "type": "string"
                 },
                 "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "auth.SwitchRoleRequest": {
+            "type": "object",
+            "properties": {
+                "role": {
                     "type": "string"
                 }
             }
         },
         "auth.VerifyEmailRequest": {
             "type": "object",
-            "required": [
-                "token"
-            ],
             "properties": {
                 "token": {
                     "type": "string"
                 }
             }
         },
-        "donation_transaction.CreateTransactionRequest": {
+        "donation_program.Category": {
+            "type": "string",
+            "enum": [
+                "education",
+                "health",
+                "environment",
+                "social",
+                "disaster",
+                "humanity",
+                "other"
+            ],
+            "x-enum-varnames": [
+                "CategoryEducation",
+                "CategoryHealth",
+                "CategoryEnvironment",
+                "CategorySocial",
+                "CategoryDisaster",
+                "CategoryHumanity",
+                "CategoryOther"
+            ]
+        },
+        "donation_program.Status": {
+            "type": "string",
+            "enum": [
+                "active",
+                "draft",
+                "complete",
+                "expired"
+            ],
+            "x-enum-varnames": [
+                "StatusActive",
+                "StatusDraft",
+                "StatusCompleted",
+                "StatusExpired"
+            ]
+        },
+        "donation_program_transaction.CreateDonationProgramTransactionRequest": {
             "type": "object",
             "properties": {
-                "donation_id": {
-                    "type": "string"
-                },
                 "donor_email": {
                     "type": "string"
                 },
@@ -3445,7 +6062,7 @@ const docTemplate = `{
                 }
             }
         },
-        "donation_transaction.DonationTransactionListResponse": {
+        "donation_program_transaction.DonationProgramTransactionListResponse": {
             "type": "object",
             "properties": {
                 "pagination": {
@@ -3454,18 +6071,18 @@ const docTemplate = `{
                 "transactions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/donation_transaction.DonationTransactionResponse"
+                        "$ref": "#/definitions/donation_program_transaction.DonationProgramTransactionResponse"
                     }
                 }
             }
         },
-        "donation_transaction.DonationTransactionResponse": {
+        "donation_program_transaction.DonationProgramTransactionResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
                     "type": "string"
                 },
-                "donation_id": {
+                "donation_program_id": {
                     "type": "string"
                 },
                 "donor_email": {
@@ -3483,6 +6100,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "is_online": {
+                    "type": "boolean"
+                },
                 "order_id": {
                     "type": "string"
                 },
@@ -3498,8 +6118,34 @@ const docTemplate = `{
                 "snap_token": {
                     "type": "string"
                 },
-                "source": {
-                    "type": "boolean"
+                "transaction_id": {
+                    "type": "string"
+                },
+                "transaction_status": {
+                    "type": "string"
+                }
+            }
+        },
+        "donation_program_transaction.MidtransNotificationRequest": {
+            "type": "object",
+            "properties": {
+                "fraud_status": {
+                    "type": "string"
+                },
+                "gross_amount": {
+                    "type": "string"
+                },
+                "order_id": {
+                    "type": "string"
+                },
+                "payment_type": {
+                    "type": "string"
+                },
+                "signature_key": {
+                    "type": "string"
+                },
+                "status_code": {
+                    "type": "string"
                 },
                 "transaction_id": {
                     "type": "string"
@@ -3509,7 +6155,133 @@ const docTemplate = `{
                 }
             }
         },
-        "donation_transaction.MidtransNotificationRequest": {
+        "foster_children.Category": {
+            "type": "string",
+            "enum": [
+                "yatim",
+                "piatu",
+                "yatim piatu"
+            ],
+            "x-enum-varnames": [
+                "CategoryFatherless",
+                "CategoryMotherless",
+                "CategoryOrphan"
+            ]
+        },
+        "foster_children.Gender": {
+            "type": "string",
+            "enum": [
+                "male",
+                "female"
+            ],
+            "x-enum-varnames": [
+                "Male",
+                "Female"
+            ]
+        },
+        "foster_children.Status": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "accepted",
+                "rejected"
+            ],
+            "x-enum-varnames": [
+                "StatusPending",
+                "StatusAccepted",
+                "StatusRejected"
+            ]
+        },
+        "foster_children.UpdateFosterChildrenCandidateStatusRequest": {
+            "type": "object",
+            "properties": {
+                "rejection_reason": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/foster_children.Status"
+                }
+            }
+        },
+        "foster_children_transaction.CreateFosterChildrenTransactionRequest": {
+            "type": "object",
+            "properties": {
+                "donor_email": {
+                    "type": "string"
+                },
+                "donor_name": {
+                    "type": "string"
+                },
+                "gross_amount": {
+                    "type": "number"
+                }
+            }
+        },
+        "foster_children_transaction.FosterChildrenTransactionListResponse": {
+            "type": "object",
+            "properties": {
+                "pagination": {
+                    "$ref": "#/definitions/pkg.CursorPagination"
+                },
+                "transactions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/foster_children_transaction.FosterChildrenTransactionResponse"
+                    }
+                }
+            }
+        },
+        "foster_children_transaction.FosterChildrenTransactionResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "donor_email": {
+                    "type": "string"
+                },
+                "donor_name": {
+                    "type": "string"
+                },
+                "foster_children_id": {
+                    "type": "string"
+                },
+                "fraud_status": {
+                    "type": "string"
+                },
+                "gross_amount": {
+                    "type": "number"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_online": {
+                    "type": "boolean"
+                },
+                "order_id": {
+                    "type": "string"
+                },
+                "paid_at": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "snap_redirect_url": {
+                    "type": "string"
+                },
+                "snap_token": {
+                    "type": "string"
+                },
+                "transaction_id": {
+                    "type": "string"
+                },
+                "transaction_status": {
+                    "type": "string"
+                }
+            }
+        },
+        "foster_children_transaction.MidtransNotificationRequest": {
             "type": "object",
             "properties": {
                 "fraud_status": {
@@ -3541,8 +6313,8 @@ const docTemplate = `{
         "gallery.GalleryResponse": {
             "type": "object",
             "properties": {
-                "category_id": {
-                    "type": "integer"
+                "category": {
+                    "$ref": "#/definitions/media.MediaCategory"
                 },
                 "description": {
                     "type": "string"
@@ -3588,7 +6360,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "category": {
-                    "type": "string"
+                    "$ref": "#/definitions/media.MediaCategory"
                 },
                 "description": {
                     "type": "string"
@@ -3617,7 +6389,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "category": {
-                    "type": "string"
+                    "$ref": "#/definitions/media.MediaCategory"
                 },
                 "description": {
                     "type": "string"
@@ -3645,19 +6417,36 @@ const docTemplate = `{
                 }
             }
         },
+        "media.MediaCategory": {
+            "type": "string",
+            "enum": [
+                "kegiatan_sosial",
+                "bencana_alam",
+                "kesehatan",
+                "lingkungan",
+                "lainnya"
+            ],
+            "x-enum-varnames": [
+                "SosialEvent",
+                "Disaster",
+                "Health",
+                "Environment",
+                "Others"
+            ]
+        },
         "media.MediaResponse": {
             "type": "object",
             "properties": {
                 "alt_text": {
                     "type": "string"
                 },
-                "entity_id": {
-                    "type": "string"
-                },
-                "entity_type": {
+                "gallery_id": {
                     "type": "string"
                 },
                 "id": {
+                    "type": "string"
+                },
+                "news_id": {
                     "type": "string"
                 },
                 "order": {
@@ -3688,12 +6477,6 @@ const docTemplate = `{
         "pkg.CursorPagination": {
             "type": "object",
             "properties": {
-                "has_next": {
-                    "type": "boolean"
-                },
-                "has_prev": {
-                    "type": "boolean"
-                },
                 "limit": {
                     "type": "integer"
                 },
@@ -3740,9 +6523,6 @@ const docTemplate = `{
         "prayer.PrayerResponse": {
             "type": "object",
             "properties": {
-                "amen_count": {
-                    "type": "integer"
-                },
                 "content": {
                     "type": "string"
                 },
@@ -3751,9 +6531,6 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
-                },
-                "is_amen": {
-                    "type": "boolean"
                 },
                 "username": {
                     "type": "string"
@@ -3768,105 +6545,211 @@ const docTemplate = `{
                 }
             }
         },
-        "user.Role": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "integer"
-                },
-                "role": {
-                    "type": "string"
-                }
-            }
-        },
-        "user.RoleResponse": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "integer"
-                },
-                "role": {
-                    "type": "string"
-                }
-            }
-        },
-        "user.UpdatePasswordRequest": {
-            "type": "object",
-            "required": [
-                "current_password",
-                "new_password"
+        "social_program.Status": {
+            "type": "string",
+            "enum": [
+                "active",
+                "completed",
+                "stopped",
+                "draft"
             ],
-            "properties": {
-                "current_password": {
-                    "type": "string",
-                    "minLength": 6
-                },
-                "new_password": {
-                    "type": "string",
-                    "minLength": 6
-                }
-            }
+            "x-enum-varnames": [
+                "StatusActive",
+                "StatusCompleted",
+                "StatusStopped",
+                "StatusDraft"
+            ]
         },
-        "user.UpdateProfileRequest": {
+        "social_program_expense.SocialProgramExpenseDetailResponse": {
             "type": "object",
             "properties": {
-                "email": {
-                    "type": "string"
+                "amount": {
+                    "type": "number"
                 },
-                "username": {
-                    "type": "string",
-                    "maxLength": 50,
-                    "minLength": 3
-                }
-            }
-        },
-        "user.UpdateUserRequest": {
-            "type": "object",
-            "properties": {
-                "role_id": {
-                    "type": "integer"
-                },
-                "status": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "user.UserProfileResponse": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "role": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "user.UserResponse": {
-            "type": "object",
-            "properties": {
                 "created_at": {
                     "type": "string"
                 },
-                "email": {
+                "created_by": {
+                    "type": "string"
+                },
+                "expense_date": {
                     "type": "string"
                 },
                 "id": {
                     "type": "string"
                 },
-                "role": {
-                    "$ref": "#/definitions/user.Role"
+                "note": {
+                    "type": "string"
+                },
+                "proof_file": {
+                    "type": "string"
+                },
+                "social_program_id": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "social_program_expense.SocialProgramExpenseListResponse": {
+            "type": "object",
+            "properties": {
+                "expenses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/social_program_expense.SocialProgramExpenseResponse"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/pkg.CursorPagination"
+                }
+            }
+        },
+        "social_program_expense.SocialProgramExpenseResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "expense_date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "note": {
+                    "type": "string"
+                },
+                "proof_file": {
+                    "type": "string"
+                },
+                "social_program_id": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "social_program_invoice.SocialProgramInvoiceRequest": {
+            "type": "object",
+            "required": [
+                "amount",
+                "billing_period",
+                "due_date",
+                "status",
+                "subscription_id"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "billing_period": {
+                    "type": "string"
+                },
+                "due_date": {
+                    "type": "string"
                 },
                 "status": {
-                    "type": "boolean"
+                    "$ref": "#/definitions/social_program_invoice.Status"
                 },
-                "username": {
+                "subscription_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "social_program_invoice.Status": {
+            "type": "string",
+            "enum": [
+                "active",
+                "paid",
+                "unpaid"
+            ],
+            "x-enum-varnames": [
+                "StatusActive",
+                "StatusPaid",
+                "StatusUnpaid"
+            ]
+        },
+        "social_program_subscription.CreateSocialProgramSubscriptionRequest": {
+            "type": "object",
+            "required": [
+                "amount",
+                "social_program_id"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "social_program_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "social_program_subscription.Status": {
+            "type": "string",
+            "enum": [
+                "active",
+                "paused",
+                "stopped"
+            ],
+            "x-enum-varnames": [
+                "StatusActive",
+                "StatusPaused",
+                "StatusStopped"
+            ]
+        },
+        "social_program_subscription.UpdateSocialProgramSubscriptionRequest": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "$ref": "#/definitions/social_program_subscription.Status"
+                }
+            }
+        },
+        "social_program_transaction.CreateTransactionRequest": {
+            "type": "object",
+            "properties": {
+                "gross_amount": {
+                    "type": "number"
+                },
+                "social_program_invoice_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "social_program_transaction.MidtransNotificationRequest": {
+            "type": "object",
+            "properties": {
+                "fraud_status": {
+                    "type": "string"
+                },
+                "gross_amount": {
+                    "type": "string"
+                },
+                "order_id": {
+                    "type": "string"
+                },
+                "payment_type": {
+                    "type": "string"
+                },
+                "signature_key": {
+                    "type": "string"
+                },
+                "status_code": {
+                    "type": "string"
+                },
+                "transaction_id": {
+                    "type": "string"
+                },
+                "transaction_status": {
                     "type": "string"
                 }
             }

@@ -3,7 +3,7 @@ package ambulance
 import "github.com/Vilamuzz/yota-backend/pkg"
 
 type AmbulanceResponse struct {
-	ID          int    `json:"id"`
+	ID          string `json:"id"`
 	PlateNumber string `json:"plate_number"`
 	Phone       string `json:"phone"`
 }
@@ -15,7 +15,7 @@ type AmbulanceListResponse struct {
 
 func (a *Ambulance) toAmbulanceResponse() AmbulanceResponse {
 	return AmbulanceResponse{
-		ID:          a.ID,
+		ID:          a.ID.String(),
 		PlateNumber: a.PlateNumber,
 		Phone:       a.Phone,
 	}

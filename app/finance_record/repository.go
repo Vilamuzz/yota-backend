@@ -10,6 +10,7 @@ import (
 type Repository interface {
 	Create(ctx context.Context, record *FinanceRecord) error
 	FindAll(ctx context.Context, options map[string]interface{}) ([]FinanceRecord, error)
+	Delete(ctx context.Context, id string) error
 }
 
 type repo struct {
@@ -64,4 +65,8 @@ func (r *repo) FindAll(ctx context.Context, options map[string]interface{}) ([]F
 
 	err := query.Find(&records).Error
 	return records, err
+}
+
+func (r *repo) Delete(ctx context.Context, id string) error {
+	return r.Conn.WithContext(ctx).Where("id = ?", id).Delete(&FinanceRecord{}).Error
 }

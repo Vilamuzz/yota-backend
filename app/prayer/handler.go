@@ -24,24 +24,21 @@ func NewHandler(r *gin.RouterGroup, service Service, m middleware.AppMiddleware)
 }
 
 func (h *handler) RegisterRoutes(router *gin.RouterGroup) {
-	public := router.Group("/prayers")
-	public.Use(h.middleware.AuthOptional())
-	public.GET("", h.ListPrayers)
-	public.GET("/:id", h.FindPrayerByID)
+	router.GET("/donation-programs/:slug/prayers", h.GetPrayerList, h.middleware.AuthOptional())
+	router.GET("prayers/:id", h.GetPrayerByID, h.middleware.AuthOptional())
 
 	publicProtected := router.Group("/prayers")
 	publicProtected.Use(h.middleware.AuthRequired())
 	{
-		publicProtected.POST("/:id/amen", h.PrayerAmen)
-		publicProtected.POST("/:id/report", h.ReportPrayer)
-
+		publicProtected.POST("/:id/amen", h.CreateAmenPrayer)
+		publicProtected.POST("/:id/report", h.CreateReportPrayer)
 	}
 
-	protected := router.Group("/protected/prayers")
-	protected.Use(h.middleware.RequireRoles(enum.RoleFinance))
+	admin := router.Group("/admin/prayers")
+	admin.Use(h.middleware.RequireRoles(enum.RoleFinance))
 	{
-		protected.GET("/", h.ListReportedPrayers)
-		protected.DELETE("/:id", h.DeletePrayer)
+		admin.GET("/", h.GetReportedPrayerList)
+		admin.DELETE("/:id", h.DeletePrayer)
 	}
 }
 
@@ -53,17 +50,14 @@ func (h *handler) RegisterRoutes(router *gin.RouterGroup) {
 // @Produce json
 // @Param id path string true "Prayer ID"
 // @Success 200 {object} pkg.Response
-// @Failure 400 {object} pkg.Response
-// @Failure 404 {object} pkg.Response
-// @Failure 500 {object} pkg.Response
 // @Router /api/prayers/{id}/amen [post]
-func (h *handler) PrayerAmen(c *gin.Context) {
+func (h *handler) CreateAmenPrayer(c *gin.Context) {
 	ctx := c.Request.Context()
 	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
-	userID := claims.UserID
+	accountID := claims.AccountID
 	prayerID := c.Param("id")
 
-	res := h.service.PrayerAmen(ctx, prayerID, userID)
+	res := h.service.CreatePrayerAmen(ctx, prayerID, accountID)
 	c.JSON(res.Status, res)
 }
 
@@ -74,23 +68,20 @@ func (h *handler) PrayerAmen(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path string true "Prayer ID"
-// @Param payload body ReportPrayerRequest true "Report Prayer Payload"
+// @Param body body ReportPrayerRequest true "Report Prayer Payload"
 // @Success 200 {object} pkg.Response
-// @Failure 400 {object} pkg.Response
-// @Failure 404 {object} pkg.Response
-// @Failure 500 {object} pkg.Response
 // @Router /api/prayers/{id}/report [post]
-func (h *handler) ReportPrayer(c *gin.Context) {
+func (h *handler) CreateReportPrayer(c *gin.Context) {
 	ctx := c.Request.Context()
 	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
-	userID := claims.UserID
+	accountID := claims.AccountID
 	var payload ReportPrayerRequest
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
 		return
 	}
 	prayerID := c.Param("id")
-	res := h.service.CreateReportPrayer(ctx, payload, prayerID, userID)
+	res := h.service.CreateReportPrayer(ctx, prayerID, accountID, payload)
 	c.JSON(res.Status, res)
 }
 
@@ -101,20 +92,17 @@ func (h *handler) ReportPrayer(c *gin.Context) {
 // @Produce json
 // @Param id path string true "Prayer ID"
 // @Success 200 {object} pkg.Response{data=PrayerResponse}
-// @Failure 400 {object} pkg.Response
-// @Failure 404 {object} pkg.Response
-// @Failure 500 {object} pkg.Response
 // @Router /api/prayers/{id} [get]
-func (h *handler) FindPrayerByID(c *gin.Context) {
+func (h *handler) GetPrayerByID(c *gin.Context) {
 	ctx := c.Request.Context()
-	id := c.Param("id")
-	userID := ""
-	if userData, exists := c.Get("user_data"); exists {
-		if claims, ok := userData.(jwt_pkg.UserJWTClaims); ok {
-			userID = claims.UserID
+	prayerID := c.Param("id")
+	accountID := ""
+	if accountData, exists := c.Get("user_data"); exists {
+		if claims, ok := accountData.(jwt_pkg.UserJWTClaims); ok {
+			accountID = claims.AccountID
 		}
 	}
-	res := h.service.FindPrayerByID(ctx, id, userID)
+	res := h.service.GetPrayerByID(ctx, prayerID, accountID)
 	c.JSON(res.Status, res)
 }
 
@@ -123,28 +111,27 @@ func (h *handler) FindPrayerByID(c *gin.Context) {
 // @Tags Prayer
 // @Accept json
 // @Produce json
-// @Param donation_id query string false "Filter by donation ID"
+// @Param slug path string true "Donation Program Slug"
 // @Param limit query int false "Pagination limit"
 // @Param next_cursor query string false "Pagination cursor (next page)"
 // @Param prev_cursor query string false "Pagination cursor (prev page)"
 // @Success 200 {object} pkg.Response{data=PrayerListResponse}
-// @Failure 400 {object} pkg.Response
-// @Failure 500 {object} pkg.Response
-// @Router /api/prayers [get]
-func (h *handler) ListPrayers(c *gin.Context) {
+// @Router /api/donation-programs/{slug}/prayers [get]
+func (h *handler) GetPrayerList(c *gin.Context) {
 	ctx := c.Request.Context()
+	donationSlug := c.Param("slug")
 	var params PrayerQueryParams
 	if err := c.ShouldBindQuery(&params); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
 		return
 	}
-	userID := ""
-	if userData, exists := c.Get("user_data"); exists {
-		if claims, ok := userData.(jwt_pkg.UserJWTClaims); ok {
-			userID = claims.UserID
+	accountID := ""
+	if accountData, exists := c.Get("user_data"); exists {
+		if claims, ok := accountData.(jwt_pkg.UserJWTClaims); ok {
+			accountID = claims.AccountID
 		}
 	}
-	res := h.service.ListPrayers(ctx, params, userID)
+	res := h.service.GetPrayerList(ctx, accountID, donationSlug, params)
 	c.JSON(res.Status, res)
 }
 
@@ -154,21 +141,19 @@ func (h *handler) ListPrayers(c *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param page query int false "Page number"
-// @Param limit query int false "Items per page"
-// @Param search query string false "Search query"
+// @Param limit query int false "Pagination limit"
+// @Param next_cursor query string false "Pagination cursor (next page)"
+// @Param prev_cursor query string false "Pagination cursor (prev page)"
 // @Success 200 {object} pkg.Response{data=PrayerListResponse}
-// @Failure 400 {object} pkg.Response
-// @Failure 500 {object} pkg.Response
-// @Router /api/protected/prayers [get]
-func (h *handler) ListReportedPrayers(c *gin.Context) {
+// @Router /api/admin/prayers [get]
+func (h *handler) GetReportedPrayerList(c *gin.Context) {
 	ctx := c.Request.Context()
 	var params PrayerQueryParams
 	if err := c.ShouldBindQuery(&params); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
 		return
 	}
-	res := h.service.ListReportedPrayers(ctx, params)
+	res := h.service.GetReportedPrayerList(ctx, params)
 	c.JSON(res.Status, res)
 }
 
@@ -180,13 +165,10 @@ func (h *handler) ListReportedPrayers(c *gin.Context) {
 // @Produce json
 // @Param id path string true "Prayer ID"
 // @Success 200 {object} pkg.Response
-// @Failure 400 {object} pkg.Response
-// @Failure 404 {object} pkg.Response
-// @Failure 500 {object} pkg.Response
-// @Router /api/protected/prayers/{id} [delete]
+// @Router /api/admin/prayers/{id} [delete]
 func (h *handler) DeletePrayer(c *gin.Context) {
 	ctx := c.Request.Context()
-	id := c.Param("id")
-	res := h.service.DeletePrayer(ctx, id)
+	prayerID := c.Param("id")
+	res := h.service.DeletePrayer(ctx, prayerID)
 	c.JSON(res.Status, res)
 }

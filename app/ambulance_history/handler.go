@@ -1,8 +1,6 @@
 package ambulance_history
 
 import (
-	"strconv"
-
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/Vilamuzz/yota-backend/pkg/enum"
@@ -99,12 +97,7 @@ func (h *handler) CreateAmbulanceHistory(c *gin.Context) {
 // @Router /ambulance-history/{id} [put]
 func (h *handler) UpdateAmbulanceHistory(c *gin.Context) {
 	ctx := c.Request.Context()
-	id := c.Param("id")
-	ambulanceHistoryID, err := strconv.Atoi(id)
-	if err != nil {
-		c.JSON(400, pkg.NewResponse(400, "Invalid ambulance history ID", nil, nil))
-		return
-	}
+	ambulanceHistoryID := c.Param("id")
 	var payload UpdateAmbulanceHistoryRequest
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		c.JSON(400, pkg.NewResponse(400, "Invalid request payload", nil, nil))
@@ -128,12 +121,7 @@ func (h *handler) UpdateAmbulanceHistory(c *gin.Context) {
 // @Router /ambulance-history/{id} [delete]
 func (h *handler) DeleteAmbulanceHistory(c *gin.Context) {
 	ctx := c.Request.Context()
-	id := c.Param("id")
-	ambulanceHistoryID, err := strconv.Atoi(id)
-	if err != nil {
-		c.JSON(400, pkg.NewResponse(400, "Invalid ambulance history ID", nil, nil))
-		return
-	}
+	ambulanceHistoryID := c.Param("id")
 	res := h.service.DeleteAmbulanceHistory(ctx, ambulanceHistoryID)
 	c.JSON(res.Status, res)
 }

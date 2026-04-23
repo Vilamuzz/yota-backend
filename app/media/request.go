@@ -1,16 +1,18 @@
 package media
 
-type MediaRequest struct {
-	ID  string `json:"id" binding:"omitempty,uuid"`
-	URL string `json:"url" binding:"required,url"`
+import "github.com/google/uuid"
 
-	Type    string `json:"type" binding:"required,oneof=image video"`
-	AltText string `json:"alt_text"`
-	Order   int    `json:"order" binding:"omitempty,min=0"`
+type MediaRequest struct {
+	ID  uuid.UUID `json:"id"`
+	URL string    `json:"url"`
+
+	Type    MediaType `json:"type"`
+	AltText string    `json:"alt_text"`
+	Order   int       `json:"order"`
 }
 
 type MediaMetadata struct {
-	ID      string `json:"id,omitempty"`
+	ID      string `json:"id"`
 	AltText string `json:"alt_text"`
 	Order   int    `json:"order"`
 }

@@ -108,8 +108,6 @@ func (s *service) ListRecords(ctx context.Context, params RecordQueryParams) pkg
 		"pagination": pkg.CursorPagination{
 			NextCursor: nextCursor,
 			PrevCursor: prevCursor,
-			HasNext:    hasNext,
-			HasPrev:    hasPrev,
 			Limit:      params.Limit,
 		},
 	})

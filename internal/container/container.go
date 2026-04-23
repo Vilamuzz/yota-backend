@@ -7,21 +7,30 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Vilamuzz/yota-backend/app/account"
 	"github.com/Vilamuzz/yota-backend/app/ambulance"
 	"github.com/Vilamuzz/yota-backend/app/ambulance_history"
 	"github.com/Vilamuzz/yota-backend/app/ambulance_request"
 	"github.com/Vilamuzz/yota-backend/app/auth"
-	"github.com/Vilamuzz/yota-backend/app/donation"
-	"github.com/Vilamuzz/yota-backend/app/donation_expense"
-	"github.com/Vilamuzz/yota-backend/app/donation_transaction"
+	"github.com/Vilamuzz/yota-backend/app/donation_program"
+	"github.com/Vilamuzz/yota-backend/app/donation_program_expense"
+	"github.com/Vilamuzz/yota-backend/app/donation_program_transaction"
 	"github.com/Vilamuzz/yota-backend/app/finance_record"
+	"github.com/Vilamuzz/yota-backend/app/foster_children"
+	"github.com/Vilamuzz/yota-backend/app/foster_children_expense"
+	"github.com/Vilamuzz/yota-backend/app/foster_children_transaction"
 	"github.com/Vilamuzz/yota-backend/app/gallery"
 	app_log "github.com/Vilamuzz/yota-backend/app/log"
 	"github.com/Vilamuzz/yota-backend/app/media"
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/app/news"
+	"github.com/Vilamuzz/yota-backend/app/payment"
 	"github.com/Vilamuzz/yota-backend/app/prayer"
-	"github.com/Vilamuzz/yota-backend/app/user"
+	"github.com/Vilamuzz/yota-backend/app/social_program"
+	"github.com/Vilamuzz/yota-backend/app/social_program_expense"
+	"github.com/Vilamuzz/yota-backend/app/social_program_invoice"
+	"github.com/Vilamuzz/yota-backend/app/social_program_subscription"
+	"github.com/Vilamuzz/yota-backend/app/social_program_transaction"
 	"github.com/Vilamuzz/yota-backend/config"
 	"github.com/Vilamuzz/yota-backend/internal/scheduler"
 	payment_pkg "github.com/Vilamuzz/yota-backend/pkg/payment"
@@ -41,36 +50,52 @@ type Container struct {
 	Timeout        time.Duration
 
 	// Repositories
-	UserRepo                user.Repository
+	AccountRepo             account.Repository
 	AuthRepo                auth.Repository
-	DonationRepo            donation.Repository
+	DonationRepo            donation_program.Repository
 	NewsRepo                news.Repository
 	GalleryRepo             gallery.Repository
 	MediaRepo               media.Repository
 	PrayerRepo              prayer.Repository
-	TransactionDonationRepo donation_transaction.Repository
-	DonationExpenseRepo     donation_expense.Repository
+	TransactionDonationRepo donation_program_transaction.Repository
+	DonationExpenseRepo     donation_program_expense.Repository
 	FinanceRecordRepo       finance_record.Repository
 	AmbulanceRepo           ambulance.Repository
 	AmbulanceHistoryRepo    ambulance_history.Repository
 	AmbulanceRequestRepo    ambulance_request.Repository
-	LogRepo                 app_log.Repository
+	FosterChildrenRepo            foster_children.Repository
+	FosterChildrenExpenseRepo     foster_children_expense.Repository
+	FosterChildrenTransactionRepo foster_children_transaction.Repository
+	SocialProgramRepo             social_program.Repository
+	SocialProgramExpenseRepo      social_program_expense.Repository
+	SocialProgramInvoiceRepo      social_program_invoice.Repository
+	SocialProgramSubscriptionRepo social_program_subscription.Repository
+	SocialProgramTransactionRepo  social_program_transaction.Repository
+	LogRepo                       app_log.Repository
 
 	// Services
 	AuthService                auth.Service
-	UserService                user.Service
-	DonationService            donation.Service
+	AccountService             account.Service
+	DonationService            donation_program.Service
 	NewsService                news.Service
 	GalleryService             gallery.Service
 	MediaService               media.Service
-	TransactionDonationService donation_transaction.Service
+	TransactionDonationService donation_program_transaction.Service
 	PrayerService              prayer.Service
-	DonationExpenseService     donation_expense.Service
+	DonationExpenseService     donation_program_expense.Service
 	FinanceRecordService       finance_record.Service
 	AmbulanceService           ambulance.Service
 	AmbulanceHistoryService    ambulance_history.Service
 	AmbulanceRequestService    ambulance_request.Service
-	LogService                 app_log.Service
+	FosterChildrenService            foster_children.Service
+	FosterChildrenExpenseService     foster_children_expense.Service
+	FosterChildrenTransactionService foster_children_transaction.Service
+	SocialProgramService             social_program.Service
+	SocialProgramExpenseService      social_program_expense.Service
+	SocialProgramInvoiceService      social_program_invoice.Service
+	SocialProgramSubscriptionService social_program_subscription.Service
+	SocialProgramTransactionService  social_program_transaction.Service
+	LogService                       app_log.Service
 
 	// Middleware
 	Middleware *middleware.AppMiddleware
@@ -151,37 +176,53 @@ func (c *Container) initInfrastructure() error {
 }
 
 func (c *Container) initRepositories() {
-	c.UserRepo = user.NewRepository(c.DB)
+	c.AccountRepo = account.NewRepository(c.DB)
 	c.AuthRepo = auth.NewRepository(c.DB)
-	c.DonationRepo = donation.NewRepository(c.DB)
+	c.DonationRepo = donation_program.NewRepository(c.DB)
 	c.NewsRepo = news.NewRepository(c.DB)
 	c.GalleryRepo = gallery.NewRepository(c.DB)
 	c.MediaRepo = media.NewRepository(c.DB)
 	c.PrayerRepo = prayer.NewRepository(c.DB)
-	c.TransactionDonationRepo = donation_transaction.NewRepository(c.DB)
-	c.DonationExpenseRepo = donation_expense.NewRepository(c.DB)
+	c.TransactionDonationRepo = donation_program_transaction.NewRepository(c.DB)
+	c.DonationExpenseRepo = donation_program_expense.NewRepository(c.DB)
 	c.FinanceRecordRepo = finance_record.NewRepository(c.DB)
 	c.AmbulanceRepo = ambulance.NewRepository(c.DB)
 	c.AmbulanceHistoryRepo = ambulance_history.NewRepository(c.DB)
 	c.AmbulanceRequestRepo = ambulance_request.NewRepository(c.DB)
+	c.FosterChildrenRepo = foster_children.NewRepository(c.DB)
+	c.FosterChildrenExpenseRepo = foster_children_expense.NewRepository(c.DB)
+	c.FosterChildrenTransactionRepo = foster_children_transaction.NewRepository(c.DB)
+	c.SocialProgramRepo = social_program.NewRepository(c.DB)
+	c.SocialProgramExpenseRepo = social_program_expense.NewRepository(c.DB)
+	c.SocialProgramInvoiceRepo = social_program_invoice.NewRepository(c.DB)
+	c.SocialProgramSubscriptionRepo = social_program_subscription.NewRepository(c.DB)
+	c.SocialProgramTransactionRepo = social_program_transaction.NewRepository(c.DB)
 	c.LogRepo = app_log.NewRepository(c.DB)
 }
 
 func (c *Container) initServices() {
 	c.LogService = app_log.NewService(c.LogRepo, c.Timeout)
-	c.AuthService = auth.NewService(c.AuthRepo, c.UserRepo, c.Timeout)
-	c.UserService = user.NewService(c.UserRepo, c.Timeout)
-	c.DonationService = donation.NewService(c.DonationRepo, c.LogService, c.S3Client, c.Timeout)
+	c.AuthService = auth.NewService(c.AuthRepo, c.AccountRepo, c.Timeout)
+	c.AccountService = account.NewService(c.AccountRepo, c.Timeout, c.S3Client)
+	c.DonationService = donation_program.NewService(c.DonationRepo, c.LogService, c.S3Client, c.Timeout)
 	c.NewsService = news.NewService(c.NewsRepo, c.Timeout)
 	c.MediaService = media.NewService(c.MediaRepo, c.S3Client)
 	c.GalleryService = gallery.NewService(c.GalleryRepo, c.MediaService, c.Timeout)
-	c.TransactionDonationService = donation_transaction.NewService(c.TransactionDonationRepo, c.UserRepo, c.DonationRepo, c.PrayerRepo, c.FinanceRecordRepo, c.MidtransClient, c.LogService, c.Timeout)
-	c.PrayerService = prayer.NewService(c.PrayerRepo, c.Timeout)
-	c.DonationExpenseService = donation_expense.NewService(c.DonationExpenseRepo, c.FinanceRecordRepo, c.DonationRepo, c.S3Client, c.LogService, c.Timeout)
+	c.TransactionDonationService = donation_program_transaction.NewService(c.TransactionDonationRepo, c.AccountRepo, c.DonationRepo, c.PrayerRepo, c.FinanceRecordRepo, c.MidtransClient, c.LogService, c.Timeout)
+	c.PrayerService = prayer.NewService(c.PrayerRepo, c.DonationRepo, c.Timeout)
+	c.DonationExpenseService = donation_program_expense.NewService(c.DonationExpenseRepo, c.FinanceRecordRepo, c.DonationRepo, c.S3Client, c.LogService, c.Timeout)
 	c.FinanceRecordService = finance_record.NewService(c.FinanceRecordRepo, c.Timeout)
 	c.AmbulanceService = ambulance.NewService(c.AmbulanceRepo, c.S3Client, c.Timeout)
 	c.AmbulanceHistoryService = ambulance_history.NewService(c.AmbulanceHistoryRepo, c.AmbulanceRepo, c.Timeout)
 	c.AmbulanceRequestService = ambulance_request.NewService(c.AmbulanceRequestRepo, c.Timeout)
+	c.FosterChildrenService = foster_children.NewService(c.FosterChildrenRepo, c.LogService, c.S3Client, c.Timeout)
+	c.FosterChildrenExpenseService = foster_children_expense.NewService(c.FosterChildrenExpenseRepo, c.FinanceRecordRepo, c.FosterChildrenRepo, c.S3Client, c.LogService, c.Timeout)
+	c.FosterChildrenTransactionService = foster_children_transaction.NewService(c.FosterChildrenTransactionRepo, c.AccountRepo, c.FosterChildrenRepo, c.FinanceRecordRepo, c.MidtransClient, c.LogService, c.Timeout)
+	c.SocialProgramService = social_program.NewService(c.SocialProgramRepo, c.LogService, c.S3Client, c.Timeout)
+	c.SocialProgramExpenseService = social_program_expense.NewService(c.SocialProgramExpenseRepo, c.FinanceRecordRepo, c.SocialProgramRepo, c.S3Client, c.LogService, c.Timeout)
+	c.SocialProgramInvoiceService = social_program_invoice.NewService(c.SocialProgramInvoiceRepo, c.Timeout)
+	c.SocialProgramSubscriptionService = social_program_subscription.NewService(c.SocialProgramSubscriptionRepo, c.SocialProgramRepo, c.Timeout)
+	c.SocialProgramTransactionService = social_program_transaction.NewService(c.SocialProgramTransactionRepo, c.AccountRepo, c.SocialProgramInvoiceRepo, c.FinanceRecordRepo, c.MidtransClient, c.LogService, c.Timeout)
 }
 
 func (c *Container) initMiddleware() {
@@ -197,7 +238,7 @@ func (c *Container) initScheduler() {
 
 	// Update expired donations to 'complete' every midnight
 	c.Scheduler.Add("0 0 * * *", "update-expired-donations", func() {
-		if err := c.DonationService.UpdateExpiredDonations(context.Background()); err != nil {
+		if err := c.DonationService.UpdateExpiredDonationProgram(context.Background()); err != nil {
 			// error is logged inside the scheduler wrapper; log detail here
 			_ = err
 		}
@@ -206,17 +247,29 @@ func (c *Container) initScheduler() {
 
 // RegisterHandlers registers all handlers with their routes
 func (c *Container) RegisterHandlers(router *gin.RouterGroup) {
-	auth.NewHandler(router, c.AuthService, c.UserService, *c.Middleware)
-	user.NewHandler(router, c.UserService, *c.Middleware)
-	donation.NewHandler(router, c.DonationService, *c.Middleware)
+	auth.NewHandler(router, c.AuthService, c.AccountService, *c.Middleware)
+	account.NewHandler(router, c.AccountService, *c.Middleware)
+	donation_program.NewHandler(router, c.DonationService, *c.Middleware)
 	news.NewHandler(router, c.NewsService, c.S3Client, *c.Middleware)
 	gallery.NewHandler(router, c.GalleryService, c.MediaService, *c.Middleware)
-	donation_transaction.NewHandler(router, c.TransactionDonationService, *c.Middleware)
+	donation_program_transaction.NewHandler(router, c.TransactionDonationService, *c.Middleware)
 	prayer.NewHandler(router, c.PrayerService, *c.Middleware)
-	donation_expense.NewHandler(router, c.DonationExpenseService, *c.Middleware)
+	donation_program_expense.NewHandler(router, c.DonationExpenseService, *c.Middleware)
 	finance_record.NewHandler(router, c.FinanceRecordService, *c.Middleware)
 	ambulance.NewHandler(router, c.AmbulanceService, *c.Middleware)
 	ambulance_history.NewHandler(router, c.AmbulanceHistoryService, *c.Middleware)
 	ambulance_request.NewHandler(router, c.AmbulanceRequestService, *c.Middleware)
+	foster_children.NewHandler(router, c.FosterChildrenService, *c.Middleware)
+	foster_children_expense.NewHandler(router, c.FosterChildrenExpenseService, *c.Middleware)
+	foster_children_transaction.NewHandler(router, c.FosterChildrenTransactionService, *c.Middleware)
+	social_program.NewHandler(router, c.SocialProgramService, *c.Middleware)
+	social_program_expense.NewHandler(router, c.SocialProgramExpenseService, *c.Middleware)
+	social_program_invoice.NewHandler(router, c.SocialProgramInvoiceService, *c.Middleware)
+	social_program_subscription.NewHandler(router, c.SocialProgramSubscriptionService, *c.Middleware)
+	social_program_transaction.NewHandler(router, c.SocialProgramTransactionService, *c.Middleware)
 	app_log.NewHandler(router, c.LogService, *c.Middleware)
+
+	// Payment Webhooks
+	paymentGroup := router.Group("/webhooks")
+	payment.NewHandler(paymentGroup, c.TransactionDonationService, c.SocialProgramTransactionService, c.FosterChildrenTransactionService)
 }

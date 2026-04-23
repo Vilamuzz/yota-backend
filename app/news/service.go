@@ -44,13 +44,13 @@ func (s *service) FetchAllNews(ctx context.Context, queryParams NewsQueryParams)
 	}
 
 	if queryParams.Category != "" {
-		options["category"] = queryParams.Category
+		options["category_id"] = queryParams.Category
 	}
 	if queryParams.Status != "" {
 		options["status"] = queryParams.Status
 	}
-	if queryParams.Cursor != "" {
-		options["cursor"] = queryParams.Cursor
+	if queryParams.NextCursor != "" {
+		options["cursor"] = queryParams.NextCursor
 	}
 
 	newsList, err := s.repo.FetchAllNews(ctx, options)
@@ -66,16 +66,16 @@ func (s *service) FetchAllNews(ctx context.Context, queryParams NewsQueryParams)
 
 	// Generate cursors
 	var nextCursor, prevCursor string
-	hasPrev := queryParams.Cursor != ""
+	hasPrev := queryParams.PrevCursor != ""
 
 	if hasNext && len(newsList) > 0 {
 		lastNews := newsList[len(newsList)-1]
-		nextCursor = pkg.EncodeCursor(lastNews.CreatedAt, lastNews.ID)
+		nextCursor = pkg.EncodeCursor(lastNews.CreatedAt, lastNews.ID.String())
 	}
 
 	if hasPrev && len(newsList) > 0 {
 		firstNews := newsList[0]
-		prevCursor = pkg.EncodeCursor(firstNews.CreatedAt, firstNews.ID)
+		prevCursor = pkg.EncodeCursor(firstNews.CreatedAt, firstNews.ID.String())
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Success", nil, map[string]interface{}{
@@ -138,10 +138,6 @@ func (s *service) CreateNews(ctx context.Context, req NewsRequest) pkg.Response 
 	// Validate category
 	if req.Category == "" {
 		errValidation["category"] = "Category is required"
-	} else if req.Category != CategoryGeneral && req.Category != CategoryEvent &&
-		req.Category != CategoryAnnouncement && req.Category != CategoryDonation &&
-		req.Category != CategorySocial {
-		errValidation["category"] = "Invalid category. Must be: general, event, announcement, donation, or social"
 	}
 
 	if len(errValidation) > 0 {
@@ -151,7 +147,7 @@ func (s *service) CreateNews(ctx context.Context, req NewsRequest) pkg.Response 
 	// Set default status if not provided
 	status := req.Status
 	if status == "" {
-		status = StatusDraft
+		status = media.MediaStatusDraft
 	}
 
 	// Create news
@@ -161,7 +157,7 @@ func (s *service) CreateNews(ctx context.Context, req NewsRequest) pkg.Response 
 	if len(req.Media) > 0 {
 		for _, m := range req.Media {
 			mediaItems = append(mediaItems, media.Media{
-				ID:      uuid.New().String(),
+				ID:      uuid.New(),
 				Type:    m.Type,
 				URL:     m.URL,
 				AltText: m.AltText,
@@ -170,20 +166,20 @@ func (s *service) CreateNews(ctx context.Context, req NewsRequest) pkg.Response 
 	}
 
 	news := &News{
-		ID:        uuid.New().String(),
-		Title:     req.Title,
-		Category:  req.Category,
-		Content:   req.Content,
-		Image:     req.Image,
-		Status:    status,
-		Views:     0,
-		Media:     mediaItems,
-		CreatedAt: timeNow,
-		UpdatedAt: timeNow,
+		ID:         uuid.New(),
+		Title:      req.Title,
+		Category:   req.Category,
+		Content:    req.Content,
+		CoverImage: req.Image,
+		Status:     status,
+		Views:      0,
+		Media:      mediaItems,
+		CreatedAt:  timeNow,
+		UpdatedAt:  timeNow,
 	}
 
 	// Set published_at if status is published
-	if status == StatusPublished {
+	if status == media.MediaStatusPublished {
 		news.PublishedAt = &timeNow
 	}
 
@@ -235,24 +231,18 @@ func (s *service) UpdateNews(ctx context.Context, id string, req UpdateNewsReque
 
 	// Validate and set category
 	if req.Category != "" {
-		if req.Category != CategoryGeneral && req.Category != CategoryEvent &&
-			req.Category != CategoryAnnouncement && req.Category != CategoryDonation &&
-			req.Category != CategorySocial {
-			errValidation["category"] = "Invalid category. Must be: general, event, announcement, donation, or social"
-		} else {
-			updateData["category"] = req.Category
-		}
+		updateData["category"] = req.Category
 	}
 
 	// Validate and set status
 	if req.Status != "" {
-		if req.Status != StatusDraft && req.Status != StatusPublished && req.Status != StatusArchived {
+		if req.Status != media.MediaStatusDraft && req.Status != media.MediaStatusPublished && req.Status != media.MediaStatusArchived {
 			errValidation["status"] = "Invalid status. Must be: draft, published, or archived"
 		} else {
 			updateData["status"] = req.Status
 
 			// Set published_at if status is changing to published and wasn't published before
-			if req.Status == StatusPublished && existingNews.PublishedAt == nil {
+			if req.Status == media.MediaStatusPublished && existingNews.PublishedAt == nil {
 				now := time.Now()
 				updateData["published_at"] = &now
 			}
@@ -284,14 +274,14 @@ func (s *service) UpdateNews(ctx context.Context, id string, req UpdateNewsReque
 		var mediaItems []media.Media
 		for _, m := range req.Media {
 			mediaItems = append(mediaItems, media.Media{
-				ID:      uuid.New().String(),
+				ID:      uuid.New(),
 				Type:    m.Type,
 				URL:     m.URL,
 				AltText: m.AltText,
 			})
 		}
 
-		newsForKey := &News{ID: id}
+		newsForKey := &News{ID: uuid.MustParse(id)}
 		if err := s.repo.UpdateNewsMedia(ctx, newsForKey, mediaItems); err != nil {
 			return pkg.NewResponse(http.StatusInternalServerError, "Failed to update news media", nil, nil)
 		}

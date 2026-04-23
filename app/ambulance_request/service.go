@@ -55,18 +55,16 @@ func (s *service) ListAmbulanceRequest(ctx context.Context, queryParams Ambulanc
 	hasPrev := queryParams.PrevCursor != ""
 	if hasNext && len(ambulanceRequests) > 0 {
 		lastRequest := ambulanceRequests[len(ambulanceRequests)-1]
-		nextCursor = pkg.EncodeCursor(lastRequest.CreatedAt, lastRequest.ID)
+		nextCursor = pkg.EncodeCursor(lastRequest.CreatedAt, lastRequest.ID.String())
 	}
 	if hasPrev && len(ambulanceRequests) > 0 {
 		firstRequest := ambulanceRequests[0]
-		prevCursor = pkg.EncodeCursor(firstRequest.CreatedAt, firstRequest.ID)
+		prevCursor = pkg.EncodeCursor(firstRequest.CreatedAt, firstRequest.ID.String())
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Success", nil, toAmbulanceRequestsToListResponse(ambulanceRequests, pkg.CursorPagination{
 		NextCursor: nextCursor,
 		PrevCursor: prevCursor,
-		HasNext:    hasNext,
-		HasPrev:    hasPrev,
 		Limit:      queryParams.Limit,
 	}))
 }
@@ -98,24 +96,24 @@ func (s *service) CreateAmbulanceRequest(ctx context.Context, payload CreateAmbu
 	if payload.ApplicantAddress == "" {
 		errValidation["applicant_address"] = "Applicant address is required"
 	}
-	if payload.Date == "" {
-		errValidation["date"] = "Date is required"
+	if payload.RequestDate == "" {
+		errValidation["request_date"] = "Request date is required"
 	}
-	if payload.Reason == "" {
-		errValidation["reason"] = "Reason is required"
+	if payload.RequestReason == "" {
+		errValidation["request_reason"] = "Request reason is required"
 	}
 	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
 
 	request := AmbulanceRequest{
-		ID:               uuid.New().String(),
-		UserID:           payload.UserID,
+		ID:               uuid.New(),
+		AccountID:        uuid.MustParse(payload.AccountID),
 		ApplicantName:    payload.ApplicantName,
 		ApplicantPhone:   payload.ApplicantPhone,
 		ApplicantAddress: payload.ApplicantAddress,
-		Date:             time.Now(),
-		Reason:           payload.Reason,
+		RequestDate:      time.Now(),
+		RequestReason:    payload.RequestReason,
 		Status:           StatusPending,
 	}
 
@@ -148,10 +146,10 @@ func (s *service) UpdateAmbulanceRequest(ctx context.Context, id string, payload
 	} else if payload.Status != "" {
 		updateData["status"] = payload.Status
 	}
-	if payload.Status == string(StatusRejected) && payload.RejectReason == "" {
-		errValidation["reject_reason"] = "Reject reason is required when status is rejected"
+	if payload.Status == string(StatusRejected) && payload.RejectionReason == "" {
+		errValidation["rejection_reason"] = "Rejection reason is required when status is rejected"
 	} else if payload.Status == string(StatusRejected) {
-		updateData["reject_reason"] = payload.RejectReason
+		updateData["rejection_reason"] = payload.RejectionReason
 	}
 
 	if len(errValidation) > 0 {

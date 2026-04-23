@@ -9,7 +9,7 @@ import (
 
 type Service interface {
 	UploadMedia(ctx context.Context, files []*multipart.FileHeader, prefix string) ([]MediaRequest, error)
-	DeleteEntityMedia(ctx context.Context, entityID string) error
+	DeleteEntityMedia(ctx context.Context, entityID, entityType string) error
 	CreateEntityMedia(ctx context.Context, entityID, entityType string, mediaRequests []MediaRequest) error
 	DeleteMediaByID(ctx context.Context, mediaID string) error
 	FetchEntityMedia(ctx context.Context, entityID, entityType string) ([]Media, error)
@@ -60,9 +60,9 @@ func (s *service) UploadMedia(ctx context.Context, files []*multipart.FileHeader
 	return mediaItems, nil
 }
 
-func (s *service) DeleteEntityMedia(ctx context.Context, entityID string) error {
+func (s *service) DeleteEntityMedia(ctx context.Context, entityID, entityType string) error {
 	// Fetch media to get file URLs
-	mediaList, err := s.repo.FetchEntityMedia(ctx, entityID)
+	mediaList, err := s.repo.FetchEntityMedia(ctx, entityID, entityType)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (s *service) DeleteEntityMedia(ctx context.Context, entityID string) error 
 	}
 
 	// Delete media records from database
-	return s.repo.DeleteEntityMedia(ctx, entityID)
+	return s.repo.DeleteEntityMedia(ctx, entityID, entityType)
 }
 
 func (s *service) CreateEntityMedia(ctx context.Context, entityID, entityType string, mediaRequests []MediaRequest) error {
@@ -113,7 +113,7 @@ func (s *service) DeleteMediaByID(ctx context.Context, mediaID string) error {
 }
 
 func (s *service) FetchEntityMedia(ctx context.Context, entityID, entityType string) ([]Media, error) {
-	return s.repo.FetchEntityMedia(ctx, entityID)
+	return s.repo.FetchEntityMedia(ctx, entityID, entityType)
 }
 
 func (s *service) UpdateMediaByID(ctx context.Context, mediaID string, updateData map[string]interface{}) error {

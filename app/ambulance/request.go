@@ -7,15 +7,15 @@ import (
 )
 
 type CreateAmbulanceRequest struct {
-	Image       *multipart.FileHeader `json:"image"`
-	PlateNumber string                `json:"plate_number"`
-	Phone       string                `json:"phone"`
+	Image       *multipart.FileHeader `form:"image" json:"image" swaggerignore:"true"`
+	PlateNumber string                `form:"plate_number" json:"plate_number"`
+	Phone       string                `form:"phone" json:"phone"`
 }
 
 type UpdateAmbulanceRequest struct {
-	Image       *multipart.FileHeader `json:"image"`
-	PlateNumber string                `json:"plate_number"`
-	Phone       string                `json:"phone"`
+	Image       *multipart.FileHeader `form:"image" json:"image" swaggerignore:"true"`
+	PlateNumber string                `form:"plate_number" json:"plate_number"`
+	Phone       string                `form:"phone" json:"phone"`
 }
 
 type AmbulanceQueryParams struct {

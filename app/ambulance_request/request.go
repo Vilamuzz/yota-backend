@@ -3,21 +3,21 @@ package ambulance_request
 import "github.com/Vilamuzz/yota-backend/pkg"
 
 type CreateAmbulanceRequest struct {
-	UserID           int    `json:"user_id"`
+	AccountID        string `json:"account_id"`
 	ApplicantName    string `json:"applicant_name"`
 	ApplicantPhone   string `json:"applicant_phone"`
 	ApplicantAddress string `json:"applicant_address"`
-	Date             string `json:"date"`
-	Reason           string `json:"reason"`
+	RequestDate      string `json:"request_date"`
+	RequestReason    string `json:"request_reason"`
 }
 
 type UpdateAmbulanceRequest struct {
-	Status       string `json:"status"`
-	RejectReason string `json:"reject_reason"`
+	Status          string `json:"status"`
+	RejectionReason string `json:"rejection_reason"`
 }
 
 type AmbulanceRequestQueryParams struct {
-	UserID string `json:"user_id"`
-	Status string `json:"status"`
+	AccountID string `json:"account_id"`
+	Status    string `json:"status"`
 	pkg.CursorPagination
 }

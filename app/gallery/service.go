@@ -50,8 +50,8 @@ func (s *service) ListPublished(ctx context.Context, queryParams GalleryQueryPar
 		"limit":     queryParams.Limit,
 		"published": true,
 	}
-	if queryParams.CategoryID != 0 {
-		options["category_id"] = queryParams.CategoryID
+	if queryParams.Category != "" {
+		options["category"] = queryParams.Category
 	}
 	if queryParams.NextCursor != "" {
 		options["next_cursor"] = queryParams.NextCursor
@@ -83,18 +83,16 @@ func (s *service) ListPublished(ctx context.Context, queryParams GalleryQueryPar
 		first := galleries[0]
 		last := galleries[len(galleries)-1]
 		if hasNext {
-			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID)
+			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID.String())
 		}
 		if hasPrev {
-			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID)
+			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID.String())
 		}
 	}
 
 	pagination := pkg.CursorPagination{
 		NextCursor: nextCursor,
 		PrevCursor: prevCursor,
-		HasNext:    hasNext,
-		HasPrev:    hasPrev,
 		Limit:      queryParams.Limit,
 	}
 
@@ -137,8 +135,8 @@ func (s *service) List(ctx context.Context, queryParams GalleryQueryParams) pkg.
 		"limit": queryParams.Limit,
 	}
 
-	if queryParams.CategoryID != 0 {
-		options["category_id"] = queryParams.CategoryID
+	if queryParams.Category != "" {
+		options["category"] = queryParams.Category
 	}
 	if queryParams.NextCursor != "" {
 		options["next_cursor"] = queryParams.NextCursor
@@ -165,18 +163,16 @@ func (s *service) List(ctx context.Context, queryParams GalleryQueryParams) pkg.
 		first := galleries[0]
 		last := galleries[len(galleries)-1]
 		if hasNext {
-			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID)
+			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID.String())
 		}
 		if hasPrev {
-			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID)
+			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID.String())
 		}
 	}
 
 	pagination := pkg.CursorPagination{
 		NextCursor: nextCursor,
 		PrevCursor: prevCursor,
-		HasNext:    hasNext,
-		HasPrev:    hasPrev,
 		Limit:      queryParams.Limit,
 	}
 
@@ -217,7 +213,7 @@ func (s *service) CreateGallery(ctx context.Context, req GalleryRequest) pkg.Res
 		errValidation["description"] = "Description must not exceed 1000 characters"
 	}
 
-	if req.CategoryID == 0 {
+	if req.Category == "" {
 		errValidation["category"] = "Category is required"
 	}
 	if len(req.Files) == 0 {
@@ -243,7 +239,7 @@ func (s *service) CreateGallery(ctx context.Context, req GalleryRequest) pkg.Res
 
 		for i, uploadedItem := range uploadedMediaItems {
 			item := media.Media{
-				ID:      uuid.New().String(),
+				ID:      uuid.New(),
 				Type:    uploadedItem.Type,
 				URL:     uploadedItem.URL,
 				AltText: "",
@@ -267,10 +263,10 @@ func (s *service) CreateGallery(ctx context.Context, req GalleryRequest) pkg.Res
 	}
 
 	gallery := &Gallery{
-		ID:          uuid.New().String(),
+		ID:          uuid.New(),
 		Title:       req.Title,
 		Slug:        pkg.Slugify(req.Title),
-		CategoryID:  req.CategoryID,
+		Category:    req.Category,
 		Description: req.Description,
 		PublishedAt: publishedAt,
 		Views:       0,
@@ -323,8 +319,8 @@ func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGaller
 		}
 	}
 
-	if req.CategoryID != 0 {
-		updateData["category_id"] = req.CategoryID
+	if req.Category != "" {
+		updateData["category"] = req.Category
 	}
 
 	if req.Published != nil {
@@ -384,8 +380,8 @@ func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGaller
 		}
 
 		for _, existingMedia := range existingMediaList {
-			if _, shouldKeep := keepMediaIDs[existingMedia.ID]; !shouldKeep {
-				if err := s.mediaService.DeleteMediaByID(ctx, existingMedia.ID); err != nil {
+			if _, shouldKeep := keepMediaIDs[existingMedia.ID.String()]; !shouldKeep {
+				if err := s.mediaService.DeleteMediaByID(ctx, existingMedia.ID.String()); err != nil {
 					continue
 				}
 			}
@@ -405,7 +401,7 @@ func (s *service) UpdateGallery(ctx context.Context, id string, req UpdateGaller
 			var newMediaItems []media.MediaRequest
 			for _, m := range uploadedMedia {
 				newMediaItems = append(newMediaItems, media.MediaRequest{
-					ID:      uuid.New().String(),
+					ID:      uuid.New(),
 					URL:     m.URL,
 					Type:    m.Type,
 					AltText: m.AltText,

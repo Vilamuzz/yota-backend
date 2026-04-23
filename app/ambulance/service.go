@@ -3,7 +3,6 @@ package ambulance
 import (
 	"context"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
@@ -12,10 +11,10 @@ import (
 
 type Service interface {
 	CreateAmbulance(ctx context.Context, payload CreateAmbulanceRequest) pkg.Response
-	FindAmbulanceById(ctx context.Context, id int) pkg.Response
+	FindAmbulanceById(ctx context.Context, id string) pkg.Response
 	ListAmbulance(ctx context.Context, queryParams AmbulanceQueryParams) pkg.Response
-	UpdateAmbulance(ctx context.Context, id int, payload UpdateAmbulanceRequest) pkg.Response
-	DeleteAmbulance(ctx context.Context, id int) pkg.Response
+	UpdateAmbulance(ctx context.Context, id string, payload UpdateAmbulanceRequest) pkg.Response
+	DeleteAmbulance(ctx context.Context, id string) pkg.Response
 }
 
 type service struct {
@@ -59,7 +58,7 @@ func (s *service) CreateAmbulance(ctx context.Context, payload CreateAmbulanceRe
 	ambulance := Ambulance{
 		PlateNumber: payload.PlateNumber,
 		Phone:       payload.Phone,
-		ImageURL:    imageURL,
+		Image:       imageURL,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
@@ -70,7 +69,7 @@ func (s *service) CreateAmbulance(ctx context.Context, payload CreateAmbulanceRe
 	return pkg.NewResponse(http.StatusOK, "Ambulance created successfully", nil, nil)
 }
 
-func (s *service) FindAmbulanceById(ctx context.Context, id int) pkg.Response {
+func (s *service) FindAmbulanceById(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 	ambulance, err := s.repo.FindByID(ctx, id)
@@ -111,23 +110,21 @@ func (s *service) ListAmbulance(ctx context.Context, queryParams AmbulanceQueryP
 	hasPrev := queryParams.PrevCursor != ""
 	if hasNext && len(ambulances) > 0 {
 		lastAmbulance := ambulances[len(ambulances)-1]
-		nextCursor = pkg.EncodeCursor(lastAmbulance.CreatedAt, strconv.Itoa(lastAmbulance.ID))
+		nextCursor = pkg.EncodeCursor(lastAmbulance.CreatedAt, lastAmbulance.ID.String())
 	}
 	if hasPrev && len(ambulances) > 0 {
 		firstAmbulance := ambulances[0]
-		prevCursor = pkg.EncodeCursor(firstAmbulance.CreatedAt, strconv.Itoa(firstAmbulance.ID))
+		prevCursor = pkg.EncodeCursor(firstAmbulance.CreatedAt, firstAmbulance.ID.String())
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Success", nil, toAmbulanceListResponse(ambulances, pkg.CursorPagination{
 		NextCursor: nextCursor,
 		PrevCursor: prevCursor,
-		HasNext:    hasNext,
-		HasPrev:    hasPrev,
 		Limit:      queryParams.Limit,
 	}))
 }
 
-func (s *service) UpdateAmbulance(ctx context.Context, id int, payload UpdateAmbulanceRequest) pkg.Response {
+func (s *service) UpdateAmbulance(ctx context.Context, id string, payload UpdateAmbulanceRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 	ambulance, err := s.repo.FindByID(ctx, id)
@@ -143,7 +140,7 @@ func (s *service) UpdateAmbulance(ctx context.Context, id int, payload UpdateAmb
 		updateData["phone"] = payload.Phone
 	}
 	if payload.Image != nil {
-		objectName := s3_pkg.ExtractObjectNameFromURL(ambulance.ImageURL)
+		objectName := s3_pkg.ExtractObjectNameFromURL(ambulance.Image)
 		if objectName != "" {
 			_ = s.s3Client.DeleteFile(ctx, objectName)
 		}
@@ -152,7 +149,7 @@ func (s *service) UpdateAmbulance(ctx context.Context, id int, payload UpdateAmb
 		if err != nil {
 			return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload image", nil, nil)
 		}
-		updateData["image_url"] = uploadedURL
+		updateData["image"] = uploadedURL
 	}
 
 	if err := s.repo.Update(ctx, id, updateData); err != nil {
@@ -161,7 +158,7 @@ func (s *service) UpdateAmbulance(ctx context.Context, id int, payload UpdateAmb
 	return pkg.NewResponse(http.StatusOK, "Ambulance updated successfully", nil, nil)
 }
 
-func (s *service) DeleteAmbulance(ctx context.Context, id int) pkg.Response {
+func (s *service) DeleteAmbulance(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 	if err := s.repo.Delete(ctx, id); err != nil {

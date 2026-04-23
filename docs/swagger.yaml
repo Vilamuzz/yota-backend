@@ -1,16 +1,77 @@
 definitions:
-  ambulance.CreateAmbulanceRequest:
+  account.AccountResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      is_banned:
+        type: boolean
+      roles:
+        items:
+          $ref: '#/definitions/account.AccountRolesResponse'
+        type: array
+      username:
+        type: string
     type: object
-  ambulance.UpdateAmbulanceRequest:
+  account.AccountRolesResponse:
+    properties:
+      is_active:
+        type: boolean
+      is_default:
+        type: boolean
+      role_id:
+        type: integer
+      role_name:
+        type: string
+    type: object
+  account.AddAccountRoleRequest:
+    properties:
+      is_active:
+        type: boolean
+      is_default:
+        type: boolean
+      role_id:
+        type: integer
+    type: object
+  account.UpdatePasswordRequest:
+    properties:
+      current_password:
+        type: string
+      new_password:
+        type: string
+    type: object
+  account.UserProfileResponse:
+    properties:
+      address:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      phone:
+        type: string
+      profile_picture:
+        type: string
+      roles:
+        items:
+          $ref: '#/definitions/account.AccountRolesResponse'
+        type: array
+      username:
+        type: string
     type: object
   ambulance_history.CreateAmbulanceHistoryRequest:
     properties:
       ambulance_id:
-        type: integer
+        type: string
+      driver_id:
+        type: string
+      note:
+        type: string
       service_category:
         $ref: '#/definitions/ambulance_history.ServiceCategory'
-      user_id:
-        type: integer
     type: object
   ambulance_history.ServiceCategory:
     enum:
@@ -33,7 +94,7 @@ definitions:
     type: object
   ambulance_request.UpdateAmbulanceRequest:
     properties:
-      reject_reason:
+      rejection_reason:
         type: string
       status:
         type: string
@@ -42,65 +103,77 @@ definitions:
     properties:
       email:
         type: string
-    required:
-    - email
     type: object
   auth.LoginRequest:
     properties:
       email:
         type: string
       password:
-        minLength: 6
         type: string
-    required:
-    - email
-    - password
     type: object
   auth.RegisterRequest:
     properties:
       email:
         type: string
       password:
-        minLength: 6
         type: string
       username:
-        maxLength: 50
-        minLength: 3
         type: string
-    required:
-    - email
-    - password
-    - username
     type: object
   auth.ResendVerificationRequest:
     properties:
       email:
         type: string
-    required:
-    - email
     type: object
   auth.ResetPasswordRequest:
     properties:
       newPassword:
-        minLength: 6
         type: string
       token:
         type: string
-    required:
-    - newPassword
-    - token
+    type: object
+  auth.SwitchRoleRequest:
+    properties:
+      role:
+        type: string
     type: object
   auth.VerifyEmailRequest:
     properties:
       token:
         type: string
-    required:
-    - token
     type: object
-  donation_transaction.CreateTransactionRequest:
+  donation_program.Category:
+    enum:
+    - education
+    - health
+    - environment
+    - social
+    - disaster
+    - humanity
+    - other
+    type: string
+    x-enum-varnames:
+    - CategoryEducation
+    - CategoryHealth
+    - CategoryEnvironment
+    - CategorySocial
+    - CategoryDisaster
+    - CategoryHumanity
+    - CategoryOther
+  donation_program.Status:
+    enum:
+    - active
+    - draft
+    - complete
+    - expired
+    type: string
+    x-enum-varnames:
+    - StatusActive
+    - StatusDraft
+    - StatusCompleted
+    - StatusExpired
+  donation_program_transaction.CreateDonationProgramTransactionRequest:
     properties:
-      donation_id:
-        type: string
       donor_email:
         type: string
       donor_name:
@@ -110,20 +183,20 @@ definitions:
       prayer_content:
         type: string
     type: object
-  donation_transaction.DonationTransactionListResponse:
+  donation_program_transaction.DonationProgramTransactionListResponse:
     properties:
       pagination:
         $ref: '#/definitions/pkg.CursorPagination'
       transactions:
         items:
-          $ref: '#/definitions/donation_transaction.DonationTransactionResponse'
+          $ref: '#/definitions/donation_program_transaction.DonationProgramTransactionResponse'
         type: array
     type: object
-  donation_transaction.DonationTransactionResponse:
+  donation_program_transaction.DonationProgramTransactionResponse:
     properties:
       created_at:
         type: string
-      donation_id:
+      donation_program_id:
         type: string
       donor_email:
         type: string
@@ -135,6 +208,8 @@ definitions:
         type: number
       id:
         type: string
+      is_online:
+        type: boolean
       order_id:
         type: string
       paid_at:
@@ -145,14 +220,117 @@ definitions:
         type: string
       snap_token:
         type: string
-      source:
-        type: boolean
       transaction_id:
         type: string
       transaction_status:
         type: string
     type: object
-  donation_transaction.MidtransNotificationRequest:
+  donation_program_transaction.MidtransNotificationRequest:
+    properties:
+      fraud_status:
+        type: string
+      gross_amount:
+        type: string
+      order_id:
+        type: string
+      payment_type:
+        type: string
+      signature_key:
+        type: string
+      status_code:
+        type: string
+      transaction_id:
+        type: string
+      transaction_status:
+        type: string
+    type: object
+  foster_children.Category:
+    enum:
+    - yatim
+    - piatu
+    - yatim piatu
+    type: string
+    x-enum-varnames:
+    - CategoryFatherless
+    - CategoryMotherless
+    - CategoryOrphan
+  foster_children.Gender:
+    enum:
+    - male
+    - female
+    type: string
+    x-enum-varnames:
+    - Male
+    - Female
+  foster_children.Status:
+    enum:
+    - pending
+    - accepted
+    - rejected
+    type: string
+    x-enum-varnames:
+    - StatusPending
+    - StatusAccepted
+    - StatusRejected
+  foster_children.UpdateFosterChildrenCandidateStatusRequest:
+    properties:
+      rejection_reason:
+        type: string
+      status:
+        $ref: '#/definitions/foster_children.Status'
+    type: object
+  foster_children_transaction.CreateFosterChildrenTransactionRequest:
+    properties:
+      donor_email:
+        type: string
+      donor_name:
+        type: string
+      gross_amount:
+        type: number
+    type: object
+  foster_children_transaction.FosterChildrenTransactionListResponse:
+    properties:
+      pagination:
+        $ref: '#/definitions/pkg.CursorPagination'
+      transactions:
+        items:
+          $ref: '#/definitions/foster_children_transaction.FosterChildrenTransactionResponse'
+        type: array
+    type: object
+  foster_children_transaction.FosterChildrenTransactionResponse:
+    properties:
+      created_at:
+        type: string
+      donor_email:
+        type: string
+      donor_name:
+        type: string
+      foster_children_id:
+        type: string
+      fraud_status:
+        type: string
+      gross_amount:
+        type: number
+      id:
+        type: string
+      is_online:
+        type: boolean
+      order_id:
+        type: string
+      paid_at:
+        type: string
+      provider:
+        type: string
+      snap_redirect_url:
+        type: string
+      snap_token:
+        type: string
+      transaction_id:
+        type: string
+      transaction_status:
+        type: string
+    type: object
+  foster_children_transaction.MidtransNotificationRequest:
     properties:
       fraud_status:
         type: string
@@ -173,8 +351,8 @@ definitions:
     type: object
   gallery.GalleryResponse:
     properties:
-      category_id:
-        type: integer
+      category:
+        $ref: '#/definitions/media.MediaCategory'
       description:
         type: string
       id:
@@ -204,7 +382,7 @@ definitions:
   gallery.PublishedGalleryListResponseItem:
     properties:
       category:
-        type: string
+        $ref: '#/definitions/media.MediaCategory'
       description:
         type: string
       id:
@@ -223,7 +401,7 @@ definitions:
   gallery.PublishedGalleryResponse:
     properties:
       category:
-        type: string
+        $ref: '#/definitions/media.MediaCategory'
       description:
         type: string
       id:
@@ -241,15 +419,29 @@ definitions:
       views:
         type: integer
     type: object
+  media.MediaCategory:
+    enum:
+    - kegiatan_sosial
+    - bencana_alam
+    - kesehatan
+    - lingkungan
+    - lainnya
+    type: string
+    x-enum-varnames:
+    - SosialEvent
+    - Disaster
+    - Health
+    - Environment
+    - Others
   media.MediaResponse:
     properties:
       alt_text:
         type: string
-      entity_id:
-        type: string
-      entity_type:
+      gallery_id:
         type: string
       id:
+        type: string
+      news_id:
         type: string
       order:
         type: integer
@@ -269,10 +461,6 @@ definitions:
     type: object
   pkg.CursorPagination:
     properties:
-      has_next:
-        type: boolean
-      has_prev:
-        type: boolean
       limit:
         type: integer
       next_cursor:
@@ -303,16 +491,12 @@ definitions:
     type: object
   prayer.PrayerResponse:
     properties:
-      amen_count:
-        type: integer
       content:
         type: string
       created_at:
         type: string
       id:
         type: string
-      is_amen:
-        type: boolean
       username:
         type: string
     type: object
@@ -321,72 +505,147 @@ definitions:
       reason:
         type: string
     type: object
-  user.Role:
+  social_program.Status:
+    enum:
+    - active
+    - completed
+    - stopped
+    - draft
+    type: string
+    x-enum-varnames:
+    - StatusActive
+    - StatusCompleted
+    - StatusStopped
+    - StatusDraft
+  social_program_expense.SocialProgramExpenseDetailResponse:
     properties:
-      id:
-        type: integer
-      role:
-        type: string
-    type: object
-  user.RoleResponse:
-    properties:
-      id:
-        type: integer
-      role:
-        type: string
-    type: object
-  user.UpdatePasswordRequest:
-    properties:
-      current_password:
-        minLength: 6
-        type: string
-      new_password:
-        minLength: 6
-        type: string
-    required:
-    - current_password
-    - new_password
-    type: object
-  user.UpdateProfileRequest:
-    properties:
-      email:
-        type: string
-      username:
-        maxLength: 50
-        minLength: 3
-        type: string
-    type: object
-  user.UpdateUserRequest:
-    properties:
-      role_id:
-        type: integer
-      status:
-        type: boolean
-    type: object
-  user.UserProfileResponse:
-    properties:
-      email:
-        type: string
-      id:
-        type: string
-      role:
-        type: string
-      username:
-        type: string
-    type: object
-  user.UserResponse:
-    properties:
+      amount:
+        type: number
       created_at:
         type: string
-      email:
+      created_by:
+        type: string
+      expense_date:
         type: string
       id:
         type: string
-      role:
-        $ref: '#/definitions/user.Role'
+      note:
+        type: string
+      proof_file:
+        type: string
+      social_program_id:
+        type: string
+      title:
+        type: string
+    type: object
+  social_program_expense.SocialProgramExpenseListResponse:
+    properties:
+      expenses:
+        items:
+          $ref: '#/definitions/social_program_expense.SocialProgramExpenseResponse'
+        type: array
+      pagination:
+        $ref: '#/definitions/pkg.CursorPagination'
+    type: object
+  social_program_expense.SocialProgramExpenseResponse:
+    properties:
+      amount:
+        type: number
+      created_at:
+        type: string
+      expense_date:
+        type: string
+      id:
+        type: string
+      note:
+        type: string
+      proof_file:
+        type: string
+      social_program_id:
+        type: string
+      title:
+        type: string
+    type: object
+  social_program_invoice.SocialProgramInvoiceRequest:
+    properties:
+      amount:
+        type: number
+      billing_period:
+        type: string
+      due_date:
+        type: string
       status:
-        type: boolean
-      username:
+        $ref: '#/definitions/social_program_invoice.Status'
+      subscription_id:
+        type: string
+    required:
+    - amount
+    - billing_period
+    - due_date
+    - status
+    - subscription_id
+    type: object
+  social_program_invoice.Status:
+    enum:
+    - active
+    - paid
+    - unpaid
+    type: string
+    x-enum-varnames:
+    - StatusActive
+    - StatusPaid
+    - StatusUnpaid
+  social_program_subscription.CreateSocialProgramSubscriptionRequest:
+    properties:
+      amount:
+        type: number
+      social_program_id:
+        type: string
+    required:
+    - amount
+    - social_program_id
+    type: object
+  social_program_subscription.Status:
+    enum:
+    - active
+    - paused
+    - stopped
+    type: string
+    x-enum-varnames:
+    - StatusActive
+    - StatusPaused
+    - StatusStopped
+  social_program_subscription.UpdateSocialProgramSubscriptionRequest:
+    properties:
+      status:
+        $ref: '#/definitions/social_program_subscription.Status'
+    required:
+    - status
+    type: object
+  social_program_transaction.CreateTransactionRequest:
+    properties:
+      gross_amount:
+        type: number
+      social_program_invoice_id:
+        type: string
+    type: object
+  social_program_transaction.MidtransNotificationRequest:
+    properties:
+      fraud_status:
+        type: string
+      gross_amount:
+        type: string
+      order_id:
+        type: string
+      payment_type:
+        type: string
+      signature_key:
+        type: string
+      status_code:
+        type: string
+      transaction_id:
+        type: string
+      transaction_status:
         type: string
     type: object
 info:
@@ -724,15 +983,19 @@ paths:
       - Ambulances
     post:
       consumes:
-      - application/json
+      - multipart/form-data
       description: Create a new ambulance with the provided details
       parameters:
-      - description: Ambulance details
-        in: body
-        name: ambulance
-        required: true
-        schema:
-          $ref: '#/definitions/ambulance.CreateAmbulanceRequest'
+      - in: formData
+        name: phone
+        type: string
+      - in: formData
+        name: plate_number
+        type: string
+      - description: Ambulance Image
+        in: formData
+        name: image
+        type: file
       produces:
       - application/json
       responses:
@@ -763,7 +1026,7 @@ paths:
         in: path
         name: id
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -786,20 +1049,24 @@ paths:
       - Ambulances
     put:
       consumes:
-      - application/json
+      - multipart/form-data
       description: Update the details of an existing ambulance by ID
       parameters:
       - description: Ambulance ID
         in: path
         name: id
         required: true
-        type: integer
-      - description: Updated ambulance details
-        in: body
-        name: ambulance
-        required: true
-        schema:
-          $ref: '#/definitions/ambulance.UpdateAmbulanceRequest'
+        type: string
+      - in: formData
+        name: phone
+        type: string
+      - in: formData
+        name: plate_number
+        type: string
+      - description: Ambulance Image
+        in: formData
+        name: image
+        type: file
       produces:
       - application/json
       responses:
@@ -820,6 +1087,1616 @@ paths:
       summary: Update an existing ambulance
       tags:
       - Ambulances
+  /api/admin/accounts:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of accounts
+      parameters:
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      - description: Search query
+        in: query
+        name: search
+        type: string
+      - description: Role ID filter
+        in: query
+        name: role_id
+        type: integer
+      - description: Status filter
+        in: query
+        name: is_banned
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/account.AccountResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get Accounts List
+      tags:
+      - Account
+  /api/admin/accounts/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of an account by ID
+      parameters:
+      - description: Account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/account.AccountResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get Account Detail
+      tags:
+      - Account
+  /api/admin/accounts/{id}/ban:
+    post:
+      consumes:
+      - application/json
+      description: Ban account by ID
+      parameters:
+      - description: Account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Ban Account
+      tags:
+      - Account
+  /api/admin/accounts/{id}/roles:
+    post:
+      consumes:
+      - application/json
+      description: Add a new role for an account
+      parameters:
+      - description: Account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Add Account Role Data
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/account.AddAccountRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Add Account Role
+      tags:
+      - Account
+  /api/admin/accounts/{id}/roles/{roleId}:
+    patch:
+      consumes:
+      - application/json
+      description: Update role status or default for an account
+      parameters:
+      - description: Account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Role ID
+        in: path
+        name: roleId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Account Role
+      tags:
+      - Account
+  /api/admin/donation-programs:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all donation programs with cursor-based pagination
+        and optional filters
+      parameters:
+      - description: Search query
+        in: query
+        name: search
+        type: string
+      - description: Filter by category
+        in: query
+        name: category
+        type: string
+      - description: Status filter
+        in: query
+        name: status
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get All Donation Programs
+      tags:
+      - Donation Programs
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create a new donation program entry (requires authentication and
+        proper role)
+      parameters:
+      - enum:
+        - education
+        - health
+        - environment
+        - social
+        - disaster
+        - humanity
+        - other
+        in: formData
+        name: category
+        type: string
+        x-enum-varnames:
+        - CategoryEducation
+        - CategoryHealth
+        - CategoryEnvironment
+        - CategorySocial
+        - CategoryDisaster
+        - CategoryHumanity
+        - CategoryOther
+      - in: formData
+        name: description
+        type: string
+      - in: formData
+        name: end_date
+        type: string
+      - in: formData
+        name: fund_target
+        type: number
+      - in: formData
+        name: start_date
+        type: string
+      - enum:
+        - active
+        - draft
+        - complete
+        - expired
+        in: formData
+        name: status
+        type: string
+        x-enum-varnames:
+        - StatusActive
+        - StatusDraft
+        - StatusCompleted
+        - StatusExpired
+      - in: formData
+        name: title
+        type: string
+      - description: Donation Program Cover Image
+        in: formData
+        name: cover_image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Donation Program
+      tags:
+      - Donation Programs
+  /api/admin/donation-programs/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a donation program (requires authentication and proper role)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete Donation Program
+      tags:
+      - Donation Programs
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific donation program
+      parameters:
+      - description: Donation Program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Donation Program by ID
+      tags:
+      - Donation Programs
+    put:
+      consumes:
+      - multipart/form-data
+      description: Update an existing donation program (requires authentication and
+        proper role)
+      parameters:
+      - description: Donation Program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - enum:
+        - education
+        - health
+        - environment
+        - social
+        - disaster
+        - humanity
+        - other
+        in: formData
+        name: category
+        type: string
+        x-enum-varnames:
+        - CategoryEducation
+        - CategoryHealth
+        - CategoryEnvironment
+        - CategorySocial
+        - CategoryDisaster
+        - CategoryHumanity
+        - CategoryOther
+      - in: formData
+        name: description
+        type: string
+      - in: formData
+        name: end_date
+        type: string
+      - in: formData
+        name: fund_target
+        type: number
+      - in: formData
+        name: start_date
+        type: string
+      - enum:
+        - active
+        - draft
+        - complete
+        - expired
+        in: formData
+        name: status
+        type: string
+        x-enum-varnames:
+        - StatusActive
+        - StatusDraft
+        - StatusCompleted
+        - StatusExpired
+      - in: formData
+        name: title
+        type: string
+      - description: Donation Program Cover Image
+        in: formData
+        name: cover_image
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Donation Program
+      tags:
+      - Donation Programs
+  /api/admin/donation-programs/{id}/expenses:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of all expenses (requires authentication
+        and proper role)
+      parameters:
+      - description: Donation Program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Cursor for pagination
+        in: query
+        name: cursor
+        type: string
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Donation Program Expense List
+      tags:
+      - Donation Programs
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create a new donation program expense entry (requires authentication
+        and proper role)
+      parameters:
+      - description: Donation Program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - in: formData
+        name: amount
+        type: number
+      - in: formData
+        name: expense_date
+        type: string
+      - in: formData
+        name: note
+        type: string
+      - in: formData
+        name: title
+        type: string
+      - description: Proof File
+        in: formData
+        name: proof_file
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Donation Program Expense
+      tags:
+      - Donation Programs
+  /api/admin/donation-programs/{id}/transactions:
+    get:
+      description: Retrieve a paginated list of donation transactions (admin only)
+      parameters:
+      - description: Filter by donation program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Filter by payment status
+        in: query
+        name: status
+        type: string
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for next page
+        in: query
+        name: next_cursor
+        type: string
+      - description: Cursor for previous page
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/donation_program_transaction.DonationProgramTransactionListResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List Donation Programs Transactions
+      tags:
+      - Donation Programs
+    post:
+      consumes:
+      - application/json
+      description: Create a donation transaction without initiating a Midtrans payment
+        (admin only)
+      parameters:
+      - description: Donation Program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Offline transaction request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/donation_program_transaction.CreateDonationProgramTransactionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Offline Donation Program Transaction
+      tags:
+      - Donation Programs
+  /api/admin/donation-programs/expenses/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a donation program expense entry (requires authentication
+        and proper role)
+      parameters:
+      - description: Expense ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete Donation Program Expense
+      tags:
+      - Donation Programs
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific donation program expense
+        entry (requires authentication and proper role)
+      parameters:
+      - description: Expense ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Donation Program Expense by ID
+      tags:
+      - Donation Programs
+  /api/admin/donation-programs/transactions/{id}:
+    get:
+      description: Retrieve a specific donation transaction (admin only)
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Donation Program Transaction by ID
+      tags:
+      - Donation Programs
+  /api/admin/foster-children:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create a new foster child entry (requires authentication and social_manager
+        role)
+      parameters:
+      - in: formData
+        name: address
+        type: string
+      - in: formData
+        name: birth_date
+        type: string
+      - in: formData
+        name: birth_place
+        type: string
+      - enum:
+        - yatim
+        - piatu
+        - yatim piatu
+        in: formData
+        name: category
+        type: string
+        x-enum-varnames:
+        - CategoryFatherless
+        - CategoryMotherless
+        - CategoryOrphan
+      - enum:
+        - male
+        - female
+        in: formData
+        name: gender
+        type: string
+        x-enum-varnames:
+        - Male
+        - Female
+      - in: formData
+        name: is_graduated
+        type: boolean
+      - in: formData
+        name: name
+        type: string
+      - description: Profile Picture
+        in: formData
+        name: profile_picture
+        required: true
+        type: file
+      - description: Family Card
+        in: formData
+        name: family_card
+        required: true
+        type: file
+      - description: SKTM
+        in: formData
+        name: sktm
+        required: true
+        type: file
+      - description: Achievements
+        in: formData
+        name: achievements
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Foster Children
+      tags:
+      - Foster Children
+  /api/admin/foster-children/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a foster child entry (requires authentication and social_manager
+        role)
+      parameters:
+      - description: Foster Children ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete Foster Children
+      tags:
+      - Foster Children
+    put:
+      consumes:
+      - multipart/form-data
+      description: Update an existing foster child entry (requires authentication
+        and social_manager role)
+      parameters:
+      - description: Foster Children ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - in: formData
+        name: address
+        type: string
+      - in: formData
+        name: birth_date
+        type: string
+      - in: formData
+        name: birth_place
+        type: string
+      - enum:
+        - yatim
+        - piatu
+        - yatim piatu
+        in: formData
+        name: category
+        type: string
+        x-enum-varnames:
+        - CategoryFatherless
+        - CategoryMotherless
+        - CategoryOrphan
+      - enum:
+        - male
+        - female
+        in: formData
+        name: gender
+        type: string
+        x-enum-varnames:
+        - Male
+        - Female
+      - in: formData
+        name: is_graduated
+        type: boolean
+      - in: formData
+        name: name
+        type: string
+      - description: Profile Picture
+        in: formData
+        name: profile_picture
+        type: file
+      - description: Family Card
+        in: formData
+        name: family_card
+        type: file
+      - description: SKTM
+        in: formData
+        name: sktm
+        type: file
+      - description: Achievements
+        in: formData
+        name: achievements
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Foster Children
+      tags:
+      - Foster Children
+  /api/admin/foster-children/{id}/expenses:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of all expenses for a foster child (requires
+        authentication and proper role)
+      parameters:
+      - description: Foster Children ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Cursor for pagination
+        in: query
+        name: cursor
+        type: string
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Foster Children Expense List
+      tags:
+      - Foster Children
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create a new foster children expense entry (requires authentication
+        and proper role)
+      parameters:
+      - description: Foster Children ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - in: formData
+        name: amount
+        type: number
+      - in: formData
+        name: expense_date
+        type: string
+      - in: formData
+        name: note
+        type: string
+      - in: formData
+        name: title
+        type: string
+      - description: Proof File
+        in: formData
+        name: proof_file
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Foster Children Expense
+      tags:
+      - Foster Children
+  /api/admin/foster-children/{id}/transactions:
+    get:
+      description: Retrieve a paginated list of foster children transactions (admin
+        only)
+      parameters:
+      - description: Filter by foster children ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Filter by payment status
+        in: query
+        name: status
+        type: string
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for next page
+        in: query
+        name: next_cursor
+        type: string
+      - description: Cursor for previous page
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/foster_children_transaction.FosterChildrenTransactionListResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List Foster Children Transactions
+      tags:
+      - Foster Children
+    post:
+      consumes:
+      - application/json
+      description: Create a foster children transaction without initiating a Midtrans
+        payment (admin only)
+      parameters:
+      - description: Foster Children ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Offline transaction request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/foster_children_transaction.CreateFosterChildrenTransactionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Offline Foster Children Transaction
+      tags:
+      - Foster Children
+  /api/admin/foster-children/candidates:
+    get:
+      description: Get a list of all foster children candidates (admin only)
+      parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by account id
+        in: query
+        name: account_id
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List All Foster Children Candidates
+      tags:
+      - Foster Children Candidates
+  /api/admin/foster-children/candidates/{id}:
+    get:
+      description: Get a specific foster children candidate
+      parameters:
+      - description: Candidate ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Foster Children Candidate By ID
+      tags:
+      - Foster Children Candidates
+    patch:
+      consumes:
+      - application/json
+      description: Accept or reject a foster children candidate
+      parameters:
+      - description: Candidate ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status Update Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/foster_children.UpdateFosterChildrenCandidateStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Foster Children Candidate Status
+      tags:
+      - Foster Children Candidates
+  /api/admin/foster-children/expenses/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a foster children expense entry (requires authentication
+        and proper role)
+      parameters:
+      - description: Expense ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete Foster Children Expense
+      tags:
+      - Foster Children
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific foster children expense
+        entry (requires authentication and proper role)
+      parameters:
+      - description: Expense ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Foster Children Expense by ID
+      tags:
+      - Foster Children
+  /api/admin/foster-children/transactions/{id}:
+    get:
+      description: Retrieve a specific foster children transaction (admin only)
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Foster Children Transaction by ID
+      tags:
+      - Foster Children
+  /api/admin/prayers:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of reported prayers
+      parameters:
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/prayer.PrayerListResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List Reported Prayers
+      tags:
+      - Prayer
+  /api/admin/prayers/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a prayer by its ID
+      parameters:
+      - description: Prayer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete Prayer
+      tags:
+      - Prayer
+  /api/admin/social-program-invoices:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a paginated list of social program invoices
+      parameters:
+      - description: Filter by subscription ID
+        in: query
+        name: subscription_id
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List Social Program Invoices
+      tags:
+      - Social Program Invoices
+    post:
+      consumes:
+      - application/json
+      description: Create a new social program invoice manually (requires authentication
+        and proper role)
+      parameters:
+      - description: Invoice Data
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/social_program_invoice.SocialProgramInvoiceRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Social Program Invoice
+      tags:
+      - Social Program Invoices
+  /api/admin/social-program-invoices/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a social program invoice (requires authentication and proper
+        role)
+      parameters:
+      - description: Invoice ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete Social Program Invoice
+      tags:
+      - Social Program Invoices
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific social program invoice
+      parameters:
+      - description: Invoice ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Social Program Invoice by ID
+      tags:
+      - Social Program Invoices
+    put:
+      consumes:
+      - application/json
+      description: Update an existing social program invoice (requires authentication
+        and proper role)
+      parameters:
+      - description: Invoice ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Invoice Data
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/social_program_invoice.SocialProgramInvoiceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Social Program Invoice
+      tags:
+      - Social Program Invoices
+  /api/admin/social-program-subscriptions:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all social program subscriptions (admin only)
+      parameters:
+      - description: Filter by social program ID
+        in: query
+        name: social_program_id
+        type: string
+      - description: Filter by account ID
+        in: query
+        name: account_id
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List All Social Program Subscriptions
+      tags:
+      - Social Program Subscriptions
+  /api/admin/social-program-subscriptions/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a specific social program subscription by its ID
+      parameters:
+      - description: Subscription ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Social Program Subscription By ID
+      tags:
+      - Social Program Subscriptions
+  /api/admin/social-program-transactions:
+    get:
+      description: Retrieve a paginated list of social program transactions (admin
+        only)
+      parameters:
+      - description: Filter by payment status
+        in: query
+        name: status
+        type: string
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for next page
+        in: query
+        name: next_cursor
+        type: string
+      - description: Cursor for previous page
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List Social Program Transactions
+      tags:
+      - Social Program Transactions
+  /api/admin/social-program-transactions/{id}:
+    get:
+      description: Retrieve a specific social program transaction (admin only)
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Social Program Transaction by ID
+      tags:
+      - Social Program Transactions
+  /api/admin/social-programs:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of social programs for admin
+      parameters:
+      - description: Search query
+        in: query
+        name: search
+        type: string
+      - description: Status filter
+        in: query
+        name: status
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List Admin Social Programs
+      tags:
+      - Social Programs
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create a new social program entry
+      parameters:
+      - in: formData
+        name: billing_day
+        required: true
+        type: integer
+      - in: formData
+        name: description
+        required: true
+        type: string
+      - in: formData
+        name: minimum_amount
+        required: true
+        type: number
+      - enum:
+        - active
+        - completed
+        - stopped
+        - draft
+        in: formData
+        name: status
+        required: true
+        type: string
+        x-enum-varnames:
+        - StatusActive
+        - StatusCompleted
+        - StatusStopped
+        - StatusDraft
+      - in: formData
+        name: title
+        required: true
+        type: string
+      - description: Social Program Cover Image
+        in: formData
+        name: cover_image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Social Program
+      tags:
+      - Social Programs
+  /api/admin/social-programs/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a social program
+      parameters:
+      - description: Social Program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete Social Program
+      tags:
+      - Social Programs
+    put:
+      consumes:
+      - multipart/form-data
+      description: Update an existing social program
+      parameters:
+      - description: Social Program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - in: formData
+        name: billing_day
+        required: true
+        type: integer
+      - in: formData
+        name: description
+        required: true
+        type: string
+      - in: formData
+        name: minimum_amount
+        required: true
+        type: number
+      - enum:
+        - active
+        - completed
+        - stopped
+        - draft
+        in: formData
+        name: status
+        required: true
+        type: string
+        x-enum-varnames:
+        - StatusActive
+        - StatusCompleted
+        - StatusStopped
+        - StatusDraft
+      - in: formData
+        name: title
+        required: true
+        type: string
+      - description: Social Program Cover Image
+        in: formData
+        name: cover_image
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Social Program
+      tags:
+      - Social Programs
+  /api/admin/social-programs/{id}/expenses:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create a new expense for a social program (requires authentication
+        and admin role)
+      parameters:
+      - description: Social Program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - in: formData
+        name: amount
+        required: true
+        type: number
+      - in: formData
+        name: expense_date
+        required: true
+        type: string
+      - in: formData
+        name: note
+        type: string
+      - in: formData
+        name: title
+        required: true
+        type: string
+      - description: Proof File
+        in: formData
+        name: proof_file
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Social Program Expense
+      tags:
+      - Social Program Expenses
+  /api/admin/social-programs/expenses/{expense_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a social program expense (requires authentication and admin
+        role)
+      parameters:
+      - description: Expense ID
+        in: path
+        name: expense_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete Social Program Expense
+      tags:
+      - Social Program Expenses
   /api/auth/forget-password:
     post:
       consumes:
@@ -968,6 +2845,30 @@ paths:
       summary: Reset Password
       tags:
       - Auth
+  /api/auth/switch-role:
+    post:
+      consumes:
+      - application/json
+      description: Switch active role of current session
+      parameters:
+      - description: Switch Role
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/auth.SwitchRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Switch Active Role
+      tags:
+      - Auth
   /api/auth/verify-email:
     post:
       consumes:
@@ -990,185 +2891,79 @@ paths:
       summary: Verify Email
       tags:
       - Auth
-  /api/donation-expenses/:
+  /api/donation-programs:
     get:
       consumes:
       - application/json
-      description: Get detailed information of all expenses (requires authentication
-        and proper role)
+      description: Retrieve a list of published (active) donation programs
       parameters:
-      - description: Filter by donation ID
+      - description: Filter by category
         in: query
-        name: donation_id
+        name: category
         type: string
-      - description: Cursor for pagination
-        in: query
-        name: cursor
-        type: string
-      - description: Items per page
+      - description: Pagination limit
         in: query
         name: limit
         type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: List Expenses
-      tags:
-      - Donation Expenses
-    post:
-      consumes:
-      - multipart/form-data
-      description: Create a new expense entry (requires authentication and proper
-        role)
-      parameters:
-      - description: Donation ID
-        in: formData
-        name: donation_id
-        required: true
-        type: string
-      - description: Expense Amount
-        in: formData
-        name: amount
-        required: true
-        type: number
-      - description: Expense Description
-        in: formData
-        name: description
-        required: true
-        type: string
-      - description: Expense Image File
-        in: formData
-        name: image
-        type: file
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Create Expense
-      tags:
-      - Donation Expenses
-  /api/donation-expenses/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete an existing expense entry (requires authentication and proper
-        role)
-      parameters:
-      - description: Expense ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Delete Expense
-      tags:
-      - Donation Expenses
-    get:
-      consumes:
-      - application/json
-      description: Get detailed information of a specific expense entry (requires
-        authentication and proper role)
-      parameters:
-      - description: Expense ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Get Expense by ID
-      tags:
-      - Donation Expenses
-    put:
-      consumes:
-      - multipart/form-data
-      description: Update an existing expense entry (requires authentication and proper
-        role)
-      parameters:
-      - description: Expense ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Donation ID
-        in: formData
-        name: donation_id
-        type: string
-      - description: Expense Amount
-        in: formData
-        name: amount
-        type: number
-      - description: Expense Description
-        in: formData
-        name: description
-        type: string
-      - description: Expense Image File
-        in: formData
-        name: image
-        type: file
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Update Expense
-      tags:
-      - Donation Expenses
-  /api/donation-transactions:
-    get:
-      description: Retrieve a paginated list of donation transactions (admin only)
-      parameters:
-      - description: Filter by payment status
-        in: query
-        name: status
-        type: string
-      - description: Filter by donation ID
-        in: query
-        name: donation_id
-        type: string
-      - description: Filter by user ID
-        in: query
-        name: user_id
-        type: string
-      - description: Items per page
-        in: query
-        name: limit
-        type: integer
-      - description: Cursor for next page
+      - description: Pagination cursor (next page)
         in: query
         name: next_cursor
         type: string
-      - description: Cursor for previous page
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: List Published Donation Programs
+      tags:
+      - Donation Programs
+  /api/donation-programs/{slug}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific published donation program
+      parameters:
+      - description: Donation Program Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Get Published Donation Program by Slug
+      tags:
+      - Donation Programs
+  /api/donation-programs/{slug}/prayers:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of prayers
+      parameters:
+      - description: Donation Program Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
         in: query
         name: prev_cursor
         type: string
@@ -1182,25 +2977,28 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/donation_transaction.DonationTransactionListResponse'
+                  $ref: '#/definitions/prayer.PrayerListResponse'
               type: object
-      security:
-      - BearerAuth: []
-      summary: List Donation Transactions
+      summary: List Prayers
       tags:
-      - Donation Transactions
+      - Prayer
+  /api/donation-programs/{slug}/transactions:
     post:
       consumes:
       - application/json
-      description: Create a donation transaction without initiating a Midtrans payment
-        (admin only)
+      description: Initiate a Midtrans Snap payment for a donation
       parameters:
-      - description: Offline transaction request
+      - description: Donation Program Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Transaction request
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/donation_transaction.CreateTransactionRequest'
+          $ref: '#/definitions/donation_program_transaction.CreateDonationProgramTransactionRequest'
       produces:
       - application/json
       responses:
@@ -1208,20 +3006,21 @@ paths:
           description: Created
           schema:
             $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Create Offline Donation Transaction
+      summary: Create Donation Program Transaction
       tags:
-      - Donation Transactions
-  /api/donation-transactions/{id}:
-    get:
-      description: Retrieve a specific donation transaction (admin only)
+      - Donation Programs
+  /api/donation-programs/transactions/notification:
+    post:
+      consumes:
+      - application/json
+      description: Webhook endpoint for Midtrans to send payment status updates
       parameters:
-      - description: Transaction ID
-        in: path
-        name: id
+      - description: Midtrans notification payload
+        in: body
+        name: body
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/donation_program_transaction.MidtransNotificationRequest'
       produces:
       - application/json
       responses:
@@ -1229,34 +3028,36 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Get Donation Transaction by ID
+      summary: Midtrans Payment Notification
       tags:
-      - Donation Transactions
-  /api/donations/:
+      - Donation Programs
+  /api/foster-children:
     get:
       consumes:
       - application/json
-      description: Retrieve a list of all donations with cursor-based pagination and
-        optional filters
+      description: Retrieve a list of foster children with cursor-based pagination
+        and optional filters
       parameters:
-      - description: Filter by category (education, health, environment)
+      - description: Search by name
+        in: query
+        name: search
+        type: string
+      - description: Filter by category
         in: query
         name: category
         type: string
-      - description: Filter by status (active, inactive, completed)
-        in: query
-        name: status
-        type: string
-      - description: Cursor for pagination (encoded string)
-        in: query
-        name: cursor
-        type: string
-      - description: 'Items per page (default: 10, max: 100)'
+      - description: Pagination limit
         in: query
         name: limit
         type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
       produces:
       - application/json
       responses:
@@ -1264,50 +3065,124 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Get All Donations
+      summary: List Foster Children
       tags:
-      - Donations
+      - Foster Children
+  /api/foster-children/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific foster child
+      parameters:
+      - description: Foster Children ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Get Foster Children by ID
+      tags:
+      - Foster Children
+  /api/foster-children/{id}/transactions:
+    post:
+      consumes:
+      - application/json
+      description: Initiate a Midtrans Snap payment for a foster children donation
+      parameters:
+      - description: Foster Children ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Transaction request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/foster_children_transaction.CreateFosterChildrenTransactionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Create Foster Children Transaction
+      tags:
+      - Foster Children
+  /api/foster-children/candidates/submit:
     post:
       consumes:
       - multipart/form-data
-      description: Create a new donation entry (requires authentication and proper
-        role)
+      description: Submit a request to propose a new foster child candidate
       parameters:
-      - description: Donation Title
-        in: formData
-        name: title
-        required: true
+      - in: formData
+        name: address
         type: string
-      - description: Donation Description
-        in: formData
-        name: description
-        required: true
+      - in: formData
+        name: birth_date
         type: string
-      - description: Donation Image File
-        in: formData
-        name: image
-        type: file
-      - description: Donation Category
+      - in: formData
+        name: birth_place
+        type: string
+      - enum:
+        - yatim
+        - piatu
+        - yatim piatu
         in: formData
         name: category
-        required: true
         type: string
-      - description: Donation Status
+        x-enum-varnames:
+        - CategoryFatherless
+        - CategoryMotherless
+        - CategoryOrphan
+      - enum:
+        - male
+        - female
         in: formData
-        name: status
+        name: gender
         type: string
-      - description: Fund Target
-        in: formData
-        name: fund_target
-        required: true
-        type: number
-      - description: End Date
-        in: formData
-        name: date_end
-        required: true
+        x-enum-varnames:
+        - Male
+        - Female
+      - in: formData
+        name: name
         type: string
+      - in: formData
+        name: submitter_address
+        type: string
+      - in: formData
+        name: submitter_name
+        type: string
+      - in: formData
+        name: submitter_phone
+        type: string
+      - description: Profile Picture
+        in: formData
+        name: profile_picture
+        required: true
+        type: file
+      - description: Family Card
+        in: formData
+        name: family_card
+        required: true
+        type: file
+      - description: SKTM
+        in: formData
+        name: sktm
+        required: true
+        type: file
+      - description: Submitter ID Card
+        in: formData
+        name: submitter_id_card
+        required: true
+        type: file
       produces:
       - application/json
       responses:
@@ -1317,20 +3192,22 @@ paths:
             $ref: '#/definitions/pkg.Response'
       security:
       - BearerAuth: []
-      summary: Create Donation
+      summary: Create Foster Children Candidate
       tags:
-      - Donations
-  /api/donations/{id}:
-    delete:
+      - Foster Children Candidates
+  /api/foster-children/transactions/notification:
+    post:
       consumes:
       - application/json
-      description: Delete a donation (requires authentication and proper role)
+      description: Webhook endpoint for Midtrans to send payment status updates for
+        foster children transactions
       parameters:
-      - description: Donation ID
-        in: path
-        name: id
+      - description: Midtrans notification payload
+        in: body
+        name: body
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/foster_children_transaction.MidtransNotificationRequest'
       produces:
       - application/json
       responses:
@@ -1338,84 +3215,9 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Delete Donation
+      summary: Midtrans Payment Notification (Foster Children)
       tags:
-      - Donations
-    get:
-      consumes:
-      - application/json
-      description: Get detailed information of a specific donation
-      parameters:
-      - description: Donation ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Get Donation by ID
-      tags:
-      - Donations
-    put:
-      consumes:
-      - multipart/form-data
-      description: Update an existing donation (requires authentication and proper
-        role)
-      parameters:
-      - description: Donation ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Donation Title
-        in: formData
-        name: title
-        type: string
-      - description: Donation Description
-        in: formData
-        name: description
-        type: string
-      - description: Donation Image File
-        in: formData
-        name: image
-        type: file
-      - description: Donation Category
-        in: formData
-        name: category
-        type: string
-      - description: Fund Target
-        in: formData
-        name: fund_target
-        type: number
-      - description: Status
-        in: formData
-        name: status
-        type: string
-      - description: End Date
-        in: formData
-        name: date_end
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Update Donation
-      tags:
-      - Donations
+      - Foster Children
   /api/galleries/:
     get:
       consumes:
@@ -1612,7 +3414,7 @@ paths:
     get:
       description: Retrieve a paginated list of admin audit log entries
       parameters:
-      - description: Filter by entity type (e.g. donation_transaction, prayer)
+      - description: Filter by entity type (e.g. donation_program_transaction, prayer)
         in: query
         name: entity_type
         type: string
@@ -1663,24 +3465,61 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/user.UserProfileResponse'
+                  $ref: '#/definitions/account.UserProfileResponse'
               type: object
       security:
       - BearerAuth: []
       summary: Get Current User
       tags:
-      - Users
-    put:
-      consumes:
-      - application/json
-      description: Update profile information of the currently authenticated user
+      - Account
+  /api/me/donation-programs/transactions:
+    get:
+      description: Retrieve a paginated list of donation transactions for the authenticated
+        user
       parameters:
-      - description: Update Profile
-        in: body
-        name: payload
+      - description: Filter by payment status
+        in: query
+        name: status
+        type: string
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for next page
+        in: query
+        name: next_cursor
+        type: string
+      - description: Cursor for previous page
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/donation_program_transaction.DonationProgramTransactionListResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List My Donation Programs Transactions
+      tags:
+      - Donation Programs
+  /api/me/donation-programs/transactions/{id}:
+    get:
+      description: Retrieve a specific donation transaction owned by the authenticated
+        user
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
         required: true
-        schema:
-          $ref: '#/definitions/user.UpdateProfileRequest'
+        type: string
       produces:
       - application/json
       responses:
@@ -1690,11 +3529,124 @@ paths:
             $ref: '#/definitions/pkg.Response'
       security:
       - BearerAuth: []
-      summary: Update User Profile
+      summary: Get My Donation Program Transaction by ID
       tags:
-      - Users
+      - Donation Programs
+  /api/me/foster-children/candidates:
+    get:
+      description: Get a list of the authenticated user's foster children candidates
+      parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List My Foster Children Candidates
+      tags:
+      - Foster Children Candidates
+  /api/me/foster-children/candidates/{id}:
+    delete:
+      description: Cancel a pending foster children candidate
+      parameters:
+      - description: Candidate ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Cancel Foster Children Candidate
+      tags:
+      - Foster Children Candidates
+  /api/me/foster-children/transactions:
+    get:
+      description: Retrieve a paginated list of foster children transactions for the
+        authenticated user
+      parameters:
+      - description: Filter by payment status
+        in: query
+        name: status
+        type: string
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for next page
+        in: query
+        name: next_cursor
+        type: string
+      - description: Cursor for previous page
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/foster_children_transaction.FosterChildrenTransactionListResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List My Foster Children Transactions
+      tags:
+      - Foster Children
+  /api/me/foster-children/transactions/{id}:
+    get:
+      description: Retrieve a specific foster children transaction owned by the authenticated
+        user
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get My Foster Children Transaction by ID
+      tags:
+      - Foster Children
   /api/me/password:
-    put:
+    patch:
       consumes:
       - application/json
       description: Update password of the currently authenticated user
@@ -1704,7 +3656,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/user.UpdatePasswordRequest'
+          $ref: '#/definitions/account.UpdatePasswordRequest'
       produces:
       - application/json
       responses:
@@ -1716,7 +3668,99 @@ paths:
       - BearerAuth: []
       summary: Update User Password
       tags:
-      - Users
+      - Account
+  /api/me/profile:
+    patch:
+      consumes:
+      - multipart/form-data
+      description: Update profile information of the currently authenticated user
+      parameters:
+      - in: formData
+        name: address
+        type: string
+      - in: formData
+        name: default_account_role_id
+        type: integer
+      - in: formData
+        name: email
+        type: string
+      - in: formData
+        name: phone
+        type: string
+      - in: formData
+        name: username
+        type: string
+      - description: Profile Picture
+        in: formData
+        name: profile_picture
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update User Profile
+      tags:
+      - Account
+  /api/me/social-program-transactions:
+    get:
+      description: Retrieve a paginated list of social program transactions for the
+        authenticated user
+      parameters:
+      - description: Filter by payment status
+        in: query
+        name: status
+        type: string
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for next page
+        in: query
+        name: next_cursor
+        type: string
+      - description: Cursor for previous page
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List My Social Program Transactions
+      tags:
+      - Social Program Transactions
+  /api/me/social-program-transactions/{id}:
+    get:
+      description: Retrieve a specific social program transaction owned by the authenticated
+        user
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get My Social Program Transaction by ID
+      tags:
+      - Social Program Transactions
   /api/news/:
     get:
       consumes:
@@ -1886,51 +3930,6 @@ paths:
       summary: Update News
       tags:
       - News
-  /api/prayers:
-    get:
-      consumes:
-      - application/json
-      description: Get a list of prayers
-      parameters:
-      - description: Filter by donation ID
-        in: query
-        name: donation_id
-        type: string
-      - description: Pagination limit
-        in: query
-        name: limit
-        type: integer
-      - description: Pagination cursor (next page)
-        in: query
-        name: next_cursor
-        type: string
-      - description: Pagination cursor (prev page)
-        in: query
-        name: prev_cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/pkg.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/prayer.PrayerListResponse'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      summary: List Prayers
-      tags:
-      - Prayer
   /api/prayers/{id}:
     get:
       consumes:
@@ -1954,18 +3953,6 @@ paths:
                 data:
                   $ref: '#/definitions/prayer.PrayerResponse'
               type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/pkg.Response'
       summary: Get Prayer by ID
       tags:
       - Prayer
@@ -1987,18 +3974,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/pkg.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/pkg.Response'
       security:
       - BearerAuth: []
       summary: Toggle Amen on Prayer
@@ -2017,7 +3992,7 @@ paths:
         type: string
       - description: Report Prayer Payload
         in: body
-        name: payload
+        name: body
         required: true
         schema:
           $ref: '#/definitions/prayer.ReportPrayerRequest'
@@ -2028,262 +4003,11 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/pkg.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/pkg.Response'
       security:
       - BearerAuth: []
       summary: Report Prayer
       tags:
       - Prayer
-  /api/protected/prayers:
-    get:
-      consumes:
-      - application/json
-      description: Get a list of reported prayers
-      parameters:
-      - description: Page number
-        in: query
-        name: page
-        type: integer
-      - description: Items per page
-        in: query
-        name: limit
-        type: integer
-      - description: Search query
-        in: query
-        name: search
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/pkg.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/prayer.PrayerListResponse'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: List Reported Prayers
-      tags:
-      - Prayer
-  /api/protected/prayers/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a prayer by its ID
-      parameters:
-      - description: Prayer ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Delete Prayer
-      tags:
-      - Prayer
-  /api/public/donation-transactions:
-    post:
-      consumes:
-      - application/json
-      description: Initiate a Midtrans Snap payment for a donation
-      parameters:
-      - description: Transaction request
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/donation_transaction.CreateTransactionRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      summary: Create Donation Transaction
-      tags:
-      - Donation Transactions
-  /api/public/donation-transactions/me:
-    get:
-      description: Retrieve a paginated list of donation transactions for the authenticated
-        user
-      parameters:
-      - description: Filter by payment status
-        in: query
-        name: status
-        type: string
-      - description: Filter by donation ID
-        in: query
-        name: donation_id
-        type: string
-      - description: Items per page
-        in: query
-        name: limit
-        type: integer
-      - description: Cursor for next page
-        in: query
-        name: next_cursor
-        type: string
-      - description: Cursor for previous page
-        in: query
-        name: prev_cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/pkg.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/donation_transaction.DonationTransactionListResponse'
-              type: object
-      security:
-      - BearerAuth: []
-      summary: List My Donation Transactions
-      tags:
-      - Donation Transactions
-  /api/public/donation-transactions/me/{id}:
-    get:
-      description: Retrieve a specific donation transaction owned by the authenticated
-        user
-      parameters:
-      - description: Transaction ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Get My Donation Transaction by ID
-      tags:
-      - Donation Transactions
-  /api/public/donation-transactions/notification:
-    post:
-      consumes:
-      - application/json
-      description: Webhook endpoint for Midtrans to send payment status updates
-      parameters:
-      - description: Midtrans notification payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/donation_transaction.MidtransNotificationRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      summary: Midtrans Payment Notification
-      tags:
-      - Donation Transactions
-  /api/public/donations/:
-    get:
-      consumes:
-      - application/json
-      description: Retrieve a list of published (active) donations
-      parameters:
-      - description: Filter by category
-        in: query
-        name: category
-        type: string
-      - description: Pagination limit
-        in: query
-        name: limit
-        type: integer
-      - description: Pagination cursor (next page)
-        in: query
-        name: next_cursor
-        type: string
-      - description: Pagination cursor (prev page)
-        in: query
-        name: prev_cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      summary: List Published Donations
-      tags:
-      - Donations
-  /api/public/donations/{slug}:
-    get:
-      consumes:
-      - application/json
-      description: Get detailed information of a specific published donation
-      parameters:
-      - description: Donation Slug
-        in: path
-        name: slug
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      summary: Get Published Donation by Slug
-      tags:
-      - Donations
   /api/public/galleries/:
     get:
       consumes:
@@ -2344,34 +4068,20 @@ paths:
       summary: Get Published Gallery
       tags:
       - Gallery
-  /api/public/users/roles:
+  /api/social-program-subscriptions:
     get:
       consumes:
       - application/json
-      description: Get a list of roles
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/pkg.Response'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/user.RoleResponse'
-                  type: array
-              type: object
-      summary: Get Roles
-      tags:
-      - Users
-  /api/users:
-    get:
-      consumes:
-      - application/json
-      description: Get a list of users
+      description: Retrieve a list of the authenticated user's social program subscriptions
       parameters:
+      - description: Filter by social program ID
+        in: query
+        name: social_program_id
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
       - description: Pagination limit
         in: query
         name: limit
@@ -2384,81 +4094,6 @@ paths:
         in: query
         name: prev_cursor
         type: string
-      - description: Search query
-        in: query
-        name: search
-        type: string
-      - description: Role ID filter
-        in: query
-        name: role
-        type: integer
-      - description: Status filter
-        in: query
-        name: status
-        type: boolean
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/pkg.Response'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/user.UserResponse'
-                  type: array
-              type: object
-      security:
-      - BearerAuth: []
-      summary: Get Users List
-      tags:
-      - Users
-  /api/users/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Get detailed information of a user by ID
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/pkg.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/user.UserResponse'
-              type: object
-      security:
-      - BearerAuth: []
-      summary: Get User Detail
-      tags:
-      - Users
-    put:
-      consumes:
-      - application/json
-      description: Update user information by ID
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Update User Data
-        in: body
-        name: payload
-        required: true
-        schema:
-          $ref: '#/definitions/user.UpdateUserRequest'
       produces:
       - application/json
       responses:
@@ -2468,9 +4103,248 @@ paths:
             $ref: '#/definitions/pkg.Response'
       security:
       - BearerAuth: []
-      summary: Update User
+      summary: List My Social Program Subscriptions
       tags:
-      - Users
+      - Social Program Subscriptions
+    post:
+      consumes:
+      - application/json
+      description: Subscribe to a social program
+      parameters:
+      - description: Subscription Data
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/social_program_subscription.CreateSocialProgramSubscriptionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Social Program Subscription
+      tags:
+      - Social Program Subscriptions
+  /api/social-program-subscriptions/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a social program subscription
+      parameters:
+      - description: Subscription ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete Social Program Subscription
+      tags:
+      - Social Program Subscriptions
+    put:
+      consumes:
+      - application/json
+      description: Update the status of a social program subscription
+      parameters:
+      - description: Subscription ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Subscription Update Data
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/social_program_subscription.UpdateSocialProgramSubscriptionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Social Program Subscription
+      tags:
+      - Social Program Subscriptions
+  /api/social-program-transactions:
+    post:
+      consumes:
+      - application/json
+      description: Initiate a Midtrans Snap payment for a social program invoice
+      parameters:
+      - description: Transaction request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/social_program_transaction.CreateTransactionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Create Social Program Transaction
+      tags:
+      - Social Program Transactions
+  /api/social-program-transactions/notification:
+    post:
+      consumes:
+      - application/json
+      description: Webhook endpoint for Midtrans to send payment status updates
+      parameters:
+      - description: Midtrans notification payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/social_program_transaction.MidtransNotificationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Midtrans Payment Notification
+      tags:
+      - Social Program Transactions
+  /api/social-programs:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of social programs
+      parameters:
+      - description: Search query
+        in: query
+        name: search
+        type: string
+      - description: Status filter
+        in: query
+        name: status
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: List Social Programs
+      tags:
+      - Social Programs
+  /api/social-programs/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific social program
+      parameters:
+      - description: Social Program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Get Social Program by ID
+      tags:
+      - Social Programs
+  /api/social-programs/{id}/expenses:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a paginated list of expenses for a specific social program
+      parameters:
+      - description: Social Program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/social_program_expense.SocialProgramExpenseListResponse'
+              type: object
+      summary: List Social Program Expenses
+      tags:
+      - Social Program Expenses
+  /api/social-programs/expenses/{expense_id}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific social program expense
+      parameters:
+      - description: Expense ID
+        in: path
+        name: expense_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/social_program_expense.SocialProgramExpenseDetailResponse'
+              type: object
+      summary: Get Social Program Expense by ID
+      tags:
+      - Social Program Expenses
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.

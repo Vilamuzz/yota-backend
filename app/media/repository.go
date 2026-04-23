@@ -3,12 +3,13 @@ package media
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type Repository interface {
-	DeleteEntityMedia(ctx context.Context, entityID string) error
-	FetchEntityMedia(ctx context.Context, entityID string) ([]Media, error)
+	DeleteEntityMedia(ctx context.Context, entityID, entityType string) error
+	FetchEntityMedia(ctx context.Context, entityID, entityType string) ([]Media, error)
 	CreateEntityMedia(ctx context.Context, entityID, entityType string, media []Media) error
 	DeleteMediaByID(ctx context.Context, mediaID string) (*Media, error)
 	FetchMediaByID(ctx context.Context, mediaID string) (*Media, error)
@@ -25,9 +26,19 @@ func NewRepository(conn *gorm.DB) Repository {
 	}
 }
 
-func (r *repository) FetchEntityMedia(ctx context.Context, entityID string) ([]Media, error) {
+func (r *repository) FetchEntityMedia(ctx context.Context, entityID, entityType string) ([]Media, error) {
 	var media []Media
-	if err := r.Conn.WithContext(ctx).Where("entity_id = ?", entityID).Find(&media).Error; err != nil {
+	query := r.Conn.WithContext(ctx)
+	switch entityType {
+	case "news":
+		query = query.Where("news_id = ?", entityID)
+	case "gallery":
+		query = query.Where("gallery_id = ?", entityID)
+	default:
+		return nil, nil
+	}
+
+	if err := query.Find(&media).Error; err != nil {
 		return nil, err
 	}
 	return media, nil
@@ -43,8 +54,12 @@ func (r *repository) FetchMediaByID(ctx context.Context, mediaID string) (*Media
 
 func (r *repository) CreateEntityMedia(ctx context.Context, entityID, entityType string, media []Media) error {
 	for i := range media {
-		media[i].EntityID = entityID
-		media[i].EntityType = entityType
+		switch entityType {
+		case "news":
+			media[i].NewsID = uuid.MustParse(entityID)
+		case "gallery":
+			media[i].GalleryID = uuid.MustParse(entityID)
+		}
 	}
 	return r.Conn.WithContext(ctx).Create(&media).Error
 }
@@ -53,8 +68,17 @@ func (r *repository) UpdateMediaByID(ctx context.Context, mediaID string, update
 	return r.Conn.WithContext(ctx).Model(&Media{}).Where("id = ?", mediaID).Updates(updateData).Error
 }
 
-func (r *repository) DeleteEntityMedia(ctx context.Context, entityID string) error {
-	return r.Conn.WithContext(ctx).Where("entity_id = ?", entityID).Delete(&Media{}).Error
+func (r *repository) DeleteEntityMedia(ctx context.Context, entityID, entityType string) error {
+	query := r.Conn.WithContext(ctx)
+	switch entityType {
+	case "news":
+		query = query.Where("news_id = ?", entityID)
+	case "gallery":
+		query = query.Where("gallery_id = ?", entityID)
+	default:
+		return nil
+	}
+	return query.Delete(&Media{}).Error
 }
 
 func (r *repository) DeleteMediaByID(ctx context.Context, mediaID string) (*Media, error) {

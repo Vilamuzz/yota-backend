@@ -9,23 +9,23 @@ import (
 
 type GalleryRequest struct {
 	Title       string                  `json:"title" form:"title"`
-	CategoryID  int8                    `json:"category_id" form:"category_id"`
+	Category    media.MediaCategory     `json:"category" form:"category"`
 	Description string                  `json:"description" form:"description"`
 	Published   *bool                   `json:"published" form:"published"`
 	Metadata    []media.MediaMetadata   `form:"metadata"`
-	Files       []*multipart.FileHeader `form:"files"`
+	Files       []*multipart.FileHeader `form:"files" swaggerignore:"true"`
 }
 
 type UpdateGalleryRequest struct {
 	Title       string                  `json:"title" form:"title"`
-	CategoryID  int8                    `json:"category_id" form:"category_id"`
+	Category    media.MediaCategory     `json:"category" form:"category"`
 	Description string                  `json:"description" form:"description"`
 	Published   *bool                   `json:"published" form:"published"`
 	Metadata    []media.MediaMetadata   `form:"metadata"`
-	Files       []*multipart.FileHeader `form:"files"`
+	Files       []*multipart.FileHeader `form:"files" swaggerignore:"true"`
 }
 
 type GalleryQueryParams struct {
-	CategoryID int8 `form:"category_id"`
+	Category media.MediaCategory `form:"category"`
 	pkg.CursorPagination
 }
