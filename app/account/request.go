@@ -16,10 +16,10 @@ type CreateAccountRequest struct {
 type UpdateUserProfileRequest struct {
 	Username             string                `json:"username" form:"username"`
 	Email                string                `json:"email" form:"email"`
-	DefaultAccountRoleID int                   `json:"default_account_role_id" form:"default_account_role_id"`
+	DefaultAccountRoleID int                   `json:"defaultAccountRoleId" form:"defaultAccountRoleId"`
 	Phone                string                `json:"phone" form:"phone"`
 	Address              string                `json:"address" form:"address"`
-	ProfilePicture       *multipart.FileHeader `json:"profile_picture" form:"profile_picture" swaggerignore:"true"`
+	ProfilePicture       *multipart.FileHeader `json:"profilePicture" form:"profilePicture" swaggerignore:"true"`
 }
 
 type SetAccountBanStatusRequest struct {

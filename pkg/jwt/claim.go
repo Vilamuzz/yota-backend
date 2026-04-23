@@ -6,8 +6,8 @@ import (
 )
 
 type UserJWTClaims struct {
-	AccountID  string          `json:"account_id"`
+	AccountID  string          `json:"accountId"`
 	Roles      []enum.RoleName `json:"roles"`
-	ActiveRole enum.RoleName   `json:"active_role"`
+	ActiveRole enum.RoleName   `json:"activeRole"`
 	jwt.RegisteredClaims
 }

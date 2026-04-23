@@ -232,7 +232,6 @@ func (s *service) Login(ctx context.Context, payload LoginRequest) pkg.Response 
 	var activeRole enum.RoleName
 
 	if len(existingUser.AccountRoles) > 0 {
-		userRoles = make([]enum.RoleName, len(existingUser.AccountRoles))
 		for _, role := range existingUser.AccountRoles {
 			if role.IsActive {
 				userRoles = append(userRoles, role.Role.Name)
