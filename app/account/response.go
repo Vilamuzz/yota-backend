@@ -25,6 +25,11 @@ type AccountResponse struct {
 	CreatedAt time.Time              `json:"created_at"`
 }
 
+type AccountListResponse struct {
+	Accounts   []AccountResponse    `json:"accounts"`
+	Pagination pkg.CursorPagination `json:"pagination"`
+}
+
 type AccountRolesResponse struct {
 	RoleID    int    `json:"role_id"`
 	RoleName  string `json:"role_name"`
@@ -32,9 +37,13 @@ type AccountRolesResponse struct {
 	IsActive  bool   `json:"is_active"`
 }
 
-type AccountListResponse struct {
-	Accounts   []AccountResponse    `json:"accounts"`
-	Pagination pkg.CursorPagination `json:"pagination"`
+type RoleResponse struct {
+	ID       int    `json:"id"`
+	RoleName string `json:"role_name"`
+}
+
+type RolesResponse struct {
+	Roles []RoleResponse `json:"roles"`
 }
 
 func (a *Account) toAccountResponse() AccountResponse {
@@ -90,5 +99,21 @@ func toAccountListResponse(accounts []Account, pagination pkg.CursorPagination) 
 	return AccountListResponse{
 		Accounts:   responses,
 		Pagination: pagination,
+	}
+}
+
+func toRolesResponse(roles []Role) RolesResponse {
+	var responses []RoleResponse
+	for _, role := range roles {
+		responses = append(responses, RoleResponse{
+			ID:       role.ID,
+			RoleName: string(role.Name),
+		})
+	}
+	if responses == nil {
+		responses = []RoleResponse{}
+	}
+	return RolesResponse{
+		Roles: responses,
 	}
 }

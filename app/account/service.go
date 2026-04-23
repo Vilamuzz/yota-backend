@@ -24,6 +24,8 @@ type Service interface {
 
 	UpdateUserProfile(ctx context.Context, accountID string, payload UpdateUserProfileRequest) pkg.Response
 	UpdatePassword(ctx context.Context, accountID string, payload UpdatePasswordRequest) pkg.Response
+
+	GetRoleList(ctx context.Context) pkg.Response
 }
 
 type service struct {
@@ -486,4 +488,19 @@ func (s *service) UpdatePassword(ctx context.Context, accountID string, payload 
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Password updated successfully", nil, nil)
+}
+
+func (s *service) GetRoleList(ctx context.Context) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	roles, err := s.repo.FindAllRoles(ctx)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "account.service",
+		}).WithError(err).Error("failed to get all roles")
+		return pkg.NewResponse(http.StatusInternalServerError, "Internal server error", nil, nil)
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Roles fetched successfully", nil, toRolesResponse(roles))
 }

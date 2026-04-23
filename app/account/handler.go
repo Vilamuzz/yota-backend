@@ -37,6 +37,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	admin := r.Group("/admin/accounts")
 	admin.Use(h.middleware.RequireRoles(enum.RoleSuperadmin))
 	{
+		admin.GET("/roles", h.GetRoleList)
 		admin.GET("", h.GetAccountList)
 		admin.GET("/:accountId", h.GetAccountByID)
 		admin.POST("/:accountId/ban", h.BanAccount)
@@ -254,5 +255,21 @@ func (h *handler) UpdatePassword(c *gin.Context) {
 		return
 	}
 	res := h.service.UpdatePassword(ctx, claims.AccountID, req)
+	c.JSON(res.Status, res)
+}
+
+// GetRoleList
+//
+// @Summary Get Role List
+// @Description Get a list of roles
+// @Tags Account
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Success 200 {object} pkg.Response{data=RolesResponse}
+// @Router /api/admin/accounts/roles [get]
+func (h *handler) GetRoleList(c *gin.Context) {
+	ctx := c.Request.Context()
+	res := h.service.GetRoleList(ctx)
 	c.JSON(res.Status, res)
 }

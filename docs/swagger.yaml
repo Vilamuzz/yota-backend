@@ -27,6 +27,20 @@ definitions:
       role_name:
         type: string
     type: object
+  account.RoleResponse:
+    properties:
+      id:
+        type: integer
+      role_name:
+        type: string
+    type: object
+  account.RolesResponse:
+    properties:
+      roles:
+        items:
+          $ref: '#/definitions/account.RoleResponse'
+        type: array
+    type: object
   account.SetAccountBanStatusRequest:
     properties:
       ban_status:
@@ -1172,6 +1186,28 @@ paths:
       security:
       - BearerAuth: []
       summary: Add Account Role
+      tags:
+      - Account
+  /api/admin/accounts/roles:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of roles
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/account.RolesResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get Role List
       tags:
       - Account
   /api/admin/donation-programs:
