@@ -40,7 +40,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 		admin.GET("/roles", h.GetRoleList)
 		admin.GET("", h.GetAccountList)
 		admin.GET("/:accountId", h.GetAccountByID)
-		admin.POST("/:accountId/ban", h.BanAccount)
+		admin.PATCH("/:accountId/ban", h.BanAccount)
 		admin.POST("/:accountId/roles/:roleId", h.AddAccountRole)
 		admin.PATCH("/:accountId/roles/:roleId", h.UpdateAccountRole)
 	}
@@ -104,7 +104,7 @@ func (h *handler) GetAccountByID(c *gin.Context) {
 // @Param accountId path string true "Account ID"
 // @Param payload body SetAccountBanStatusRequest true "Ban status"
 // @Success 200 {object} pkg.Response
-// @Router /api/admin/accounts/{accountId}/ban [post]
+// @Router /api/admin/accounts/{accountId}/ban [patch]
 func (h *handler) BanAccount(c *gin.Context) {
 	ctx := c.Request.Context()
 	accountID := c.Param("accountId")

@@ -39,10 +39,6 @@ type AccountQueryParam struct {
 	pkg.PaginationParams
 }
 
-type AddAccountRoleRequest struct {
-	RoleID int `json:"role_id"`
-}
-
 type UpdateAccountRoleRequest struct {
 	IsActive bool `json:"is_active"`
 }

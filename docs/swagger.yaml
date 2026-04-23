@@ -1099,7 +1099,7 @@ paths:
       tags:
       - Account
   /api/admin/accounts/{accountId}/ban:
-    post:
+    patch:
       consumes:
       - application/json
       description: Set ban status of an account by ID

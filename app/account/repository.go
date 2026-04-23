@@ -179,7 +179,7 @@ func (r *repository) UpdateAccountRole(ctx context.Context, accountID string, ro
 
 func (r *repository) FindAllRoles(ctx context.Context) ([]Role, error) {
 	var roles []Role
-	if err := r.Conn.WithContext(ctx).Where("role != ?", "superadmin").Find(&roles).Error; err != nil {
+	if err := r.Conn.WithContext(ctx).Where("id != ?", ProtectedSuperAdminRoleID).Find(&roles).Error; err != nil {
 		return nil, err
 	}
 

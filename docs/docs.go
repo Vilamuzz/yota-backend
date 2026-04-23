@@ -879,7 +879,7 @@ const docTemplate = `{
             }
         },
         "/api/admin/accounts/{accountId}/ban": {
-            "post": {
+            "patch": {
                 "security": [
                     {
                         "BearerAuth": []
