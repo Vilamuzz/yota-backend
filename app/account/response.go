@@ -63,7 +63,7 @@ func (a *Account) toUserProfileResponse() UserProfileResponse {
 		Username:       a.UserProfile.Username,
 		Email:          a.Email,
 		Roles:          toAccountRolesResponse(a.AccountRoles),
-		Phone:          a.UserProfile.Phone,
+		Phone:          *a.UserProfile.Phone,
 		Address:        a.UserProfile.Address,
 		ProfilePicture: a.UserProfile.ProfilePicture,
 	}

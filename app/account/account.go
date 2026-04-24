@@ -24,7 +24,7 @@ type UserProfile struct {
 	ID             uuid.UUID `json:"id" gorm:"primaryKey"`
 	AccountID      uuid.UUID `json:"account_id" gorm:"unique;not null"`
 	Username       string    `json:"username" gorm:"unique"`
-	Phone          string    `json:"phone" gorm:"unique"`
+	Phone          *string   `json:"phone" gorm:"unique"`
 	Address        string    `json:"address"`
 	ProfilePicture string    `json:"profile_picture"`
 	CreatedAt      time.Time `json:"created_at"`

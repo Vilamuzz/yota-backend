@@ -154,6 +154,7 @@ func (s *service) Register(ctx context.Context, payload RegisterRequest) pkg.Res
 
 	verificationToken := hex.EncodeToString(tokenBytes)
 	emailVerification := &EmailVerificationToken{
+		ID:        uuid.New(),
 		AccountID: newAccount.ID,
 		Token:     verificationToken,
 		ExpiredAt: time.Now().Add(24 * time.Hour),
@@ -389,6 +390,7 @@ func (s *service) ForgetPassword(ctx context.Context, payload ForgetPasswordRequ
 
 	resetToken := hex.EncodeToString(tokenBytes)
 	passwordReset := &PasswordResetToken{
+		ID:        uuid.New(),
 		AccountID: existingUser.ID,
 		Token:     resetToken,
 		ExpiredAt: time.Now().Add(1 * time.Hour),

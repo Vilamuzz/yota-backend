@@ -53,7 +53,7 @@ func (r *repository) FindAllAccounts(ctx context.Context, options map[string]int
 	}
 	if search, ok := options["search"]; ok && search != "" {
 		searchStr := "%" + search.(string) + "%"
-		query = query.Joins("UserProfile").Where("user_profiles.username LIKE ? OR accounts.email LIKE ?", searchStr, searchStr)
+		query = query.Joins("UserProfile").Where(`"UserProfile".username LIKE ? OR accounts.email LIKE ?"`, searchStr, searchStr)
 	}
 	sortOrder := enum.SortOrderDesc
 	if val, ok := options["sort_order"].(enum.SortOrderEnum); ok && val != "" {
@@ -118,10 +118,10 @@ func (r *repository) FindOneAccount(ctx context.Context, options map[string]inte
 		query = query.Where("accounts.id = ?", id)
 	}
 	if username, ok := options["username"]; ok {
-		query = query.Joins("UserProfile").Where("user_profiles.username = ?", username)
+		query = query.Joins("UserProfile").Where(`"UserProfile".username = ?`, username)
 	}
 	if phone, ok := options["phone"]; ok {
-		query = query.Joins("UserProfile").Where("user_profiles.phone = ?", phone)
+		query = query.Joins("UserProfile").Where(`"UserProfile".phone = ?`, phone)
 	}
 	if err := query.First(&account).Error; err != nil {
 		return nil, err
