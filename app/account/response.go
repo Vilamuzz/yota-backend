@@ -11,7 +11,7 @@ type UserProfileResponse struct {
 	Username       string                 `json:"username"`
 	Email          string                 `json:"email"`
 	Roles          []AccountRolesResponse `json:"roles"`
-	ProfilePicture string                 `json:"profile_picture"`
+	ProfilePicture string                 `json:"profilePicture"`
 	Phone          string                 `json:"phone"`
 	Address        string                 `json:"address"`
 }
@@ -20,9 +20,9 @@ type AccountResponse struct {
 	ID        string                 `json:"id"`
 	Username  string                 `json:"username"`
 	Email     string                 `json:"email"`
-	IsBanned  bool                   `json:"is_banned"`
+	IsBanned  bool                   `json:"isBanned"`
 	Roles     []AccountRolesResponse `json:"roles"`
-	CreatedAt time.Time              `json:"created_at"`
+	CreatedAt time.Time              `json:"createdAt"`
 }
 
 type AccountListResponse struct {
@@ -31,15 +31,15 @@ type AccountListResponse struct {
 }
 
 type AccountRolesResponse struct {
-	RoleID    int    `json:"role_id"`
-	RoleName  string `json:"role_name"`
-	IsDefault bool   `json:"is_default"`
-	IsActive  bool   `json:"is_active"`
+	RoleID    int    `json:"roleId"`
+	RoleName  string `json:"roleName"`
+	IsDefault bool   `json:"isDefault"`
+	IsActive  bool   `json:"isActive"`
 }
 
 type RoleResponse struct {
-	ID       int    `json:"id"`
-	RoleName string `json:"role_name"`
+	ID   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 type RolesResponse struct {
@@ -106,8 +106,8 @@ func toRolesResponse(roles []Role) RolesResponse {
 	var responses []RoleResponse
 	for _, role := range roles {
 		responses = append(responses, RoleResponse{
-			ID:       role.ID,
-			RoleName: string(role.Name),
+			ID:   role.ID,
+			Name: string(role.Name),
 		})
 	}
 	if responses == nil {
