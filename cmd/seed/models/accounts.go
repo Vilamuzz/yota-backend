@@ -3,7 +3,6 @@ package models
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/app/account"
@@ -60,7 +59,6 @@ func SeedMockUsers(db *gorm.DB) error {
 			UserProfile: account.UserProfile{
 				ID:        uuid.New(),
 				Username:  u.Username,
-				Phone:     randomPhoneNumber(),
 				Address:   "Jl. Contoh No. 123",
 				CreatedAt: time.Now(),
 				UpdatedAt: time.Now(),
@@ -109,13 +107,4 @@ func SeedMockUsers(db *gorm.DB) error {
 	fmt.Println()
 
 	return nil
-}
-
-func randomPhoneNumber() string {
-	const digits = "0123456789"
-	b := make([]byte, 12)
-	for i := range b {
-		b[i] = digits[rand.Intn(len(digits))]
-	}
-	return string(b)
 }
