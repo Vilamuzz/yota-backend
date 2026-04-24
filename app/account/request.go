@@ -23,22 +23,22 @@ type UpdateUserProfileRequest struct {
 }
 
 type SetAccountBanStatusRequest struct {
-	BanStatus bool `json:"ban_status"`
+	BanStatus bool `json:"banStatus"`
 }
 
 type UpdatePasswordRequest struct {
-	CurrentPassword string `json:"current_password"`
-	NewPassword     string `json:"new_password"`
+	CurrentPassword string `json:"currentPassword"`
+	NewPassword     string `json:"newPassword"`
 }
 
 type AccountQueryParam struct {
 	Search    string             `form:"search"`
-	RoleID    int                `form:"role_id"`
-	IsBanned  *bool              `form:"is_banned"`
-	SortOrder enum.SortOrderEnum `form:"sort_order"`
+	RoleID    int                `form:"roleId"`
+	IsBanned  *bool              `form:"isBanned"`
+	SortOrder enum.SortOrderEnum `form:"sortOrder"`
 	pkg.PaginationParams
 }
 
 type UpdateAccountRoleRequest struct {
-	IsActive bool `json:"is_active"`
+	IsActive bool `json:"isActive"`
 }
