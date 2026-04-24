@@ -1,7 +1,10 @@
 package pkg
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/smtp"
 	"os"
 
@@ -19,6 +22,45 @@ func NewEmailService() *EmailService {
 }
 
 func (e *EmailService) SendEmail(to, subject, body string) error {
+	if e.config.APIKey != "" {
+		url := "https://api.resend.com/emails"
+
+		payload := map[string]interface{}{
+			"from":    e.config.From,
+			"to":      []string{to},
+			"subject": subject,
+			"html":    body,
+		}
+
+		jsonPayload, err := json.Marshal(payload)
+		if err != nil {
+			return err
+		}
+
+		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonPayload))
+		if err != nil {
+			return err
+		}
+
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+e.config.APIKey)
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+			var errResp map[string]interface{}
+			json.NewDecoder(resp.Body).Decode(&errResp)
+			return fmt.Errorf("resend api error: %v", errResp)
+		}
+
+		return nil
+	}
+
 	auth := smtp.PlainAuth("", e.config.Username, e.config.Password, e.config.Host)
 
 	msg := []byte(fmt.Sprintf("From: %s\r\n"+

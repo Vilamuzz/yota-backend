@@ -11,6 +11,7 @@ type SMTPConfig struct {
 	Username string
 	Password string
 	From     string
+	APIKey   string
 }
 
 func GetSMTPConfig() SMTPConfig {
@@ -25,5 +26,6 @@ func GetSMTPConfig() SMTPConfig {
 		Username: os.Getenv("SMTP_USERNAME"),
 		Password: os.Getenv("SMTP_PASSWORD"),
 		From:     os.Getenv("SMTP_FROM"),
+		APIKey:   os.Getenv("RESEND_API_KEY"),
 	}
 }
