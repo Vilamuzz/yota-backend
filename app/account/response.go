@@ -58,12 +58,16 @@ func (a *Account) toAccountResponse() AccountResponse {
 }
 
 func (a *Account) toUserProfileResponse() UserProfileResponse {
+	phone := ""
+	if a.UserProfile.Phone != nil {
+		phone = *a.UserProfile.Phone
+	}
 	return UserProfileResponse{
 		ID:             a.ID.String(),
 		Username:       a.UserProfile.Username,
 		Email:          a.Email,
 		Roles:          toAccountRolesResponse(a.AccountRoles),
-		Phone:          *a.UserProfile.Phone,
+		Phone:          phone,
 		Address:        a.UserProfile.Address,
 		ProfilePicture: a.UserProfile.ProfilePicture,
 	}
