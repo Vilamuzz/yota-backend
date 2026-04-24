@@ -355,9 +355,14 @@ func (s *service) ResendVerificationEmail(ctx context.Context, email string) pkg
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create verification token", nil, nil)
 	}
 
-	if err := s.emailService.SendEmailVerification(existingUser.Email, existingUser.UserProfile.Username, verificationToken); err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to send verification email", nil, nil)
-	}
+	go func(email, username, token string) {
+		if err := s.emailService.SendEmailVerification(email, username, token); err != nil {
+			logrus.WithFields(logrus.Fields{
+				"component": "auth.service",
+				"email":     email,
+			}).WithError(err).Error("failed to send verification email asynchronously during resend")
+		}
+	}(existingUser.Email, existingUser.UserProfile.Username, verificationToken)
 
 	return pkg.NewResponse(http.StatusOK, "Verification email sent successfully", nil, nil)
 }
