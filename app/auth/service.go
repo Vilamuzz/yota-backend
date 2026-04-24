@@ -344,6 +344,7 @@ func (s *service) ResendVerificationEmail(ctx context.Context, email string) pkg
 	verificationToken := hex.EncodeToString(tokenBytes)
 
 	emailVerification := &EmailVerificationToken{
+		ID:        uuid.New(),
 		AccountID: existingUser.ID,
 		Token:     verificationToken,
 		ExpiredAt: time.Now().Add(24 * time.Hour),
