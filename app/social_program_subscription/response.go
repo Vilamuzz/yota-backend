@@ -8,16 +8,16 @@ import (
 
 type SocialProgramSubscriptionResponse struct {
 	ID              string    `json:"id"`
-	SocialProgramID string    `json:"social_program_id"`
-	AccountID       string    `json:"account_id"`
+	SocialProgramID string    `json:"socialProgramId"`
+	AccountID       string    `json:"accountId"`
 	Status          string    `json:"status"`
 	Amount          float64   `json:"amount"`
-	CreatedAt       time.Time `json:"created_at"`
+	CreatedAt       time.Time `json:"createdAt"`
 }
 
 type SocialProgramSubscriptionListResponse struct {
-	Subscriptions []SocialProgramSubscriptionResponse `json:"subscriptions"`
-	Pagination    pkg.CursorPagination                `json:"pagination"`
+	SocialProgramSubscriptions []SocialProgramSubscriptionResponse `json:"socialProgramSubscriptions"`
+	Pagination                 pkg.CursorPagination                `json:"pagination"`
 }
 
 func (s *SocialProgramSubscription) toSocialProgramSubscriptionResponse() SocialProgramSubscriptionResponse {
@@ -40,7 +40,7 @@ func toSocialProgramSubscriptionListResponse(subscriptions []SocialProgramSubscr
 		responses = []SocialProgramSubscriptionResponse{}
 	}
 	return SocialProgramSubscriptionListResponse{
-		Subscriptions: responses,
-		Pagination:    pagination,
+		SocialProgramSubscriptions: responses,
+		Pagination:                 pagination,
 	}
 }

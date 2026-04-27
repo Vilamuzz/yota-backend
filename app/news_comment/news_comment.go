@@ -9,12 +9,12 @@ import (
 
 type NewsComment struct {
 	ID              uuid.UUID  `json:"id" gorm:"primaryKey"`
-	NewsID          uuid.UUID  `json:"news_id" gorm:"index;not null"`
-	ParentCommentID *uuid.UUID `json:"parent_comment_id"`
-	AccountID       uuid.UUID  `json:"account_id" gorm:"index;not null"`
+	NewsID          uuid.UUID  `json:"newsId" gorm:"index;not null"`
+	ParentCommentID *uuid.UUID `json:"parentCommentId"`
+	AccountID       uuid.UUID  `json:"accountId" gorm:"index;not null"`
 	Content         string     `json:"content" gorm:"not null"`
-	CreatedAt       time.Time  `json:"created_at"`
-	DeletedAt       *time.Time `json:"deleted_at" gorm:"index"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	DeletedAt       *time.Time `json:"deletedAt" gorm:"index"`
 
 	News               news.News           `gorm:"foreignKey:NewsID"`
 	ParentComment      *NewsComment        `gorm:"foreignKey:ParentCommentID"`
@@ -22,8 +22,8 @@ type NewsComment struct {
 }
 
 type NewsCommentReport struct {
-	AccountID     uuid.UUID `json:"account_id" gorm:"primaryKey"`
-	NewsCommentID uuid.UUID `json:"news_comment_id" gorm:"primaryKey"`
+	AccountID     uuid.UUID `json:"accountId" gorm:"primaryKey"`
+	NewsCommentID uuid.UUID `json:"newsCommentId" gorm:"primaryKey"`
 	Reason        string    `json:"reason" gorm:"not null"`
-	CreatedAt     time.Time `json:"created_at"`
+	CreatedAt     time.Time `json:"createdAt"`
 }

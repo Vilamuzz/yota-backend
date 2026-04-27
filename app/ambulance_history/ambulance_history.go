@@ -8,11 +8,11 @@ import (
 
 type AmbulanceHistory struct {
 	ID              uuid.UUID       `json:"id" gorm:"primaryKey"`
-	AmbulanceID     uuid.UUID       `json:"ambulance_id" gorm:"not null"`
-	DriverID        uuid.UUID       `json:"driver_id" gorm:"not null"`
-	ServiceCategory ServiceCategory `json:"service_category" gorm:"not null"`
+	AmbulanceID     uuid.UUID       `json:"ambulanceId" gorm:"not null"`
+	DriverID        uuid.UUID       `json:"driverId" gorm:"not null"`
+	ServiceCategory ServiceCategory `json:"serviceCategory" gorm:"not null"`
 	Note            string          `json:"note"`
-	CreatedAt       time.Time       `json:"created_at" gorm:"not null"`
+	CreatedAt       time.Time       `json:"createdAt" gorm:"not null"`
 }
 
 type ServiceCategory string

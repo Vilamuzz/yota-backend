@@ -9,15 +9,15 @@ import (
 type SocialProgramRequest struct {
 	Title         string                `form:"title"`
 	Description   string                `form:"description"`
-	CoverImage    *multipart.FileHeader `form:"cover_image" swaggerignore:"true"`
+	CoverImage    *multipart.FileHeader `form:"coverImage" swaggerignore:"true"`
 	Status        Status                `form:"status"`
-	MinimumAmount float64               `form:"minimum_amount"`
-	BillingDay    int                   `form:"billing_day"`
+	MinimumAmount float64               `form:"minimumAmount"`
+	BillingDay    int                   `form:"billingDay"`
 }
 
 type SocialProgramQueryParams struct {
 	Search       string `form:"search"`
 	Status       string `form:"status"`
-	IsSubscribed *bool  `form:"is_subscribed"`
+	IsSubscribed *bool  `form:"isSubscribed"`
 	pkg.PaginationParams
 }

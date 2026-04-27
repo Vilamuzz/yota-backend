@@ -10,15 +10,15 @@ type PublishedDonationProgramResponse struct {
 	ID            string     `json:"id"`
 	Title         string     `json:"title"`
 	Slug          string     `json:"slug"`
-	CoverImage    string     `json:"cover_image"`
+	CoverImage    string     `json:"coverImage"`
 	Category      Category   `json:"category"`
 	Description   string     `json:"description"`
-	FundTarget    float64    `json:"fund_target"`
-	CollectedFund float64    `json:"collected_fund"`
+	FundTarget    float64    `json:"fundTarget"`
+	CollectedFund float64    `json:"collectedFund"`
 	Status        Status     `json:"status"`
-	StartDate     time.Time  `json:"start_date"`
-	EndDate       time.Time  `json:"end_date"`
-	PublishedAt   *time.Time `json:"published_at"`
+	StartDate     time.Time  `json:"startDate"`
+	EndDate       time.Time  `json:"endDate"`
+	PublishedAt   *time.Time `json:"publishedAt"`
 }
 
 type DonationProgramResponse struct {
@@ -26,24 +26,24 @@ type DonationProgramResponse struct {
 	Title       string     `json:"title"`
 	Slug        string     `json:"slug"`
 	Description string     `json:"description"`
-	CoverImage  string     `json:"cover_image"`
+	CoverImage  string     `json:"coverImage"`
 	Category    Category   `json:"category"`
-	FundTarget  float64    `json:"fund_target"`
+	FundTarget  float64    `json:"fundTarget"`
 	Status      Status     `json:"status"`
-	StartDate   time.Time  `json:"start_date"`
-	EndDate     time.Time  `json:"end_date"`
-	PublishedAt *time.Time `json:"published_at"`
-	CreatedAt   time.Time  `json:"created_at"`
+	StartDate   time.Time  `json:"startDate"`
+	EndDate     time.Time  `json:"endDate"`
+	PublishedAt *time.Time `json:"publishedAt"`
+	CreatedAt   time.Time  `json:"createdAt"`
 }
 
 type DonationProgramListResponse struct {
-	Donations  []DonationProgramResponse `json:"donations"`
-	Pagination pkg.CursorPagination      `json:"pagination"`
+	DonationPrograms []DonationProgramResponse `json:"donationPrograms"`
+	Pagination       pkg.CursorPagination      `json:"pagination"`
 }
 
 type PublishedDonationProgramListResponse struct {
-	Donations  []PublishedDonationProgramResponse `json:"donations"`
-	Pagination pkg.CursorPagination               `json:"pagination"`
+	DonationPrograms []PublishedDonationProgramResponse `json:"donationPrograms"`
+	Pagination       pkg.CursorPagination               `json:"pagination"`
 }
 
 func (d *DonationProgram) toDonationProgramResponse() DonationProgramResponse {
@@ -65,18 +65,18 @@ func (d *DonationProgram) toDonationProgramResponse() DonationProgramResponse {
 
 func (d *DonationProgram) toPublishedDonationProgramResponse() PublishedDonationProgramResponse {
 	return PublishedDonationProgramResponse{
-		ID:          d.ID.String(),
-		Title:       d.Title,
-		Slug:        d.Slug,
-		Description: d.Description,
-		CoverImage:  d.CoverImage,
+		ID:            d.ID.String(),
+		Title:         d.Title,
+		Slug:          d.Slug,
+		Description:   d.Description,
+		CoverImage:    d.CoverImage,
 		Category:      d.Category,
 		FundTarget:    d.FundTarget,
 		CollectedFund: d.CollectedFund,
 		Status:        d.Status,
 		StartDate:     d.StartDate,
-		EndDate:     d.EndDate,
-		PublishedAt: d.PublishedAt,
+		EndDate:       d.EndDate,
+		PublishedAt:   d.PublishedAt,
 	}
 }
 
@@ -91,8 +91,8 @@ func toDonationProgramListResponse(donations []DonationProgram, pagination pkg.C
 	}
 
 	return DonationProgramListResponse{
-		Donations:  responses,
-		Pagination: pagination,
+		DonationPrograms: responses,
+		Pagination:       pagination,
 	}
 }
 
@@ -105,7 +105,7 @@ func toPublishedDonationProgramListResponse(donations []DonationProgram, paginat
 		responses = []PublishedDonationProgramResponse{}
 	}
 	return PublishedDonationProgramListResponse{
-		Donations:  responses,
-		Pagination: pagination,
+		DonationPrograms: responses,
+		Pagination:       pagination,
 	}
 }

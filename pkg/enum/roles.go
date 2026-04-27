@@ -3,12 +3,12 @@ package enum
 type RoleName string
 
 const (
-	RoleOrangTuaAsuh       RoleName = "orang_tua_asuh"
-	RoleChairman           RoleName = "chairman"
-	RoleSocialManager      RoleName = "social_manager"
-	RoleFinance            RoleName = "finance"
-	RoleAmbulanceManager   RoleName = "ambulance_manager"
-	RoleAmbulanceDriver    RoleName = "ambulance_driver"
-	RolePublicationManager RoleName = "publication_manager"
-	RoleSuperadmin         RoleName = "superadmin"
+	RoleOrangTuaAsuh       RoleName = "Orang Tua Asuh"
+	RoleChairman           RoleName = "Ketua Yayasan"
+	RoleSocialManager      RoleName = "Penanggung Jawab Sosial"
+	RoleFinance            RoleName = "Bendahara"
+	RoleAmbulanceManager   RoleName = "Penanggung Jawab Ambulans"
+	RoleAmbulanceDriver    RoleName = "Supir Ambulans"
+	RolePublicationManager RoleName = "Penanggung Jawab Publikasi"
+	RoleSuperadmin         RoleName = "Superadmin"
 )

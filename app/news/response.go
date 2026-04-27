@@ -15,9 +15,9 @@ type NewsResponse struct {
 	Image       string              `json:"image"`
 	Status      media.MediaStatus   `json:"status"`
 	Views       int                 `json:"views"`
-	PublishedAt *time.Time          `json:"published_at"`
-	CreatedAt   time.Time           `json:"created_at"`
-	UpdatedAt   time.Time           `json:"updated_at"`
+	PublishedAt *time.Time          `json:"publishedAt"`
+	CreatedAt   time.Time           `json:"createdAt"`
+	UpdatedAt   time.Time           `json:"updatedAt"`
 }
 
 type NewsListResponse struct {

@@ -15,7 +15,7 @@ type GalleryResponse struct {
 	Description string                `json:"description"`
 	Media       []media.MediaResponse `json:"media"`
 	Views       int                   `json:"views"`
-	PublishedAt *time.Time            `json:"published_at"`
+	PublishedAt *time.Time            `json:"publishedAt"`
 }
 
 type GalleryListResponseItem struct {
@@ -25,7 +25,7 @@ type GalleryListResponseItem struct {
 	Category    media.MediaCategory `json:"category"`
 	Description string              `json:"description"`
 	Views       int                 `json:"views"`
-	PublishedAt *time.Time          `json:"published_at"`
+	PublishedAt *time.Time          `json:"publishedAt"`
 }
 
 type GalleryListResponse struct {
@@ -94,7 +94,7 @@ type PublishedGalleryResponse struct {
 	Description string                         `json:"description"`
 	Media       []media.PublishedMediaResponse `json:"media"`
 	Views       int                            `json:"views"`
-	PublishedAt string                         `json:"published_at"`
+	PublishedAt string                         `json:"publishedAt"`
 }
 
 type PublishedGalleryListResponseItem struct {
@@ -103,9 +103,9 @@ type PublishedGalleryListResponseItem struct {
 	Slug         string              `json:"slug"`
 	Category     media.MediaCategory `json:"category"`
 	Description  string              `json:"description"`
-	ThumbnailURL string              `json:"thumbnail_url"`
+	ThumbnailURL string              `json:"thumbnailUrl"`
 	Views        int                 `json:"views"`
-	PublishedAt  string              `json:"published_at"`
+	PublishedAt  string              `json:"publishedAt"`
 }
 
 type PublishedGalleryListResponse struct {

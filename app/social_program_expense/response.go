@@ -8,30 +8,30 @@ import (
 
 type SocialProgramExpenseResponse struct {
 	ID              string    `json:"id"`
-	SocialProgramID string    `json:"social_program_id"`
+	SocialProgramID string    `json:"socialProgramId"`
 	Title           string    `json:"title"`
 	Amount          float64   `json:"amount"`
-	ExpenseDate     time.Time `json:"expense_date"`
+	ExpenseDate     time.Time `json:"expenseDate"`
 	Note            string    `json:"note"`
-	ProofFile       string    `json:"proof_file"`
-	CreatedAt       time.Time `json:"created_at"`
+	ProofFile       string    `json:"proofFile"`
+	CreatedAt       time.Time `json:"createdAt"`
 }
 
 type SocialProgramExpenseDetailResponse struct {
 	ID              string    `json:"id"`
-	SocialProgramID string    `json:"social_program_id"`
+	SocialProgramID string    `json:"socialProgramId"`
 	Title           string    `json:"title"`
 	Amount          float64   `json:"amount"`
-	ExpenseDate     time.Time `json:"expense_date"`
+	ExpenseDate     time.Time `json:"expenseDate"`
 	Note            string    `json:"note"`
-	ProofFile       string    `json:"proof_file"`
-	CreatedBy       string    `json:"created_by"`
-	CreatedAt       time.Time `json:"created_at"`
+	ProofFile       string    `json:"proofFile"`
+	CreatedBy       string    `json:"createdBy"`
+	CreatedAt       time.Time `json:"createdAt"`
 }
 
 type SocialProgramExpenseListResponse struct {
-	Expenses   []SocialProgramExpenseResponse `json:"expenses"`
-	Pagination pkg.CursorPagination           `json:"pagination"`
+	SocialProgramExpenses []SocialProgramExpenseResponse `json:"socialProgramExpenses"`
+	Pagination            pkg.CursorPagination           `json:"pagination"`
 }
 
 func (r *SocialProgramExpense) toSocialProgramExpenseDetailResponse() SocialProgramExpenseDetailResponse {
@@ -69,7 +69,7 @@ func toSocialProgramExpenseListResponse(expenses []SocialProgramExpense, paginat
 		responses = []SocialProgramExpenseResponse{}
 	}
 	return SocialProgramExpenseListResponse{
-		Expenses:   responses,
-		Pagination: pagination,
+		SocialProgramExpenses: responses,
+		Pagination:            pagination,
 	}
 }

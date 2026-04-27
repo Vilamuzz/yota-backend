@@ -8,24 +8,24 @@ import (
 
 type SocialProgramTransactionResponse struct {
 	ID                     string     `json:"id"`
-	SocialProgramInvoiceID string     `json:"social_program_invoice_id"`
-	OrderID                string     `json:"order_id"`
-	AccountID              string     `json:"account_id"`
-	IsOnline               bool       `json:"is_online"`
-	GrossAmount            float64    `json:"gross_amount"`
-	FraudStatus            string     `json:"fraud_status"`
-	TransactionStatus      string     `json:"transaction_status"`
+	SocialProgramInvoiceID string     `json:"socialProgramInvoiceId"`
+	OrderID                string     `json:"orderId"`
+	AccountID              string     `json:"accountId"`
+	IsOnline               bool       `json:"isOnline"`
+	GrossAmount            float64    `json:"grossAmount"`
+	FraudStatus            string     `json:"fraudStatus"`
+	TransactionStatus      string     `json:"transactionStatus"`
 	Provider               string     `json:"provider"`
-	TransactionID          string     `json:"transaction_id"`
-	SnapToken              string     `json:"snap_token"`
-	SnapRedirectURL        string     `json:"snap_redirect_url"`
-	PaidAt                 *time.Time `json:"paid_at"`
-	CreatedAt              time.Time  `json:"created_at"`
+	TransactionID          string     `json:"transactionId"`
+	SnapToken              string     `json:"snapToken"`
+	SnapRedirectURL        string     `json:"snapRedirectUrl"`
+	PaidAt                 *time.Time `json:"paidAt"`
+	CreatedAt              time.Time  `json:"createdAt"`
 }
 
 type SocialProgramTransactionListResponse struct {
-	Transactions []SocialProgramTransactionResponse `json:"transactions"`
-	Pagination   pkg.CursorPagination               `json:"pagination"`
+	SocialProgramTransactions []SocialProgramTransactionResponse `json:"socialProgramTransactions"`
+	Pagination                pkg.CursorPagination               `json:"pagination"`
 }
 
 func (tx *SocialProgramTransaction) toSocialProgramTransactionResponse() SocialProgramTransactionResponse {
@@ -56,7 +56,7 @@ func toSocialProgramTransactionListResponse(transactions []SocialProgramTransact
 		responses = []SocialProgramTransactionResponse{}
 	}
 	return SocialProgramTransactionListResponse{
-		Transactions: responses,
-		Pagination:   pagination,
+		SocialProgramTransactions: responses,
+		Pagination:                pagination,
 	}
 }

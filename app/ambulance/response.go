@@ -4,7 +4,7 @@ import "github.com/Vilamuzz/yota-backend/pkg"
 
 type AmbulanceResponse struct {
 	ID          string `json:"id"`
-	PlateNumber string `json:"plate_number"`
+	PlateNumber string `json:"plateNumber"`
 	Phone       string `json:"phone"`
 }
 

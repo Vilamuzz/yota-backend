@@ -8,30 +8,10 @@ type PublishedMediaResponse struct {
 
 type MediaResponse struct {
 	ID        string `json:"id"`
-	NewsID    string `json:"news_id"`
-	GalleryID string `json:"gallery_id"`
+	NewsID    string `json:"newsId"`
+	GalleryID string `json:"galleryId"`
 	Type      string `json:"type"`
 	URL       string `json:"url"`
-	AltText   string `json:"alt_text"`
+	AltText   string `json:"altText"`
 	Order     int    `json:"order"`
-}
-
-func (m *Media) toPublishedMediaResponse() PublishedMediaResponse {
-	return PublishedMediaResponse{
-		URL:     m.URL,
-		AltText: m.AltText,
-		Order:   m.Order,
-	}
-}
-
-func (m *Media) toMediaResponse() MediaResponse {
-	return MediaResponse{
-		ID:        m.ID.String(),
-		NewsID:    m.NewsID.String(),
-		GalleryID: m.GalleryID.String(),
-		Type:      string(m.Type),
-		URL:       m.URL,
-		AltText:   m.AltText,
-		Order:     m.Order,
-	}
 }

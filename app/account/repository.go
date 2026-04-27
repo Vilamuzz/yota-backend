@@ -152,7 +152,7 @@ func (r *repository) UpdateAccount(ctx context.Context, accountID string, update
 
 func (r *repository) CountActiveAccountRoles(ctx context.Context, accountID string) (int64, error) {
 	var count int64
-	query := r.Conn.WithContext(ctx).Where("is_active = ? AND account_id = ?", true, accountID)
+	query := r.Conn.WithContext(ctx).Model(&AccountRole{}).Where("is_active = ? AND account_id = ?", true, accountID)
 	if err := query.Count(&count).Error; err != nil {
 		return 0, err
 	}
@@ -162,7 +162,7 @@ func (r *repository) CountActiveAccountRoles(ctx context.Context, accountID stri
 
 func (r *repository) FindOneAccountRole(ctx context.Context, accountID string, roleID int) (*AccountRole, error) {
 	var accountRole AccountRole
-	if err := r.Conn.WithContext(ctx).Where("account_id = ? AND role_id = ?", accountID, roleID).First(&accountRole).Error; err != nil {
+	if err := r.Conn.WithContext(ctx).Model(&AccountRole{}).Where("account_id = ? AND role_id = ?", accountID, roleID).First(&accountRole).Error; err != nil {
 		return nil, err
 	}
 

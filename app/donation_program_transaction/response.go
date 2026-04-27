@@ -8,25 +8,25 @@ import (
 
 type DonationProgramTransactionResponse struct {
 	ID                string     `json:"id"`
-	DonationProgramID string     `json:"donation_program_id"`
-	OrderID           string     `json:"order_id"`
-	DonorName         string     `json:"donor_name"`
-	DonorEmail        string     `json:"donor_email"`
-	IsOnline          bool       `json:"is_online"`
-	GrossAmount       float64    `json:"gross_amount"`
-	FraudStatus       string     `json:"fraud_status"`
-	TransactionStatus string     `json:"transaction_status"`
+	DonationProgramID string     `json:"donationProgramId"`
+	OrderID           string     `json:"orderId"`
+	DonorName         string     `json:"donorName"`
+	DonorEmail        string     `json:"donorEmail"`
+	IsOnline          bool       `json:"isOnline"`
+	GrossAmount       float64    `json:"grossAmount"`
+	FraudStatus       string     `json:"fraudStatus"`
+	TransactionStatus string     `json:"transactionStatus"`
 	Provider          string     `json:"provider"`
-	TransactionID     string     `json:"transaction_id"`
-	SnapToken         string     `json:"snap_token"`
-	SnapRedirectURL   string     `json:"snap_redirect_url"`
-	PaidAt            *time.Time `json:"paid_at"`
-	CreatedAt         time.Time  `json:"created_at"`
+	TransactionID     string     `json:"transactionId"`
+	SnapToken         string     `json:"snapToken"`
+	SnapRedirectURL   string     `json:"snapRedirectUrl"`
+	PaidAt            *time.Time `json:"paidAt"`
+	CreatedAt         time.Time  `json:"createdAt"`
 }
 
 type DonationProgramTransactionListResponse struct {
-	Transactions []DonationProgramTransactionResponse `json:"transactions"`
-	Pagination   pkg.CursorPagination                 `json:"pagination"`
+	DonationProgramTransactions []DonationProgramTransactionResponse `json:"donationProgramTransactions"`
+	Pagination                  pkg.CursorPagination                 `json:"pagination"`
 }
 
 func (tx *DonationProgramTransaction) toDonationProgramTransactionResponse() DonationProgramTransactionResponse {
@@ -58,7 +58,7 @@ func toDonationTransactionListResponse(transactions []DonationProgramTransaction
 		responses = []DonationProgramTransactionResponse{}
 	}
 	return DonationProgramTransactionListResponse{
-		Transactions: responses,
-		Pagination:   pagination,
+		DonationProgramTransactions: responses,
+		Pagination:                  pagination,
 	}
 }

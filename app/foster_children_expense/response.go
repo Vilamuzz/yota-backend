@@ -10,26 +10,26 @@ type FosterChildrenExpenseResponse struct {
 	ID          string    `json:"id"`
 	Title       string    `json:"title"`
 	Amount      float64   `json:"amount"`
-	ExpenseDate time.Time `json:"expense_date"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ExpenseDate time.Time `json:"expenseDate"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
 type FosterChildrenExpenseDetailResponse struct {
 	ID               string    `json:"id"`
-	FosterChildrenID string    `json:"foster_children_id"`
+	FosterChildrenID string    `json:"fosterChildrenId"`
 	Title            string    `json:"title"`
 	Amount           float64   `json:"amount"`
-	ExpenseDate      time.Time `json:"expense_date"`
+	ExpenseDate      time.Time `json:"expenseDate"`
 	Note             string    `json:"note"`
-	ProofFile        string    `json:"proof_file"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
+	ProofFile        string    `json:"proofFile"`
+	CreatedAt        time.Time `json:"createdAt"`
+	UpdatedAt        time.Time `json:"updatedAt"`
 }
 
 type FosterChildrenExpenseListResponse struct {
-	Expenses   []FosterChildrenExpenseResponse `json:"expenses"`
-	Pagination pkg.CursorPagination            `json:"pagination"`
+	FosterChildrenExpenses []FosterChildrenExpenseResponse `json:"fosterChildrenExpenses"`
+	Pagination             pkg.CursorPagination            `json:"pagination"`
 }
 
 func (e *FosterChildrenExpense) toFosterChildrenExpenseDetailResponse() FosterChildrenExpenseDetailResponse {
@@ -66,7 +66,7 @@ func toFosterChildrenExpenseListResponse(expenses []FosterChildrenExpense, pagin
 		responses = []FosterChildrenExpenseResponse{}
 	}
 	return FosterChildrenExpenseListResponse{
-		Expenses:   responses,
-		Pagination: pagination,
+		FosterChildrenExpenses: responses,
+		Pagination:             pagination,
 	}
 }
