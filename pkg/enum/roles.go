@@ -5,7 +5,7 @@ type RoleName string
 const (
 	RoleOrangTuaAsuh       RoleName = "Orang Tua Asuh"
 	RoleChairman           RoleName = "Ketua Yayasan"
-	RoleSocialManager      RoleName = "Penanggung Jawab Sosial"
+	RoleSocialManager      RoleName = "Koordinator Sosial"
 	RoleFinance            RoleName = "Bendahara"
 	RoleAmbulanceManager   RoleName = "Penanggung Jawab Ambulans"
 	RoleAmbulanceDriver    RoleName = "Supir Ambulans"

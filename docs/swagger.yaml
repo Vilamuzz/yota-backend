@@ -1,13 +1,13 @@
 definitions:
   account.AccountResponse:
     properties:
-      created_at:
+      createdAt:
         type: string
       email:
         type: string
       id:
         type: string
-      is_banned:
+      isBanned:
         type: boolean
       roles:
         items:
@@ -18,20 +18,20 @@ definitions:
     type: object
   account.AccountRolesResponse:
     properties:
-      is_active:
+      isActive:
         type: boolean
-      is_default:
+      isDefault:
         type: boolean
-      role_id:
+      roleId:
         type: integer
-      role_name:
+      roleName:
         type: string
     type: object
   account.RoleResponse:
     properties:
       id:
         type: integer
-      role_name:
+      name:
         type: string
     type: object
   account.RolesResponse:
@@ -43,19 +43,19 @@ definitions:
     type: object
   account.SetAccountBanStatusRequest:
     properties:
-      ban_status:
+      banStatus:
         type: boolean
     type: object
   account.UpdateAccountRoleRequest:
     properties:
-      is_active:
+      isActive:
         type: boolean
     type: object
   account.UpdatePasswordRequest:
     properties:
-      current_password:
+      currentPassword:
         type: string
-      new_password:
+      newPassword:
         type: string
     type: object
   account.UserProfileResponse:
@@ -68,7 +68,7 @@ definitions:
         type: string
       phone:
         type: string
-      profile_picture:
+      profilePicture:
         type: string
       roles:
         items:
@@ -79,13 +79,13 @@ definitions:
     type: object
   ambulance_history.CreateAmbulanceHistoryRequest:
     properties:
-      ambulance_id:
+      ambulanceId:
         type: string
-      driver_id:
+      driverId:
         type: string
       note:
         type: string
-      service_category:
+      serviceCategory:
         $ref: '#/definitions/ambulance_history.ServiceCategory'
     type: object
   ambulance_history.ServiceCategory:
@@ -104,7 +104,7 @@ definitions:
     - OtherService
   ambulance_history.UpdateAmbulanceHistoryRequest:
     properties:
-      service_category:
+      serviceCategory:
         $ref: '#/definitions/ambulance_history.ServiceCategory'
     type: object
   ambulance_request.UpdateAmbulanceRequest:
@@ -189,55 +189,55 @@ definitions:
     - StatusExpired
   donation_program_transaction.CreateDonationProgramTransactionRequest:
     properties:
-      donor_email:
+      donorEmail:
         type: string
-      donor_name:
+      donorName:
         type: string
-      gross_amount:
+      grossAmount:
         type: number
-      prayer_content:
+      prayerContent:
         type: string
     type: object
   donation_program_transaction.DonationProgramTransactionListResponse:
     properties:
-      pagination:
-        $ref: '#/definitions/pkg.CursorPagination'
-      transactions:
+      donationProgramTransactions:
         items:
           $ref: '#/definitions/donation_program_transaction.DonationProgramTransactionResponse'
         type: array
+      pagination:
+        $ref: '#/definitions/pkg.CursorPagination'
     type: object
   donation_program_transaction.DonationProgramTransactionResponse:
     properties:
-      created_at:
+      createdAt:
         type: string
-      donation_program_id:
+      donationProgramId:
         type: string
-      donor_email:
+      donorEmail:
         type: string
-      donor_name:
+      donorName:
         type: string
-      fraud_status:
+      fraudStatus:
         type: string
-      gross_amount:
+      grossAmount:
         type: number
       id:
         type: string
-      is_online:
+      isOnline:
         type: boolean
-      order_id:
+      orderId:
         type: string
-      paid_at:
+      paidAt:
         type: string
       provider:
         type: string
-      snap_redirect_url:
+      snapRedirectUrl:
         type: string
-      snap_token:
+      snapToken:
         type: string
-      transaction_id:
+      transactionId:
         type: string
-      transaction_status:
+      transactionStatus:
         type: string
     type: object
   foster_children.Category:
@@ -272,60 +272,60 @@ definitions:
     - StatusCanceled
   foster_children.UpdateFosterChildrenCandidateStatusRequest:
     properties:
-      rejection_reason:
+      rejectionReason:
         type: string
       status:
         $ref: '#/definitions/foster_children.Status'
     type: object
   foster_children_transaction.CreateFosterChildrenTransactionRequest:
     properties:
-      donor_email:
+      donorEmail:
         type: string
-      donor_name:
+      donorName:
         type: string
-      gross_amount:
+      grossAmount:
         type: number
     type: object
   foster_children_transaction.FosterChildrenTransactionListResponse:
     properties:
-      pagination:
-        $ref: '#/definitions/pkg.CursorPagination'
-      transactions:
+      fosterChildrenTransactions:
         items:
           $ref: '#/definitions/foster_children_transaction.FosterChildrenTransactionResponse'
         type: array
+      pagination:
+        $ref: '#/definitions/pkg.CursorPagination'
     type: object
   foster_children_transaction.FosterChildrenTransactionResponse:
     properties:
-      created_at:
+      createdAt:
         type: string
-      donor_email:
+      donorEmail:
         type: string
-      donor_name:
+      donorName:
         type: string
-      foster_children_id:
+      fosterChildrenId:
         type: string
-      fraud_status:
+      fraudStatus:
         type: string
-      gross_amount:
+      grossAmount:
         type: number
       id:
         type: string
-      is_online:
+      isOnline:
         type: boolean
-      order_id:
+      orderId:
         type: string
-      paid_at:
+      paidAt:
         type: string
       provider:
         type: string
-      snap_redirect_url:
+      snapRedirectUrl:
         type: string
-      snap_token:
+      snapToken:
         type: string
-      transaction_id:
+      transactionId:
         type: string
-      transaction_status:
+      transactionStatus:
         type: string
     type: object
   gallery.GalleryResponse:
@@ -340,7 +340,7 @@ definitions:
         items:
           $ref: '#/definitions/media.MediaResponse'
         type: array
-      published_at:
+      publishedAt:
         type: string
       slug:
         type: string
@@ -366,11 +366,11 @@ definitions:
         type: string
       id:
         type: string
-      published_at:
+      publishedAt:
         type: string
       slug:
         type: string
-      thumbnail_url:
+      thumbnailUrl:
         type: string
       title:
         type: string
@@ -389,7 +389,7 @@ definitions:
         items:
           $ref: '#/definitions/media.PublishedMediaResponse'
         type: array
-      published_at:
+      publishedAt:
         type: string
       slug:
         type: string
@@ -400,27 +400,27 @@ definitions:
     type: object
   media.MediaCategory:
     enum:
-    - kegiatan_sosial
-    - bencana_alam
-    - kesehatan
-    - lingkungan
-    - lainnya
+    - Kegiatan Sosial
+    - Bencana Alam
+    - Kesehatan
+    - Lingkungan
+    - Lainnya
     type: string
     x-enum-varnames:
-    - SosialEvent
+    - SocialEvent
     - Disaster
     - Health
     - Environment
     - Others
   media.MediaResponse:
     properties:
-      alt_text:
+      altText:
         type: string
-      gallery_id:
+      galleryId:
         type: string
       id:
         type: string
-      news_id:
+      newsId:
         type: string
       order:
         type: integer
@@ -472,7 +472,7 @@ definitions:
     properties:
       content:
         type: string
-      created_at:
+      createdAt:
         type: string
       id:
         type: string
@@ -500,47 +500,47 @@ definitions:
     properties:
       amount:
         type: number
-      created_at:
+      createdAt:
         type: string
-      created_by:
+      createdBy:
         type: string
-      expense_date:
+      expenseDate:
         type: string
       id:
         type: string
       note:
         type: string
-      proof_file:
+      proofFile:
         type: string
-      social_program_id:
+      socialProgramId:
         type: string
       title:
         type: string
     type: object
   social_program_expense.SocialProgramExpenseListResponse:
     properties:
-      expenses:
+      pagination:
+        $ref: '#/definitions/pkg.CursorPagination'
+      socialProgramExpenses:
         items:
           $ref: '#/definitions/social_program_expense.SocialProgramExpenseResponse'
         type: array
-      pagination:
-        $ref: '#/definitions/pkg.CursorPagination'
     type: object
   social_program_expense.SocialProgramExpenseResponse:
     properties:
       amount:
         type: number
-      created_at:
+      createdAt:
         type: string
-      expense_date:
+      expenseDate:
         type: string
       id:
         type: string
       note:
         type: string
-      proof_file:
+      proofFile:
         type: string
-      social_program_id:
+      socialProgramId:
         type: string
       title:
         type: string
@@ -549,7 +549,7 @@ definitions:
     properties:
       amount:
         type: number
-      social_program_id:
+      socialProgramId:
         type: string
     type: object
   social_program_subscription.Status:
@@ -569,9 +569,9 @@ definitions:
     type: object
   social_program_transaction.CreateTransactionRequest:
     properties:
-      gross_amount:
+      grossAmount:
         type: number
-      social_program_invoice_id:
+      socialProgramInvoiceId:
         type: string
     type: object
 info:
@@ -916,7 +916,7 @@ paths:
         name: phone
         type: string
       - in: formData
-        name: plate_number
+        name: plateNumber
         type: string
       - description: Ambulance Image
         in: formData
@@ -987,7 +987,7 @@ paths:
         name: phone
         type: string
       - in: formData
-        name: plate_number
+        name: plateNumber
         type: string
       - description: Ambulance Image
         in: formData
@@ -1235,11 +1235,11 @@ paths:
         type: integer
       - description: Pagination cursor (next page)
         in: query
-        name: next_cursor
+        name: nextCursor
         type: string
       - description: Pagination cursor (prev page)
         in: query
-        name: prev_cursor
+        name: prevCursor
         type: string
       produces:
       - application/json
@@ -1282,13 +1282,13 @@ paths:
         name: description
         type: string
       - in: formData
-        name: end_date
+        name: endDate
         type: string
       - in: formData
-        name: fund_target
+        name: fundTarget
         type: number
       - in: formData
-        name: start_date
+        name: startDate
         type: string
       - enum:
         - active
@@ -1308,7 +1308,7 @@ paths:
         type: string
       - description: Donation Program Cover Image
         in: formData
-        name: cover_image
+        name: coverImage
         required: true
         type: file
       produces:
@@ -1396,13 +1396,13 @@ paths:
         name: description
         type: string
       - in: formData
-        name: end_date
+        name: endDate
         type: string
       - in: formData
-        name: fund_target
+        name: fundTarget
         type: number
       - in: formData
-        name: start_date
+        name: startDate
         type: string
       - enum:
         - active
@@ -1422,7 +1422,7 @@ paths:
         type: string
       - description: Donation Program Cover Image
         in: formData
-        name: cover_image
+        name: coverImage
         type: file
       produces:
       - application/json
@@ -1483,7 +1483,7 @@ paths:
         name: amount
         type: number
       - in: formData
-        name: expense_date
+        name: expenseDate
         type: string
       - in: formData
         name: note
@@ -1657,10 +1657,10 @@ paths:
         name: address
         type: string
       - in: formData
-        name: birth_date
+        name: birthDate
         type: string
       - in: formData
-        name: birth_place
+        name: birthPlace
         type: string
       - enum:
         - yatim
@@ -1683,7 +1683,7 @@ paths:
         - Male
         - Female
       - in: formData
-        name: is_graduated
+        name: isGraduated
         type: boolean
       - in: formData
         name: name
@@ -1758,10 +1758,10 @@ paths:
         name: address
         type: string
       - in: formData
-        name: birth_date
+        name: birthDate
         type: string
       - in: formData
-        name: birth_place
+        name: birthPlace
         type: string
       - enum:
         - yatim
@@ -1784,7 +1784,7 @@ paths:
         - Male
         - Female
       - in: formData
-        name: is_graduated
+        name: isGraduated
         type: boolean
       - in: formData
         name: name
@@ -1864,7 +1864,7 @@ paths:
         name: amount
         type: number
       - in: formData
-        name: expense_date
+        name: expenseDate
         type: string
       - in: formData
         name: note
@@ -2215,13 +2215,13 @@ paths:
       description: Create a new social program entry
       parameters:
       - in: formData
-        name: billing_day
+        name: billingDay
         type: integer
       - in: formData
         name: description
         type: string
       - in: formData
-        name: minimum_amount
+        name: minimumAmount
         type: number
       - enum:
         - active
@@ -2290,13 +2290,13 @@ paths:
         required: true
         type: string
       - in: formData
-        name: billing_day
+        name: billingDay
         type: integer
       - in: formData
         name: description
         type: string
       - in: formData
-        name: minimum_amount
+        name: minimumAmount
         type: number
       - enum:
         - active
@@ -2346,7 +2346,7 @@ paths:
         name: amount
         type: number
       - in: formData
-        name: expense_date
+        name: expenseDate
         type: string
       - in: formData
         name: note
@@ -2723,11 +2723,11 @@ paths:
         type: integer
       - description: Pagination cursor (next page)
         in: query
-        name: next_cursor
+        name: nextCursor
         type: string
       - description: Pagination cursor (prev page)
         in: query
-        name: prev_cursor
+        name: prevCursor
         type: string
       produces:
       - application/json
@@ -2920,10 +2920,10 @@ paths:
         name: address
         type: string
       - in: formData
-        name: birth_date
+        name: birthDate
         type: string
       - in: formData
-        name: birth_place
+        name: birthPlace
         type: string
       - enum:
         - yatim
@@ -2949,13 +2949,13 @@ paths:
         name: name
         type: string
       - in: formData
-        name: submitter_address
+        name: submitterAddress
         type: string
       - in: formData
-        name: submitter_name
+        name: submitterName
         type: string
       - in: formData
-        name: submitter_phone
+        name: submitterPhone
         type: string
       - description: Profile Picture
         in: formData
@@ -3450,7 +3450,7 @@ paths:
         name: address
         type: string
       - in: formData
-        name: default_account_role_id
+        name: defaultAccountRoleId
         type: integer
       - in: formData
         name: email
