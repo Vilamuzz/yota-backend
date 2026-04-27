@@ -11,13 +11,13 @@ type SocialProgram struct {
 	Slug          string    `json:"slug" gorm:"not null"`
 	Title         string    `json:"title" gorm:"not null"`
 	Description   string    `json:"description" gorm:"not null"`
-	CoverImage    string    `json:"cover_image" gorm:"not null"`
+	CoverImage    string    `json:"coverImage" gorm:"not null"`
 	Status        Status    `json:"status" gorm:"type:varchar(20);not null;default:'active'"`
-	MinimumAmount float64   `json:"minimum_amount" gorm:"not null"`
-	BillingDay    int       `json:"billing_day" gorm:"not null"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
-	DeletedAt     time.Time `json:"deleted_at" gorm:"index"`
+	MinimumAmount float64   `json:"minimumAmount" gorm:"not null"`
+	BillingDay    int       `json:"billingDay" gorm:"not null"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
+	DeletedAt     time.Time `json:"deletedAt" gorm:"index"`
 }
 
 type Status string

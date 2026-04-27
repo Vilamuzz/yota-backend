@@ -7,17 +7,17 @@ type SocialProgramResponse struct {
 	Slug          string  `json:"slug"`
 	Title         string  `json:"title"`
 	Description   string  `json:"description"`
-	CoverImage    string  `json:"cover_image"`
+	CoverImage    string  `json:"coverImage"`
 	Status        Status  `json:"status"`
-	IsSubscribed  bool    `json:"is_subscribed"`
-	MinimumAmount float64 `json:"minimum_amount"`
-	BillingDay    int     `json:"billing_day"`
-	CreatedAt     string  `json:"created_at"`
+	IsSubscribed  bool    `json:"isSubscribed"`
+	MinimumAmount float64 `json:"minimumAmount"`
+	BillingDay    int     `json:"billingDay"`
+	CreatedAt     string  `json:"createdAt"`
 }
 
 type SocialProgramListResponse struct {
-	Programs   []SocialProgramResponse `json:"programs"`
-	Pagination pkg.CursorPagination    `json:"pagination"`
+	SocialPrograms []SocialProgramResponse `json:"socialPrograms"`
+	Pagination     pkg.CursorPagination    `json:"pagination"`
 }
 
 func (r *SocialProgram) toSocialProgramResponse() SocialProgramResponse {
@@ -43,7 +43,7 @@ func toSocialProgramListResponse(programs []SocialProgram, pagination pkg.Cursor
 		responses = []SocialProgramResponse{}
 	}
 	return SocialProgramListResponse{
-		Programs:   responses,
-		Pagination: pagination,
+		SocialPrograms: responses,
+		Pagination:     pagination,
 	}
 }

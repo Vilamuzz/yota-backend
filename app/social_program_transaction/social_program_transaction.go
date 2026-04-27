@@ -10,20 +10,20 @@ import (
 
 type SocialProgramTransaction struct {
 	ID                     uuid.UUID  `json:"id" gorm:"primaryKey"`
-	SocialProgramInvoiceID uuid.UUID  `json:"social_program_invoice_id" gorm:"unique;not null;index"`
-	OrderID                string     `json:"order_id" gorm:"unique"`
-	AccountID              uuid.UUID  `json:"account_id" gorm:"not null"`
-	IsOnline               bool       `json:"is_online"`
-	GrossAmount            float64    `json:"gross_amount"`
-	FraudStatus            string     `json:"fraud_status"`
-	TransactionStatus      string     `json:"transaction_status"`
+	SocialProgramInvoiceID uuid.UUID  `json:"socialProgramInvoiceId" gorm:"unique;not null;index"`
+	OrderID                string     `json:"orderId" gorm:"unique"`
+	AccountID              uuid.UUID  `json:"accountId" gorm:"not null"`
+	IsOnline               bool       `json:"isOnline"`
+	GrossAmount            float64    `json:"grossAmount"`
+	FraudStatus            string     `json:"fraudStatus"`
+	TransactionStatus      string     `json:"transactionStatus"`
 	Provider               string     `json:"provider"`
-	TransactionID          string     `json:"transaction_id" gorm:"unique"`
-	SnapToken              string     `json:"snap_token"`
-	SnapRedirectURL        string     `json:"snap_redirect_url"`
-	PaidAt                 *time.Time `json:"paid_at"`
-	CreatedAt              time.Time  `json:"created_at"`
-	UpdatedAt              time.Time  `json:"updated_at"`
+	TransactionID          string     `json:"transactionId" gorm:"unique"`
+	SnapToken              string     `json:"snapToken"`
+	SnapRedirectURL        string     `json:"snapRedirectUrl"`
+	PaidAt                 *time.Time `json:"paidAt"`
+	CreatedAt              time.Time  `json:"createdAt"`
+	UpdatedAt              time.Time  `json:"updatedAt"`
 
 	SocialProgramInvoice *social_program_invoice.SocialProgramInvoice `gorm:"foreignKey:SocialProgramInvoiceID;references:ID"`
 	Account              *account.Account                             `gorm:"foreignKey:AccountID;references:ID"`

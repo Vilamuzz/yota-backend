@@ -10,19 +10,19 @@ type DonationProgram struct {
 	ID          uuid.UUID  `json:"id" gorm:"primaryKey"`
 	Title       string     `json:"title" gorm:"not null"`
 	Slug        string     `json:"slug" gorm:"not null;unique"`
-	CoverImage  string     `json:"cover_image"`
+	CoverImage  string     `json:"coverImage"`
 	Category    Category   `json:"category" gorm:"not null"`
 	Description string     `json:"description" gorm:"not null"`
-	FundTarget  float64    `json:"fund_target" gorm:"not null"`
+	FundTarget  float64    `json:"fundTarget" gorm:"not null"`
 	Status      Status     `json:"status" gorm:"type:varchar(20);index;not null;default:'active'"`
-	StartDate   time.Time  `json:"start_date" gorm:"not null"`
-	EndDate     time.Time  `json:"end_date" gorm:"not null"`
-	PublishedAt *time.Time `json:"published_at"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
-	DeletedAt   *time.Time `json:"deleted_at" gorm:"index"`
+	StartDate   time.Time  `json:"startDate" gorm:"not null"`
+	EndDate     time.Time  `json:"endDate" gorm:"not null"`
+	PublishedAt *time.Time `json:"publishedAt"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+	DeletedAt   *time.Time `json:"deletedAt" gorm:"index"`
 
-	CollectedFund float64 `json:"collected_fund" gorm:"-"`
+	CollectedFund float64 `json:"collectedFund" gorm:"-"`
 }
 
 type Status string

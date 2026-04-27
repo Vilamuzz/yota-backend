@@ -329,11 +329,11 @@ func (s *service) CreateDonationProgramTransaction(ctx context.Context, accountI
 
 	if payload.PrayerContent != "" {
 		newPrayer := &prayer.Prayer{
-			ID:                    uuid.New(),
-			DonationTransactionID: transaction.ID,
-			Content:               payload.PrayerContent,
-			IsPublished:           false, // pending, will be published on settlement
-			CreatedAt:             now,
+			ID:                           uuid.New(),
+			DonationProgramTransactionID: transaction.ID,
+			Content:                      payload.PrayerContent,
+			IsPublished:                  false, // pending, will be published on settlement
+			CreatedAt:                    now,
 		}
 		if err := s.prayerRepo.CreatePrayer(ctx, newPrayer); err != nil {
 			logrus.WithFields(logrus.Fields{

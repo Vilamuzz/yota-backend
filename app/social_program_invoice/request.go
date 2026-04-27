@@ -7,15 +7,15 @@ import (
 )
 
 type SocialProgramInvoiceRequest struct {
-	SubscriptionID string    `json:"subscription_id"`
-	BillingPeriod  time.Time `json:"billing_period"`
+	SubscriptionID string    `json:"subscriptionId"`
+	BillingPeriod  time.Time `json:"billingPeriod"`
 	Amount         float64   `json:"amount"`
 	Status         Status    `json:"status"`
-	DueDate        time.Time `json:"due_date"`
+	DueDate        time.Time `json:"dueDate"`
 }
 
 type SocialProgramInvoiceQueryParams struct {
-	SubscriptionID string `form:"subscription_id"`
+	SubscriptionID string `form:"subscriptionId"`
 	Status         string `form:"status"`
 	pkg.PaginationParams
 }

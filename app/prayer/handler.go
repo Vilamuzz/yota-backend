@@ -25,7 +25,7 @@ func NewHandler(r *gin.RouterGroup, service Service, m middleware.AppMiddleware)
 
 func (h *handler) RegisterRoutes(router *gin.RouterGroup) {
 	router.GET("/donation-programs/:slug/prayers", h.GetPrayerList, h.middleware.AuthOptional())
-	router.GET("prayers/:id", h.GetPrayerByID, h.middleware.AuthOptional())
+	router.GET("/prayers/:id", h.GetPrayerByID, h.middleware.AuthOptional())
 
 	publicProtected := router.Group("/prayers")
 	publicProtected.Use(h.middleware.AuthRequired())

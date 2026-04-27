@@ -53,23 +53,23 @@ const (
 type FosterChildrenCandidate struct {
 	ID               uuid.UUID `json:"id" gorm:"primaryKey"`
 	Name             string    `json:"name" gorm:"not null"`
-	ProfilePicture   string    `json:"profile_picture" gorm:"not null"`
+	ProfilePicture   string    `json:"profilePicture" gorm:"not null"`
 	Gender           Gender    `json:"gender" gorm:"not null"`
 	Category         Category  `json:"category"`
-	BirthDate        time.Time `json:"birth_date"`
-	BirthPlace       string    `json:"birth_place"`
+	BirthDate        time.Time `json:"birthDate"`
+	BirthPlace       string    `json:"birthPlace"`
 	Address          string    `json:"address"`
-	FamilyCard       string    `json:"family_card" gorm:"not null"`
+	FamilyCard       string    `json:"familyCard" gorm:"not null"`
 	SKTM             string    `json:"sktm" gorm:"not null"`
-	SubmitterName    string    `json:"submitter_name"`
-	SubmitterPhone   string    `json:"submitter_phone"`
-	SubmitterAddress string    `json:"submitter_address"`
-	SubmitterIDCard  string    `json:"submitter_id_card"`
-	SubmittedBy      uuid.UUID `json:"submitted_by" gorm:"not null"`
+	SubmitterName    string    `json:"submitterName"`
+	SubmitterPhone   string    `json:"submitterPhone"`
+	SubmitterAddress string    `json:"submitterAddress"`
+	SubmitterIDCard  string    `json:"submitterIdCard"`
+	SubmittedBy      uuid.UUID `json:"submittedBy" gorm:"not null"`
 	Status           Status    `json:"status"`
-	RejectionReason  string    `json:"rejection_reason"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
+	RejectionReason  string    `json:"rejectionReason"`
+	CreatedAt        time.Time `json:"createdAt"`
+	UpdatedAt        time.Time `json:"updatedAt"`
 
 	Account account.Account `gorm:"foreignKey:SubmittedBy;references:ID"`
 }

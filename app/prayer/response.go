@@ -8,7 +8,7 @@ type PrayerResponse struct {
 	ID        string `json:"id"`
 	Username  string `json:"username"`
 	Content   string `json:"content"`
-	CreatedAt string `json:"created_at"`
+	CreatedAt string `json:"createdAt"`
 }
 
 type PrayerListResponse struct {
@@ -48,7 +48,7 @@ type PrayerReportedResponse struct {
 	ID        string `json:"id"`
 	Username  string `json:"username"`
 	Content   string `json:"content"`
-	CreatedAt string `json:"created_at"`
+	CreatedAt string `json:"createdAt"`
 }
 
 type PrayerReportedListResponse struct {

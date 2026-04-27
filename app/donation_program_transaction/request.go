@@ -3,10 +3,10 @@ package donation_program_transaction
 import "github.com/Vilamuzz/yota-backend/pkg"
 
 type CreateDonationProgramTransactionRequest struct {
-	DonorName     string  `json:"donor_name"`
-	DonorEmail    string  `json:"donor_email"`
-	GrossAmount   float64 `json:"gross_amount"`
-	PrayerContent string  `json:"prayer_content"`
+	DonorName     string  `json:"donorName"`
+	DonorEmail    string  `json:"donorEmail"`
+	GrossAmount   float64 `json:"grossAmount"`
+	PrayerContent string  `json:"prayerContent"`
 }
 
 type DonationProgramTransactionQueryParams struct {

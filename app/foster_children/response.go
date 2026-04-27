@@ -10,20 +10,20 @@ type AchievementResponse struct {
 type FosterChildrenResponse struct {
 	ID             string                `json:"id"`
 	Name           string                `json:"name"`
-	ProfilePicture string                `json:"profile_picture"`
+	ProfilePicture string                `json:"profilePicture"`
 	Gender         Gender                `json:"gender"`
-	IsGraduated    bool                  `json:"is_graduated"`
+	IsGraduated    bool                  `json:"isGraduated"`
 	Category       Category              `json:"category"`
-	BirthDate      string                `json:"birth_date"`
-	BirthPlace     string                `json:"birth_place"`
+	BirthDate      string                `json:"birthDate"`
+	BirthPlace     string                `json:"birthPlace"`
 	Address        string                `json:"address"`
-	FamilyCard     string                `json:"family_card"`
+	FamilyCard     string                `json:"familyCard"`
 	SKTM           string                `json:"sktm"`
 	Achievements   []AchievementResponse `json:"achievements"`
 }
 
 type FosterChildrenListResponse struct {
-	FosterChildren []FosterChildrenResponse `json:"foster_children"`
+	FosterChildren []FosterChildrenResponse `json:"fosterChildren"`
 	Pagination     pkg.CursorPagination     `json:"pagination"`
 }
 
@@ -72,29 +72,29 @@ func ToFosterChildrenListResponse(fosterChildren []FosterChildren, pagination pk
 type FosterChildrenCandidateResponse struct {
 	ID               string `json:"id"`
 	Name             string `json:"name"`
-	ProfilePicture   string `json:"profile_picture"`
+	ProfilePicture   string `json:"profilePicture"`
 	Gender           string `json:"gender"`
 	Category         string `json:"category"`
-	BirthDate        string `json:"birth_date"`
-	BirthPlace       string `json:"birth_place"`
+	BirthDate        string `json:"birthDate"`
+	BirthPlace       string `json:"birthPlace"`
 	Address          string `json:"address"`
-	FamilyCard       string `json:"family_card"`
+	FamilyCard       string `json:"familyCard"`
 	SKTM             string `json:"sktm"`
-	SubmitterName    string `json:"submitter_name"`
-	SubmitterPhone   string `json:"submitter_phone"`
-	SubmitterAddress string `json:"submitter_address"`
-	SubmitterIDCard  string `json:"submitter_id_card"`
-	SubmittedBy      string `json:"submitted_by"`
+	SubmitterName    string `json:"submitterName"`
+	SubmitterPhone   string `json:"submitterPhone"`
+	SubmitterAddress string `json:"submitterAddress"`
+	SubmitterIDCard  string `json:"submitterIdCard"`
+	SubmittedBy      string `json:"submittedBy"`
 	Status           string `json:"status"`
-	RejectionReason  string `json:"rejection_reason"`
-	CreatedAt        string `json:"created_at"`
-	UpdatedAt        string `json:"updated_at"`
-	AccountUsername  string `json:"account_username,omitempty"`
+	RejectionReason  string `json:"rejectionReason"`
+	CreatedAt        string `json:"createdAt"`
+	UpdatedAt        string `json:"updatedAt"`
+	AccountUsername  string `json:"accountUsername,omitempty"`
 }
 
 type FosterChildrenCandidateListResponse struct {
-	Candidates []FosterChildrenCandidateResponse `json:"candidates"`
-	Pagination pkg.CursorPagination              `json:"pagination"`
+	FosterChildrenCandidates []FosterChildrenCandidateResponse `json:"fosterChildrenCandidates"`
+	Pagination               pkg.CursorPagination              `json:"pagination"`
 }
 
 func (c *FosterChildrenCandidate) ToFosterChildrenCandidateResponse() FosterChildrenCandidateResponse {
@@ -136,7 +136,7 @@ func ToFosterChildrenCandidateListResponse(candidates []FosterChildrenCandidate,
 		responses = []FosterChildrenCandidateResponse{}
 	}
 	return FosterChildrenCandidateListResponse{
-		Candidates: responses,
-		Pagination: pagination,
+		FosterChildrenCandidates: responses,
+		Pagination:               pagination,
 	}
 }
