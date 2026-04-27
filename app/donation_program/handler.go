@@ -34,7 +34,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	{
 		admin.GET("", h.GetDonationProgramList)
 		admin.GET("/:id", h.GetDonationProgramByID)
-		admin.POST("/", h.CreateDonationProgram)
+		admin.POST("", h.CreateDonationProgram)
 		admin.PUT("/:id", h.UpdateDonationProgram)
 		admin.DELETE("/:id", h.DeleteDonationProgram)
 	}
@@ -49,8 +49,8 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // @Produce json
 // @Param category query string false "Filter by category"
 // @Param limit query int false "Pagination limit"
-// @Param next_cursor query string false "Pagination cursor (next page)"
-// @Param prev_cursor query string false "Pagination cursor (prev page)"
+// @Param nextCursor query string false "Pagination cursor (next page)"
+// @Param prevCursor query string false "Pagination cursor (prev page)"
 // @Success 200 {object} pkg.Response
 // @Router /api/donation-programs [get]
 func (h *handler) GetPublishedDonationProgramList(c *gin.Context) {
@@ -96,8 +96,8 @@ func (h *handler) GetPublishedDonationProgramBySlug(c *gin.Context) {
 // @Param category query string false "Filter by category"
 // @Param status query string false "Status filter"
 // @Param limit query int false "Pagination limit"
-// @Param next_cursor query string false "Pagination cursor (next page)"
-// @Param prev_cursor query string false "Pagination cursor (prev page)"
+// @Param nextCursor query string false "Pagination cursor (next page)"
+// @Param prevCursor query string false "Pagination cursor (prev page)"
 // @Success 200 {object} pkg.Response
 // @Router /api/admin/donation-programs [get]
 func (h *handler) GetDonationProgramList(c *gin.Context) {
@@ -141,7 +141,7 @@ func (h *handler) GetDonationProgramByID(c *gin.Context) {
 // @Accept multipart/form-data
 // @Produce json
 // @Param payload formData DonationProgramRequest true "Donation Program Data"
-// @Param cover_image formData file true "Donation Program Cover Image"
+// @Param coverImage formData file true "Donation Program Cover Image"
 // @Success 201 {object} pkg.Response
 // @Router /api/admin/donation-programs [post]
 func (h *handler) CreateDonationProgram(c *gin.Context) {
@@ -167,7 +167,7 @@ func (h *handler) CreateDonationProgram(c *gin.Context) {
 // @Produce json
 // @Param id path string true "Donation Program ID"
 // @Param payload formData DonationProgramRequest true "Donation Program Data"
-// @Param cover_image formData file false "Donation Program Cover Image"
+// @Param coverImage formData file false "Donation Program Cover Image"
 // @Success 200 {object} pkg.Response
 // @Router /api/admin/donation-programs/{id} [put]
 func (h *handler) UpdateDonationProgram(c *gin.Context) {

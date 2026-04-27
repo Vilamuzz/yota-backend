@@ -552,7 +552,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "name": "plate_number",
+                        "name": "plateNumber",
                         "in": "formData"
                     },
                     {
@@ -617,7 +617,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "name": "plate_number",
+                        "name": "plateNumber",
                         "in": "formData"
                     },
                     {
@@ -1065,13 +1065,13 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Pagination cursor (next page)",
-                        "name": "next_cursor",
+                        "name": "nextCursor",
                         "in": "query"
                     },
                     {
                         "type": "string",
                         "description": "Pagination cursor (prev page)",
-                        "name": "prev_cursor",
+                        "name": "prevCursor",
                         "in": "query"
                     }
                 ],
@@ -1132,17 +1132,17 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "name": "end_date",
+                        "name": "endDate",
                         "in": "formData"
                     },
                     {
                         "type": "number",
-                        "name": "fund_target",
+                        "name": "fundTarget",
                         "in": "formData"
                     },
                     {
                         "type": "string",
-                        "name": "start_date",
+                        "name": "startDate",
                         "in": "formData"
                     },
                     {
@@ -1170,7 +1170,7 @@ const docTemplate = `{
                     {
                         "type": "file",
                         "description": "Donation Program Cover Image",
-                        "name": "cover_image",
+                        "name": "coverImage",
                         "in": "formData",
                         "required": true
                     }
@@ -1382,17 +1382,17 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "name": "end_date",
+                        "name": "endDate",
                         "in": "formData"
                     },
                     {
                         "type": "number",
-                        "name": "fund_target",
+                        "name": "fundTarget",
                         "in": "formData"
                     },
                     {
                         "type": "string",
-                        "name": "start_date",
+                        "name": "startDate",
                         "in": "formData"
                     },
                     {
@@ -1420,7 +1420,7 @@ const docTemplate = `{
                     {
                         "type": "file",
                         "description": "Donation Program Cover Image",
-                        "name": "cover_image",
+                        "name": "coverImage",
                         "in": "formData"
                     }
                 ],
@@ -1540,7 +1540,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "name": "expense_date",
+                        "name": "expenseDate",
                         "in": "formData"
                     },
                     {
@@ -1710,12 +1710,12 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "name": "birth_date",
+                        "name": "birthDate",
                         "in": "formData"
                     },
                     {
                         "type": "string",
-                        "name": "birth_place",
+                        "name": "birthPlace",
                         "in": "formData"
                     },
                     {
@@ -1748,7 +1748,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "boolean",
-                        "name": "is_graduated",
+                        "name": "isGraduated",
                         "in": "formData"
                     },
                     {
@@ -2068,12 +2068,12 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "name": "birth_date",
+                        "name": "birthDate",
                         "in": "formData"
                     },
                     {
                         "type": "string",
-                        "name": "birth_place",
+                        "name": "birthPlace",
                         "in": "formData"
                     },
                     {
@@ -2106,7 +2106,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "boolean",
-                        "name": "is_graduated",
+                        "name": "isGraduated",
                         "in": "formData"
                     },
                     {
@@ -2264,7 +2264,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "name": "expense_date",
+                        "name": "expenseDate",
                         "in": "formData"
                     },
                     {
@@ -2584,7 +2584,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "name": "billing_day",
+                        "name": "billingDay",
                         "in": "formData"
                     },
                     {
@@ -2594,7 +2594,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "number",
-                        "name": "minimum_amount",
+                        "name": "minimumAmount",
                         "in": "formData"
                     },
                     {
@@ -2890,7 +2890,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "name": "billing_day",
+                        "name": "billingDay",
                         "in": "formData"
                     },
                     {
@@ -2900,7 +2900,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "number",
-                        "name": "minimum_amount",
+                        "name": "minimumAmount",
                         "in": "formData"
                     },
                     {
@@ -3010,7 +3010,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "name": "expense_date",
+                        "name": "expenseDate",
                         "in": "formData"
                     },
                     {
@@ -3369,13 +3369,13 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Pagination cursor (next page)",
-                        "name": "next_cursor",
+                        "name": "nextCursor",
                         "in": "query"
                     },
                     {
                         "type": "string",
                         "description": "Pagination cursor (prev page)",
-                        "name": "prev_cursor",
+                        "name": "prevCursor",
                         "in": "query"
                     }
                 ],
@@ -3605,12 +3605,12 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "name": "birth_date",
+                        "name": "birthDate",
                         "in": "formData"
                     },
                     {
                         "type": "string",
-                        "name": "birth_place",
+                        "name": "birthPlace",
                         "in": "formData"
                     },
                     {
@@ -3648,17 +3648,17 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "name": "submitter_address",
+                        "name": "submitterAddress",
                         "in": "formData"
                     },
                     {
                         "type": "string",
-                        "name": "submitter_name",
+                        "name": "submitterName",
                         "in": "formData"
                     },
                     {
                         "type": "string",
-                        "name": "submitter_phone",
+                        "name": "submitterPhone",
                         "in": "formData"
                     },
                     {
@@ -4522,7 +4522,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "name": "default_account_role_id",
+                        "name": "defaultAccountRoleId",
                         "in": "formData"
                     },
                     {
@@ -5596,7 +5596,7 @@ const docTemplate = `{
         "account.AccountResponse": {
             "type": "object",
             "properties": {
-                "created_at": {
+                "createdAt": {
                     "type": "string"
                 },
                 "email": {
@@ -5605,7 +5605,7 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "is_banned": {
+                "isBanned": {
                     "type": "boolean"
                 },
                 "roles": {
@@ -5622,16 +5622,16 @@ const docTemplate = `{
         "account.AccountRolesResponse": {
             "type": "object",
             "properties": {
-                "is_active": {
+                "isActive": {
                     "type": "boolean"
                 },
-                "is_default": {
+                "isDefault": {
                     "type": "boolean"
                 },
-                "role_id": {
+                "roleId": {
                     "type": "integer"
                 },
-                "role_name": {
+                "roleName": {
                     "type": "string"
                 }
             }
@@ -5642,7 +5642,7 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
-                "role_name": {
+                "name": {
                     "type": "string"
                 }
             }
@@ -5661,7 +5661,7 @@ const docTemplate = `{
         "account.SetAccountBanStatusRequest": {
             "type": "object",
             "properties": {
-                "ban_status": {
+                "banStatus": {
                     "type": "boolean"
                 }
             }
@@ -5669,7 +5669,7 @@ const docTemplate = `{
         "account.UpdateAccountRoleRequest": {
             "type": "object",
             "properties": {
-                "is_active": {
+                "isActive": {
                     "type": "boolean"
                 }
             }
@@ -5677,10 +5677,10 @@ const docTemplate = `{
         "account.UpdatePasswordRequest": {
             "type": "object",
             "properties": {
-                "current_password": {
+                "currentPassword": {
                     "type": "string"
                 },
-                "new_password": {
+                "newPassword": {
                     "type": "string"
                 }
             }
@@ -5700,7 +5700,7 @@ const docTemplate = `{
                 "phone": {
                     "type": "string"
                 },
-                "profile_picture": {
+                "profilePicture": {
                     "type": "string"
                 },
                 "roles": {
@@ -5717,16 +5717,16 @@ const docTemplate = `{
         "ambulance_history.CreateAmbulanceHistoryRequest": {
             "type": "object",
             "properties": {
-                "ambulance_id": {
+                "ambulanceId": {
                     "type": "string"
                 },
-                "driver_id": {
+                "driverId": {
                     "type": "string"
                 },
                 "note": {
                     "type": "string"
                 },
-                "service_category": {
+                "serviceCategory": {
                     "$ref": "#/definitions/ambulance_history.ServiceCategory"
                 }
             }
@@ -5751,7 +5751,7 @@ const docTemplate = `{
         "ambulance_history.UpdateAmbulanceHistoryRequest": {
             "type": "object",
             "properties": {
-                "service_category": {
+                "serviceCategory": {
                     "$ref": "#/definitions/ambulance_history.ServiceCategory"
                 }
             }
@@ -5874,16 +5874,16 @@ const docTemplate = `{
         "donation_program_transaction.CreateDonationProgramTransactionRequest": {
             "type": "object",
             "properties": {
-                "donor_email": {
+                "donorEmail": {
                     "type": "string"
                 },
-                "donor_name": {
+                "donorName": {
                     "type": "string"
                 },
-                "gross_amount": {
+                "grossAmount": {
                     "type": "number"
                 },
-                "prayer_content": {
+                "prayerContent": {
                     "type": "string"
                 }
             }
@@ -5891,63 +5891,63 @@ const docTemplate = `{
         "donation_program_transaction.DonationProgramTransactionListResponse": {
             "type": "object",
             "properties": {
-                "pagination": {
-                    "$ref": "#/definitions/pkg.CursorPagination"
-                },
-                "transactions": {
+                "donationProgramTransactions": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/donation_program_transaction.DonationProgramTransactionResponse"
                     }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/pkg.CursorPagination"
                 }
             }
         },
         "donation_program_transaction.DonationProgramTransactionResponse": {
             "type": "object",
             "properties": {
-                "created_at": {
+                "createdAt": {
                     "type": "string"
                 },
-                "donation_program_id": {
+                "donationProgramId": {
                     "type": "string"
                 },
-                "donor_email": {
+                "donorEmail": {
                     "type": "string"
                 },
-                "donor_name": {
+                "donorName": {
                     "type": "string"
                 },
-                "fraud_status": {
+                "fraudStatus": {
                     "type": "string"
                 },
-                "gross_amount": {
+                "grossAmount": {
                     "type": "number"
                 },
                 "id": {
                     "type": "string"
                 },
-                "is_online": {
+                "isOnline": {
                     "type": "boolean"
                 },
-                "order_id": {
+                "orderId": {
                     "type": "string"
                 },
-                "paid_at": {
+                "paidAt": {
                     "type": "string"
                 },
                 "provider": {
                     "type": "string"
                 },
-                "snap_redirect_url": {
+                "snapRedirectUrl": {
                     "type": "string"
                 },
-                "snap_token": {
+                "snapToken": {
                     "type": "string"
                 },
-                "transaction_id": {
+                "transactionId": {
                     "type": "string"
                 },
-                "transaction_status": {
+                "transactionStatus": {
                     "type": "string"
                 }
             }
@@ -5994,7 +5994,7 @@ const docTemplate = `{
         "foster_children.UpdateFosterChildrenCandidateStatusRequest": {
             "type": "object",
             "properties": {
-                "rejection_reason": {
+                "rejectionReason": {
                     "type": "string"
                 },
                 "status": {
@@ -6005,13 +6005,13 @@ const docTemplate = `{
         "foster_children_transaction.CreateFosterChildrenTransactionRequest": {
             "type": "object",
             "properties": {
-                "donor_email": {
+                "donorEmail": {
                     "type": "string"
                 },
-                "donor_name": {
+                "donorName": {
                     "type": "string"
                 },
-                "gross_amount": {
+                "grossAmount": {
                     "type": "number"
                 }
             }
@@ -6019,63 +6019,63 @@ const docTemplate = `{
         "foster_children_transaction.FosterChildrenTransactionListResponse": {
             "type": "object",
             "properties": {
-                "pagination": {
-                    "$ref": "#/definitions/pkg.CursorPagination"
-                },
-                "transactions": {
+                "fosterChildrenTransactions": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/foster_children_transaction.FosterChildrenTransactionResponse"
                     }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/pkg.CursorPagination"
                 }
             }
         },
         "foster_children_transaction.FosterChildrenTransactionResponse": {
             "type": "object",
             "properties": {
-                "created_at": {
+                "createdAt": {
                     "type": "string"
                 },
-                "donor_email": {
+                "donorEmail": {
                     "type": "string"
                 },
-                "donor_name": {
+                "donorName": {
                     "type": "string"
                 },
-                "foster_children_id": {
+                "fosterChildrenId": {
                     "type": "string"
                 },
-                "fraud_status": {
+                "fraudStatus": {
                     "type": "string"
                 },
-                "gross_amount": {
+                "grossAmount": {
                     "type": "number"
                 },
                 "id": {
                     "type": "string"
                 },
-                "is_online": {
+                "isOnline": {
                     "type": "boolean"
                 },
-                "order_id": {
+                "orderId": {
                     "type": "string"
                 },
-                "paid_at": {
+                "paidAt": {
                     "type": "string"
                 },
                 "provider": {
                     "type": "string"
                 },
-                "snap_redirect_url": {
+                "snapRedirectUrl": {
                     "type": "string"
                 },
-                "snap_token": {
+                "snapToken": {
                     "type": "string"
                 },
-                "transaction_id": {
+                "transactionId": {
                     "type": "string"
                 },
-                "transaction_status": {
+                "transactionStatus": {
                     "type": "string"
                 }
             }
@@ -6098,7 +6098,7 @@ const docTemplate = `{
                         "$ref": "#/definitions/media.MediaResponse"
                     }
                 },
-                "published_at": {
+                "publishedAt": {
                     "type": "string"
                 },
                 "slug": {
@@ -6138,13 +6138,13 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "published_at": {
+                "publishedAt": {
                     "type": "string"
                 },
                 "slug": {
                     "type": "string"
                 },
-                "thumbnail_url": {
+                "thumbnailUrl": {
                     "type": "string"
                 },
                 "title": {
@@ -6173,7 +6173,7 @@ const docTemplate = `{
                         "$ref": "#/definitions/media.PublishedMediaResponse"
                     }
                 },
-                "published_at": {
+                "publishedAt": {
                     "type": "string"
                 },
                 "slug": {
@@ -6190,14 +6190,14 @@ const docTemplate = `{
         "media.MediaCategory": {
             "type": "string",
             "enum": [
-                "kegiatan_sosial",
-                "bencana_alam",
-                "kesehatan",
-                "lingkungan",
-                "lainnya"
+                "Kegiatan Sosial",
+                "Bencana Alam",
+                "Kesehatan",
+                "Lingkungan",
+                "Lainnya"
             ],
             "x-enum-varnames": [
-                "SosialEvent",
+                "SocialEvent",
                 "Disaster",
                 "Health",
                 "Environment",
@@ -6207,16 +6207,16 @@ const docTemplate = `{
         "media.MediaResponse": {
             "type": "object",
             "properties": {
-                "alt_text": {
+                "altText": {
                     "type": "string"
                 },
-                "gallery_id": {
+                "galleryId": {
                     "type": "string"
                 },
                 "id": {
                     "type": "string"
                 },
-                "news_id": {
+                "newsId": {
                     "type": "string"
                 },
                 "order": {
@@ -6296,7 +6296,7 @@ const docTemplate = `{
                 "content": {
                     "type": "string"
                 },
-                "created_at": {
+                "createdAt": {
                     "type": "string"
                 },
                 "id": {
@@ -6336,13 +6336,13 @@ const docTemplate = `{
                 "amount": {
                     "type": "number"
                 },
-                "created_at": {
+                "createdAt": {
                     "type": "string"
                 },
-                "created_by": {
+                "createdBy": {
                     "type": "string"
                 },
-                "expense_date": {
+                "expenseDate": {
                     "type": "string"
                 },
                 "id": {
@@ -6351,10 +6351,10 @@ const docTemplate = `{
                 "note": {
                     "type": "string"
                 },
-                "proof_file": {
+                "proofFile": {
                     "type": "string"
                 },
-                "social_program_id": {
+                "socialProgramId": {
                     "type": "string"
                 },
                 "title": {
@@ -6365,14 +6365,14 @@ const docTemplate = `{
         "social_program_expense.SocialProgramExpenseListResponse": {
             "type": "object",
             "properties": {
-                "expenses": {
+                "pagination": {
+                    "$ref": "#/definitions/pkg.CursorPagination"
+                },
+                "socialProgramExpenses": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/social_program_expense.SocialProgramExpenseResponse"
                     }
-                },
-                "pagination": {
-                    "$ref": "#/definitions/pkg.CursorPagination"
                 }
             }
         },
@@ -6382,10 +6382,10 @@ const docTemplate = `{
                 "amount": {
                     "type": "number"
                 },
-                "created_at": {
+                "createdAt": {
                     "type": "string"
                 },
-                "expense_date": {
+                "expenseDate": {
                     "type": "string"
                 },
                 "id": {
@@ -6394,10 +6394,10 @@ const docTemplate = `{
                 "note": {
                     "type": "string"
                 },
-                "proof_file": {
+                "proofFile": {
                     "type": "string"
                 },
-                "social_program_id": {
+                "socialProgramId": {
                     "type": "string"
                 },
                 "title": {
@@ -6411,7 +6411,7 @@ const docTemplate = `{
                 "amount": {
                     "type": "number"
                 },
-                "social_program_id": {
+                "socialProgramId": {
                     "type": "string"
                 }
             }
@@ -6440,10 +6440,10 @@ const docTemplate = `{
         "social_program_transaction.CreateTransactionRequest": {
             "type": "object",
             "properties": {
-                "gross_amount": {
+                "grossAmount": {
                     "type": "number"
                 },
-                "social_program_invoice_id": {
+                "socialProgramInvoiceId": {
                     "type": "string"
                 }
             }
