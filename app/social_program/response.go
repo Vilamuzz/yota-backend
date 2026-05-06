@@ -3,16 +3,18 @@ package social_program
 import "github.com/Vilamuzz/yota-backend/pkg"
 
 type SocialProgramResponse struct {
-	ID            string  `json:"id"`
-	Slug          string  `json:"slug"`
-	Title         string  `json:"title"`
-	Description   string  `json:"description"`
-	CoverImage    string  `json:"coverImage"`
-	Status        Status  `json:"status"`
-	IsSubscribed  bool    `json:"isSubscribed"`
-	MinimumAmount float64 `json:"minimumAmount"`
-	BillingDay    int     `json:"billingDay"`
-	CreatedAt     string  `json:"createdAt"`
+	ID               string           `json:"id"`
+	Slug             string           `json:"slug"`
+	Title            string           `json:"title"`
+	Description      string           `json:"description"`
+	CoverImage       string           `json:"coverImage"`
+	Status           Status           `json:"status"`
+	SubmissionStatus SubmissionStatus `json:"submissionStatus"`
+	RejectionReason  string           `json:"rejectionReason"`
+	IsSubscribed     bool             `json:"isSubscribed"`
+	MinimumAmount    float64          `json:"minimumAmount"`
+	BillingDay       int              `json:"billingDay"`
+	CreatedAt        string           `json:"createdAt"`
 }
 
 type SocialProgramListResponse struct {
@@ -22,15 +24,17 @@ type SocialProgramListResponse struct {
 
 func (r *SocialProgram) toSocialProgramResponse() SocialProgramResponse {
 	return SocialProgramResponse{
-		ID:            r.ID.String(),
-		Slug:          r.Slug,
-		Title:         r.Title,
-		Description:   r.Description,
-		CoverImage:    r.CoverImage,
-		Status:        r.Status,
-		MinimumAmount: r.MinimumAmount,
-		BillingDay:    r.BillingDay,
-		CreatedAt:     r.CreatedAt.Format("2006-01-02 15:04:05"),
+		ID:               r.ID.String(),
+		Slug:             r.Slug,
+		Title:            r.Title,
+		Description:      r.Description,
+		CoverImage:       r.CoverImage,
+		Status:           r.Status,
+		SubmissionStatus: r.SubmissionStatus,
+		RejectionReason:  r.RejectionReason,
+		MinimumAmount:    r.MinimumAmount,
+		BillingDay:       r.BillingDay,
+		CreatedAt:        r.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 }
 

@@ -19,6 +19,8 @@ type Service interface {
 	CreateSocialProgram(ctx context.Context, payload SocialProgramRequest) pkg.Response
 	UpdateSocialProgram(ctx context.Context, socialProgramID string, payload SocialProgramRequest) pkg.Response
 	DeleteSocialProgram(ctx context.Context, socialProgramID string) pkg.Response
+	ApproveSocialProgram(ctx context.Context, socialProgramID string) pkg.Response
+	RejectSocialProgram(ctx context.Context, socialProgramID string, payload SocialProgramRejectRequest) pkg.Response
 }
 
 type service struct {
@@ -61,7 +63,7 @@ func (s *service) GetSocialProgramList(ctx context.Context, params SocialProgram
 	}
 
 	if !isAdmin {
-		options["status"] = string(StatusActive)
+		options["status"] = string(StatusBerjalan)
 	} else if params.Status != "" {
 		options["status"] = params.Status
 	}
@@ -75,7 +77,7 @@ func (s *service) GetSocialProgramList(ctx context.Context, params SocialProgram
 		logrus.WithFields(logrus.Fields{
 			"component": "social_program.service",
 		}).WithError(err).Error("failed to fetch social programs")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch social programs", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil daftar program sosial", nil, nil)
 	}
 
 	hasMore := len(socialPrograms) > params.Limit
@@ -104,7 +106,7 @@ func (s *service) GetSocialProgramList(ctx context.Context, params SocialProgram
 		}
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Social programs found successfully", nil, toSocialProgramListResponse(socialPrograms, pkg.CursorPagination{
+	return pkg.NewResponse(http.StatusOK, "Daftar program sosial berhasil diambil", nil, toSocialProgramListResponse(socialPrograms, pkg.CursorPagination{
 		NextCursor: nextCursor,
 		PrevCursor: prevCursor,
 		Limit:      params.Limit,
@@ -120,15 +122,15 @@ func (s *service) GetSocialProgramBySlug(ctx context.Context, socialProgramSlug 
 	})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return pkg.NewResponse(http.StatusNotFound, "Social program not found", nil, nil)
+			return pkg.NewResponse(http.StatusNotFound, "Program sosial tidak ditemukan", nil, nil)
 		}
 		logrus.WithFields(logrus.Fields{
 			"component": "social_program.service",
 		}).WithError(err).Error("failed to fetch social program")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch social program", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data program sosial", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Social program found successfully", nil, socialProgram.toSocialProgramResponse())
+	return pkg.NewResponse(http.StatusOK, "Program sosial berhasil diambil", nil, socialProgram.toSocialProgramResponse())
 }
 
 func (s *service) CreateSocialProgram(ctx context.Context, payload SocialProgramRequest) pkg.Response {
@@ -136,7 +138,7 @@ func (s *service) CreateSocialProgram(ctx context.Context, payload SocialProgram
 	defer cancel()
 
 	if payload.CoverImage == nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"cover_image": "Cover image is required"}, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Validasi gagal", map[string]string{"cover_image": "Cover image wajib diisi"}, nil)
 	}
 
 	coverImageURL, err := s.s3Client.UploadFile(ctx, payload.CoverImage, "social-programs/covers")
@@ -144,31 +146,32 @@ func (s *service) CreateSocialProgram(ctx context.Context, payload SocialProgram
 		logrus.WithFields(logrus.Fields{
 			"component": "social_program.service",
 		}).WithError(err).Error("failed to upload cover image")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload cover image", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah cover image", nil, nil)
 	}
 
 	now := time.Now()
 	socialProgram := &SocialProgram{
-		ID:            uuid.New(),
-		Slug:          pkg.Slugify(payload.Title),
-		Title:         payload.Title,
-		Description:   payload.Description,
-		CoverImage:    coverImageURL,
-		Status:        payload.Status,
-		MinimumAmount: payload.MinimumAmount,
-		BillingDay:    payload.BillingDay,
-		CreatedAt:     now,
-		UpdatedAt:     now,
+		ID:               uuid.New(),
+		Slug:             pkg.Slugify(payload.Title),
+		Title:            payload.Title,
+		Description:      payload.Description,
+		CoverImage:       coverImageURL,
+		Status:           StatusPending,
+		SubmissionStatus: SubmissionDiajukan,
+		MinimumAmount:    payload.MinimumAmount,
+		BillingDay:       payload.BillingDay,
+		CreatedAt:        now,
+		UpdatedAt:        now,
 	}
 
 	if err := s.repo.CreateSocialProgram(ctx, socialProgram); err != nil {
 		logrus.WithFields(logrus.Fields{
 			"component": "social_program.service",
 		}).WithError(err).Error("failed to create social program")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create social program", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat program sosial", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusCreated, "Social program created successfully", nil, socialProgram.toSocialProgramResponse())
+	return pkg.NewResponse(http.StatusCreated, "Program sosial berhasil dibuat", nil, socialProgram.toSocialProgramResponse())
 }
 
 func (s *service) UpdateSocialProgram(ctx context.Context, socialProgramID string, payload SocialProgramRequest) pkg.Response {
@@ -178,15 +181,14 @@ func (s *service) UpdateSocialProgram(ctx context.Context, socialProgramID strin
 	socialProgram, err := s.repo.FindOneSocialProgram(ctx, map[string]interface{}{"id": socialProgramID})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return pkg.NewResponse(http.StatusNotFound, "Social program not found", nil, nil)
+			return pkg.NewResponse(http.StatusNotFound, "Program sosial tidak ditemukan", nil, nil)
 		}
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch social program", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data program sosial", nil, nil)
 	}
 
 	updates := map[string]interface{}{
 		"title":          payload.Title,
 		"description":    payload.Description,
-		"status":         payload.Status,
 		"minimum_amount": payload.MinimumAmount,
 		"billing_day":    payload.BillingDay,
 		"updated_at":     time.Now(),
@@ -198,7 +200,7 @@ func (s *service) UpdateSocialProgram(ctx context.Context, socialProgramID strin
 			logrus.WithFields(logrus.Fields{
 				"component": "social_program.service",
 			}).WithError(err).Error("failed to upload new cover image")
-			return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload cover image", nil, nil)
+			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah cover image baru", nil, nil)
 		}
 		updates["cover_image"] = coverImageURL
 
@@ -211,10 +213,10 @@ func (s *service) UpdateSocialProgram(ctx context.Context, socialProgramID strin
 		logrus.WithFields(logrus.Fields{
 			"component": "social_program.service",
 		}).WithError(err).Error("failed to update social program")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update social program", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui program sosial", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Social program updated successfully", nil, nil)
+	return pkg.NewResponse(http.StatusOK, "Program sosial berhasil diperbarui", nil, nil)
 }
 
 func (s *service) DeleteSocialProgram(ctx context.Context, socialProgramID string) pkg.Response {
@@ -224,21 +226,89 @@ func (s *service) DeleteSocialProgram(ctx context.Context, socialProgramID strin
 	socialProgram, err := s.repo.FindOneSocialProgram(ctx, map[string]interface{}{"id": socialProgramID})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return pkg.NewResponse(http.StatusNotFound, "Social program not found", nil, nil)
+			return pkg.NewResponse(http.StatusNotFound, "Program sosial tidak ditemukan", nil, nil)
 		}
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch social program", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data program sosial", nil, nil)
 	}
 
 	if err := s.repo.DeleteSocialProgram(ctx, socialProgramID); err != nil {
 		logrus.WithFields(logrus.Fields{
 			"component": "social_program.service",
 		}).WithError(err).Error("failed to delete social program")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to delete social program", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menghapus program sosial", nil, nil)
 	}
 
 	if socialProgram.CoverImage != "" {
 		_ = s.s3Client.DeleteFile(ctx, socialProgram.CoverImage)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Social program deleted successfully", nil, nil)
+	return pkg.NewResponse(http.StatusOK, "Program sosial berhasil dihapus", nil, nil)
+}
+
+func (s *service) ApproveSocialProgram(ctx context.Context, socialProgramID string) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	socialProgram, err := s.repo.FindOneSocialProgram(ctx, map[string]interface{}{"id": socialProgramID})
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return pkg.NewResponse(http.StatusNotFound, "Program sosial tidak ditemukan", nil, nil)
+		}
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data program sosial", nil, nil)
+	}
+
+	if socialProgram.SubmissionStatus != SubmissionDiajukan {
+		return pkg.NewResponse(http.StatusBadRequest, "Hanya program dengan status diajukan yang dapat disetujui", nil, nil)
+	}
+
+	updates := map[string]interface{}{
+		"submission_status": SubmissionDisetujui,
+		"status":            StatusBerjalan,
+		"updated_at":        time.Now(),
+	}
+
+	if err := s.repo.UpdateSocialProgram(ctx, socialProgramID, updates); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "social_program.service",
+		}).WithError(err).Error("failed to approve social program")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menyetujui program sosial", nil, nil)
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Program sosial berhasil disetujui", nil, nil)
+}
+
+func (s *service) RejectSocialProgram(ctx context.Context, socialProgramID string, payload SocialProgramRejectRequest) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	socialProgram, err := s.repo.FindOneSocialProgram(ctx, map[string]interface{}{"id": socialProgramID})
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return pkg.NewResponse(http.StatusNotFound, "Program sosial tidak ditemukan", nil, nil)
+		}
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data program sosial", nil, nil)
+	}
+
+	if socialProgram.SubmissionStatus != SubmissionDiajukan {
+		return pkg.NewResponse(http.StatusBadRequest, "Hanya program dengan status diajukan yang dapat ditolak", nil, nil)
+	}
+
+	if payload.RejectionReason == "" {
+		return pkg.NewResponse(http.StatusBadRequest, "Alasan penolakan wajib diisi", nil, nil)
+	}
+
+	updates := map[string]interface{}{
+		"submission_status": SubmissionDitolak,
+		"rejection_reason":  payload.RejectionReason,
+		"updated_at":        time.Now(),
+	}
+
+	if err := s.repo.UpdateSocialProgram(ctx, socialProgramID, updates); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "social_program.service",
+		}).WithError(err).Error("failed to reject social program")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menolak program sosial", nil, nil)
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Program sosial berhasil ditolak", nil, nil)
 }

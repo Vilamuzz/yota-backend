@@ -2,7 +2,6 @@ package social_program
 
 import (
 	"context"
-	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
@@ -66,11 +65,21 @@ func (r *repository) FindAllSocialPrograms(ctx context.Context, options map[stri
 
 func (r *repository) FindOneSocialProgram(ctx context.Context, options map[string]interface{}) (*SocialProgram, error) {
 	var socialProgram SocialProgram
+	query := r.Conn.WithContext(ctx)
+
 	if id, ok := options["id"]; ok && id.(string) != "" {
-		err := r.Conn.WithContext(ctx).Where("id = ?", id.(string)).First(&socialProgram).Error
-		return &socialProgram, err
+		query = query.Where("id = ?", id.(string))
+	} else if slug, ok := options["slug"]; ok && slug.(string) != "" {
+		query = query.Where("slug = ?", slug.(string))
+	} else {
+		return nil, gorm.ErrRecordNotFound
 	}
-	return nil, gorm.ErrRecordNotFound
+
+	err := query.First(&socialProgram).Error
+	if err != nil {
+		return nil, err
+	}
+	return &socialProgram, nil
 }
 
 func (r *repository) CreateSocialProgram(ctx context.Context, socialProgram *SocialProgram) error {
@@ -84,5 +93,5 @@ func (r *repository) UpdateSocialProgram(ctx context.Context, socialProgramID st
 }
 
 func (r *repository) DeleteSocialProgram(ctx context.Context, socialProgramID string) error {
-	return r.Conn.WithContext(ctx).Where("id = ?", socialProgramID).Update("deleted_at", time.Now()).Error
+	return r.Conn.WithContext(ctx).Delete(&SocialProgram{}, "id = ?", socialProgramID).Error
 }
