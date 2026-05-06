@@ -109,7 +109,7 @@ definitions:
     type: object
   ambulance_request.UpdateAmbulanceRequest:
     properties:
-      rejection_reason:
+      rejectionReason:
         type: string
       status:
         type: string
@@ -431,7 +431,7 @@ definitions:
     type: object
   media.PublishedMediaResponse:
     properties:
-      alt_text:
+      altText:
         type: string
       order:
         type: integer
@@ -442,9 +442,9 @@ definitions:
     properties:
       limit:
         type: integer
-      next_cursor:
+      nextCursor:
         type: string
-      prev_cursor:
+      prevCursor:
         type: string
     type: object
   pkg.Response:

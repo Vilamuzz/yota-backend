@@ -4,15 +4,15 @@ import "github.com/Vilamuzz/yota-backend/pkg"
 
 type AmbulanceRequestResponse struct {
 	ID               string `json:"id"`
-	AccountID        string `json:"account_id"`
-	ApplicantName    string `json:"applicant_name"`
-	ApplicantPhone   string `json:"applicant_phone"`
-	ApplicantAddress string `json:"applicant_address"`
-	RequestDate      string `json:"request_date"`
-	RequestReason    string `json:"request_reason"`
+	AccountID        string `json:"accountId"`
+	ApplicantName    string `json:"applicantName"`
+	ApplicantPhone   string `json:"applicantPhone"`
+	ApplicantAddress string `json:"applicantAddress"`
+	RequestDate      string `json:"requestDate"`
+	RequestReason    string `json:"requestReason"`
 	Status           Status `json:"status"`
-	RejectionReason  string `json:"rejection_reason"`
-	CreatedAt        string `json:"created_at"`
+	RejectionReason  string `json:"rejectionReason"`
+	CreatedAt        string `json:"createdAt"`
 }
 
 type AmbulanceRequestListResponse struct {

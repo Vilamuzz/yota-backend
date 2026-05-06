@@ -11,18 +11,18 @@ type FosterChildren struct {
 	ID             uuid.UUID  `json:"id" gorm:"primaryKey"`
 	Slug           string     `json:"slug" gorm:"not null"`
 	Name           string     `json:"name" gorm:"not null"`
-	ProfilePicture string     `json:"profile_picture" gorm:"not null"`
+	ProfilePicture string     `json:"profilePicture" gorm:"not null"`
 	Gender         Gender     `json:"gender" gorm:"not null"`
-	IsGraduated    bool       `json:"is_graduated" gorm:"not null"`
+	IsGraduated    bool       `json:"isGraduated" gorm:"not null"`
 	Category       Category   `json:"category"`
-	BirthDate      time.Time  `json:"birth_date"`
-	BirthPlace     string     `json:"birth_place"`
+	BirthDate      time.Time  `json:"birthDate"`
+	BirthPlace     string     `json:"birthPlace"`
 	Address        string     `json:"address"`
-	FamilyCard     string     `json:"family_card" gorm:"not null"`
+	FamilyCard     string     `json:"familyCard" gorm:"not null"`
 	SKTM           string     `json:"sktm" gorm:"not null"`
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
-	DeletedAt      *time.Time `json:"deleted_at" gorm:"index"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	UpdatedAt      time.Time  `json:"updatedAt"`
+	DeletedAt      *time.Time `json:"deletedAt" gorm:"index"`
 
 	Achivements []Achivement `json:"achivements" gorm:"foreignKey:FosterChildrenID"`
 }
@@ -36,10 +36,10 @@ const (
 
 type Achivement struct {
 	ID               uuid.UUID `json:"id" gorm:"primaryKey"`
-	FosterChildrenID uuid.UUID `json:"foster_children_id" gorm:"not null"`
+	FosterChildrenID uuid.UUID `json:"fosterChildrenId" gorm:"not null"`
 	URL              string    `json:"url" gorm:"not null"`
-	CreatedAt        time.Time `json:"created_at" gorm:"not null"`
-	UpdatedAt        time.Time `json:"updated_at" gorm:"not null"`
+	CreatedAt        time.Time `json:"createdAt" gorm:"not null"`
+	UpdatedAt        time.Time `json:"updatedAt" gorm:"not null"`
 }
 
 type Category string

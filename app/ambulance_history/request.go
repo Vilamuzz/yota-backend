@@ -14,7 +14,7 @@ type UpdateAmbulanceHistoryRequest struct {
 }
 
 type AmbulanceHistoryQueryParams struct {
-	AmbulanceID     int    `json:"ambulanceId"`
-	ServiceCategory string `json:"serviceCategory"`
-	pkg.CursorPagination
+	AmbulanceID     int    `form:"ambulanceId"`
+	ServiceCategory string `form:"serviceCategory"`
+	pkg.PaginationParams
 }

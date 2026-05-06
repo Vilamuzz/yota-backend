@@ -10,21 +10,21 @@ type DonationProgramExpenseResponse struct {
 	ID          string    `json:"id"`
 	Title       string    `json:"title"`
 	Amount      float64   `json:"amount"`
-	ExpenseDate time.Time `json:"expense_date"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ExpenseDate time.Time `json:"expenseDate"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
 type DonationProgramExpenseDetailResponse struct {
 	ID                string    `json:"id"`
-	DonationProgramID string    `json:"donation_program_id"`
+	DonationProgramID string    `json:"donationProgramId"`
 	Title             string    `json:"title"`
 	Amount            float64   `json:"amount"`
-	ExpenseDate       time.Time `json:"expense_date"`
+	ExpenseDate       time.Time `json:"expenseDate"`
 	Note              string    `json:"note"`
-	ProofFile         string    `json:"proof_file"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	ProofFile         string    `json:"proofFile"`
+	CreatedAt         time.Time `json:"createdAt"`
+	UpdatedAt         time.Time `json:"updatedAt"`
 }
 
 type DonationProgramExpenseListResponse struct {

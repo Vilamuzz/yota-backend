@@ -8,8 +8,8 @@ type Response struct {
 }
 
 type CursorPagination struct {
-	NextCursor string `json:"next_cursor,omitempty"`
-	PrevCursor string `json:"prev_cursor,omitempty"`
+	NextCursor string `json:"nextCursor,omitempty"`
+	PrevCursor string `json:"prevCursor,omitempty"`
 	Limit      int    `json:"limit"`
 }
 

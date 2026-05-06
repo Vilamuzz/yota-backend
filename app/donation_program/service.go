@@ -139,6 +139,15 @@ func (s *service) CreateDonationProgram(ctx context.Context, payload DonationPro
 	defer cancel()
 
 	errValidation := make(map[string]string)
+	status := StatusDraft
+	if payload.Status != "" {
+		if !payload.Status.IsValid() {
+			errValidation["status"] = "Invalid status"
+		} else {
+			status = payload.Status
+		}
+	}
+
 	if payload.Title == "" {
 		errValidation["title"] = "Title is required"
 	} else if len(payload.Title) < 3 {
@@ -147,22 +156,49 @@ func (s *service) CreateDonationProgram(ctx context.Context, payload DonationPro
 		errValidation["title"] = "Title must not exceed 200 characters"
 	}
 
-	if payload.Description == "" {
-		errValidation["description"] = "Description is required"
-	} else if len(payload.Description) < 10 {
-		errValidation["description"] = "Description must be at least 10 characters"
-	} else if len(payload.Description) > 2000 {
-		errValidation["description"] = "Description must not exceed 2000 characters"
-	}
+	if status == StatusActive {
+		if payload.Description == "" {
+			errValidation["description"] = "Description is required"
+		} else if len(payload.Description) < 10 {
+			errValidation["description"] = "Description must be at least 10 characters"
+		} else if len(payload.Description) > 2000 {
+			errValidation["description"] = "Description must not exceed 2000 characters"
+		}
 
-	if payload.Category == "" {
-		errValidation["category"] = "Category is required"
-	} else if !payload.Category.IsValid() {
-		errValidation["category"] = "Invalid category"
-	}
+		if payload.Category == "" {
+			errValidation["category"] = "Category is required"
+		} else if !payload.Category.IsValid() {
+			errValidation["category"] = "Invalid category"
+		}
 
-	if payload.FundTarget <= 0 {
-		errValidation["fund_target"] = "Fund target must be greater than 0"
+		if payload.FundTarget <= 0 {
+			errValidation["fund_target"] = "Fund target must be greater than 0"
+		}
+
+		if payload.EndDate.IsZero() {
+			errValidation["end_date"] = "End date is required"
+		}
+
+		if payload.CoverImage == nil {
+			errValidation["coverImage"] = "Cover image is required"
+		}
+	} else {
+		// Draft mode validations
+		if payload.Description != "" {
+			if len(payload.Description) < 10 {
+				errValidation["description"] = "Description must be at least 10 characters"
+			} else if len(payload.Description) > 2000 {
+				errValidation["description"] = "Description must not exceed 2000 characters"
+			}
+		}
+
+		if payload.Category != "" && !payload.Category.IsValid() {
+			errValidation["category"] = "Invalid category"
+		}
+
+		if payload.FundTarget < 0 {
+			errValidation["fund_target"] = "Fund target must not be negative"
+		}
 	}
 
 	now := time.Now()
@@ -171,9 +207,7 @@ func (s *service) CreateDonationProgram(ctx context.Context, payload DonationPro
 		startDate = payload.StartDate
 	}
 
-	if payload.EndDate.IsZero() {
-		errValidation["end_date"] = "End date is required"
-	} else if payload.EndDate.Before(startDate) {
+	if !payload.EndDate.IsZero() && payload.EndDate.Before(startDate) {
 		errValidation["end_date"] = "End date must be after start date"
 	}
 
@@ -190,20 +224,6 @@ func (s *service) CreateDonationProgram(ctx context.Context, payload DonationPro
 		coverImageURL = uploadedURL
 	}
 
-	status := StatusDraft
-	if payload.Status != "" {
-		if !payload.Status.IsValid() {
-			errValidation["status"] = "Invalid status"
-		} else {
-			status = payload.Status
-		}
-	}
-
-	var publishedAt *time.Time
-	if status == StatusActive {
-		publishedAt = &now
-	}
-
 	donation := &DonationProgram{
 		ID:          uuid.New(),
 		Title:       payload.Title,
@@ -215,7 +235,6 @@ func (s *service) CreateDonationProgram(ctx context.Context, payload DonationPro
 		Status:      status,
 		StartDate:   startDate,
 		EndDate:     payload.EndDate,
-		PublishedAt: publishedAt,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
@@ -240,78 +259,135 @@ func (s *service) UpdateDonationProgram(ctx context.Context, id string, req Dona
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid donation ID format"}, nil)
 	}
 
-	existingDonation, err := s.repo.FindOneDonationProgram(ctx, map[string]interface{}{"id": id})
+	donationProgram, err := s.repo.FindOneDonationProgram(ctx, map[string]interface{}{"id": id})
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "Donation not found", nil, nil)
 	}
-	if existingDonation.Status == StatusCompleted || existingDonation.Status == StatusExpired {
+	if donationProgram.Status == StatusCompleted || donationProgram.Status == StatusExpired {
 		return pkg.NewResponse(http.StatusBadRequest, "Donation is completed or expired and cannot be updated", nil, nil)
 	}
 
 	errValidation := make(map[string]string)
 	updateData := make(map[string]interface{})
-	if req.Title != "" {
-		if len(req.Title) < 3 {
-			errValidation["title"] = "Title must be at least 3 characters"
-		} else if len(req.Title) > 200 {
-			errValidation["title"] = "Title must not exceed 200 characters"
-		} else {
-			updateData["title"] = req.Title
-		}
-	}
 
-	if req.Description != "" {
-		if len(req.Description) < 10 {
-			errValidation["description"] = "Description must be at least 10 characters"
-		} else if len(req.Description) > 2000 {
-			errValidation["description"] = "Description must not exceed 2000 characters"
-		} else {
-			updateData["description"] = req.Description
-		}
-	}
+	isActive := donationProgram.Status == StatusActive
 
-	if req.Category != "" {
-		if !req.Category.IsValid() {
-			errValidation["category"] = "Invalid category"
-		} else {
-			updateData["category"] = req.Category
-		}
-	}
-
-	if req.FundTarget > 0 {
-		updateData["fund_target"] = req.FundTarget
-	} else if req.FundTarget < 0 {
-		errValidation["fund_target"] = "Fund target must be greater than 0"
-	}
-
+	targetStatus := donationProgram.Status
 	if req.Status != "" {
 		if !req.Status.IsValid() {
 			errValidation["status"] = "Invalid status"
-		} else if req.Status == StatusActive && time.Now().After(existingDonation.EndDate) {
-			errValidation["status"] = "Cannot activate donation that has already ended"
-		} else {
-			if req.Status == StatusActive && existingDonation.PublishedAt == nil {
-				now := time.Now()
-				updateData["published_at"] = &now
-			}
+		} else if !isActive || req.Status == StatusArchived {
+			targetStatus = req.Status
 			updateData["status"] = req.Status
+		} else if req.Status != donationProgram.Status {
+			errValidation["status"] = "Status cannot be updated when donation is active"
 		}
 	}
 
+	finalTitle := donationProgram.Title
+	if req.Title != "" {
+		if !isActive {
+			finalTitle = req.Title
+			updateData["title"] = req.Title
+		} else if req.Title != donationProgram.Title {
+			errValidation["title"] = "Title cannot be updated when donation is active"
+		}
+	}
+
+	finalDescription := donationProgram.Description
+	if req.Description != "" {
+		finalDescription = req.Description
+		updateData["description"] = req.Description
+	}
+
+	finalCategory := donationProgram.Category
+	if req.Category != "" {
+		finalCategory = req.Category
+		updateData["category"] = req.Category
+	}
+
+	finalFundTarget := donationProgram.FundTarget
+	if req.FundTarget > 0 {
+		if !isActive {
+			finalFundTarget = req.FundTarget
+			updateData["fund_target"] = req.FundTarget
+		} else if req.FundTarget != donationProgram.FundTarget {
+			errValidation["fund_target"] = "Fund target cannot be updated when donation is active"
+		}
+	}
+
+	finalStartDate := donationProgram.StartDate
 	if !req.StartDate.IsZero() {
-		updateData["start_date"] = req.StartDate
+		if !isActive {
+			finalStartDate = req.StartDate
+			updateData["start_date"] = req.StartDate
+		} else if !req.StartDate.Equal(donationProgram.StartDate) {
+			errValidation["start_date"] = "Start date cannot be updated when donation is active"
+		}
 	}
 
+	finalEndDate := donationProgram.EndDate
 	if !req.EndDate.IsZero() {
-		endDateToCheck := existingDonation.StartDate
-		if !req.StartDate.IsZero() {
-			endDateToCheck = req.StartDate
+		finalEndDate = req.EndDate
+		updateData["end_date"] = req.EndDate
+	}
+
+	if len(finalTitle) < 3 {
+		errValidation["title"] = "Title must be at least 3 characters"
+	} else if len(finalTitle) > 200 {
+		errValidation["title"] = "Title must not exceed 200 characters"
+	}
+
+	if targetStatus == StatusActive {
+		if finalDescription == "" {
+			errValidation["description"] = "Description is required"
+		} else if len(finalDescription) < 10 {
+			errValidation["description"] = "Description must be at least 10 characters"
+		} else if len(finalDescription) > 2000 {
+			errValidation["description"] = "Description must not exceed 2000 characters"
 		}
-		if req.EndDate.Before(endDateToCheck) {
-			errValidation["end_date"] = "End date must be after start date"
-		} else {
-			updateData["end_date"] = req.EndDate
+
+		if finalCategory == "" {
+			errValidation["category"] = "Category is required"
+		} else if !finalCategory.IsValid() {
+			errValidation["category"] = "Invalid category"
 		}
+
+		if finalFundTarget <= 0 {
+			errValidation["fund_target"] = "Fund target must be greater than 0"
+		}
+
+		if finalEndDate.IsZero() {
+			errValidation["end_date"] = "End date is required"
+		}
+
+		if req.CoverImage == nil && donationProgram.CoverImage == "" {
+			errValidation["coverImage"] = "Cover image is required"
+		}
+
+		if time.Now().After(finalEndDate) {
+			errValidation["status"] = "Cannot activate donation that has already ended"
+		}
+	} else {
+		if finalDescription != "" {
+			if len(finalDescription) < 10 {
+				errValidation["description"] = "Description must be at least 10 characters"
+			} else if len(finalDescription) > 2000 {
+				errValidation["description"] = "Description must not exceed 2000 characters"
+			}
+		}
+
+		if finalCategory != "" && !finalCategory.IsValid() {
+			errValidation["category"] = "Invalid category"
+		}
+
+		if finalFundTarget < 0 {
+			errValidation["fund_target"] = "Fund target must not be negative"
+		}
+	}
+
+	if !finalEndDate.IsZero() && finalEndDate.Before(finalStartDate) {
+		errValidation["end_date"] = "End date must be after start date"
 	}
 
 	if len(errValidation) > 0 {
@@ -319,7 +395,7 @@ func (s *service) UpdateDonationProgram(ctx context.Context, id string, req Dona
 	}
 
 	if req.CoverImage != nil {
-		existingDonationImage := s3_pkg.ExtractObjectNameFromURL(existingDonation.CoverImage)
+		existingDonationImage := s3_pkg.ExtractObjectNameFromURL(donationProgram.CoverImage)
 		if err := s.s3Client.DeleteFile(ctx, existingDonationImage); err != nil {
 			return pkg.NewResponse(http.StatusInternalServerError, "Failed to delete existing image", nil, nil)
 		}
@@ -344,7 +420,7 @@ func (s *service) UpdateDonationProgram(ctx context.Context, id string, req Dona
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update donation", nil, nil)
 	}
 
-	s.logService.CreateLog(ctx, nil, "UPDATE", "donation", id, existingDonation.toDonationProgramResponse(), updateData)
+	s.logService.CreateLog(ctx, nil, "UPDATE", "donation", id, donationProgram.toDonationProgramResponse(), updateData)
 	return pkg.NewResponse(http.StatusOK, "Donation updated successfully", nil, nil)
 }
 
@@ -361,7 +437,7 @@ func (s *service) DeleteDonationProgram(ctx context.Context, id string) pkg.Resp
 		return pkg.NewResponse(http.StatusNotFound, "Donation not found", nil, nil)
 	}
 
-	if donation.Status == StatusCompleted || donation.Status == StatusExpired || donation.Status == StatusActive {
+	if donation.Status != StatusDraft {
 		return pkg.NewResponse(http.StatusBadRequest, "Donation is active, completed, or expired and cannot be deleted", nil, nil)
 	}
 

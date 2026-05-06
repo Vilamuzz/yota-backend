@@ -14,8 +14,8 @@ type CursorData struct {
 
 type PaginationParams struct {
 	Limit      int    `json:"limit" form:"limit"`
-	NextCursor string `json:"next_cursor" form:"next_cursor"`
-	PrevCursor string `json:"prev_cursor" form:"prev_cursor"`
+	NextCursor string `json:"nextCursor" form:"nextCursor"`
+	PrevCursor string `json:"prevCursor" form:"prevCursor"`
 }
 
 func EncodeCursor(createdAt time.Time, id string) string {

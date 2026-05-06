@@ -35,7 +35,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	}
 
 	admin := r.Group("/admin/foster-children")
-	admin.Use(h.middleware.RequireRoles(enum.RoleFinance))
+	admin.Use(h.middleware.RequireRoles(enum.RoleSocialManager))
 	{
 		admin.GET("/:id/transactions", h.GetFosterChildrenTransactionList)
 		admin.GET("/transactions/:id", h.GetFosterChildrenTransactionByID)

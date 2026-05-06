@@ -7,33 +7,31 @@ import (
 )
 
 type PublishedDonationProgramResponse struct {
-	ID            string     `json:"id"`
-	Title         string     `json:"title"`
-	Slug          string     `json:"slug"`
-	CoverImage    string     `json:"coverImage"`
-	Category      Category   `json:"category"`
-	Description   string     `json:"description"`
-	FundTarget    float64    `json:"fundTarget"`
-	CollectedFund float64    `json:"collectedFund"`
-	Status        Status     `json:"status"`
-	StartDate     time.Time  `json:"startDate"`
-	EndDate       time.Time  `json:"endDate"`
-	PublishedAt   *time.Time `json:"publishedAt"`
+	ID            string    `json:"id"`
+	Title         string    `json:"title"`
+	Slug          string    `json:"slug"`
+	CoverImage    string    `json:"coverImage"`
+	Category      Category  `json:"category"`
+	Description   string    `json:"description"`
+	FundTarget    float64   `json:"fundTarget"`
+	CollectedFund float64   `json:"collectedFund"`
+	Status        Status    `json:"status"`
+	StartDate     time.Time `json:"startDate"`
+	EndDate       time.Time `json:"endDate"`
 }
 
 type DonationProgramResponse struct {
-	ID          string     `json:"id"`
-	Title       string     `json:"title"`
-	Slug        string     `json:"slug"`
-	Description string     `json:"description"`
-	CoverImage  string     `json:"coverImage"`
-	Category    Category   `json:"category"`
-	FundTarget  float64    `json:"fundTarget"`
-	Status      Status     `json:"status"`
-	StartDate   time.Time  `json:"startDate"`
-	EndDate     time.Time  `json:"endDate"`
-	PublishedAt *time.Time `json:"publishedAt"`
-	CreatedAt   time.Time  `json:"createdAt"`
+	ID          string    `json:"id"`
+	Title       string    `json:"title"`
+	Slug        string    `json:"slug"`
+	Description string    `json:"description"`
+	CoverImage  string    `json:"coverImage"`
+	Category    Category  `json:"category"`
+	FundTarget  float64   `json:"fundTarget"`
+	Status      Status    `json:"status"`
+	StartDate   time.Time `json:"startDate"`
+	EndDate     time.Time `json:"endDate"`
+	CreatedAt   time.Time `json:"createdAt"`
 }
 
 type DonationProgramListResponse struct {
@@ -58,7 +56,6 @@ func (d *DonationProgram) toDonationProgramResponse() DonationProgramResponse {
 		Status:      d.Status,
 		StartDate:   d.StartDate,
 		EndDate:     d.EndDate,
-		PublishedAt: d.PublishedAt,
 		CreatedAt:   d.CreatedAt,
 	}
 }
@@ -76,7 +73,6 @@ func (d *DonationProgram) toPublishedDonationProgramResponse() PublishedDonation
 		Status:        d.Status,
 		StartDate:     d.StartDate,
 		EndDate:       d.EndDate,
-		PublishedAt:   d.PublishedAt,
 	}
 }
 

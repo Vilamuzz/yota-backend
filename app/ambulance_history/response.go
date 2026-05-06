@@ -4,10 +4,10 @@ import "github.com/Vilamuzz/yota-backend/pkg"
 
 type HistoryResponse struct {
 	ID              string          `json:"id"`
-	AmbulanceID     string          `json:"ambulance_id"`
-	DriverID        string          `json:"driver_id"`
-	ServiceCategory ServiceCategory `json:"service_category"`
-	CreatedAt       string          `json:"created_at"`
+	AmbulanceID     string          `json:"ambulanceId"`
+	DriverID        string          `json:"driverId"`
+	ServiceCategory ServiceCategory `json:"serviceCategory"`
+	CreatedAt       string          `json:"createdAt"`
 }
 
 type HistoryListResponse struct {

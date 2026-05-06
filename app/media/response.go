@@ -2,7 +2,7 @@ package media
 
 type PublishedMediaResponse struct {
 	URL     string `json:"url"`
-	AltText string `json:"alt_text"`
+	AltText string `json:"altText"`
 	Order   int    `json:"order"`
 }
 

@@ -3,13 +3,13 @@ package log
 // LogResponse is the admin-facing view of a single audit log entry.
 type LogResponse struct {
 	ID         string  `json:"id"`
-	UserID     *string `json:"user_id"`
+	UserID     *string `json:"userId"`
 	Action     string  `json:"action"`
-	EntityType string  `json:"entity_type"`
-	EntityID   string  `json:"entity_id"`
-	OldValue   string  `json:"old_value,omitempty"`
-	NewValue   string  `json:"new_value,omitempty"`
-	CreatedAt  string  `json:"created_at"`
+	EntityType string  `json:"entityType"`
+	EntityID   string  `json:"entityId"`
+	OldValue   string  `json:"oldValue,omitempty"`
+	NewValue   string  `json:"newValue,omitempty"`
+	CreatedAt  string  `json:"createdAt"`
 }
 
 func toLogResponse(l *Log) LogResponse {

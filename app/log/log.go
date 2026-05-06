@@ -4,11 +4,11 @@ import "time"
 
 type Log struct {
 	ID         string    `json:"id" gorm:"primaryKey"`
-	UserID     *string   `json:"user_id" gorm:"index"`
+	UserID     *string   `json:"userId" gorm:"index"`
 	Action     string    `json:"action" gorm:"not null"`
-	EntityType string    `json:"entity_type" gorm:"not null"`
-	EntityID   string    `json:"entity_id" gorm:"not null"`
-	OldValue   string    `json:"old_value"`
-	NewValue   string    `json:"new_value"`
-	CreatedAt  time.Time `json:"created_at"`
+	EntityType string    `json:"entityType" gorm:"not null"`
+	EntityID   string    `json:"entityId" gorm:"not null"`
+	OldValue   string    `json:"oldValue"`
+	NewValue   string    `json:"newValue"`
+	CreatedAt  time.Time `json:"createdAt"`
 }

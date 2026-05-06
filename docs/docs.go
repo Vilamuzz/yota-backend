@@ -5759,7 +5759,7 @@ const docTemplate = `{
         "ambulance_request.UpdateAmbulanceRequest": {
             "type": "object",
             "properties": {
-                "rejection_reason": {
+                "rejectionReason": {
                     "type": "string"
                 },
                 "status": {
@@ -6233,7 +6233,7 @@ const docTemplate = `{
         "media.PublishedMediaResponse": {
             "type": "object",
             "properties": {
-                "alt_text": {
+                "altText": {
                     "type": "string"
                 },
                 "order": {
@@ -6250,10 +6250,10 @@ const docTemplate = `{
                 "limit": {
                     "type": "integer"
                 },
-                "next_cursor": {
+                "nextCursor": {
                     "type": "string"
                 },
-                "prev_cursor": {
+                "prevCursor": {
                     "type": "string"
                 }
             }

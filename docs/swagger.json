@@ -5748,7 +5748,7 @@
         "ambulance_request.UpdateAmbulanceRequest": {
             "type": "object",
             "properties": {
-                "rejection_reason": {
+                "rejectionReason": {
                     "type": "string"
                 },
                 "status": {
@@ -6222,7 +6222,7 @@
         "media.PublishedMediaResponse": {
             "type": "object",
             "properties": {
-                "alt_text": {
+                "altText": {
                     "type": "string"
                 },
                 "order": {
@@ -6239,10 +6239,10 @@
                 "limit": {
                     "type": "integer"
                 },
-                "next_cursor": {
+                "nextCursor": {
                     "type": "string"
                 },
-                "prev_cursor": {
+                "prevCursor": {
                     "type": "string"
                 }
             }

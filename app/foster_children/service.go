@@ -134,19 +134,19 @@ func (s *service) CreateFosterChildren(ctx context.Context, req CreateFosterChil
 		errValidation["category"] = "Invalid category"
 	}
 	if req.BirthDate == "" {
-		errValidation["birth_date"] = "Birth date is required"
+		errValidation["birthDate"] = "Birth date is required"
 	}
 	if req.BirthPlace == "" {
-		errValidation["birth_place"] = "Birth place is required"
+		errValidation["birthPlace"] = "Birth place is required"
 	}
 	if req.Address == "" {
 		errValidation["address"] = "Address is required"
 	}
 	if req.ProfilePicture == nil {
-		errValidation["profile_picture"] = "Profile picture is required"
+		errValidation["profilePicture"] = "Profile picture is required"
 	}
 	if req.FamilyCard == nil {
-		errValidation["family_card"] = "Family card is required"
+		errValidation["familyCard"] = "Family card is required"
 	}
 	if req.SKTM == nil {
 		errValidation["sktm"] = "SKTM is required"
@@ -158,7 +158,7 @@ func (s *service) CreateFosterChildren(ctx context.Context, req CreateFosterChil
 
 	birthDate, err := time.Parse("2006-01-02", req.BirthDate)
 	if err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"birth_date": "Invalid date format, expected YYYY-MM-DD"}, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"birthDate": "Invalid date format, expected YYYY-MM-DD"}, nil)
 	}
 
 	// Upload profile picture
@@ -269,9 +269,9 @@ func (s *service) UpdateFosterChildren(ctx context.Context, id string, req Updat
 	if req.BirthDate != "" {
 		birthDate, err := time.Parse("2006-01-02", req.BirthDate)
 		if err != nil {
-			errValidation["birth_date"] = "Invalid date format, expected YYYY-MM-DD"
+			errValidation["birthDate"] = "Invalid date format, expected YYYY-MM-DD"
 		} else {
-			updateData["birth_date"] = birthDate
+			updateData["birthDate"] = birthDate
 		}
 	}
 	if req.BirthPlace != "" {
@@ -363,7 +363,7 @@ func (s *service) UpdateFosterChildren(ctx context.Context, id string, req Updat
 	}
 
 	if len(updateData) == 0 && len(req.Achievements) == 0 {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"update_data": "No fields to update"}, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"updateData": "No fields to update"}, nil)
 	}
 
 	if len(updateData) > 0 {
@@ -530,34 +530,34 @@ func (s *service) CreateFosterChildrenCandidate(ctx context.Context, accountID s
 		errValidation["category"] = "Category is required"
 	}
 	if req.BirthDate == "" {
-		errValidation["birth_date"] = "Birth date is required"
+		errValidation["birthDate"] = "Birth date is required"
 	}
 	if req.BirthPlace == "" {
-		errValidation["birth_place"] = "Birth place is required"
+		errValidation["birthPlace"] = "Birth place is required"
 	}
 	if req.Address == "" {
 		errValidation["address"] = "Address is required"
 	}
 	if req.ProfilePicture == nil {
-		errValidation["profile_picture"] = "Profile picture is required"
+		errValidation["profilePicture"] = "Profile picture is required"
 	}
 	if req.FamilyCard == nil {
-		errValidation["family_card"] = "Family card is required"
+		errValidation["familyCard"] = "Family card is required"
 	}
 	if req.SKTM == nil {
 		errValidation["sktm"] = "SKTM is required"
 	}
 	if req.SubmitterName == "" {
-		errValidation["submitter_name"] = "Submitter name is required"
+		errValidation["submitterName"] = "Submitter name is required"
 	}
 	if req.SubmitterPhone == "" {
-		errValidation["submitter_phone"] = "Submitter phone is required"
+		errValidation["submitterPhone"] = "Submitter phone is required"
 	}
 	if req.SubmitterAddress == "" {
-		errValidation["submitter_address"] = "Submitter address is required"
+		errValidation["submitterAddress"] = "Submitter address is required"
 	}
 	if req.SubmitterIDCard == nil {
-		errValidation["submitter_id_card"] = "Submitter ID card is required"
+		errValidation["submitterIdCard"] = "Submitter ID card is required"
 	}
 
 	if len(errValidation) > 0 {
@@ -566,7 +566,7 @@ func (s *service) CreateFosterChildrenCandidate(ctx context.Context, accountID s
 
 	birthDate, err := time.Parse("2006-01-02", req.BirthDate)
 	if err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"birth_date": "Invalid date format, expected YYYY-MM-DD"}, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"birthDate": "Invalid date format, expected YYYY-MM-DD"}, nil)
 	}
 
 	profilePictureURL, err := s.s3Client.UploadFile(ctx, req.ProfilePicture, "foster-children-candidates")

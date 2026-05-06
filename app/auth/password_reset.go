@@ -8,9 +8,9 @@ import (
 
 type PasswordResetToken struct {
 	ID        uuid.UUID `json:"id" gorm:"primaryKey"`
-	AccountID uuid.UUID `json:"account_id" gorm:"not null"`
+	AccountID uuid.UUID `json:"accountId" gorm:"not null"`
 	Token     string    `json:"token" gorm:"unique;not null"`
-	ExpiredAt time.Time `json:"expired_at" gorm:"not null"`
-	IsUsed    bool      `json:"is_used" gorm:"default:false"`
-	CreatedAt time.Time `json:"created_at" gorm:"not null"`
+	ExpiredAt time.Time `json:"expiredAt" gorm:"not null"`
+	IsUsed    bool      `json:"isUsed" gorm:"default:false"`
+	CreatedAt time.Time `json:"createdAt" gorm:"not null"`
 }

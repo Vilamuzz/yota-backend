@@ -35,7 +35,7 @@ func (h *handler) RegisterRoutes(router *gin.RouterGroup) {
 	}
 
 	admin := router.Group("/admin/prayers")
-	admin.Use(h.middleware.RequireRoles(enum.RoleFinance))
+	admin.Use(h.middleware.RequireRoles(enum.RolePublicationManager))
 	{
 		admin.GET("/", h.GetReportedPrayerList)
 		admin.DELETE("/:id", h.DeletePrayer)

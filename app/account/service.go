@@ -368,7 +368,7 @@ func (s *service) UpdateUserProfile(ctx context.Context, accountID string, paylo
 		role, err := s.repo.FindOneAccountRole(ctx, accountID, payload.DefaultAccountRoleID)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				errValidation["default_account_role_id"] = "Invalid default account role id"
+				errValidation["defaultAccountRoleId"] = "Invalid default account role id"
 			} else {
 				logrus.WithFields(logrus.Fields{
 					"component":  "account.service",
@@ -378,7 +378,7 @@ func (s *service) UpdateUserProfile(ctx context.Context, accountID string, paylo
 				return pkg.NewResponse(http.StatusInternalServerError, "Failed to retrieve account role", nil, nil)
 			}
 		} else if !role.IsActive {
-			errValidation["default_account_role_id"] = "Cannot set an inactive role as default"
+			errValidation["defaultAccountRoleId"] = "Cannot set an inactive role as default"
 		}
 	}
 
@@ -441,16 +441,16 @@ func (s *service) UpdatePassword(ctx context.Context, accountID string, payload 
 
 	errValidation := make(map[string]string)
 	if payload.CurrentPassword == "" {
-		errValidation["current_password"] = "Current password is required"
+		errValidation["currentPassword"] = "Current password is required"
 	}
 	if payload.NewPassword == "" {
-		errValidation["new_password"] = "New password is required"
+		errValidation["newPassword"] = "New password is required"
 	} else if payload.CurrentPassword == payload.NewPassword {
-		errValidation["new_password"] = "New password cannot be the same as the current password"
+		errValidation["newPassword"] = "New password cannot be the same as the current password"
 	} else if !pkg.IsValidLengthPassword(payload.NewPassword) {
-		errValidation["new_password"] = "New password must be at least 8 characters long"
+		errValidation["newPassword"] = "New password must be at least 8 characters long"
 	} else if !pkg.IsStrongPassword(payload.NewPassword) {
-		errValidation["new_password"] = "New password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character"
+		errValidation["newPassword"] = "New password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character"
 	}
 	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
@@ -466,7 +466,7 @@ func (s *service) UpdatePassword(ctx context.Context, accountID string, payload 
 	}
 
 	if err = bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(payload.CurrentPassword)); err != nil {
-		errValidation["current_password"] = "Current password is incorrect"
+		errValidation["currentPassword"] = "Current password is incorrect"
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
 
