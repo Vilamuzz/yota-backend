@@ -21,7 +21,6 @@ type Service interface {
 	DeleteSocialProgram(ctx context.Context, socialProgramID string) pkg.Response
 	ApproveSocialProgram(ctx context.Context, socialProgramID string) pkg.Response
 	RejectSocialProgram(ctx context.Context, socialProgramID string, payload SocialProgramRejectRequest) pkg.Response
-	SubscribeSocialProgram(ctx context.Context, socialProgramID string, accountID string, payload SocialProgramSubscribeRequest) pkg.Response
 }
 
 type service struct {

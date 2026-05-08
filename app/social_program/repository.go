@@ -13,8 +13,6 @@ type Repository interface {
 	CreateSocialProgram(ctx context.Context, socialProgram *SocialProgram) error
 	UpdateSocialProgram(ctx context.Context, socialProgramID string, updates map[string]interface{}) error
 	DeleteSocialProgram(ctx context.Context, socialProgramID string) error
-	FindOneSubscription(ctx context.Context, options map[string]interface{}) (*SocialProgramSubscription, error)
-	CreateSubscription(ctx context.Context, subscription *SocialProgramSubscription) error
 }
 
 type repository struct {
@@ -96,26 +94,4 @@ func (r *repository) UpdateSocialProgram(ctx context.Context, socialProgramID st
 
 func (r *repository) DeleteSocialProgram(ctx context.Context, socialProgramID string) error {
 	return r.Conn.WithContext(ctx).Delete(&SocialProgram{}, "id = ?", socialProgramID).Error
-}
-
-func (r *repository) FindOneSubscription(ctx context.Context, options map[string]interface{}) (*SocialProgramSubscription, error) {
-	var subscription SocialProgramSubscription
-	query := r.Conn.WithContext(ctx)
-
-	if socialProgramID, ok := options["social_program_id"]; ok && socialProgramID.(string) != "" {
-		query = query.Where("social_program_id = ?", socialProgramID.(string))
-	}
-	if accountID, ok := options["account_id"]; ok && accountID.(string) != "" {
-		query = query.Where("account_id = ?", accountID.(string))
-	}
-
-	err := query.First(&subscription).Error
-	if err != nil {
-		return nil, err
-	}
-	return &subscription, nil
-}
-
-func (r *repository) CreateSubscription(ctx context.Context, subscription *SocialProgramSubscription) error {
-	return r.Conn.WithContext(ctx).Create(subscription).Error
 }

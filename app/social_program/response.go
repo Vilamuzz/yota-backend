@@ -17,15 +17,6 @@ type SocialProgramResponse struct {
 	CreatedAt        string           `json:"createdAt"`
 }
 
-type SocialProgramSubscriptionResponse struct {
-	ID              string             `json:"id"`
-	SocialProgramID string             `json:"socialProgramId"`
-	AccountID       string             `json:"accountId"`
-	Amount          float64            `json:"amount"`
-	Status          SubscriptionStatus `json:"status"`
-	CreatedAt       string             `json:"createdAt"`
-}
-
 type SocialProgramListResponse struct {
 	SocialPrograms []SocialProgramResponse `json:"socialPrograms"`
 	Pagination     pkg.CursorPagination    `json:"pagination"`
@@ -44,17 +35,6 @@ func (r *SocialProgram) toSocialProgramResponse() SocialProgramResponse {
 		MinimumAmount:    r.MinimumAmount,
 		BillingDay:       r.BillingDay,
 		CreatedAt:        r.CreatedAt.Format("2006-01-02 15:04:05"),
-	}
-}
-
-func (r *SocialProgramSubscription) toSocialProgramSubscriptionResponse() SocialProgramSubscriptionResponse {
-	return SocialProgramSubscriptionResponse{
-		ID:              r.ID.String(),
-		SocialProgramID: r.SocialProgramID.String(),
-		AccountID:       r.AccountID.String(),
-		Amount:          r.Amount,
-		Status:          r.Status,
-		CreatedAt:       r.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 }
 
