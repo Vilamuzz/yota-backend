@@ -7,7 +7,6 @@ import (
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/Vilamuzz/yota-backend/pkg/enum"
 	"github.com/gin-gonic/gin"
-	jwt_pkg "github.com/Vilamuzz/yota-backend/pkg/jwt"
 )
 
 type handler struct {
