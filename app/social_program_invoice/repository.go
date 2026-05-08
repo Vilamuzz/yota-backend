@@ -5,6 +5,7 @@ import (
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
+	"github.com/Vilamuzz/yota-backend/app/social_program_subscription"
 )
 
 type Repository interface {
@@ -13,6 +14,7 @@ type Repository interface {
 	CreateSocialProgramInvoice(ctx context.Context, socialProgramInvoice *SocialProgramInvoice) error
 	UpdateSocialProgramInvoice(ctx context.Context, socialProgramInvoiceID string, updates map[string]interface{}) error
 	DeleteSocialProgramInvoice(ctx context.Context, socialProgramInvoiceID string) error
+	FindActiveSubscriptionsForBillingDay(ctx context.Context, billingDay int) ([]social_program_subscription.SocialProgramSubscription, error)
 }
 
 type repository struct {
@@ -87,4 +89,14 @@ func (r *repository) UpdateSocialProgramInvoice(ctx context.Context, socialProgr
 
 func (r *repository) DeleteSocialProgramInvoice(ctx context.Context, socialProgramInvoiceID string) error {
 	return r.Conn.WithContext(ctx).Where("id = ?", socialProgramInvoiceID).Delete(&SocialProgramInvoice{}).Error
+}
+
+func (r *repository) FindActiveSubscriptionsForBillingDay(ctx context.Context, billingDay int) ([]social_program_subscription.SocialProgramSubscription, error) {
+	var subscriptions []social_program_subscription.SocialProgramSubscription
+	err := r.Conn.WithContext(ctx).
+		Joins("JOIN social_programs ON social_programs.id = social_program_subscriptions.social_program_id").
+		Where("social_programs.billing_day = ?", billingDay).
+		Where("social_program_subscriptions.status != ?", "tidak_aktif").
+		Find(&subscriptions).Error
+	return subscriptions, err
 }

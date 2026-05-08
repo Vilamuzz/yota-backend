@@ -17,6 +17,7 @@ type Service interface {
 	CreateSocialProgramInvoice(ctx context.Context, payload SocialProgramInvoiceRequest) pkg.Response
 	UpdateSocialProgramInvoice(ctx context.Context, id string, payload SocialProgramInvoiceRequest) pkg.Response
 	DeleteSocialProgramInvoice(ctx context.Context, id string) pkg.Response
+	GenerateSocialProgramInvoices(ctx context.Context) error
 }
 
 type service struct {
@@ -219,4 +220,55 @@ func (s *service) DeleteSocialProgramInvoice(ctx context.Context, id string) pkg
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Invoice deleted successfully", nil, nil)
+}
+
+func (s *service) GenerateSocialProgramInvoices(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	today := time.Now()
+
+	subscriptions, err := s.repo.FindActiveSubscriptionsForBillingDay(ctx, today.Day())
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "social_program_invoice.service",
+		}).WithError(err).Error("failed to fetch active subscriptions for billing")
+		return err
+	}
+
+	for _, sub := range subscriptions {
+		billingPeriod := time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, time.UTC)
+
+		existing, _ := s.repo.FindOneSocialProgramInvoice(ctx, map[string]interface{}{
+			"subscription_id": sub.ID.String(),
+			"billing_period":  billingPeriod,
+		})
+		if existing != nil {
+			continue
+		}
+
+		dueDate := time.Date(today.Year(), today.Month(), today.Day()+7, 0, 0, 0, 0, time.UTC)
+
+		now := time.Now()
+		invoice := &SocialProgramInvoice{
+			ID:             uuid.New(),
+			SubscriptionID: sub.ID,
+			BillingPeriod:  billingPeriod,
+			Amount:         sub.Amount,
+			Status:         StatusActive,
+			DueDate:        dueDate,
+			CreatedAt:      now,
+			UpdatedAt:      now,
+		}
+
+		if err := s.repo.CreateSocialProgramInvoice(ctx, invoice); err != nil {
+			logrus.WithFields(logrus.Fields{
+				"component":       "social_program_invoice.service",
+				"subscription_id": sub.ID,
+			}).WithError(err).Error("failed to create invoice for subscription")
+			continue
+		}
+	}
+
+	return nil
 }

@@ -243,6 +243,13 @@ func (c *Container) initScheduler() {
 			_ = err
 		}
 	})
+
+	// Generate social program invoices every day at midnight
+	c.Scheduler.Add("0 0 * * *", "generate-social-program-invoices", func() {
+		if err := c.SocialProgramInvoiceService.GenerateSocialProgramInvoices(context.Background()); err != nil {
+			_ = err
+		}
+	})
 }
 
 // RegisterHandlers registers all handlers with their routes
