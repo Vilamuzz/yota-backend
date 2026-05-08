@@ -7,6 +7,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/Vilamuzz/yota-backend/pkg/enum"
 	"github.com/gin-gonic/gin"
+	jwt_pkg "github.com/Vilamuzz/yota-backend/pkg/jwt"
 )
 
 type handler struct {
@@ -41,6 +42,12 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	{
 		chairman.PUT("/:id/approve", h.ApproveSocialProgram)
 		chairman.PUT("/:id/reject", h.RejectSocialProgram)
+	}
+
+	user := r.Group("/social-programs")
+	user.Use(h.middleware.RequireRoles(enum.RoleOrangTuaAsuh))
+	{
+		user.POST("/:id/subscribe", h.SubscribeSocialProgram)
 	}
 }
 
@@ -132,5 +139,31 @@ func (h *handler) RejectSocialProgram(c *gin.Context) {
 	}
 
 	res := h.service.RejectSocialProgram(ctx, id, req)
+	c.JSON(res.Status, res)
+}
+
+func (h *handler) SubscribeSocialProgram(c *gin.Context) {
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	userData, exists := c.Get("user_data")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "User not authenticated", nil, nil))
+		return
+	}
+
+	claims, ok := userData.(jwt_pkg.UserJWTClaims)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Invalid user data", nil, nil))
+		return
+	}
+
+	var req SocialProgramSubscribeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Request tidak valid", nil, nil))
+		return
+	}
+
+	res := h.service.SubscribeSocialProgram(ctx, id, claims.AccountID, req)
 	c.JSON(res.Status, res)
 }

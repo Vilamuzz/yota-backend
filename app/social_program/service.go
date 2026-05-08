@@ -21,6 +21,7 @@ type Service interface {
 	DeleteSocialProgram(ctx context.Context, socialProgramID string) pkg.Response
 	ApproveSocialProgram(ctx context.Context, socialProgramID string) pkg.Response
 	RejectSocialProgram(ctx context.Context, socialProgramID string, payload SocialProgramRejectRequest) pkg.Response
+	SubscribeSocialProgram(ctx context.Context, socialProgramID string, accountID string, payload SocialProgramSubscribeRequest) pkg.Response
 }
 
 type service struct {
@@ -311,4 +312,56 @@ func (s *service) RejectSocialProgram(ctx context.Context, socialProgramID strin
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Program sosial berhasil ditolak", nil, nil)
+}
+
+func (s *service) SubscribeSocialProgram(ctx context.Context, socialProgramID string, accountID string, payload SocialProgramSubscribeRequest) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	socialProgram, err := s.repo.FindOneSocialProgram(ctx, map[string]interface{}{"id": socialProgramID})
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return pkg.NewResponse(http.StatusNotFound, "Program sosial tidak ditemukan", nil, nil)
+		}
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data program sosial", nil, nil)
+	}
+
+	if socialProgram.Status != StatusBerjalan {
+		return pkg.NewResponse(http.StatusBadRequest, "Hanya program yang sedang berjalan yang dapat diikuti", nil, nil)
+	}
+
+	if payload.Amount < socialProgram.MinimumAmount {
+		return pkg.NewResponse(http.StatusBadRequest, "Nominal donasi kurang dari minimum yang ditentukan", nil, nil)
+	}
+
+	existingSubscription, err := s.repo.FindOneSubscription(ctx, map[string]interface{}{
+		"social_program_id": socialProgramID,
+		"account_id":        accountID,
+	})
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memeriksa data subscription", nil, nil)
+	}
+	if existingSubscription != nil && existingSubscription.Status != SubscriptionTidakAktif {
+		return pkg.NewResponse(http.StatusBadRequest, "Anda sudah berlangganan program sosial ini", nil, nil)
+	}
+
+	now := time.Now()
+	subscription := &SocialProgramSubscription{
+		ID:              uuid.New(),
+		SocialProgramID: uuid.MustParse(socialProgramID),
+		AccountID:       uuid.MustParse(accountID),
+		Amount:          payload.Amount,
+		Status:          SubscriptionBelumDonasi,
+		CreatedAt:       now,
+		UpdatedAt:       now,
+	}
+
+	if err := s.repo.CreateSubscription(ctx, subscription); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "social_program.service",
+		}).WithError(err).Error("failed to create subscription")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat subscription", nil, nil)
+	}
+
+	return pkg.NewResponse(http.StatusCreated, "Berhasil berlangganan program sosial", nil, subscription.toSocialProgramSubscriptionResponse())
 }

@@ -18,6 +18,10 @@ type SocialProgramRejectRequest struct {
 	RejectionReason string `json:"rejectionReason"`
 }
 
+type SocialProgramSubscribeRequest struct {
+	Amount float64 `json:"amount"`
+}
+
 type SocialProgramQueryParams struct {
 	Search       string `form:"search"`
 	Status       string `form:"status"`
