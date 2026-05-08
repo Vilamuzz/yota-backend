@@ -12,7 +12,7 @@ type SocialProgramSubscription struct {
 	ID              uuid.UUID `json:"id" gorm:"primaryKey"`
 	SocialProgramID uuid.UUID `json:"socialProgramId" gorm:"not null"`
 	AccountID       uuid.UUID `json:"accountId" gorm:"not null"`
-	Status          Status    `json:"status" gorm:"type:varchar(20);not null;default:'active'"`
+	Status          Status    `json:"status" gorm:"type:varchar(20);not null;default:'belum_donasi'"`
 	Amount          float64   `json:"amount" gorm:"not null"`
 	CreatedAt       time.Time `json:"createdAt"`
 	UpdatedAt       time.Time `json:"updatedAt"`
@@ -24,7 +24,7 @@ type SocialProgramSubscription struct {
 type Status string
 
 const (
-	StatusActive  Status = "active"
-	StatusPaused  Status = "paused"
-	StatusStopped Status = "stopped"
+	StatusSudahDonasi Status = "sudah_donasi"
+	StatusBelumDonasi Status = "belum_donasi"
+	StatusTidakAktif  Status = "tidak_aktif"
 )

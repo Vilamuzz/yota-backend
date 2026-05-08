@@ -37,21 +37,3 @@ const (
 	SubmissionDisetujui SubmissionStatus = "disetujui"
 	SubmissionDitolak   SubmissionStatus = "ditolak"
 )
-
-type SocialProgramSubscription struct {
-	ID              uuid.UUID          `json:"id" gorm:"primaryKey"`
-	SocialProgramID uuid.UUID          `json:"socialProgramId" gorm:"not null"`
-	AccountID       uuid.UUID          `json:"accountId" gorm:"not null"`
-	Amount          float64            `json:"amount" gorm:"not null"`
-	Status          SubscriptionStatus `json:"status" gorm:"type:varchar(20);not null;default:'belum_donasi'"`
-	CreatedAt       time.Time          `json:"createdAt"`
-	UpdatedAt       time.Time          `json:"updatedAt"`
-}
-
-type SubscriptionStatus string
-
-const (
-	SubscriptionSudahDonasi SubscriptionStatus = "sudah_donasi"
-	SubscriptionBelumDonasi SubscriptionStatus = "belum_donasi"
-	SubscriptionTidakAktif  SubscriptionStatus = "tidak_aktif"
-)

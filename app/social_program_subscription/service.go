@@ -150,7 +150,7 @@ func (s *service) CreateSocialProgramSubscription(ctx context.Context, accountID
 	existing, _ := s.repo.FindOneSocialProgramSubscription(ctx, map[string]interface{}{
 		"social_program_id": req.SocialProgramID,
 		"account_id":        accountID,
-		"status":            string(StatusActive),
+		"status":            string(StatusBelumDonasi),
 	})
 	if existing != nil {
 		return pkg.NewResponse(http.StatusConflict, "Active subscription already exists for this social program", nil, nil)
@@ -161,7 +161,7 @@ func (s *service) CreateSocialProgramSubscription(ctx context.Context, accountID
 		ID:              uuid.New(),
 		SocialProgramID: uuid.MustParse(req.SocialProgramID),
 		AccountID:       uuid.MustParse(accountID),
-		Status:          StatusActive,
+		Status:          StatusBelumDonasi,
 		Amount:          req.Amount,
 		CreatedAt:       now,
 		UpdatedAt:       now,
