@@ -11,7 +11,7 @@ type DonationProgramTransaction struct {
 	ID                uuid.UUID  `json:"id" gorm:"primaryKey"`
 	DonationProgramID uuid.UUID  `json:"donation_program_id" gorm:"index;not null"`
 	OrderID           string     `json:"order_id" gorm:"uniqueIndex"`
-	AccountID         uuid.UUID  `json:"account_id" gorm:"index"`
+	AccountID         *uuid.UUID `json:"account_id" gorm:"index"`
 	DonorName         string     `json:"donor_name"`
 	DonorEmail        string     `json:"donor_email"`
 	IsOnline          bool       `json:"is_online"`

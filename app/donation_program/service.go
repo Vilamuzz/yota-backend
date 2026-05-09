@@ -14,11 +14,13 @@ import (
 
 type Service interface {
 	GetDonationProgramList(ctx context.Context, params DonationProgramQueryParams, isAdmin bool) pkg.Response
-	GetPublishedDonationProgramBySlug(ctx context.Context, slug string) pkg.Response
+	GetDonationProgramBySlug(ctx context.Context, slug string) pkg.Response
 	GetDonationProgramByID(ctx context.Context, donationProgramID string) pkg.Response
 	CreateDonationProgram(ctx context.Context, donation DonationProgramRequest) pkg.Response
 	UpdateDonationProgram(ctx context.Context, donationProgramID string, payload DonationProgramRequest) pkg.Response
 	DeleteDonationProgram(ctx context.Context, donationProgramID string) pkg.Response
+	UpdateActiveDonationProgram(ctx context.Context, donationProgramID string) pkg.Response
+	UpdateArchivedDonationProgram(ctx context.Context, donationProgramID string) pkg.Response
 	UpdateExpiredDonationProgram(ctx context.Context) error
 }
 
@@ -70,12 +72,12 @@ func (s *service) GetDonationProgramList(ctx context.Context, params DonationPro
 			options["status"] = params.Status
 		}
 	} else {
-		options["published"] = true
+		options["status"] = StatusActive
 	}
 
 	donations, err := s.repo.FindAllDonationPrograms(ctx, options)
 	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch donations", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data donasi", nil, nil)
 	}
 
 	hasNext := len(donations) > params.Limit
@@ -101,21 +103,21 @@ func (s *service) GetDonationProgramList(ctx context.Context, params DonationPro
 	}
 
 	if isAdmin {
-		return pkg.NewResponse(http.StatusOK, "Success", nil, toDonationProgramListResponse(donations, pagination))
+		return pkg.NewResponse(http.StatusOK, "Berhasil", nil, toAdminDonationProgramListResponse(donations, pagination))
 	}
-	return pkg.NewResponse(http.StatusOK, "Success", nil, toPublishedDonationProgramListResponse(donations, pagination))
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, toDonationProgramListResponse(donations, pagination))
 }
 
-func (s *service) GetPublishedDonationProgramBySlug(ctx context.Context, slug string) pkg.Response {
+func (s *service) GetDonationProgramBySlug(ctx context.Context, slug string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	donation, err := s.repo.FindOneDonationProgram(ctx, map[string]interface{}{"slug": slug, "published": true})
 	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Donation not found", nil, nil)
+		return pkg.NewResponse(http.StatusNotFound, "Donasi tidak ditemukan", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, donation.toPublishedDonationProgramResponse())
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, donation.toDonationProgramResponse())
 }
 
 func (s *service) GetDonationProgramByID(ctx context.Context, id string) pkg.Response {
@@ -123,15 +125,15 @@ func (s *service) GetDonationProgramByID(ctx context.Context, id string) pkg.Res
 	defer cancel()
 
 	if _, err := uuid.Parse(id); err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid donation ID format"}, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID donasi tidak valid"}, nil)
 	}
 
 	donation, err := s.repo.FindOneDonationProgram(ctx, map[string]interface{}{"id": id})
 	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Donation not found", nil, nil)
+		return pkg.NewResponse(http.StatusNotFound, "Donasi tidak ditemukan", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, donation)
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, donation.toAdminDonationProgramResponse())
 }
 
 func (s *service) CreateDonationProgram(ctx context.Context, payload DonationProgramRequest) pkg.Response {
@@ -142,84 +144,106 @@ func (s *service) CreateDonationProgram(ctx context.Context, payload DonationPro
 	status := StatusDraft
 	if payload.Status != "" {
 		if !payload.Status.IsValid() {
-			errValidation["status"] = "Invalid status"
+			errValidation["status"] = "Status tidak valid"
 		} else {
 			status = payload.Status
 		}
 	}
 
 	if payload.Title == "" {
-		errValidation["title"] = "Title is required"
+		errValidation["title"] = "Judul wajib diisi"
 	} else if len(payload.Title) < 3 {
-		errValidation["title"] = "Title must be at least 3 characters"
+		errValidation["title"] = "Judul minimal 3 karakter"
 	} else if len(payload.Title) > 200 {
-		errValidation["title"] = "Title must not exceed 200 characters"
+		errValidation["title"] = "Judul maksimal 200 karakter"
 	}
 
 	if status == StatusActive {
 		if payload.Description == "" {
-			errValidation["description"] = "Description is required"
+			errValidation["description"] = "Deskripsi wajib diisi"
 		} else if len(payload.Description) < 10 {
-			errValidation["description"] = "Description must be at least 10 characters"
+			errValidation["description"] = "Deskripsi minimal 10 karakter"
 		} else if len(payload.Description) > 2000 {
-			errValidation["description"] = "Description must not exceed 2000 characters"
+			errValidation["description"] = "Deskripsi maksimal 2000 karakter"
 		}
 
 		if payload.Category == "" {
-			errValidation["category"] = "Category is required"
+			errValidation["category"] = "Kategori wajib diisi"
 		} else if !payload.Category.IsValid() {
-			errValidation["category"] = "Invalid category"
+			errValidation["category"] = "Kategori tidak valid"
 		}
 
 		if payload.FundTarget <= 0 {
-			errValidation["fund_target"] = "Fund target must be greater than 0"
+			errValidation["fundTarget"] = "Target dana harus lebih besar dari 0"
 		}
 
-		if payload.EndDate.IsZero() {
-			errValidation["end_date"] = "End date is required"
+		if payload.EndDate == "" {
+			errValidation["endDate"] = "Tanggal berakhir wajib diisi"
 		}
 
 		if payload.CoverImage == nil {
-			errValidation["coverImage"] = "Cover image is required"
+			errValidation["coverImage"] = "Gambar sampul wajib diisi"
 		}
 	} else {
-		// Draft mode validations
 		if payload.Description != "" {
 			if len(payload.Description) < 10 {
-				errValidation["description"] = "Description must be at least 10 characters"
+				errValidation["description"] = "Deskripsi minimal 10 karakter"
 			} else if len(payload.Description) > 2000 {
-				errValidation["description"] = "Description must not exceed 2000 characters"
+				errValidation["description"] = "Deskripsi maksimal 2000 karakter"
 			}
 		}
 
 		if payload.Category != "" && !payload.Category.IsValid() {
-			errValidation["category"] = "Invalid category"
+			errValidation["category"] = "Kategori tidak valid"
 		}
 
 		if payload.FundTarget < 0 {
-			errValidation["fund_target"] = "Fund target must not be negative"
+			errValidation["fundTarget"] = "Target dana tidak boleh negatif"
 		}
 	}
 
 	now := time.Now()
 	startDate := now
-	if !payload.StartDate.IsZero() {
-		startDate = payload.StartDate
+	if payload.StartDate != "" {
+		if s, err := time.Parse("2006-01-02", payload.StartDate); err == nil {
+			startDate = s
+		} else {
+			errValidation["startDate"] = "Format tanggal mulai tidak valid (gunakan YYYY-MM-DD)"
+		}
 	}
 
-	if !payload.EndDate.IsZero() && payload.EndDate.Before(startDate) {
-		errValidation["end_date"] = "End date must be after start date"
+	endDate := time.Time{}
+	if payload.EndDate != "" {
+		if e, err := time.Parse("2006-01-02", payload.EndDate); err == nil {
+			endDate = e
+		} else {
+			errValidation["endDate"] = "Format tanggal berakhir tidak valid (gunakan YYYY-MM-DD)"
+		}
+	}
+
+	if !endDate.IsZero() && endDate.Before(startDate) {
+		errValidation["endDate"] = "Tanggal berakhir harus setelah tanggal mulai"
 	}
 
 	if len(errValidation) > 0 {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
+	}
+
+	existing, _ := s.repo.FindOneDonationProgram(ctx, map[string]interface{}{"title": payload.Title})
+	if existing != nil {
+		errValidation["title"] = "Program donasi dengan judul ini sudah ada"
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
 	var coverImageURL string
 	if payload.CoverImage != nil {
-		uploadedURL, err := s.s3Client.UploadFile(ctx, payload.CoverImage, "donations")
+		uploadedURL, err := s.s3Client.UploadFile(ctx, payload.CoverImage, "donation-programs")
 		if err != nil {
-			return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload image", nil, nil)
+			logrus.WithFields(logrus.Fields{
+				"component": "donation.service",
+				"title":     payload.Title,
+			}).WithError(err).Error("failed to upload cover image")
+			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah gambar cover", nil, nil)
 		}
 		coverImageURL = uploadedURL
 	}
@@ -234,7 +258,7 @@ func (s *service) CreateDonationProgram(ctx context.Context, payload DonationPro
 		FundTarget:  payload.FundTarget,
 		Status:      status,
 		StartDate:   startDate,
-		EndDate:     payload.EndDate,
+		EndDate:     endDate,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
@@ -244,27 +268,27 @@ func (s *service) CreateDonationProgram(ctx context.Context, payload DonationPro
 			"component": "donation.service",
 			"title":     payload.Title,
 		}).WithError(err).Error("failed to create donation")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create donation", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat donasi", nil, nil)
 	}
 
-	s.logService.CreateLog(ctx, nil, "CREATE", "donation", donation.ID.String(), nil, donation.toDonationProgramResponse())
-	return pkg.NewResponse(http.StatusCreated, "Donation successfully created", nil, donation.toDonationProgramResponse())
+	s.logService.CreateLog(ctx, nil, "CREATE", "donation", donation.ID.String(), nil, donation.toAdminDonationProgramResponse())
+	return pkg.NewResponse(http.StatusCreated, "Donasi berhasil dibuat", nil, donation.toAdminDonationProgramResponse())
 }
 
-func (s *service) UpdateDonationProgram(ctx context.Context, id string, req DonationProgramRequest) pkg.Response {
+func (s *service) UpdateDonationProgram(ctx context.Context, id string, payload DonationProgramRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	if _, err := uuid.Parse(id); err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid donation ID format"}, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID donasi tidak valid"}, nil)
 	}
 
 	donationProgram, err := s.repo.FindOneDonationProgram(ctx, map[string]interface{}{"id": id})
 	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Donation not found", nil, nil)
+		return pkg.NewResponse(http.StatusNotFound, "Donasi tidak ditemukan", nil, nil)
 	}
-	if donationProgram.Status == StatusCompleted || donationProgram.Status == StatusExpired {
-		return pkg.NewResponse(http.StatusBadRequest, "Donation is completed or expired and cannot be updated", nil, nil)
+	if donationProgram.Status == StatusCompleted || donationProgram.Status == StatusExpired || donationProgram.Status == StatusArchived {
+		return pkg.NewResponse(http.StatusBadRequest, "Donasi sudah selesai, kedaluwarsa, atau diarsipkan dan tidak dapat diperbarui", nil, nil)
 	}
 
 	errValidation := make(map[string]string)
@@ -273,141 +297,165 @@ func (s *service) UpdateDonationProgram(ctx context.Context, id string, req Dona
 	isActive := donationProgram.Status == StatusActive
 
 	targetStatus := donationProgram.Status
-	if req.Status != "" {
-		if !req.Status.IsValid() {
-			errValidation["status"] = "Invalid status"
-		} else if !isActive || req.Status == StatusArchived {
-			targetStatus = req.Status
-			updateData["status"] = req.Status
-		} else if req.Status != donationProgram.Status {
-			errValidation["status"] = "Status cannot be updated when donation is active"
+	if payload.Status != "" {
+		switch payload.Status {
+		case StatusDraft, StatusActive:
+			if !isActive {
+				targetStatus = payload.Status
+				updateData["status"] = payload.Status
+			} else if payload.Status != donationProgram.Status {
+				errValidation["status"] = "Status donasi aktif tidak dapat dikembalikan ke draft"
+			}
+		default:
+			errValidation["status"] = "Status tidak valid. Hanya draft atau aktif yang dapat diatur."
 		}
 	}
 
 	finalTitle := donationProgram.Title
-	if req.Title != "" {
+	if payload.Title != "" {
 		if !isActive {
-			finalTitle = req.Title
-			updateData["title"] = req.Title
-		} else if req.Title != donationProgram.Title {
-			errValidation["title"] = "Title cannot be updated when donation is active"
+			if payload.Title != donationProgram.Title {
+				existing, _ := s.repo.FindOneDonationProgram(ctx, map[string]interface{}{"title": payload.Title})
+				if existing != nil {
+					errValidation["title"] = "Program donasi dengan judul ini sudah ada"
+				} else {
+					finalTitle = payload.Title
+					updateData["title"] = payload.Title
+				}
+			}
+		} else if payload.Title != donationProgram.Title {
+			errValidation["title"] = "Judul tidak dapat diperbarui saat donasi aktif"
 		}
 	}
 
 	finalDescription := donationProgram.Description
-	if req.Description != "" {
-		finalDescription = req.Description
-		updateData["description"] = req.Description
+	if payload.Description != "" {
+		finalDescription = payload.Description
+		updateData["description"] = payload.Description
 	}
 
 	finalCategory := donationProgram.Category
-	if req.Category != "" {
-		finalCategory = req.Category
-		updateData["category"] = req.Category
+	if payload.Category != "" {
+		finalCategory = payload.Category
+		updateData["category"] = payload.Category
 	}
 
 	finalFundTarget := donationProgram.FundTarget
-	if req.FundTarget > 0 {
+	if payload.FundTarget > 0 {
 		if !isActive {
-			finalFundTarget = req.FundTarget
-			updateData["fund_target"] = req.FundTarget
-		} else if req.FundTarget != donationProgram.FundTarget {
-			errValidation["fund_target"] = "Fund target cannot be updated when donation is active"
+			finalFundTarget = payload.FundTarget
+			updateData["fund_target"] = payload.FundTarget
+		} else if payload.FundTarget != donationProgram.FundTarget {
+			errValidation["fundTarget"] = "Target dana tidak dapat diperbarui saat donasi aktif"
 		}
 	}
 
 	finalStartDate := donationProgram.StartDate
-	if !req.StartDate.IsZero() {
-		if !isActive {
-			finalStartDate = req.StartDate
-			updateData["start_date"] = req.StartDate
-		} else if !req.StartDate.Equal(donationProgram.StartDate) {
-			errValidation["start_date"] = "Start date cannot be updated when donation is active"
+	if payload.StartDate != "" {
+		if s, err := time.Parse("2006-01-02", payload.StartDate); err == nil {
+			if !isActive {
+				finalStartDate = s
+				updateData["start_date"] = s
+			} else if !s.Equal(donationProgram.StartDate) {
+				errValidation["startDate"] = "Tanggal mulai tidak dapat diperbarui saat donasi aktif"
+			}
+		} else {
+			errValidation["startDate"] = "Format tanggal mulai tidak valid (gunakan YYYY-MM-DD)"
 		}
 	}
 
 	finalEndDate := donationProgram.EndDate
-	if !req.EndDate.IsZero() {
-		finalEndDate = req.EndDate
-		updateData["end_date"] = req.EndDate
+	if payload.EndDate != "" {
+		if e, err := time.Parse("2006-01-02", payload.EndDate); err == nil {
+			finalEndDate = e
+			updateData["end_date"] = e
+		} else {
+			errValidation["endDate"] = "Format tanggal berakhir tidak valid (gunakan YYYY-MM-DD)"
+		}
 	}
 
 	if len(finalTitle) < 3 {
-		errValidation["title"] = "Title must be at least 3 characters"
+		errValidation["title"] = "Judul minimal 3 karakter"
 	} else if len(finalTitle) > 200 {
-		errValidation["title"] = "Title must not exceed 200 characters"
+		errValidation["title"] = "Judul maksimal 200 karakter"
 	}
 
 	if targetStatus == StatusActive {
 		if finalDescription == "" {
-			errValidation["description"] = "Description is required"
+			errValidation["description"] = "Deskripsi wajib diisi"
 		} else if len(finalDescription) < 10 {
-			errValidation["description"] = "Description must be at least 10 characters"
+			errValidation["description"] = "Deskripsi minimal 10 karakter"
 		} else if len(finalDescription) > 2000 {
-			errValidation["description"] = "Description must not exceed 2000 characters"
+			errValidation["description"] = "Deskripsi maksimal 2000 karakter"
 		}
 
 		if finalCategory == "" {
-			errValidation["category"] = "Category is required"
+			errValidation["category"] = "Kategori wajib diisi"
 		} else if !finalCategory.IsValid() {
-			errValidation["category"] = "Invalid category"
+			errValidation["category"] = "Kategori tidak valid"
 		}
 
 		if finalFundTarget <= 0 {
-			errValidation["fund_target"] = "Fund target must be greater than 0"
+			errValidation["fundTarget"] = "Target dana harus lebih besar dari 0"
 		}
 
 		if finalEndDate.IsZero() {
-			errValidation["end_date"] = "End date is required"
+			errValidation["endDate"] = "Tanggal berakhir wajib diisi"
 		}
 
-		if req.CoverImage == nil && donationProgram.CoverImage == "" {
-			errValidation["coverImage"] = "Cover image is required"
+		if payload.CoverImage == nil && donationProgram.CoverImage == "" {
+			errValidation["coverImage"] = "Gambar sampul wajib diisi"
 		}
 
 		if time.Now().After(finalEndDate) {
-			errValidation["status"] = "Cannot activate donation that has already ended"
+			errValidation["status"] = "Tidak dapat mengaktifkan donasi yang telah berakhir"
 		}
 	} else {
 		if finalDescription != "" {
 			if len(finalDescription) < 10 {
-				errValidation["description"] = "Description must be at least 10 characters"
+				errValidation["description"] = "Deskripsi minimal 10 karakter"
 			} else if len(finalDescription) > 2000 {
-				errValidation["description"] = "Description must not exceed 2000 characters"
+				errValidation["description"] = "Deskripsi maksimal 2000 karakter"
 			}
 		}
 
 		if finalCategory != "" && !finalCategory.IsValid() {
-			errValidation["category"] = "Invalid category"
+			errValidation["category"] = "Kategori tidak valid"
 		}
 
 		if finalFundTarget < 0 {
-			errValidation["fund_target"] = "Fund target must not be negative"
+			errValidation["fundTarget"] = "Target dana tidak boleh negatif"
 		}
 	}
 
 	if !finalEndDate.IsZero() && finalEndDate.Before(finalStartDate) {
-		errValidation["end_date"] = "End date must be after start date"
+		errValidation["endDate"] = "Tanggal berakhir harus setelah tanggal mulai"
 	}
 
 	if len(errValidation) > 0 {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
-	if req.CoverImage != nil {
-		existingDonationImage := s3_pkg.ExtractObjectNameFromURL(donationProgram.CoverImage)
-		if err := s.s3Client.DeleteFile(ctx, existingDonationImage); err != nil {
-			return pkg.NewResponse(http.StatusInternalServerError, "Failed to delete existing image", nil, nil)
-		}
-		uploadedURL, err := s.s3Client.UploadFile(ctx, req.CoverImage, "donations")
+	if payload.CoverImage != nil {
+		uploadedURL, err := s.s3Client.UploadFile(ctx, payload.CoverImage, "donation-programs")
 		if err != nil {
-			return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload image", nil, nil)
+			logrus.WithFields(logrus.Fields{
+				"component":   "donation.service",
+				"donation_id": id,
+			}).WithError(err).Error("failed to upload new cover image")
+			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah gambar cover baru", nil, nil)
 		}
+
+		if donationProgram.CoverImage != "" {
+			existingDonationImage := s3_pkg.ExtractObjectNameFromURL(donationProgram.CoverImage)
+			_ = s.s3Client.DeleteFile(ctx, existingDonationImage)
+		}
+
 		updateData["cover_image"] = uploadedURL
 	}
 
 	if len(updateData) == 0 {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"update_data": "No fields to update"}, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"updateData": "Tidak ada data untuk diperbarui"}, nil)
 	}
 
 	updateData["updated_at"] = time.Now()
@@ -417,11 +465,11 @@ func (s *service) UpdateDonationProgram(ctx context.Context, id string, req Dona
 			"component":   "donation.service",
 			"donation_id": id,
 		}).WithError(err).Error("failed to update donation")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update donation", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui donasi", nil, nil)
 	}
 
-	s.logService.CreateLog(ctx, nil, "UPDATE", "donation", id, donationProgram.toDonationProgramResponse(), updateData)
-	return pkg.NewResponse(http.StatusOK, "Donation updated successfully", nil, nil)
+	s.logService.CreateLog(ctx, nil, "UPDATE", "donation", id, donationProgram.toAdminDonationProgramResponse(), updateData)
+	return pkg.NewResponse(http.StatusOK, "Donasi berhasil diperbarui", nil, nil)
 }
 
 func (s *service) DeleteDonationProgram(ctx context.Context, id string) pkg.Response {
@@ -429,16 +477,16 @@ func (s *service) DeleteDonationProgram(ctx context.Context, id string) pkg.Resp
 	defer cancel()
 
 	if _, err := uuid.Parse(id); err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid donation ID format"}, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID donasi tidak valid"}, nil)
 	}
 
 	donation, err := s.repo.FindOneDonationProgram(ctx, map[string]interface{}{"id": id})
 	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Donation not found", nil, nil)
+		return pkg.NewResponse(http.StatusNotFound, "Donasi tidak ditemukan", nil, nil)
 	}
 
 	if donation.Status != StatusDraft {
-		return pkg.NewResponse(http.StatusBadRequest, "Donation is active, completed, or expired and cannot be deleted", nil, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Donasi aktif, selesai, atau kedaluwarsa dan tidak dapat dihapus", nil, nil)
 	}
 
 	if err := s.repo.DeleteDonationProgram(ctx, id); err != nil {
@@ -446,7 +494,7 @@ func (s *service) DeleteDonationProgram(ctx context.Context, id string) pkg.Resp
 			"component":   "donation.service",
 			"donation_id": id,
 		}).WithError(err).Error("failed to delete donation")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to delete donation", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menghapus donasi", nil, nil)
 	}
 
 	if donation.CoverImage != "" {
@@ -460,7 +508,105 @@ func (s *service) DeleteDonationProgram(ctx context.Context, id string) pkg.Resp
 	}
 
 	s.logService.CreateLog(ctx, nil, "DELETE", "donation", id, donation.toDonationProgramResponse(), nil)
-	return pkg.NewResponse(http.StatusOK, "Donation deleted successfully", nil, nil)
+	return pkg.NewResponse(http.StatusOK, "Donasi berhasil dihapus", nil, nil)
+}
+
+func (s *service) UpdateActiveDonationProgram(ctx context.Context, id string) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	if _, err := uuid.Parse(id); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID donasi tidak valid"}, nil)
+	}
+
+	donation, err := s.repo.FindOneDonationProgram(ctx, map[string]interface{}{"id": id})
+	if err != nil {
+		return pkg.NewResponse(http.StatusNotFound, "Donasi tidak ditemukan", nil, nil)
+	}
+
+	if donation.Status == StatusActive {
+		return pkg.NewResponse(http.StatusOK, "Donasi sudah aktif", nil, nil)
+	}
+
+	if donation.Status != StatusDraft {
+		return pkg.NewResponse(http.StatusBadRequest, "Hanya donasi draft yang dapat diaktifkan", nil, nil)
+	}
+
+	errValidation := make(map[string]string)
+	if donation.Title == "" {
+		errValidation["title"] = "Judul wajib diisi"
+	}
+	if donation.Description == "" {
+		errValidation["description"] = "Deskripsi wajib diisi"
+	}
+	if donation.Category == "" {
+		errValidation["category"] = "Kategori wajib diisi"
+	}
+	if donation.FundTarget <= 0 {
+		errValidation["fundTarget"] = "Target dana harus lebih besar dari 0"
+	}
+	if donation.EndDate.IsZero() {
+		errValidation["endDate"] = "Tanggal berakhir wajib diisi"
+	} else if time.Now().After(donation.EndDate) {
+		errValidation["endDate"] = "Tidak dapat mengaktifkan donasi yang telah berakhir"
+	}
+	if donation.CoverImage == "" {
+		errValidation["coverImage"] = "Gambar sampul wajib diisi"
+	}
+
+	if len(errValidation) > 0 {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
+	}
+
+	updateData := map[string]interface{}{
+		"status":     StatusActive,
+		"updated_at": time.Now(),
+	}
+
+	if err := s.repo.UpdateDonationProgram(ctx, id, updateData); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":   "donation.service",
+			"donation_id": id,
+		}).WithError(err).Error("failed to activate donation")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengaktifkan donasi", nil, nil)
+	}
+
+	s.logService.CreateLog(ctx, nil, "UPDATE", "donation", id, donation.toAdminDonationProgramResponse(), updateData)
+	return pkg.NewResponse(http.StatusOK, "Donasi berhasil diaktifkan", nil, nil)
+}
+
+func (s *service) UpdateArchivedDonationProgram(ctx context.Context, id string) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	if _, err := uuid.Parse(id); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID donasi tidak valid"}, nil)
+	}
+
+	donation, err := s.repo.FindOneDonationProgram(ctx, map[string]interface{}{"id": id})
+	if err != nil {
+		return pkg.NewResponse(http.StatusNotFound, "Donasi tidak ditemukan", nil, nil)
+	}
+
+	if donation.Status == StatusArchived {
+		return pkg.NewResponse(http.StatusOK, "Donasi sudah diarsipkan", nil, nil)
+	}
+
+	updateData := map[string]interface{}{
+		"status":     StatusArchived,
+		"updated_at": time.Now(),
+	}
+
+	if err := s.repo.UpdateDonationProgram(ctx, id, updateData); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":   "donation.service",
+			"donation_id": id,
+		}).WithError(err).Error("failed to archive donation")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengarsipkan donasi", nil, nil)
+	}
+
+	s.logService.CreateLog(ctx, nil, "UPDATE", "donation", id, donation.toAdminDonationProgramResponse(), updateData)
+	return pkg.NewResponse(http.StatusOK, "Donasi berhasil diarsipkan", nil, nil)
 }
 
 func (s *service) UpdateExpiredDonationProgram(ctx context.Context) error {

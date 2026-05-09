@@ -2,6 +2,7 @@ package donation_program_expense
 
 import (
 	"context"
+	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
@@ -76,7 +77,17 @@ func (r *repo) CreateDonationProgramExpense(ctx context.Context, expense *Donati
 }
 
 func (r *repo) DeleteDonationProgramExpense(ctx context.Context, donationProgramExpenseID string) error {
-	return r.Conn.WithContext(ctx).Where("id = ?", donationProgramExpenseID).Delete(&DonationProgramExpense{}).Error
+	return r.Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("id = ?", donationProgramExpenseID).Delete(&DonationProgramExpense{}).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Table("finance_records").Where("source_id = ? AND source_type = ?", donationProgramExpenseID, "expense").Update("deleted_at", time.Now()).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (r *repo) GetTotalExpenseByDonationProgramID(ctx context.Context, donationProgramID string) (float64, error) {

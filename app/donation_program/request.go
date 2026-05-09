@@ -2,7 +2,6 @@ package donation_program
 
 import (
 	"mime/multipart"
-	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 )
@@ -14,8 +13,8 @@ type DonationProgramRequest struct {
 	Description string                `json:"description" form:"description"`
 	FundTarget  float64               `json:"fundTarget" form:"fundTarget"`
 	Status      Status                `json:"status" form:"status"`
-	StartDate   time.Time             `json:"startDate" form:"startDate" time_format:"2006-01-02"`
-	EndDate     time.Time             `json:"endDate" form:"endDate" time_format:"2006-01-02"`
+	StartDate   string                `json:"startDate" form:"startDate"`
+	EndDate     string                `json:"endDate" form:"endDate"`
 }
 type DonationProgramQueryParams struct {
 	Search   string   `form:"search"`

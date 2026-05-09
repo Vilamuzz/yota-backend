@@ -7,6 +7,7 @@ import (
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
+	"github.com/sirupsen/logrus"
 )
 
 type Service interface {
@@ -33,23 +34,27 @@ func (s *service) CreateAmbulance(ctx context.Context, payload CreateAmbulanceRe
 
 	errValidation := make(map[string]string)
 	if payload.Image == nil {
-		errValidation["image"] = "Image is required"
+		errValidation["image"] = "Gambar wajib diisi"
 	}
 	if payload.PlateNumber == "" {
-		errValidation["plate_number"] = "Plate number is required"
+		errValidation["plateNumber"] = "Nomor plat wajib diisi"
 	}
 	if payload.Phone == "" {
-		errValidation["phone"] = "Phone is required"
+		errValidation["phone"] = "Nomor telepon wajib diisi"
 	}
 	if len(errValidation) > 0 {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
 	var imageURL string
 	if payload.Image != nil {
 		uploadedURL, err := s.s3Client.UploadFile(ctx, payload.Image, "ambulances")
 		if err != nil {
-			return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload image", nil, nil)
+			logrus.WithFields(logrus.Fields{
+				"component": "ambulance.service",
+				"plate":     payload.PlateNumber,
+			}).WithError(err).Error("failed to upload ambulance image")
+			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah gambar ambulans", nil, nil)
 		}
 		imageURL = uploadedURL
 	}
@@ -64,9 +69,9 @@ func (s *service) CreateAmbulance(ctx context.Context, payload CreateAmbulanceRe
 	}
 
 	if err := s.repo.Create(ctx, ambulance); err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create ambulance", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat data ambulans", nil, nil)
 	}
-	return pkg.NewResponse(http.StatusOK, "Ambulance created successfully", nil, nil)
+	return pkg.NewResponse(http.StatusOK, "Ambulans berhasil dibuat", nil, nil)
 }
 
 func (s *service) FindAmbulanceById(ctx context.Context, id string) pkg.Response {
@@ -74,9 +79,9 @@ func (s *service) FindAmbulanceById(ctx context.Context, id string) pkg.Response
 	defer cancel()
 	ambulance, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to find ambulance", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menemukan data ambulans", nil, nil)
 	}
-	return pkg.NewResponse(http.StatusOK, "Ambulance found successfully", nil, ambulance)
+	return pkg.NewResponse(http.StatusOK, "Berhasil menemukan data ambulans", nil, ambulance)
 }
 
 func (s *service) ListAmbulance(ctx context.Context, queryParams AmbulanceQueryParams) pkg.Response {
@@ -99,7 +104,7 @@ func (s *service) ListAmbulance(ctx context.Context, queryParams AmbulanceQueryP
 
 	ambulances, err := s.repo.FindAll(ctx, options)
 	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to find ambulances", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data ambulans", nil, nil)
 	}
 	hasNext := len(ambulances) > queryParams.Limit
 	if hasNext {
@@ -117,7 +122,7 @@ func (s *service) ListAmbulance(ctx context.Context, queryParams AmbulanceQueryP
 		prevCursor = pkg.EncodeCursor(firstAmbulance.CreatedAt, firstAmbulance.ID.String())
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, toAmbulanceListResponse(ambulances, pkg.CursorPagination{
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, toAmbulanceListResponse(ambulances, pkg.CursorPagination{
 		NextCursor: nextCursor,
 		PrevCursor: prevCursor,
 		Limit:      queryParams.Limit,
@@ -129,7 +134,7 @@ func (s *service) UpdateAmbulance(ctx context.Context, id string, payload Update
 	defer cancel()
 	ambulance, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to find ambulance", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menemukan data ambulans", nil, nil)
 	}
 
 	updateData := make(map[string]interface{})
@@ -140,29 +145,33 @@ func (s *service) UpdateAmbulance(ctx context.Context, id string, payload Update
 		updateData["phone"] = payload.Phone
 	}
 	if payload.Image != nil {
-		objectName := s3_pkg.ExtractObjectNameFromURL(ambulance.Image)
-		if objectName != "" {
-			_ = s.s3Client.DeleteFile(ctx, objectName)
-		}
-
 		uploadedURL, err := s.s3Client.UploadFile(ctx, payload.Image, "ambulances")
 		if err != nil {
-			return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload image", nil, nil)
+			logrus.WithFields(logrus.Fields{
+				"component": "ambulance.service",
+				"id":        id,
+			}).WithError(err).Error("failed to upload new ambulance image")
+			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah gambar baru ambulans", nil, nil)
+		}
+
+		if ambulance.Image != "" {
+			oldObjectName := s3_pkg.ExtractObjectNameFromURL(ambulance.Image)
+			_ = s.s3Client.DeleteFile(ctx, oldObjectName)
 		}
 		updateData["image"] = uploadedURL
 	}
 
 	if err := s.repo.Update(ctx, id, updateData); err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update ambulance", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui data ambulans", nil, nil)
 	}
-	return pkg.NewResponse(http.StatusOK, "Ambulance updated successfully", nil, nil)
+	return pkg.NewResponse(http.StatusOK, "Data ambulans berhasil diperbarui", nil, nil)
 }
 
 func (s *service) DeleteAmbulance(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 	if err := s.repo.Delete(ctx, id); err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to delete ambulance", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menghapus data ambulans", nil, nil)
 	}
-	return pkg.NewResponse(http.StatusOK, "Ambulance deleted successfully", nil, nil)
+	return pkg.NewResponse(http.StatusOK, "Data ambulans berhasil dihapus", nil, nil)
 }

@@ -1,4 +1,4 @@
-package ambulance_request
+package ambulance_service_request
 
 import (
 	"time"
@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type AmbulanceRequest struct {
+type AmbulanceServiceRequest struct {
 	ID               uuid.UUID `json:"id" gorm:"primaryKey"`
 	AccountID        uuid.UUID `json:"accountId" gorm:"not null"`
 	ApplicantName    string    `json:"applicantName" gorm:"not null"`

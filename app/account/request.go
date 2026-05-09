@@ -14,11 +14,11 @@ type CreateAccountRequest struct {
 }
 
 type UpdateUserProfileRequest struct {
-	Username             string                `json:"username" form:"username"`
-	Email                string                `json:"email" form:"email"`
-	DefaultAccountRoleID int                   `json:"defaultAccountRoleId" form:"defaultAccountRoleId"`
-	Phone                string                `json:"phone" form:"phone"`
-	Address              string                `json:"address" form:"address"`
+	Username             string `json:"username" form:"username"`
+	Email                string `json:"email" form:"email"`
+	DefaultAccountRoleID int    `json:"defaultAccountRoleId" form:"defaultAccountRoleId"`
+	Phone                string `json:"phone" form:"phone"`
+	Address              string `json:"address" form:"address"`
 	ProfilePicture       *multipart.FileHeader `json:"profilePicture" form:"profilePicture" swaggerignore:"true"`
 }
 

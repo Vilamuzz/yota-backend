@@ -1,4 +1,4 @@
-package ambulance_request
+package ambulance_service_request
 
 import (
 	"context"
@@ -11,10 +11,10 @@ import (
 )
 
 type Service interface {
-	ListAmbulanceRequest(ctx context.Context, queryParams AmbulanceRequestQueryParams) pkg.Response
-	GetAmbulanceRequestByID(ctx context.Context, id string) pkg.Response
-	CreateAmbulanceRequest(ctx context.Context, payload CreateAmbulanceRequest) pkg.Response
-	UpdateAmbulanceRequest(ctx context.Context, id string, payload UpdateAmbulanceRequest) pkg.Response
+	ListAmbulanceServiceRequest(ctx context.Context, queryParams AmbulanceServiceRequestQueryParams) pkg.Response
+	GetAmbulanceServiceRequestByID(ctx context.Context, id string) pkg.Response
+	CreateAmbulanceServiceRequest(ctx context.Context, payload CreateAmbulanceServiceRequest) pkg.Response
+	UpdateAmbulanceServiceRequest(ctx context.Context, id string, payload UpdateAmbulanceServiceRequest) pkg.Response
 }
 
 type service struct {
@@ -26,7 +26,7 @@ func NewService(repo Repository, timeout time.Duration) Service {
 	return &service{repo: repo, timeout: timeout}
 }
 
-func (s *service) ListAmbulanceRequest(ctx context.Context, queryParams AmbulanceRequestQueryParams) pkg.Response {
+func (s *service) ListAmbulanceServiceRequest(ctx context.Context, queryParams AmbulanceServiceRequestQueryParams) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 	if queryParams.Limit == 0 {
@@ -42,71 +42,71 @@ func (s *service) ListAmbulanceRequest(ctx context.Context, queryParams Ambulanc
 		options["prev_cursor"] = queryParams.PrevCursor
 	}
 
-	ambulanceRequests, err := s.repo.FindAll(ctx, options)
+	ambulanceServiceRequests, err := s.repo.FindAll(ctx, options)
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to list ambulance requests", nil, nil)
 	}
-	hasNext := len(ambulanceRequests) > queryParams.Limit
+	hasNext := len(ambulanceServiceRequests) > queryParams.Limit
 	if hasNext {
-		ambulanceRequests = ambulanceRequests[:queryParams.Limit]
+		ambulanceServiceRequests = ambulanceServiceRequests[:queryParams.Limit]
 	}
 
 	var nextCursor, prevCursor string
 	hasPrev := queryParams.PrevCursor != ""
-	if hasNext && len(ambulanceRequests) > 0 {
-		lastRequest := ambulanceRequests[len(ambulanceRequests)-1]
+	if hasNext && len(ambulanceServiceRequests) > 0 {
+		lastRequest := ambulanceServiceRequests[len(ambulanceServiceRequests)-1]
 		nextCursor = pkg.EncodeCursor(lastRequest.CreatedAt, lastRequest.ID.String())
 	}
-	if hasPrev && len(ambulanceRequests) > 0 {
-		firstRequest := ambulanceRequests[0]
+	if hasPrev && len(ambulanceServiceRequests) > 0 {
+		firstRequest := ambulanceServiceRequests[0]
 		prevCursor = pkg.EncodeCursor(firstRequest.CreatedAt, firstRequest.ID.String())
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, toAmbulanceRequestsToListResponse(ambulanceRequests, pkg.CursorPagination{
+	return pkg.NewResponse(http.StatusOK, "Success", nil, toAmbulanceServiceRequestsToListResponse(ambulanceServiceRequests, pkg.CursorPagination{
 		NextCursor: nextCursor,
 		PrevCursor: prevCursor,
 		Limit:      queryParams.Limit,
 	}))
 }
 
-func (s *service) GetAmbulanceRequestByID(ctx context.Context, id string) pkg.Response {
+func (s *service) GetAmbulanceServiceRequestByID(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
-	ambulanceRequest, err := s.repo.FindByID(ctx, id)
+	ambulanceServiceRequest, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if err.Error() == gorm.ErrRecordNotFound.Error() {
 			return pkg.NewResponse(http.StatusNotFound, "Ambulance request not found", nil, nil)
 		}
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to get ambulance request", nil, nil)
 	}
-	return pkg.NewResponse(http.StatusOK, "Success", nil, ambulanceRequest.toAmbulanceRequestResponse())
+	return pkg.NewResponse(http.StatusOK, "Success", nil, ambulanceServiceRequest.toAmbulanceServiceRequestResponse())
 }
 
-func (s *service) CreateAmbulanceRequest(ctx context.Context, payload CreateAmbulanceRequest) pkg.Response {
+func (s *service) CreateAmbulanceServiceRequest(ctx context.Context, payload CreateAmbulanceServiceRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	errValidation := make(map[string]string)
 	if payload.ApplicantName == "" {
-		errValidation["applicant_name"] = "Applicant name is required"
+		errValidation["applicantName"] = "Applicant name is required"
 	}
 	if payload.ApplicantPhone == "" {
-		errValidation["applicant_phone"] = "Applicant phone is required"
+		errValidation["applicantPhone"] = "Applicant phone is required"
 	}
 	if payload.ApplicantAddress == "" {
-		errValidation["applicant_address"] = "Applicant address is required"
+		errValidation["applicantAddress"] = "Applicant address is required"
 	}
 	if payload.RequestDate == "" {
-		errValidation["request_date"] = "Request date is required"
+		errValidation["requestDate"] = "Request date is required"
 	}
 	if payload.RequestReason == "" {
-		errValidation["request_reason"] = "Request reason is required"
+		errValidation["requestReason"] = "Request reason is required"
 	}
 	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
 
-	request := AmbulanceRequest{
+	request := AmbulanceServiceRequest{
 		ID:               uuid.New(),
 		AccountID:        uuid.MustParse(payload.AccountID),
 		ApplicantName:    payload.ApplicantName,
@@ -123,7 +123,7 @@ func (s *service) CreateAmbulanceRequest(ctx context.Context, payload CreateAmbu
 	return pkg.NewResponse(http.StatusOK, "Ambulance request created successfully", nil, nil)
 }
 
-func (s *service) UpdateAmbulanceRequest(ctx context.Context, id string, payload UpdateAmbulanceRequest) pkg.Response {
+func (s *service) UpdateAmbulanceServiceRequest(ctx context.Context, id string, payload UpdateAmbulanceServiceRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -147,7 +147,7 @@ func (s *service) UpdateAmbulanceRequest(ctx context.Context, id string, payload
 		updateData["status"] = payload.Status
 	}
 	if payload.Status == string(StatusRejected) && payload.RejectionReason == "" {
-		errValidation["rejection_reason"] = "Rejection reason is required when status is rejected"
+		errValidation["rejectionReason"] = "Rejection reason is required when status is rejected"
 	} else if payload.Status == string(StatusRejected) {
 		updateData["rejection_reason"] = payload.RejectionReason
 	}

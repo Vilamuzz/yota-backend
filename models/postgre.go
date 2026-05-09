@@ -4,7 +4,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/account"
 	"github.com/Vilamuzz/yota-backend/app/ambulance"
 	"github.com/Vilamuzz/yota-backend/app/ambulance_history"
-	"github.com/Vilamuzz/yota-backend/app/ambulance_request"
+	"github.com/Vilamuzz/yota-backend/app/ambulance_service_request"
 	"github.com/Vilamuzz/yota-backend/app/auth"
 	"github.com/Vilamuzz/yota-backend/app/donation_program"
 	"github.com/Vilamuzz/yota-backend/app/donation_program_expense"
@@ -60,7 +60,7 @@ func GetAllModels() []interface{} {
 		&gallery.Gallery{},
 		&media.Media{},
 		&ambulance.Ambulance{},
-		&ambulance_request.AmbulanceRequest{},
+		&ambulance_service_request.AmbulanceServiceRequest{},
 		&ambulance_history.AmbulanceHistory{},
 	}
 }

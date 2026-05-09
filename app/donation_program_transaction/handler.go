@@ -40,6 +40,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 		admin.GET("/:id/transactions", h.GetDonationProgramTransactionList)
 		admin.GET("/transactions/:id", h.GetDonationProgramTransactionByID)
 		admin.POST("/:id/transactions", h.CreateOfflineDonationProgramTransaction)
+		admin.POST("/transactions/:id/cancel", h.CancelOfflineDonationProgramTransaction)
 	}
 }
 
@@ -143,6 +144,14 @@ func (h *handler) CreateDonationProgramTransaction(c *gin.Context) {
 	}
 
 	res := h.service.CreateDonationProgramTransaction(ctx, accountID, donationSlug, req)
+	c.JSON(res.Status, res)
+}
+
+func (h *handler) CancelOfflineDonationProgramTransaction(c *gin.Context) {
+	ctx := c.Request.Context()
+	transactionID := c.Param("id")
+
+	res := h.service.CancelOfflineDonationProgramTransaction(ctx, transactionID)
 	c.JSON(res.Status, res)
 }
 

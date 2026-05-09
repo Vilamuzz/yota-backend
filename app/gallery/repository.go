@@ -4,16 +4,16 @@ import (
 	"context"
 	"time"
 
+	"github.com/Vilamuzz/yota-backend/app/media"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
 )
 
 type Repository interface {
-	FindAll(ctx context.Context, options map[string]interface{}) ([]Gallery, error)
-	FindByID(ctx context.Context, options map[string]interface{}) (*Gallery, error)
-	CreateOneGallery(ctx context.Context, gallery *Gallery) error
+	FindAllGalleries(ctx context.Context, options map[string]interface{}) ([]Gallery, error)
+	FindOneGallery(ctx context.Context, options map[string]interface{}) (*Gallery, error)
+	CreateGallery(ctx context.Context, gallery *Gallery) error
 	UpdateGallery(ctx context.Context, id string, updateData map[string]interface{}) error
-	SoftDeleteGallery(ctx context.Context, id string) error
 	DeleteGallery(ctx context.Context, id string) error
 	IncrementViews(ctx context.Context, id string) error
 }
@@ -28,16 +28,16 @@ func NewRepository(conn *gorm.DB) Repository {
 	}
 }
 
-func (r *repository) FindAll(ctx context.Context, options map[string]interface{}) ([]Gallery, error) {
+func (r *repository) FindAllGalleries(ctx context.Context, options map[string]interface{}) ([]Gallery, error) {
 	var galleries []Gallery
-	query := r.Conn.WithContext(ctx).Preload("Media").Preload("CategoryMedia").Where("deleted_at IS NULL")
+	query := r.Conn.WithContext(ctx).Preload("Media").Where("deleted_at IS NULL")
 
 	if categoryID, ok := options["category_id"]; ok && categoryID != 0 {
 		query = query.Where("category_id = ?", categoryID)
 	}
 
-	if published, ok := options["published"]; ok && published.(bool) {
-		query = query.Where("published_at IS NOT NULL")
+	if status, ok := options["status"]; ok && status != "" {
+		query = query.Where("status = ?", status)
 	}
 
 	if nextCursor, ok := options["next_cursor"]; ok && nextCursor != "" {
@@ -70,11 +70,17 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 	return galleries, nil
 }
 
-func (r *repository) FindByID(ctx context.Context, options map[string]interface{}) (*Gallery, error) {
+func (r *repository) FindOneGallery(ctx context.Context, options map[string]interface{}) (*Gallery, error) {
 	var gallery Gallery
-	query := r.Conn.WithContext(ctx).Preload("Media").Preload("CategoryMedia").Where("id = ?", options["id"])
+	query := r.Conn.WithContext(ctx).Preload("Media").Where("deleted_at IS NULL")
+	if id, ok := options["id"]; ok && id != "" {
+		query = query.Where("id = ?", id)
+	}
+	if slug, ok := options["slug"]; ok && slug != "" {
+		query = query.Where("slug = ?", slug)
+	}
 	if published, ok := options["published"]; ok && published.(bool) {
-		query = query.Where("published_at IS NOT NULL")
+		query = query.Where("status = ?", media.MediaStatusPublished)
 	}
 	if err := query.First(&gallery).Error; err != nil {
 		return nil, err
@@ -82,7 +88,7 @@ func (r *repository) FindByID(ctx context.Context, options map[string]interface{
 	return &gallery, nil
 }
 
-func (r *repository) CreateOneGallery(ctx context.Context, gallery *Gallery) error {
+func (r *repository) CreateGallery(ctx context.Context, gallery *Gallery) error {
 	return r.Conn.WithContext(ctx).Create(gallery).Error
 }
 
@@ -90,13 +96,8 @@ func (r *repository) UpdateGallery(ctx context.Context, id string, updateData ma
 	return r.Conn.WithContext(ctx).Model(&Gallery{}).Where("id = ?", id).Updates(updateData).Error
 }
 
-func (r *repository) SoftDeleteGallery(ctx context.Context, id string) error {
-	return r.Conn.WithContext(ctx).Model(&Gallery{}).Where("id = ?", id).
-		Update("deleted_at", time.Now()).Error
-}
-
 func (r *repository) DeleteGallery(ctx context.Context, id string) error {
-	return r.Conn.WithContext(ctx).Where("id = ?", id).Delete(&Gallery{}).Error
+	return r.Conn.WithContext(ctx).Model(&Gallery{}).Where("id = ?", id).Update("deleted_at", time.Now()).Error
 }
 
 func (r *repository) IncrementViews(ctx context.Context, id string) error {

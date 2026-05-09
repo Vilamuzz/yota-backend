@@ -6,6 +6,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/Vilamuzz/yota-backend/pkg/enum"
+	jwt_pkg "github.com/Vilamuzz/yota-backend/pkg/jwt"
 	"github.com/gin-gonic/gin"
 )
 
@@ -100,7 +101,10 @@ func (h *handler) CreateFosterChildrenExpense(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
 		return
 	}
-	resp := h.service.CreateFosterChildrenExpense(ctx, fosterChildrenID, &req)
+	userData, _ := c.Get("user_data")
+	claims := userData.(jwt_pkg.UserJWTClaims)
+
+	resp := h.service.CreateFosterChildrenExpense(ctx, claims.AccountID, fosterChildrenID, &req)
 	c.JSON(resp.Status, resp)
 }
 
@@ -119,6 +123,9 @@ func (h *handler) DeleteFosterChildrenExpense(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	id := c.Param("id")
-	resp := h.service.DeleteFosterChildrenExpense(ctx, id)
+	userData, _ := c.Get("user_data")
+	claims := userData.(jwt_pkg.UserJWTClaims)
+
+	resp := h.service.DeleteFosterChildrenExpense(ctx, claims.AccountID, id)
 	c.JSON(resp.Status, resp)
 }

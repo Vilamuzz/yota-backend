@@ -25,19 +25,19 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 }
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
+	r.GET("/roles", h.GetRoleList)
+
 	me := r.Group("/me")
 	me.Use(h.middleware.AuthRequired())
 	{
 		me.GET("", h.GetMe)
 		me.PATCH("/profile", h.UpdateUserProfile)
 		me.PATCH("/password", h.UpdatePassword)
-		me.PATCH("/roles/default")
 	}
 
 	admin := r.Group("/admin/accounts")
 	admin.Use(h.middleware.RequireRoles(enum.RoleSuperadmin))
 	{
-		admin.GET("/roles", h.GetRoleList)
 		admin.GET("", h.GetAccountList)
 		admin.GET("/:accountId", h.GetAccountByID)
 		admin.PATCH("/:accountId/ban", h.BanAccount)
@@ -68,7 +68,7 @@ func (h *handler) GetAccountList(c *gin.Context) {
 	ctx := c.Request.Context()
 	var queryParam AccountQueryParam
 	if err := c.ShouldBindQuery(&queryParam); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Permintaan tidak valid", nil, nil))
 		return
 	}
 	res := h.service.GetAccountList(ctx, queryParam)
@@ -110,7 +110,7 @@ func (h *handler) BanAccount(c *gin.Context) {
 	accountID := c.Param("accountId")
 	var req SetAccountBanStatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Permintaan tidak valid", nil, nil))
 		return
 	}
 	res := h.service.SetAccountBanStatus(ctx, accountID, req)
@@ -156,7 +156,7 @@ func (h *handler) UpdateAccountRole(c *gin.Context) {
 	roleID, _ := strconv.Atoi(c.Param("roleId"))
 	req := UpdateAccountRoleRequest{}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Permintaan tidak valid", nil, nil))
 		return
 	}
 	res := h.service.UpdateAccountRole(ctx, accountID, roleID, req)
@@ -178,13 +178,13 @@ func (h *handler) GetMe(c *gin.Context) {
 
 	userData, exists := c.Get("user_data")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "User not authenticated", nil, nil))
+		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "Pengguna tidak terautentikasi", nil, nil))
 		return
 	}
 
 	claims, ok := userData.(jwt_pkg.UserJWTClaims)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Invalid user data", nil, nil))
+		c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Data pengguna tidak valid", nil, nil))
 		return
 	}
 
@@ -200,8 +200,12 @@ func (h *handler) GetMe(c *gin.Context) {
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json
-// @Param payload formData UpdateUserProfileRequest true "Update Profile"
-// @Param profile_picture formData file false "Profile Picture"
+// @Param username formData string false "Username"
+// @Param email formData string false "Email"
+// @Param phone formData string false "Phone"
+// @Param address formData string false "Address"
+// @Param defaultAccountRoleId formData int false "Default Role ID"
+// @Param profilePicture formData file false "Profile Picture"
 // @Success 200 {object} pkg.Response
 // @Router /api/me/profile [patch]
 func (h *handler) UpdateUserProfile(c *gin.Context) {
@@ -209,17 +213,17 @@ func (h *handler) UpdateUserProfile(c *gin.Context) {
 
 	userData, exists := c.Get("user_data")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "User not authenticated", nil, nil))
+		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "Pengguna tidak terautentikasi", nil, nil))
 		return
 	}
 	claims, ok := userData.(jwt_pkg.UserJWTClaims)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Invalid user data", nil, nil))
+		c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Data pengguna tidak valid", nil, nil))
 		return
 	}
 	var req UpdateUserProfileRequest
 	if err := c.ShouldBind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Permintaan tidak valid: "+err.Error(), nil, nil))
 		return
 	}
 	res := h.service.UpdateUserProfile(ctx, claims.AccountID, req)
@@ -241,17 +245,17 @@ func (h *handler) UpdatePassword(c *gin.Context) {
 	ctx := c.Request.Context()
 	userData, exists := c.Get("user_data")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "User not authenticated", nil, nil))
+		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "Pengguna tidak terautentikasi", nil, nil))
 		return
 	}
 	claims, ok := userData.(jwt_pkg.UserJWTClaims)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Invalid user data", nil, nil))
+		c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Data pengguna tidak valid", nil, nil))
 		return
 	}
 	var req UpdatePasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Permintaan tidak valid", nil, nil))
 		return
 	}
 	res := h.service.UpdatePassword(ctx, claims.AccountID, req)

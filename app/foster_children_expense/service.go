@@ -17,8 +17,8 @@ import (
 type Service interface {
 	GetFosterChildrenExpenseList(ctx context.Context, fosterChildrenID string, params FosterChildrenExpenseQueryParams) pkg.Response
 	GetFosterChildrenExpenseByID(ctx context.Context, fosterChildrenExpenseID string) pkg.Response
-	CreateFosterChildrenExpense(ctx context.Context, fosterChildrenID string, payload *FosterChildrenExpenseRequest) pkg.Response
-	DeleteFosterChildrenExpense(ctx context.Context, fosterChildrenExpenseID string) pkg.Response
+	CreateFosterChildrenExpense(ctx context.Context, accountID, fosterChildrenID string, payload *FosterChildrenExpenseRequest) pkg.Response
+	DeleteFosterChildrenExpense(ctx context.Context, accountID, fosterChildrenExpenseID string) pkg.Response
 }
 
 type service struct {
@@ -128,7 +128,7 @@ func (s *service) GetFosterChildrenExpenseByID(ctx context.Context, id string) p
 	return pkg.NewResponse(http.StatusOK, "Expense found successfully", nil, expense.toFosterChildrenExpenseDetailResponse())
 }
 
-func (s *service) CreateFosterChildrenExpense(ctx context.Context, fosterChildrenID string, payload *FosterChildrenExpenseRequest) pkg.Response {
+func (s *service) CreateFosterChildrenExpense(ctx context.Context, accountID, fosterChildrenID string, payload *FosterChildrenExpenseRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -169,6 +169,7 @@ func (s *service) CreateFosterChildrenExpense(ctx context.Context, fosterChildre
 		ExpenseDate:      payload.ExpenseDate,
 		Note:             payload.Note,
 		ProofFile:        proofFileURL,
+		CreatedBy:        uuid.MustParse(accountID),
 		CreatedAt:        now,
 		UpdatedAt:        now,
 	}
@@ -193,12 +194,12 @@ func (s *service) CreateFosterChildrenExpense(ctx context.Context, fosterChildre
 		CreatedAt:       now,
 	})
 
-	s.logService.CreateLog(ctx, nil, "CREATE", "foster_children_expense", expense.ID.String(), nil, expense.toFosterChildrenExpenseDetailResponse())
+	s.logService.CreateLog(ctx, &accountID, "CREATE", "foster_children_expense", expense.ID.String(), nil, expense.toFosterChildrenExpenseDetailResponse())
 
 	return pkg.NewResponse(http.StatusCreated, "Expense created successfully", nil, nil)
 }
 
-func (s *service) DeleteFosterChildrenExpense(ctx context.Context, fosterChildrenExpenseID string) pkg.Response {
+func (s *service) DeleteFosterChildrenExpense(ctx context.Context, accountID, fosterChildrenExpenseID string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -228,7 +229,7 @@ func (s *service) DeleteFosterChildrenExpense(ctx context.Context, fosterChildre
 	// Auto-delete finance record (outflow)
 	_ = s.financeRepo.Delete(ctx, fosterChildrenExpenseID)
 
-	s.logService.CreateLog(ctx, nil, "DELETE", "foster_children_expense", fosterChildrenExpenseID, expense.toFosterChildrenExpenseDetailResponse(), nil)
+	s.logService.CreateLog(ctx, &accountID, "DELETE", "foster_children_expense", fosterChildrenExpenseID, expense.toFosterChildrenExpenseDetailResponse(), nil)
 
 	return pkg.NewResponse(http.StatusOK, "Expense deleted successfully", nil, nil)
 }

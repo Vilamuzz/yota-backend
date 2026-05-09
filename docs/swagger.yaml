@@ -107,7 +107,7 @@ definitions:
       serviceCategory:
         $ref: '#/definitions/ambulance_history.ServiceCategory'
     type: object
-  ambulance_request.UpdateAmbulanceRequest:
+  ambulance_service_request.UpdateAmbulanceServiceRequest:
     properties:
       rejectionReason:
         type: string
@@ -159,13 +159,13 @@ definitions:
     type: object
   donation_program.Category:
     enum:
-    - education
-    - health
-    - environment
-    - social
-    - disaster
-    - humanity
-    - other
+    - pendidikan
+    - kesehatan
+    - lingkungan
+    - sosial
+    - bencana
+    - kemanusiaan
+    - lainnya
     type: string
     x-enum-varnames:
     - CategoryEducation
@@ -177,16 +177,18 @@ definitions:
     - CategoryOther
   donation_program.Status:
     enum:
-    - active
     - draft
-    - complete
+    - active
+    - completed
     - expired
+    - archived
     type: string
     x-enum-varnames:
-    - StatusActive
     - StatusDraft
+    - StatusActive
     - StatusCompleted
     - StatusExpired
+    - StatusArchived
   donation_program_transaction.CreateDonationProgramTransactionRequest:
     properties:
       donorEmail:
@@ -328,83 +330,39 @@ definitions:
       transactionStatus:
         type: string
     type: object
-  gallery.GalleryResponse:
+  gallery.GalleryMediaRequest:
+    properties:
+      alt_text:
+        type: string
+      id:
+        type: string
+      object_key:
+        type: string
+      order:
+        type: integer
+    type: object
+  gallery.GalleryRequest:
     properties:
       category:
         $ref: '#/definitions/media.MediaCategory'
       description:
-        type: string
-      id:
         type: string
       media:
         items:
-          $ref: '#/definitions/media.MediaResponse'
+          $ref: '#/definitions/gallery.GalleryMediaRequest'
         type: array
-      publishedAt:
-        type: string
-      slug:
-        type: string
+      status:
+        $ref: '#/definitions/media.MediaStatus'
       title:
         type: string
-      views:
-        type: integer
-    type: object
-  gallery.PublishedGalleryListResponse:
-    properties:
-      galleries:
-        items:
-          $ref: '#/definitions/gallery.PublishedGalleryListResponseItem'
-        type: array
-      pagination:
-        $ref: '#/definitions/pkg.CursorPagination'
-    type: object
-  gallery.PublishedGalleryListResponseItem:
-    properties:
-      category:
-        $ref: '#/definitions/media.MediaCategory'
-      description:
-        type: string
-      id:
-        type: string
-      publishedAt:
-        type: string
-      slug:
-        type: string
-      thumbnailUrl:
-        type: string
-      title:
-        type: string
-      views:
-        type: integer
-    type: object
-  gallery.PublishedGalleryResponse:
-    properties:
-      category:
-        $ref: '#/definitions/media.MediaCategory'
-      description:
-        type: string
-      id:
-        type: string
-      media:
-        items:
-          $ref: '#/definitions/media.PublishedMediaResponse'
-        type: array
-      publishedAt:
-        type: string
-      slug:
-        type: string
-      title:
-        type: string
-      views:
-        type: integer
     type: object
   media.MediaCategory:
     enum:
-    - Kegiatan Sosial
-    - Bencana Alam
-    - Kesehatan
-    - Lingkungan
-    - Lainnya
+    - kegiatan sosial
+    - bencana alam
+    - kesehatan
+    - lingkungan
+    - lainnya
     type: string
     x-enum-varnames:
     - SocialEvent
@@ -412,32 +370,16 @@ definitions:
     - Health
     - Environment
     - Others
-  media.MediaResponse:
-    properties:
-      altText:
-        type: string
-      galleryId:
-        type: string
-      id:
-        type: string
-      newsId:
-        type: string
-      order:
-        type: integer
-      type:
-        type: string
-      url:
-        type: string
-    type: object
-  media.PublishedMediaResponse:
-    properties:
-      altText:
-        type: string
-      order:
-        type: integer
-      url:
-        type: string
-    type: object
+  media.MediaStatus:
+    enum:
+    - draft
+    - published
+    - archived
+    type: string
+    x-enum-varnames:
+    - MediaStatusDraft
+    - MediaStatusPublished
+    - MediaStatusArchived
   pkg.CursorPagination:
     properties:
       limit:
@@ -572,6 +514,28 @@ definitions:
       grossAmount:
         type: number
       socialProgramInvoiceId:
+        type: string
+    type: object
+  upload.PresignRequest:
+    properties:
+      content_type:
+        type: string
+      filename:
+        type: string
+      module:
+        type: string
+    required:
+    - content_type
+    - filename
+    - module
+    type: object
+  upload.PresignResponse:
+    properties:
+      expires_at:
+        type: string
+      object_key:
+        type: string
+      presigned_url:
         type: string
     type: object
 info:
@@ -719,7 +683,7 @@ paths:
       summary: Update an existing ambulance history record
       tags:
       - Ambulance History
-  /ambulance-requests:
+  /ambulance-service-requests:
     get:
       consumes:
       - application/json
@@ -756,8 +720,8 @@ paths:
       - BearerAuth: []
       summary: List ambulance requests
       tags:
-      - Ambulance Requests
-  /ambulance-requests/{id}:
+      - Ambulance Service Requests
+  /ambulance-service-requests/{id}:
     get:
       consumes:
       - application/json
@@ -791,7 +755,7 @@ paths:
       - BearerAuth: []
       summary: Get ambulance request by ID
       tags:
-      - Ambulance Requests
+      - Ambulance Service Requests
     put:
       consumes:
       - application/json
@@ -804,10 +768,10 @@ paths:
         type: string
       - description: Ambulance request details to update
         in: body
-        name: ambulance_request
+        name: ambulance_service_request
         required: true
         schema:
-          $ref: '#/definitions/ambulance_request.UpdateAmbulanceRequest'
+          $ref: '#/definitions/ambulance_service_request.UpdateAmbulanceServiceRequest'
       produces:
       - application/json
       responses:
@@ -831,8 +795,8 @@ paths:
       - BearerAuth: []
       summary: Update ambulance request
       tags:
-      - Ambulance Requests
-  /ambulance-requests/me:
+      - Ambulance Service Requests
+  /ambulance-service-requests/me:
     get:
       consumes:
       - application/json
@@ -870,7 +834,7 @@ paths:
       - BearerAuth: []
       summary: List my ambulance requests
       tags:
-      - Ambulance Requests
+      - Ambulance Service Requests
   /ambulances:
     get:
       consumes:
@@ -1260,13 +1224,13 @@ paths:
         proper role)
       parameters:
       - enum:
-        - education
-        - health
-        - environment
-        - social
-        - disaster
-        - humanity
-        - other
+        - pendidikan
+        - kesehatan
+        - lingkungan
+        - sosial
+        - bencana
+        - kemanusiaan
+        - lainnya
         in: formData
         name: category
         type: string
@@ -1291,18 +1255,20 @@ paths:
         name: startDate
         type: string
       - enum:
-        - active
         - draft
-        - complete
+        - active
+        - completed
         - expired
+        - archived
         in: formData
         name: status
         type: string
         x-enum-varnames:
-        - StatusActive
         - StatusDraft
+        - StatusActive
         - StatusCompleted
         - StatusExpired
+        - StatusArchived
       - in: formData
         name: title
         type: string
@@ -1374,13 +1340,13 @@ paths:
         required: true
         type: string
       - enum:
-        - education
-        - health
-        - environment
-        - social
-        - disaster
-        - humanity
-        - other
+        - pendidikan
+        - kesehatan
+        - lingkungan
+        - sosial
+        - bencana
+        - kemanusiaan
+        - lainnya
         in: formData
         name: category
         type: string
@@ -1405,18 +1371,20 @@ paths:
         name: startDate
         type: string
       - enum:
-        - active
         - draft
-        - complete
+        - active
+        - completed
         - expired
+        - archived
         in: formData
         name: status
         type: string
         x-enum-varnames:
-        - StatusActive
         - StatusDraft
+        - StatusActive
         - StatusCompleted
         - StatusExpired
+        - StatusArchived
       - in: formData
         name: title
         type: string
@@ -1434,6 +1402,54 @@ paths:
       security:
       - BearerAuth: []
       summary: Update Donation Program
+      tags:
+      - Donation Programs
+  /api/admin/donation-programs/{id}/active:
+    patch:
+      consumes:
+      - application/json
+      description: Update an existing donation program to active (requires authentication
+        and proper role)
+      parameters:
+      - description: Donation Program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Active Donation Program
+      tags:
+      - Donation Programs
+  /api/admin/donation-programs/{id}/archive:
+    patch:
+      consumes:
+      - application/json
+      description: Update an existing donation program to archived (requires authentication
+        and proper role)
+      parameters:
+      - description: Donation Program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Archive Donation Program
       tags:
       - Donation Programs
   /api/admin/donation-programs/{id}/expenses:
@@ -2113,6 +2129,367 @@ paths:
       summary: Get Foster Children Transaction by ID
       tags:
       - Foster Children
+  /api/admin/galleries:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all gallery items (requires publication manager
+        or superadmin role)
+      parameters:
+      - description: Filter by category
+        in: query
+        name: category
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Cursor for next page
+        in: query
+        name: nextCursor
+        type: string
+      - description: Cursor for previous page
+        in: query
+        name: prevCursor
+        type: string
+      - description: 'Items per page (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List All Galleries (Protected)
+      tags:
+      - Gallery
+    post:
+      consumes:
+      - application/json
+      description: Create a new gallery item (requires publication manager or superadmin
+        role)
+      parameters:
+      - description: Gallery Data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/gallery.GalleryRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Gallery
+      tags:
+      - Gallery
+  /api/admin/galleries/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a gallery item (requires publication manager or superadmin
+        role)
+      parameters:
+      - description: Gallery ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete Gallery
+      tags:
+      - Gallery
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific gallery item (requires publication
+        manager or superadmin role)
+      parameters:
+      - description: Gallery ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Gallery (Protected)
+      tags:
+      - Gallery
+    put:
+      consumes:
+      - application/json
+      description: Update an existing gallery item (requires publication manager or
+        superadmin role)
+      parameters:
+      - description: Gallery ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Gallery Data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/gallery.GalleryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Gallery
+      tags:
+      - Gallery
+  /api/admin/galleries/{id}/archived:
+    patch:
+      consumes:
+      - application/json
+      description: Update an existing gallery item to archived (requires publication
+        manager or superadmin role)
+      parameters:
+      - description: Gallery ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Archived Gallery
+      tags:
+      - Gallery
+  /api/admin/galleries/{id}/published:
+    patch:
+      consumes:
+      - application/json
+      description: Update an existing gallery item to published (requires publication
+        manager or superadmin role)
+      parameters:
+      - description: Gallery ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Published Gallery
+      tags:
+      - Gallery
+  /api/admin/news/:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all news (requires publication manager or superadmin
+        role)
+      parameters:
+      - description: Filter by category
+        in: query
+        name: category
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Cursor for pagination (encoded string)
+        in: query
+        name: cursor
+        type: string
+      - description: 'Items per page (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List All News (Protected)
+      tags:
+      - News
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create a new news article (requires publication manager or superadmin
+        role)
+      parameters:
+      - description: News Title
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: News Category
+        in: formData
+        name: category
+        required: true
+        type: string
+      - description: News Content
+        in: formData
+        name: content
+        required: true
+        type: string
+      - description: News Status
+        in: formData
+        name: status
+        type: string
+      - description: News Image File
+        in: formData
+        name: image
+        type: file
+      - description: News Image URL (if not uploading file)
+        in: formData
+        name: image_url
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create News
+      tags:
+      - News
+  /api/admin/news/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a news article (requires publication manager or superadmin
+        role)
+      parameters:
+      - description: News ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete News
+      tags:
+      - News
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific news article (requires publication
+        manager or superadmin role)
+      parameters:
+      - description: News ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get News (Protected)
+      tags:
+      - News
+    put:
+      consumes:
+      - multipart/form-data
+      description: Update an existing news article (requires publication manager or
+        superadmin role)
+      parameters:
+      - description: News ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: News Title
+        in: formData
+        name: title
+        type: string
+      - description: News Category
+        in: formData
+        name: category
+        type: string
+      - description: News Content
+        in: formData
+        name: content
+        type: string
+      - description: News Status
+        in: formData
+        name: status
+        type: string
+      - description: News Image File
+        in: formData
+        name: image
+        type: file
+      - description: News Image URL (if not uploading file)
+        in: formData
+        name: image_url
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update News
+      tags:
+      - News
   /api/admin/prayers:
     get:
       consumes:
@@ -2513,6 +2890,35 @@ paths:
       summary: Get Social Program Transaction by ID
       tags:
       - Social Programs
+  /api/admin/upload/presign:
+    post:
+      consumes:
+      - application/json
+      description: Generate a presigned URL for direct file upload to object storage
+      parameters:
+      - description: Presign Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/upload.PresignRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/upload.PresignResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Generate Presigned URL
+      tags:
+      - Upload
   /api/auth/forget-password:
     post:
       consumes:
@@ -2711,7 +3117,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieve a list of published (active) donation programs
+      description: Retrieve a list of donation programs
       parameters:
       - description: Filter by category
         in: query
@@ -2736,14 +3142,14 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/pkg.Response'
-      summary: List Published Donation Programs
+      summary: List Donation Programs
       tags:
       - Donation Programs
   /api/donation-programs/{slug}:
     get:
       consumes:
       - application/json
-      description: Get detailed information of a specific published donation program
+      description: Get detailed information of a specific donation program
       parameters:
       - description: Donation Program Slug
         in: path
@@ -2757,7 +3163,7 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/pkg.Response'
-      summary: Get Published Donation Program by Slug
+      summary: Get Donation Program by Slug
       tags:
       - Donation Programs
   /api/donation-programs/{slug}/prayers:
@@ -2989,20 +3395,24 @@ paths:
       summary: Create Foster Children Candidate
       tags:
       - Foster Children Candidates
-  /api/galleries/:
+  /api/galleries:
     get:
       consumes:
       - application/json
-      description: Retrieve a list of all gallery items (requires publication manager
-        or superadmin role)
+      description: Retrieve a list of published gallery items with cursor-based pagination
+        and optional filters
       parameters:
-      - description: Filter by category ID
+      - description: Filter by category
         in: query
-        name: category_id
-        type: integer
-      - description: Cursor for pagination (encoded string)
+        name: category
+        type: string
+      - description: Cursor for next page
         in: query
-        name: cursor
+        name: nextCursor
+        type: string
+      - description: Cursor for previous page
+        in: query
+        name: prevCursor
         type: string
       - description: 'Items per page (default: 10, max: 100)'
         in: query
@@ -3014,161 +3424,21 @@ paths:
         "200":
           description: OK
           schema:
-            allOf:
-            - $ref: '#/definitions/pkg.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/gallery.PublishedGalleryListResponse'
-              type: object
-      security:
-      - BearerAuth: []
-      summary: List All Galleries (Protected)
-      tags:
-      - Gallery
-    post:
-      consumes:
-      - multipart/form-data
-      description: Create a new gallery item (requires publication manager or superadmin
-        role)
-      parameters:
-      - description: Gallery Title
-        in: formData
-        name: title
-        required: true
-        type: string
-      - description: Gallery Category ID
-        in: formData
-        name: category_id
-        required: true
-        type: integer
-      - description: Gallery Description
-        in: formData
-        name: description
-        required: true
-        type: string
-      - description: Published Status
-        in: formData
-        name: published
-        required: true
-        type: boolean
-      - description: Media metadata JSON (array of objects with alt_text and order)
-        in: formData
-        name: metadata
-        type: string
-      - description: Media Files (can be multiple)
-        in: formData
-        name: files
-        required: true
-        type: file
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            allOf:
-            - $ref: '#/definitions/pkg.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/gallery.GalleryResponse'
-              type: object
-      security:
-      - BearerAuth: []
-      summary: Create Gallery
-      tags:
-      - Gallery
-  /api/galleries/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a gallery item (requires publication manager or superadmin
-        role)
-      parameters:
-      - description: Gallery ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
             $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Delete Gallery
+      summary: List Published Galleries
       tags:
       - Gallery
+  /api/galleries/{slug}:
     get:
       consumes:
       - application/json
-      description: Get detailed information of a specific gallery item (requires publication
-        manager or superadmin role)
+      description: Get detailed information of a specific published gallery item
       parameters:
-      - description: Gallery ID
+      - description: Gallery Slug
         in: path
-        name: id
+        name: slug
         required: true
         type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/pkg.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/gallery.GalleryResponse'
-              type: object
-      security:
-      - BearerAuth: []
-      summary: Get Gallery (Protected)
-      tags:
-      - Gallery
-    put:
-      consumes:
-      - multipart/form-data
-      description: Update an existing gallery item (requires publication manager or
-        superadmin role)
-      parameters:
-      - description: Gallery ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Gallery Title
-        in: formData
-        name: title
-        type: string
-      - description: Gallery Category ID
-        in: formData
-        name: category_id
-        type: integer
-      - description: Gallery Description
-        in: formData
-        name: description
-        type: string
-      - description: Published Status
-        in: formData
-        name: published
-        type: boolean
-      - description: Media metadata JSON (array of objects with id, alt_text, and
-          order)
-        in: formData
-        name: metadata
-        type: string
-      - description: Existing media JSON array (deprecated, use metadata instead)
-        in: formData
-        name: existing_media
-        type: string
-      - description: Media Files (can be multiple)
-        in: formData
-        name: files
-        type: file
       produces:
       - application/json
       responses:
@@ -3176,9 +3446,7 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Update Gallery
+      summary: Get Published Gallery
       tags:
       - Gallery
   /api/logs:
@@ -3635,16 +3903,12 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieve a list of all news with cursor-based pagination and optional
-        filters
+      description: Retrieve a list of published news with cursor-based pagination
+        and optional filters
       parameters:
-      - description: Filter by category (general, event, announcement, donation, social)
+      - description: Filter by category
         in: query
         name: category
-        type: string
-      - description: Filter by status (draft, published, archived)
-        in: query
-        name: status
         type: string
       - description: Cursor for pagination (encoded string)
         in: query
@@ -3661,86 +3925,18 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/pkg.Response'
-      summary: Get All News
+      summary: List Published News
       tags:
       - News
-    post:
-      consumes:
-      - multipart/form-data
-      description: Create a new news article (requires publication manager or superadmin
-        role)
-      parameters:
-      - description: News Title
-        in: formData
-        name: title
-        required: true
-        type: string
-      - description: News Category
-        in: formData
-        name: category
-        required: true
-        type: string
-      - description: News Content
-        in: formData
-        name: content
-        required: true
-        type: string
-      - description: News Image File
-        in: formData
-        name: image
-        type: file
-      - description: News Image URL (if not uploading file)
-        in: formData
-        name: image_url
-        type: string
-      - description: News Status
-        in: formData
-        name: status
-        type: string
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Create News
-      tags:
-      - News
-  /api/news/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a news article (requires publication manager or superadmin
-        role)
-      parameters:
-      - description: News ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Delete News
-      tags:
-      - News
+  /api/news/{slug}:
     get:
       consumes:
       - application/json
-      description: Get detailed information of a specific news article
+      description: Get detailed information of a specific published news article
       parameters:
-      - description: News ID
+      - description: News Slug
         in: path
-        name: id
+        name: slug
         required: true
         type: string
       produces:
@@ -3750,54 +3946,7 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/pkg.Response'
-      summary: Get News by ID
-      tags:
-      - News
-    put:
-      consumes:
-      - multipart/form-data
-      description: Update an existing news article (requires publication manager or
-        superadmin role)
-      parameters:
-      - description: News ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: News Title
-        in: formData
-        name: title
-        type: string
-      - description: News Category
-        in: formData
-        name: category
-        type: string
-      - description: News Content
-        in: formData
-        name: content
-        type: string
-      - description: News Image File
-        in: formData
-        name: image
-        type: file
-      - description: News Image URL (if not uploading file)
-        in: formData
-        name: image_url
-        type: string
-      - description: News Status
-        in: formData
-        name: status
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Update News
+      summary: Get Published News
       tags:
       - News
   /api/prayers/{id}:
@@ -3878,66 +4027,6 @@ paths:
       summary: Report Prayer
       tags:
       - Prayer
-  /api/public/galleries/:
-    get:
-      consumes:
-      - application/json
-      description: Retrieve a list of published gallery items with cursor-based pagination
-        and optional filters
-      parameters:
-      - description: Filter by category ID
-        in: query
-        name: category_id
-        type: integer
-      - description: Cursor for pagination (encoded string)
-        in: query
-        name: cursor
-        type: string
-      - description: 'Items per page (default: 10, max: 100)'
-        in: query
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/pkg.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/gallery.PublishedGalleryListResponse'
-              type: object
-      summary: List Published Galleries
-      tags:
-      - Gallery
-  /api/public/galleries/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Get detailed information of a specific published gallery item
-      parameters:
-      - description: Gallery ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/pkg.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/gallery.PublishedGalleryResponse'
-              type: object
-      summary: Get Published Gallery
-      tags:
-      - Gallery
   /api/social-programs:
     get:
       consumes:

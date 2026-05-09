@@ -9,7 +9,7 @@ import (
 type DonationProgram struct {
 	ID          uuid.UUID  `json:"id" gorm:"primaryKey"`
 	Title       string     `json:"title" gorm:"not null"`
-	Slug        string     `json:"slug" gorm:"not null;unique"`
+	Slug        string     `json:"slug" gorm:"not null"`
 	CoverImage  string     `json:"coverImage"`
 	Category    Category   `json:"category"`
 	Description string     `json:"description"`
@@ -21,7 +21,7 @@ type DonationProgram struct {
 	UpdatedAt   time.Time  `json:"updatedAt"`
 	DeletedAt   *time.Time `json:"deletedAt" gorm:"index"`
 
-	CollectedFund float64 `json:"collectedFund" gorm:"-"`
+	CollectedFund float64 `json:"collectedFund" gorm:"->"`
 }
 
 type Status string

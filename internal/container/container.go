@@ -10,7 +10,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/account"
 	"github.com/Vilamuzz/yota-backend/app/ambulance"
 	"github.com/Vilamuzz/yota-backend/app/ambulance_history"
-	"github.com/Vilamuzz/yota-backend/app/ambulance_request"
+	"github.com/Vilamuzz/yota-backend/app/ambulance_service_request"
 	"github.com/Vilamuzz/yota-backend/app/auth"
 	"github.com/Vilamuzz/yota-backend/app/donation_program"
 	"github.com/Vilamuzz/yota-backend/app/donation_program_expense"
@@ -61,8 +61,8 @@ type Container struct {
 	DonationExpenseRepo     donation_program_expense.Repository
 	FinanceRecordRepo       finance_record.Repository
 	AmbulanceRepo           ambulance.Repository
-	AmbulanceHistoryRepo    ambulance_history.Repository
-	AmbulanceRequestRepo    ambulance_request.Repository
+	AmbulanceHistoryRepo          ambulance_history.Repository
+	AmbulanceServiceRequestRepo   ambulance_service_request.Repository
 	FosterChildrenRepo            foster_children.Repository
 	FosterChildrenExpenseRepo     foster_children_expense.Repository
 	FosterChildrenTransactionRepo foster_children_transaction.Repository
@@ -84,9 +84,9 @@ type Container struct {
 	PrayerService              prayer.Service
 	DonationExpenseService     donation_program_expense.Service
 	FinanceRecordService       finance_record.Service
-	AmbulanceService           ambulance.Service
-	AmbulanceHistoryService    ambulance_history.Service
-	AmbulanceRequestService    ambulance_request.Service
+	AmbulanceService                 ambulance.Service
+	AmbulanceHistoryService          ambulance_history.Service
+	AmbulanceServiceRequestService   ambulance_service_request.Service
 	FosterChildrenService            foster_children.Service
 	FosterChildrenExpenseService     foster_children_expense.Service
 	FosterChildrenTransactionService foster_children_transaction.Service
@@ -188,7 +188,7 @@ func (c *Container) initRepositories() {
 	c.FinanceRecordRepo = finance_record.NewRepository(c.DB)
 	c.AmbulanceRepo = ambulance.NewRepository(c.DB)
 	c.AmbulanceHistoryRepo = ambulance_history.NewRepository(c.DB)
-	c.AmbulanceRequestRepo = ambulance_request.NewRepository(c.DB)
+	c.AmbulanceServiceRequestRepo = ambulance_service_request.NewRepository(c.DB)
 	c.FosterChildrenRepo = foster_children.NewRepository(c.DB)
 	c.FosterChildrenExpenseRepo = foster_children_expense.NewRepository(c.DB)
 	c.FosterChildrenTransactionRepo = foster_children_transaction.NewRepository(c.DB)
@@ -205,16 +205,16 @@ func (c *Container) initServices() {
 	c.AuthService = auth.NewService(c.AuthRepo, c.AccountRepo, c.Timeout)
 	c.AccountService = account.NewService(c.AccountRepo, c.Timeout, c.S3Client)
 	c.DonationService = donation_program.NewService(c.DonationRepo, c.LogService, c.S3Client, c.Timeout)
-	c.NewsService = news.NewService(c.NewsRepo, c.Timeout)
 	c.MediaService = media.NewService(c.MediaRepo, c.S3Client)
-	c.GalleryService = gallery.NewService(c.GalleryRepo, c.MediaService, c.Timeout)
+	c.NewsService = news.NewService(c.NewsRepo, c.LogService, c.S3Client, c.MediaService, c.Timeout)
+	c.GalleryService = gallery.NewService(c.GalleryRepo, c.LogService, c.S3Client, c.MediaService, c.Timeout)
 	c.TransactionDonationService = donation_program_transaction.NewService(c.TransactionDonationRepo, c.AccountRepo, c.DonationRepo, c.PrayerRepo, c.FinanceRecordRepo, c.MidtransClient, c.LogService, c.Timeout)
 	c.PrayerService = prayer.NewService(c.PrayerRepo, c.DonationRepo, c.Timeout)
 	c.DonationExpenseService = donation_program_expense.NewService(c.DonationExpenseRepo, c.FinanceRecordRepo, c.DonationRepo, c.S3Client, c.LogService, c.Timeout)
 	c.FinanceRecordService = finance_record.NewService(c.FinanceRecordRepo, c.Timeout)
 	c.AmbulanceService = ambulance.NewService(c.AmbulanceRepo, c.S3Client, c.Timeout)
 	c.AmbulanceHistoryService = ambulance_history.NewService(c.AmbulanceHistoryRepo, c.AmbulanceRepo, c.Timeout)
-	c.AmbulanceRequestService = ambulance_request.NewService(c.AmbulanceRequestRepo, c.Timeout)
+	c.AmbulanceServiceRequestService = ambulance_service_request.NewService(c.AmbulanceServiceRequestRepo, c.Timeout)
 	c.FosterChildrenService = foster_children.NewService(c.FosterChildrenRepo, c.LogService, c.S3Client, c.Timeout)
 	c.FosterChildrenExpenseService = foster_children_expense.NewService(c.FosterChildrenExpenseRepo, c.FinanceRecordRepo, c.FosterChildrenRepo, c.S3Client, c.LogService, c.Timeout)
 	c.FosterChildrenTransactionService = foster_children_transaction.NewService(c.FosterChildrenTransactionRepo, c.AccountRepo, c.FosterChildrenRepo, c.FinanceRecordRepo, c.MidtransClient, c.LogService, c.Timeout)
@@ -250,7 +250,7 @@ func (c *Container) RegisterHandlers(router *gin.RouterGroup) {
 	auth.NewHandler(router, c.AuthService, c.AccountService, *c.Middleware)
 	account.NewHandler(router, c.AccountService, *c.Middleware)
 	donation_program.NewHandler(router, c.DonationService, *c.Middleware)
-	news.NewHandler(router, c.NewsService, c.S3Client, *c.Middleware)
+	news.NewHandler(router, c.NewsService, *c.Middleware)
 	gallery.NewHandler(router, c.GalleryService, c.MediaService, *c.Middleware)
 	donation_program_transaction.NewHandler(router, c.TransactionDonationService, *c.Middleware)
 	prayer.NewHandler(router, c.PrayerService, *c.Middleware)
@@ -258,7 +258,7 @@ func (c *Container) RegisterHandlers(router *gin.RouterGroup) {
 	finance_record.NewHandler(router, c.FinanceRecordService, *c.Middleware)
 	ambulance.NewHandler(router, c.AmbulanceService, *c.Middleware)
 	ambulance_history.NewHandler(router, c.AmbulanceHistoryService, *c.Middleware)
-	ambulance_request.NewHandler(router, c.AmbulanceRequestService, *c.Middleware)
+	ambulance_service_request.NewHandler(router, c.AmbulanceServiceRequestService, *c.Middleware)
 	foster_children.NewHandler(router, c.FosterChildrenService, *c.Middleware)
 	foster_children_expense.NewHandler(router, c.FosterChildrenExpenseService, *c.Middleware)
 	foster_children_transaction.NewHandler(router, c.FosterChildrenTransactionService, *c.Middleware)

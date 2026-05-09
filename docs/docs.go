@@ -236,7 +236,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/ambulance-requests": {
+        "/ambulance-service-requests": {
             "get": {
                 "security": [
                     {
@@ -251,7 +251,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Ambulance Requests"
+                    "Ambulance Service Requests"
                 ],
                 "summary": "List ambulance requests",
                 "parameters": [
@@ -296,7 +296,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/ambulance-requests/me": {
+        "/ambulance-service-requests/me": {
             "get": {
                 "security": [
                     {
@@ -311,7 +311,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Ambulance Requests"
+                    "Ambulance Service Requests"
                 ],
                 "summary": "List my ambulance requests",
                 "parameters": [
@@ -356,7 +356,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/ambulance-requests/{id}": {
+        "/ambulance-service-requests/{id}": {
             "get": {
                 "security": [
                     {
@@ -371,7 +371,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Ambulance Requests"
+                    "Ambulance Service Requests"
                 ],
                 "summary": "Get ambulance request by ID",
                 "parameters": [
@@ -424,7 +424,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Ambulance Requests"
+                    "Ambulance Service Requests"
                 ],
                 "summary": "Update ambulance request",
                 "parameters": [
@@ -437,11 +437,11 @@ const docTemplate = `{
                     },
                     {
                         "description": "Ambulance request details to update",
-                        "name": "ambulance_request",
+                        "name": "ambulance_service_request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/ambulance_request.UpdateAmbulanceRequest"
+                            "$ref": "#/definitions/ambulance_service_request.UpdateAmbulanceServiceRequest"
                         }
                     }
                 ],
@@ -1104,13 +1104,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "enum": [
-                            "education",
-                            "health",
-                            "environment",
-                            "social",
-                            "disaster",
-                            "humanity",
-                            "other"
+                            "pendidikan",
+                            "kesehatan",
+                            "lingkungan",
+                            "sosial",
+                            "bencana",
+                            "kemanusiaan",
+                            "lainnya"
                         ],
                         "type": "string",
                         "x-enum-varnames": [
@@ -1147,17 +1147,19 @@ const docTemplate = `{
                     },
                     {
                         "enum": [
-                            "active",
                             "draft",
-                            "complete",
-                            "expired"
+                            "active",
+                            "completed",
+                            "expired",
+                            "archived"
                         ],
                         "type": "string",
                         "x-enum-varnames": [
-                            "StatusActive",
                             "StatusDraft",
+                            "StatusActive",
                             "StatusCompleted",
-                            "StatusExpired"
+                            "StatusExpired",
+                            "StatusArchived"
                         ],
                         "name": "status",
                         "in": "formData"
@@ -1354,13 +1356,13 @@ const docTemplate = `{
                     },
                     {
                         "enum": [
-                            "education",
-                            "health",
-                            "environment",
-                            "social",
-                            "disaster",
-                            "humanity",
-                            "other"
+                            "pendidikan",
+                            "kesehatan",
+                            "lingkungan",
+                            "sosial",
+                            "bencana",
+                            "kemanusiaan",
+                            "lainnya"
                         ],
                         "type": "string",
                         "x-enum-varnames": [
@@ -1397,17 +1399,19 @@ const docTemplate = `{
                     },
                     {
                         "enum": [
-                            "active",
                             "draft",
-                            "complete",
-                            "expired"
+                            "active",
+                            "completed",
+                            "expired",
+                            "archived"
                         ],
                         "type": "string",
                         "x-enum-varnames": [
-                            "StatusActive",
                             "StatusDraft",
+                            "StatusActive",
                             "StatusCompleted",
-                            "StatusExpired"
+                            "StatusExpired",
+                            "StatusArchived"
                         ],
                         "name": "status",
                         "in": "formData"
@@ -1450,6 +1454,80 @@ const docTemplate = `{
                     "Donation Programs"
                 ],
                 "summary": "Delete Donation Program",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/donation-programs/{id}/active": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing donation program to active (requires authentication and proper role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Update Active Donation Program",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Donation Program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/donation-programs/{id}/archive": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing donation program to archived (requires authentication and proper role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Update Archive Donation Program",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Donation Program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -2408,6 +2486,557 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/galleries": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a list of all gallery items (requires publication manager or superadmin role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gallery"
+                ],
+                "summary": "List All Galleries (Protected)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by category",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for next page",
+                        "name": "nextCursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for previous page",
+                        "name": "prevCursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default: 10, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new gallery item (requires publication manager or superadmin role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gallery"
+                ],
+                "summary": "Create Gallery",
+                "parameters": [
+                    {
+                        "description": "Gallery Data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gallery.GalleryRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/galleries/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information of a specific gallery item (requires publication manager or superadmin role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gallery"
+                ],
+                "summary": "Get Gallery (Protected)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gallery ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing gallery item (requires publication manager or superadmin role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gallery"
+                ],
+                "summary": "Update Gallery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gallery ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Gallery Data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/gallery.GalleryRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a gallery item (requires publication manager or superadmin role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gallery"
+                ],
+                "summary": "Delete Gallery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gallery ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/galleries/{id}/archived": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing gallery item to archived (requires publication manager or superadmin role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gallery"
+                ],
+                "summary": "Update Archived Gallery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gallery ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/galleries/{id}/published": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing gallery item to published (requires publication manager or superadmin role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gallery"
+                ],
+                "summary": "Update Published Gallery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gallery ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/news/": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a list of all news (requires publication manager or superadmin role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News"
+                ],
+                "summary": "List All News (Protected)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by category",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for pagination (encoded string)",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default: 10, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new news article (requires publication manager or superadmin role)",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News"
+                ],
+                "summary": "Create News",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "News Title",
+                        "name": "title",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "News Category",
+                        "name": "category",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "News Content",
+                        "name": "content",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "News Status",
+                        "name": "status",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "News Image File",
+                        "name": "image",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "News Image URL (if not uploading file)",
+                        "name": "image_url",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/news/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information of a specific news article (requires publication manager or superadmin role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News"
+                ],
+                "summary": "Get News (Protected)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "News ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing news article (requires publication manager or superadmin role)",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News"
+                ],
+                "summary": "Update News",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "News ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "News Title",
+                        "name": "title",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "News Category",
+                        "name": "category",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "News Content",
+                        "name": "content",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "News Status",
+                        "name": "status",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "News Image File",
+                        "name": "image",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "News Image URL (if not uploading file)",
+                        "name": "image_url",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a news article (requires publication manager or superadmin role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News"
+                ],
+                "summary": "Delete News",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "News ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/prayers": {
             "get": {
                 "security": [
@@ -3040,6 +3669,57 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/upload/presign": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Generate a presigned URL for direct file upload to object storage",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Upload"
+                ],
+                "summary": "Generate Presigned URL",
+                "parameters": [
+                    {
+                        "description": "Presign Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/upload.PresignRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/upload.PresignResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/api/auth/forget-password": {
             "post": {
                 "description": "Send password reset email",
@@ -3342,7 +4022,7 @@ const docTemplate = `{
         },
         "/api/donation-programs": {
             "get": {
-                "description": "Retrieve a list of published (active) donation programs",
+                "description": "Retrieve a list of donation programs",
                 "consumes": [
                     "application/json"
                 ],
@@ -3352,7 +4032,7 @@ const docTemplate = `{
                 "tags": [
                     "Donation Programs"
                 ],
-                "summary": "List Published Donation Programs",
+                "summary": "List Donation Programs",
                 "parameters": [
                     {
                         "type": "string",
@@ -3391,7 +4071,7 @@ const docTemplate = `{
         },
         "/api/donation-programs/{slug}": {
             "get": {
-                "description": "Get detailed information of a specific published donation program",
+                "description": "Get detailed information of a specific donation program",
                 "consumes": [
                     "application/json"
                 ],
@@ -3401,7 +4081,7 @@ const docTemplate = `{
                 "tags": [
                     "Donation Programs"
                 ],
-                "summary": "Get Published Donation Program by Slug",
+                "summary": "Get Donation Program by Slug",
                 "parameters": [
                     {
                         "type": "string",
@@ -3773,14 +4453,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/galleries/": {
+        "/api/galleries": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve a list of all gallery items (requires publication manager or superadmin role)",
+                "description": "Retrieve a list of published gallery items with cursor-based pagination and optional filters",
                 "consumes": [
                     "application/json"
                 ],
@@ -3790,18 +4465,24 @@ const docTemplate = `{
                 "tags": [
                     "Gallery"
                 ],
-                "summary": "List All Galleries (Protected)",
+                "summary": "List Published Galleries",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Filter by category ID",
-                        "name": "category_id",
+                        "type": "string",
+                        "description": "Filter by category",
+                        "name": "category",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Cursor for pagination (encoded string)",
-                        "name": "cursor",
+                        "description": "Cursor for next page",
+                        "name": "nextCursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for previous page",
+                        "name": "prevCursor",
                         "in": "query"
                     },
                     {
@@ -3815,113 +4496,15 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/pkg.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/gallery.PublishedGalleryListResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Create a new gallery item (requires publication manager or superadmin role)",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Gallery"
-                ],
-                "summary": "Create Gallery",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Gallery Title",
-                        "name": "title",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Gallery Category ID",
-                        "name": "category_id",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Gallery Description",
-                        "name": "description",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Published Status",
-                        "name": "published",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Media metadata JSON (array of objects with alt_text and order)",
-                        "name": "metadata",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "file",
-                        "description": "Media Files (can be multiple)",
-                        "name": "files",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/pkg.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/gallery.GalleryResponse"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/pkg.Response"
                         }
                     }
                 }
             }
         },
-        "/api/galleries/{id}": {
+        "/api/galleries/{slug}": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get detailed information of a specific gallery item (requires publication manager or superadmin role)",
+                "description": "Get detailed information of a specific published gallery item",
                 "consumes": [
                     "application/json"
                 ],
@@ -3931,136 +4514,12 @@ const docTemplate = `{
                 "tags": [
                     "Gallery"
                 ],
-                "summary": "Get Gallery (Protected)",
+                "summary": "Get Published Gallery",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Gallery ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/pkg.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/gallery.GalleryResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update an existing gallery item (requires publication manager or superadmin role)",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Gallery"
-                ],
-                "summary": "Update Gallery",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Gallery ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Gallery Title",
-                        "name": "title",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Gallery Category ID",
-                        "name": "category_id",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Gallery Description",
-                        "name": "description",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "Published Status",
-                        "name": "published",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Media metadata JSON (array of objects with id, alt_text, and order)",
-                        "name": "metadata",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Existing media JSON array (deprecated, use metadata instead)",
-                        "name": "existing_media",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "file",
-                        "description": "Media Files (can be multiple)",
-                        "name": "files",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Delete a gallery item (requires publication manager or superadmin role)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Gallery"
-                ],
-                "summary": "Delete Gallery",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Gallery ID",
-                        "name": "id",
+                        "description": "Gallery Slug",
+                        "name": "slug",
                         "in": "path",
                         "required": true
                     }
@@ -4801,7 +5260,7 @@ const docTemplate = `{
         },
         "/api/news/": {
             "get": {
-                "description": "Retrieve a list of all news with cursor-based pagination and optional filters",
+                "description": "Retrieve a list of published news with cursor-based pagination and optional filters",
                 "consumes": [
                     "application/json"
                 ],
@@ -4811,18 +5270,12 @@ const docTemplate = `{
                 "tags": [
                     "News"
                 ],
-                "summary": "Get All News",
+                "summary": "List Published News",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Filter by category (general, event, announcement, donation, social)",
+                        "description": "Filter by category",
                         "name": "category",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by status (draft, published, archived)",
-                        "name": "status",
                         "in": "query"
                     },
                     {
@@ -4846,78 +5299,11 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Create a new news article (requires publication manager or superadmin role)",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "News"
-                ],
-                "summary": "Create News",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "News Title",
-                        "name": "title",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "News Category",
-                        "name": "category",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "News Content",
-                        "name": "content",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "file",
-                        "description": "News Image File",
-                        "name": "image",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "News Image URL (if not uploading file)",
-                        "name": "image_url",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "News Status",
-                        "name": "status",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
             }
         },
-        "/api/news/{id}": {
+        "/api/news/{slug}": {
             "get": {
-                "description": "Get detailed information of a specific news article",
+                "description": "Get detailed information of a specific published news article",
                 "consumes": [
                     "application/json"
                 ],
@@ -4927,118 +5313,12 @@ const docTemplate = `{
                 "tags": [
                     "News"
                 ],
-                "summary": "Get News by ID",
+                "summary": "Get Published News",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "News ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update an existing news article (requires publication manager or superadmin role)",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "News"
-                ],
-                "summary": "Update News",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "News ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "News Title",
-                        "name": "title",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "News Category",
-                        "name": "category",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "News Content",
-                        "name": "content",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "file",
-                        "description": "News Image File",
-                        "name": "image",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "News Image URL (if not uploading file)",
-                        "name": "image_url",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "News Status",
-                        "name": "status",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Delete a news article (requires publication manager or superadmin role)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "News"
-                ],
-                "summary": "Delete News",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "News ID",
-                        "name": "id",
+                        "description": "News Slug",
+                        "name": "slug",
                         "in": "path",
                         "required": true
                     }
@@ -5175,105 +5455,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/public/galleries/": {
-            "get": {
-                "description": "Retrieve a list of published gallery items with cursor-based pagination and optional filters",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Gallery"
-                ],
-                "summary": "List Published Galleries",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Filter by category ID",
-                        "name": "category_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Cursor for pagination (encoded string)",
-                        "name": "cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Items per page (default: 10, max: 100)",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/pkg.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/gallery.PublishedGalleryListResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/public/galleries/{id}": {
-            "get": {
-                "description": "Get detailed information of a specific published gallery item",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Gallery"
-                ],
-                "summary": "Get Published Gallery",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Gallery ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/pkg.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/gallery.PublishedGalleryResponse"
-                                        }
-                                    }
-                                }
-                            ]
                         }
                     }
                 }
@@ -5756,7 +5937,7 @@ const docTemplate = `{
                 }
             }
         },
-        "ambulance_request.UpdateAmbulanceRequest": {
+        "ambulance_service_request.UpdateAmbulanceServiceRequest": {
             "type": "object",
             "properties": {
                 "rejectionReason": {
@@ -5838,13 +6019,13 @@ const docTemplate = `{
         "donation_program.Category": {
             "type": "string",
             "enum": [
-                "education",
-                "health",
-                "environment",
-                "social",
-                "disaster",
-                "humanity",
-                "other"
+                "pendidikan",
+                "kesehatan",
+                "lingkungan",
+                "sosial",
+                "bencana",
+                "kemanusiaan",
+                "lainnya"
             ],
             "x-enum-varnames": [
                 "CategoryEducation",
@@ -5859,16 +6040,18 @@ const docTemplate = `{
         "donation_program.Status": {
             "type": "string",
             "enum": [
-                "active",
                 "draft",
-                "complete",
-                "expired"
+                "active",
+                "completed",
+                "expired",
+                "archived"
             ],
             "x-enum-varnames": [
-                "StatusActive",
                 "StatusDraft",
+                "StatusActive",
                 "StatusCompleted",
-                "StatusExpired"
+                "StatusExpired",
+                "StatusArchived"
             ]
         },
         "donation_program_transaction.CreateDonationProgramTransactionRequest": {
@@ -6080,121 +6263,54 @@ const docTemplate = `{
                 }
             }
         },
-        "gallery.GalleryResponse": {
+        "gallery.GalleryMediaRequest": {
+            "type": "object",
+            "properties": {
+                "alt_text": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "object_key": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "integer"
+                }
+            }
+        },
+        "gallery.GalleryRequest": {
             "type": "object",
             "properties": {
                 "category": {
                     "$ref": "#/definitions/media.MediaCategory"
                 },
                 "description": {
-                    "type": "string"
-                },
-                "id": {
                     "type": "string"
                 },
                 "media": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/media.MediaResponse"
+                        "$ref": "#/definitions/gallery.GalleryMediaRequest"
                     }
                 },
-                "publishedAt": {
-                    "type": "string"
-                },
-                "slug": {
-                    "type": "string"
+                "status": {
+                    "$ref": "#/definitions/media.MediaStatus"
                 },
                 "title": {
                     "type": "string"
-                },
-                "views": {
-                    "type": "integer"
-                }
-            }
-        },
-        "gallery.PublishedGalleryListResponse": {
-            "type": "object",
-            "properties": {
-                "galleries": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/gallery.PublishedGalleryListResponseItem"
-                    }
-                },
-                "pagination": {
-                    "$ref": "#/definitions/pkg.CursorPagination"
-                }
-            }
-        },
-        "gallery.PublishedGalleryListResponseItem": {
-            "type": "object",
-            "properties": {
-                "category": {
-                    "$ref": "#/definitions/media.MediaCategory"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "publishedAt": {
-                    "type": "string"
-                },
-                "slug": {
-                    "type": "string"
-                },
-                "thumbnailUrl": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "views": {
-                    "type": "integer"
-                }
-            }
-        },
-        "gallery.PublishedGalleryResponse": {
-            "type": "object",
-            "properties": {
-                "category": {
-                    "$ref": "#/definitions/media.MediaCategory"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "media": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/media.PublishedMediaResponse"
-                    }
-                },
-                "publishedAt": {
-                    "type": "string"
-                },
-                "slug": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "views": {
-                    "type": "integer"
                 }
             }
         },
         "media.MediaCategory": {
             "type": "string",
             "enum": [
-                "Kegiatan Sosial",
-                "Bencana Alam",
-                "Kesehatan",
-                "Lingkungan",
-                "Lainnya"
+                "kegiatan sosial",
+                "bencana alam",
+                "kesehatan",
+                "lingkungan",
+                "lainnya"
             ],
             "x-enum-varnames": [
                 "SocialEvent",
@@ -6204,45 +6320,18 @@ const docTemplate = `{
                 "Others"
             ]
         },
-        "media.MediaResponse": {
-            "type": "object",
-            "properties": {
-                "altText": {
-                    "type": "string"
-                },
-                "galleryId": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "newsId": {
-                    "type": "string"
-                },
-                "order": {
-                    "type": "integer"
-                },
-                "type": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "media.PublishedMediaResponse": {
-            "type": "object",
-            "properties": {
-                "altText": {
-                    "type": "string"
-                },
-                "order": {
-                    "type": "integer"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
+        "media.MediaStatus": {
+            "type": "string",
+            "enum": [
+                "draft",
+                "published",
+                "archived"
+            ],
+            "x-enum-varnames": [
+                "MediaStatusDraft",
+                "MediaStatusPublished",
+                "MediaStatusArchived"
+            ]
         },
         "pkg.CursorPagination": {
             "type": "object",
@@ -6444,6 +6533,39 @@ const docTemplate = `{
                     "type": "number"
                 },
                 "socialProgramInvoiceId": {
+                    "type": "string"
+                }
+            }
+        },
+        "upload.PresignRequest": {
+            "type": "object",
+            "required": [
+                "content_type",
+                "filename",
+                "module"
+            ],
+            "properties": {
+                "content_type": {
+                    "type": "string"
+                },
+                "filename": {
+                    "type": "string"
+                },
+                "module": {
+                    "type": "string"
+                }
+            }
+        },
+        "upload.PresignResponse": {
+            "type": "object",
+            "properties": {
+                "expires_at": {
+                    "type": "string"
+                },
+                "object_key": {
+                    "type": "string"
+                },
+                "presigned_url": {
                     "type": "string"
                 }
             }

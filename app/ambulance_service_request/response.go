@@ -1,8 +1,8 @@
-package ambulance_request
+package ambulance_service_request
 
 import "github.com/Vilamuzz/yota-backend/pkg"
 
-type AmbulanceRequestResponse struct {
+type AmbulanceServiceRequestResponse struct {
 	ID               string `json:"id"`
 	AccountID        string `json:"accountId"`
 	ApplicantName    string `json:"applicantName"`
@@ -15,13 +15,13 @@ type AmbulanceRequestResponse struct {
 	CreatedAt        string `json:"createdAt"`
 }
 
-type AmbulanceRequestListResponse struct {
-	Requests   []AmbulanceRequestResponse `json:"requests"`
+type AmbulanceServiceRequestListResponse struct {
+	Requests   []AmbulanceServiceRequestResponse `json:"requests"`
 	Pagination pkg.CursorPagination       `json:"pagination"`
 }
 
-func (a *AmbulanceRequest) toAmbulanceRequestResponse() AmbulanceRequestResponse {
-	return AmbulanceRequestResponse{
+func (a *AmbulanceServiceRequest) toAmbulanceServiceRequestResponse() AmbulanceServiceRequestResponse {
+	return AmbulanceServiceRequestResponse{
 		ID:               a.ID.String(),
 		AccountID:        a.AccountID.String(),
 		ApplicantName:    a.ApplicantName,
@@ -35,15 +35,15 @@ func (a *AmbulanceRequest) toAmbulanceRequestResponse() AmbulanceRequestResponse
 	}
 }
 
-func toAmbulanceRequestsToListResponse(requests []AmbulanceRequest, pagination pkg.CursorPagination) AmbulanceRequestListResponse {
-	var responses []AmbulanceRequestResponse
+func toAmbulanceServiceRequestsToListResponse(requests []AmbulanceServiceRequest, pagination pkg.CursorPagination) AmbulanceServiceRequestListResponse {
+	var responses []AmbulanceServiceRequestResponse
 	for _, request := range requests {
-		responses = append(responses, request.toAmbulanceRequestResponse())
+		responses = append(responses, request.toAmbulanceServiceRequestResponse())
 	}
 	if requests == nil {
-		responses = []AmbulanceRequestResponse{}
+		responses = []AmbulanceServiceRequestResponse{}
 	}
-	return AmbulanceRequestListResponse{
+	return AmbulanceServiceRequestListResponse{
 		Requests:   responses,
 		Pagination: pagination,
 	}

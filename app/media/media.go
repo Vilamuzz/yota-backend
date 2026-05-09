@@ -8,8 +8,8 @@ import (
 
 type Media struct {
 	ID        uuid.UUID `json:"id" gorm:"primaryKey"`
-	NewsID    uuid.UUID `json:"newsId" gorm:"index"`
-	GalleryID uuid.UUID `json:"galleryId" gorm:"index"`
+	NewsID    *uuid.UUID `json:"newsId" gorm:"index"`
+	GalleryID *uuid.UUID `json:"galleryId" gorm:"index"`
 	Type      MediaType `json:"type" gorm:"not null"`
 
 	URL       string    `json:"url" gorm:"not null"`
@@ -37,9 +37,9 @@ const (
 type MediaCategory string
 
 const (
-	SocialEvent MediaCategory = "Kegiatan Sosial"
-	Disaster    MediaCategory = "Bencana Alam"
-	Health      MediaCategory = "Kesehatan"
-	Environment MediaCategory = "Lingkungan"
-	Others      MediaCategory = "Lainnya"
+	SocialEvent MediaCategory = "kegiatan sosial"
+	Disaster    MediaCategory = "bencana alam"
+	Health      MediaCategory = "kesehatan"
+	Environment MediaCategory = "lingkungan"
+	Others      MediaCategory = "lainnya"
 )

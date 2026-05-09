@@ -1,8 +1,6 @@
 package gallery
 
 import (
-	"time"
-
 	"github.com/Vilamuzz/yota-backend/app/media"
 	"github.com/Vilamuzz/yota-backend/pkg"
 )
@@ -15,7 +13,7 @@ type GalleryResponse struct {
 	Description string                `json:"description"`
 	Media       []media.MediaResponse `json:"media"`
 	Views       int                   `json:"views"`
-	PublishedAt *time.Time            `json:"publishedAt"`
+	Status      media.MediaStatus     `json:"status"`
 }
 
 type GalleryListResponseItem struct {
@@ -25,7 +23,7 @@ type GalleryListResponseItem struct {
 	Category    media.MediaCategory `json:"category"`
 	Description string              `json:"description"`
 	Views       int                 `json:"views"`
-	PublishedAt *time.Time          `json:"publishedAt"`
+	Status      media.MediaStatus   `json:"status"`
 }
 
 type GalleryListResponse struct {
@@ -54,7 +52,7 @@ func (g *Gallery) toGalleryResponse() GalleryResponse {
 		Description: g.Description,
 		Media:       mediaResponses,
 		Views:       g.Views,
-		PublishedAt: g.PublishedAt,
+		Status:      g.Status,
 	}
 }
 
@@ -66,7 +64,7 @@ func (g *Gallery) toGalleryListResponseItem() GalleryListResponseItem {
 		Category:    g.Category,
 		Description: g.Description,
 		Views:       g.Views,
-		PublishedAt: g.PublishedAt,
+		Status:      g.Status,
 	}
 }
 
@@ -82,98 +80,6 @@ func toGalleryListResponse(galleries []Gallery, pagination pkg.CursorPagination)
 
 	return GalleryListResponse{
 		Galleries:  galleryResponses,
-		Pagination: pagination,
-	}
-}
-
-type PublishedGalleryResponse struct {
-	ID          string                         `json:"id"`
-	Title       string                         `json:"title"`
-	Slug        string                         `json:"slug"`
-	Category    media.MediaCategory            `json:"category"`
-	Description string                         `json:"description"`
-	Media       []media.PublishedMediaResponse `json:"media"`
-	Views       int                            `json:"views"`
-	PublishedAt string                         `json:"publishedAt"`
-}
-
-type PublishedGalleryListResponseItem struct {
-	ID           string              `json:"id"`
-	Title        string              `json:"title"`
-	Slug         string              `json:"slug"`
-	Category     media.MediaCategory `json:"category"`
-	Description  string              `json:"description"`
-	ThumbnailURL string              `json:"thumbnailUrl"`
-	Views        int                 `json:"views"`
-	PublishedAt  string              `json:"publishedAt"`
-}
-
-type PublishedGalleryListResponse struct {
-	Galleries  []PublishedGalleryListResponseItem `json:"galleries"`
-	Pagination pkg.CursorPagination               `json:"pagination"`
-}
-
-func (g *Gallery) toPublishedGalleryResponse() PublishedGalleryResponse {
-	mediaResponses := make([]media.PublishedMediaResponse, 0, len(g.Media))
-	for _, m := range g.Media {
-		mediaResponses = append(mediaResponses, media.PublishedMediaResponse{
-			URL:     m.URL,
-			AltText: m.AltText,
-			Order:   m.Order,
-		})
-	}
-
-	publishedAt := ""
-	if g.PublishedAt != nil {
-		publishedAt = g.PublishedAt.Format(time.RFC3339)
-	}
-
-	return PublishedGalleryResponse{
-		ID:          g.ID.String(),
-		Title:       g.Title,
-		Slug:        g.Slug,
-		Category:    g.Category,
-		Description: g.Description,
-		Media:       mediaResponses,
-		Views:       g.Views,
-		PublishedAt: publishedAt,
-	}
-}
-
-func (g *Gallery) toPublishedGalleryListResponseItem() PublishedGalleryListResponseItem {
-	thumbnailURL := ""
-	if len(g.Media) > 0 {
-		lowestOrderMedia := g.Media[0]
-		for _, m := range g.Media {
-			if m.Order < lowestOrderMedia.Order {
-				lowestOrderMedia = m
-			}
-		}
-		thumbnailURL = lowestOrderMedia.URL
-	}
-
-	return PublishedGalleryListResponseItem{
-		ID:           g.ID.String(),
-		Title:        g.Title,
-		Slug:         g.Slug,
-		Category:     g.Category,
-		Description:  g.Description,
-		ThumbnailURL: thumbnailURL,
-		Views:        g.Views,
-		PublishedAt:  g.PublishedAt.Format(time.RFC3339),
-	}
-}
-
-func toPublishedGalleryListResponse(galleries []Gallery, pagination pkg.CursorPagination) PublishedGalleryListResponse {
-	var responses []PublishedGalleryListResponseItem
-	for _, g := range galleries {
-		responses = append(responses, g.toPublishedGalleryListResponseItem())
-	}
-	if responses == nil {
-		responses = []PublishedGalleryListResponseItem{}
-	}
-	return PublishedGalleryListResponse{
-		Galleries:  responses,
 		Pagination: pagination,
 	}
 }

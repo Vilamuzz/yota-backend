@@ -124,6 +124,7 @@ func (h *handler) DeleteSocialProgramExpense(c *gin.Context) {
 	ctx := c.Request.Context()
 	expenseID := c.Param("id")
 
-	res := h.service.DeleteSocialProgramExpense(ctx, expenseID)
+	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
+	res := h.service.DeleteSocialProgramExpense(ctx, claims.AccountID, expenseID)
 	c.JSON(res.Status, res)
 }

@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/app/finance_record"
-	"github.com/Vilamuzz/yota-backend/app/social_program"
 	app_log "github.com/Vilamuzz/yota-backend/app/log"
+	"github.com/Vilamuzz/yota-backend/app/social_program"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 	"github.com/google/uuid"
@@ -18,7 +18,7 @@ type Service interface {
 	GetSocialProgramExpenseList(ctx context.Context, socialProgramID string, params SocialProgramExpenseQueryParams) pkg.Response
 	GetSocialProgramExpenseByID(ctx context.Context, socialProgramExpenseID string) pkg.Response
 	CreateSocialProgramExpense(ctx context.Context, accountID string, socialProgramID string, payload *SocialProgramExpenseRequest) pkg.Response
-	DeleteSocialProgramExpense(ctx context.Context, socialProgramExpenseID string) pkg.Response
+	DeleteSocialProgramExpense(ctx context.Context, accountID, socialProgramExpenseID string) pkg.Response
 }
 
 type service struct {
@@ -203,7 +203,7 @@ func (s *service) CreateSocialProgramExpense(ctx context.Context, accountID stri
 	return pkg.NewResponse(http.StatusCreated, "Expense created successfully", nil, nil)
 }
 
-func (s *service) DeleteSocialProgramExpense(ctx context.Context, socialProgramExpenseID string) pkg.Response {
+func (s *service) DeleteSocialProgramExpense(ctx context.Context, accountID, socialProgramExpenseID string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -233,7 +233,7 @@ func (s *service) DeleteSocialProgramExpense(ctx context.Context, socialProgramE
 	// Auto-delete finance record (outflow)
 	_ = s.financeRepo.Delete(ctx, socialProgramExpenseID)
 
-	accountID := expense.CreatedBy.String()
+	accountID = expense.CreatedBy.String()
 	s.logService.CreateLog(ctx, &accountID, "DELETE", "social_program_expense", socialProgramExpenseID, expense.toSocialProgramExpenseDetailResponse(), nil)
 
 	return pkg.NewResponse(http.StatusOK, "Expense deleted successfully", nil, nil)

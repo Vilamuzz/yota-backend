@@ -2,6 +2,7 @@ package donation_program_transaction
 
 import (
 	"context"
+	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
@@ -12,6 +13,7 @@ type Repository interface {
 	FindOneDonationProgramTransaction(ctx context.Context, options map[string]interface{}) (*DonationProgramTransaction, error)
 	CreateDonationProgramTransaction(ctx context.Context, tx *DonationProgramTransaction) error
 	UpdateDonationProgramTransaction(ctx context.Context, orderID string, updates map[string]interface{}) error
+	CancelDonationProgramTransaction(ctx context.Context, orderID string) error
 }
 
 type repository struct {
@@ -93,4 +95,18 @@ func (r *repository) UpdateDonationProgramTransaction(ctx context.Context, order
 	return r.Conn.WithContext(ctx).Model(&DonationProgramTransaction{}).
 		Where("order_id = ?", orderID).
 		Updates(updates).Error
+}
+
+func (r *repository) CancelDonationProgramTransaction(ctx context.Context, id string) error {
+	return r.Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&DonationProgramTransaction{}).Where("id = ?", id).Update("transaction_status", "cancel").Error; err != nil {
+			return err
+		}
+
+		if err := tx.Table("finance_records").Where("source_id = ? AND source_type = ?", id, "transaction").Update("deleted_at", time.Now()).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }

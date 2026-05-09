@@ -17,8 +17,8 @@ import (
 type Service interface {
 	GetDonationProgramExpenseList(ctx context.Context, donationProgramID string, params DonationProgramExpenseQueryParams) pkg.Response
 	GetDonationProgramExpenseByID(ctx context.Context, donationProgramExpenseID string) pkg.Response
-	CreateDonationProgramExpense(ctx context.Context, donationProgramID string, payload *DonationProgramExpenseRequest) pkg.Response
-	DeleteDonationProgramExpense(ctx context.Context, donationProgramExpenseID string) pkg.Response
+	CreateDonationProgramExpense(ctx context.Context, accountID, donationProgramID string, payload *DonationProgramExpenseRequest) pkg.Response
+	DeleteDonationProgramExpense(ctx context.Context, accountID, donationProgramExpenseID string) pkg.Response
 }
 
 type service struct {
@@ -72,7 +72,7 @@ func (s *service) GetDonationProgramExpenseList(ctx context.Context, donationPro
 		logrus.WithFields(logrus.Fields{
 			"component": "donation_program_expense.service",
 		}).WithError(err).Error("failed to fetch expenses")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch expenses", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data pengeluaran", nil, nil)
 	}
 
 	hasMore := len(expenses) > params.Limit
@@ -101,7 +101,7 @@ func (s *service) GetDonationProgramExpenseList(ctx context.Context, donationPro
 		}
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Expenses found successfully", nil, toDonationProgramExpenseListResponse(expenses, pkg.CursorPagination{
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, toDonationProgramExpenseListResponse(expenses, pkg.CursorPagination{
 		NextCursor: nextCursor,
 		PrevCursor: prevCursor,
 		Limit:      params.Limit,
@@ -113,7 +113,7 @@ func (s *service) GetDonationProgramExpenseByID(ctx context.Context, id string) 
 	defer cancel()
 
 	if _, err := uuid.Parse(id); err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid expense ID format"}, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID pengeluaran tidak valid"}, nil)
 	}
 
 	expense, err := s.repo.FindOneDonationProgramExpense(ctx, map[string]interface{}{"id": id})
@@ -122,53 +122,63 @@ func (s *service) GetDonationProgramExpenseByID(ctx context.Context, id string) 
 			"component":  "donation_program_expense.service",
 			"expense_id": id,
 		}).WithError(err).Error("failed to fetch expense")
-		return pkg.NewResponse(http.StatusNotFound, "Expense not found", nil, nil)
+		return pkg.NewResponse(http.StatusNotFound, "Pengeluaran tidak ditemukan", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Expense found successfully", nil, expense.toDonationProgramExpenseDetailResponse())
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, expense.toDonationProgramExpenseDetailResponse())
 }
 
-func (s *service) CreateDonationProgramExpense(ctx context.Context, donationProgramID string, payload *DonationProgramExpenseRequest) pkg.Response {
+func (s *service) CreateDonationProgramExpense(ctx context.Context, accountID, donationProgramID string, payload *DonationProgramExpenseRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	errValidation := make(map[string]string)
 	if donationProgramID == "" {
-		errValidation["donation_program_id"] = "Donation Program ID is required"
+		errValidation["donationProgramId"] = "ID Program Donasi wajib diisi"
 	} else if _, err := uuid.Parse(donationProgramID); err != nil {
-		errValidation["donation_program_id"] = "Invalid donation program ID format"
+		errValidation["donationProgramId"] = "Format ID program donasi tidak valid"
 	}
 	if payload.Title == "" {
-		errValidation["title"] = "Title is required"
+		errValidation["title"] = "Judul wajib diisi"
 	}
 	if payload.Amount <= 0 {
-		errValidation["amount"] = "Amount must be greater than 0"
+		errValidation["amount"] = "Jumlah harus lebih besar dari 0"
 	}
-	if payload.ExpenseDate.IsZero() {
-		errValidation["expense_date"] = "Expense date is required"
+	if payload.ExpenseDate == "" {
+		errValidation["expenseDate"] = "Tanggal pengeluaran wajib diisi"
+	} else {
+		if _, err := time.Parse("2006-01-02", payload.ExpenseDate); err != nil {
+			errValidation["expenseDate"] = "Format tanggal tidak valid (gunakan YYYY-MM-DD)"
+		}
 	}
 	if len(errValidation) > 0 {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
 	var proofFileURL string
 	if payload.ProofFile != nil {
 		uploadedURL, err := s.s3Client.UploadFile(ctx, payload.ProofFile, "donation-expenses")
 		if err != nil {
-			return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload proof file", nil, nil)
+			logrus.WithFields(logrus.Fields{
+				"component": "donation_program_expense.service",
+				"title":     payload.Title,
+			}).WithError(err).Error("failed to upload proof file")
+			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah file bukti", nil, nil)
 		}
 		proofFileURL = uploadedURL
 	}
 
 	now := time.Now()
+	expenseDate, _ := time.Parse("2006-01-02", payload.ExpenseDate)
 	expense := &DonationProgramExpense{
 		ID:                uuid.New(),
 		DonationProgramID: uuid.MustParse(donationProgramID),
 		Title:             payload.Title,
 		Amount:            payload.Amount,
-		ExpenseDate:       payload.ExpenseDate,
+		ExpenseDate:       expenseDate,
 		Note:              payload.Note,
 		ProofFile:         proofFileURL,
+		CreatedBy:         uuid.MustParse(accountID),
 		CreatedAt:         now,
 		UpdatedAt:         now,
 	}
@@ -178,10 +188,9 @@ func (s *service) CreateDonationProgramExpense(ctx context.Context, donationProg
 			"component":  "donation_program_expense.service",
 			"expense_id": expense.ID,
 		}).WithError(err).Error("failed to create expense")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create expense", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat pengeluaran", nil, nil)
 	}
 
-	// Auto-create finance record (outflow)
 	_ = s.financeRepo.Create(ctx, &finance_record.FinanceRecord{
 		ID:              uuid.New().String(),
 		FundType:        finance_record.FundTypeDonation,
@@ -193,26 +202,26 @@ func (s *service) CreateDonationProgramExpense(ctx context.Context, donationProg
 		CreatedAt:       now,
 	})
 
-	s.logService.CreateLog(ctx, nil, "CREATE", "donation_program_expense", expense.ID.String(), nil, expense.toDonationProgramExpenseDetailResponse())
+	s.logService.CreateLog(ctx, &accountID, "CREATE", "donation_program_expense", expense.ID.String(), nil, expense.toDonationProgramExpenseDetailResponse())
 
-	return pkg.NewResponse(http.StatusCreated, "Expense created successfully", nil, nil)
+	return pkg.NewResponse(http.StatusCreated, "Pengeluaran berhasil dibuat", nil, nil)
 }
 
-func (s *service) DeleteDonationProgramExpense(ctx context.Context, donationProgramExpenseID string) pkg.Response {
+func (s *service) DeleteDonationProgramExpense(ctx context.Context, accountID, donationProgramExpenseID string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	if _, err := uuid.Parse(donationProgramExpenseID); err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid expense ID format"}, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID pengeluaran tidak valid"}, nil)
 	}
 
 	expense, err := s.repo.FindOneDonationProgramExpense(ctx, map[string]interface{}{"id": donationProgramExpenseID})
 	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Expense not found", nil, nil)
+		return pkg.NewResponse(http.StatusNotFound, "Pengeluaran tidak ditemukan", nil, nil)
 	}
 
 	if err := s.repo.DeleteDonationProgramExpense(ctx, donationProgramExpenseID); err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to delete expense", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menghapus pengeluaran", nil, nil)
 	}
 
 	if expense.ProofFile != "" {
@@ -225,10 +234,7 @@ func (s *service) DeleteDonationProgramExpense(ctx context.Context, donationProg
 		}
 	}
 
-	// Auto-delete finance record (outflow)
-	_ = s.financeRepo.Delete(ctx, donationProgramExpenseID)
+	s.logService.CreateLog(ctx, &accountID, "DELETE", "donation_program_expense", donationProgramExpenseID, expense.toDonationProgramExpenseDetailResponse(), nil)
 
-	s.logService.CreateLog(ctx, nil, "DELETE", "donation_program_expense", donationProgramExpenseID, expense.toDonationProgramExpenseDetailResponse(), nil)
-
-	return pkg.NewResponse(http.StatusOK, "Expense deleted successfully", nil, nil)
+	return pkg.NewResponse(http.StatusOK, "Pengeluaran berhasil dihapus", nil, nil)
 }

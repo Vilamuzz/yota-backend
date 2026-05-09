@@ -26,24 +26,24 @@ func NewHandler(r *gin.RouterGroup, s Service, ms media.Service, m middleware.Ap
 }
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
-	// Public routes
-	public := r.Group("/public/galleries")
+	public := r.Group("/galleries")
 	public.GET("", h.ListPublishedGalleries)
-	public.GET("/:id", h.GetPublishedGallery)
+	public.GET("/:slug", h.GetGalleryBySlug)
 
-	// Protected routes (require publication manager or superadmin role)
-	protected := r.Group("/galleries")
-	protected.Use(h.middleware.RequireRoles(enum.RolePublicationManager, enum.RoleSuperadmin))
+	admin := r.Group("/admin/galleries")
+	admin.Use(h.middleware.RequireRoles(enum.RolePublicationManager))
 	{
-		protected.GET("", h.ListGalleries)
-		protected.GET("/:id", h.GetGallery)
-		protected.POST("", h.CreateGallery)
-		protected.PUT("/:id", h.UpdateGallery)
-		protected.DELETE("/:id", h.DeleteGallery)
+		admin.GET("", h.ListGalleries)
+		admin.GET("/:id", h.GetGallery)
+		admin.POST("", h.CreateGallery)
+		admin.PUT("/:id", h.UpdateGallery)
+		admin.DELETE("/:id", h.DeleteGallery)
+		admin.PATCH("/:id/published", h.UpdatePublishedGallery)
+		admin.PATCH("/:id/archived", h.UpdateArchivedGallery)
 	}
 }
 
-// ListPublishedGalleries
+// GetGalleryList
 //
 // @Summary List Published Galleries
 // @Description Retrieve a list of published gallery items with cursor-based pagination and optional filters
@@ -64,11 +64,11 @@ func (h *handler) ListPublishedGalleries(c *gin.Context) {
 		return
 	}
 
-	res := h.service.ListPublished(ctx, queryParams)
+	res := h.service.GetGalleryList(ctx, queryParams, false)
 	c.JSON(res.Status, res)
 }
 
-// GetPublishedGallery
+// GetGalleryBySlug
 //
 // @Summary Get Published Gallery
 // @Description Get detailed information of a specific published gallery item
@@ -78,12 +78,11 @@ func (h *handler) ListPublishedGalleries(c *gin.Context) {
 // @Param id path string true "Gallery ID"
 // @Success 200 {object} pkg.Response{data=PublishedGalleryResponse}
 // @Router /api/public/galleries/{id} [get]
-func (h *handler) GetPublishedGallery(c *gin.Context) {
+func (h *handler) GetGalleryBySlug(c *gin.Context) {
 	ctx := c.Request.Context()
-	galleryID := c.Param("id")
+	gallerySlug := c.Param("slug")
 
-	// Increment view count for public access
-	res := h.service.GetPublishedByID(ctx, galleryID, true)
+	res := h.service.GetGalleryBySlug(ctx, gallerySlug)
 	c.JSON(res.Status, res)
 }
 
@@ -109,7 +108,7 @@ func (h *handler) ListGalleries(c *gin.Context) {
 		return
 	}
 
-	res := h.service.List(ctx, queryParams)
+	res := h.service.GetGalleryList(ctx, queryParams, true)
 	c.JSON(res.Status, res)
 }
 
@@ -128,7 +127,7 @@ func (h *handler) GetGallery(c *gin.Context) {
 	ctx := c.Request.Context()
 	galleryID := c.Param("id")
 
-	res := h.service.GetByID(ctx, galleryID)
+	res := h.service.GetGalleryByID(ctx, galleryID)
 	c.JSON(res.Status, res)
 }
 
@@ -152,7 +151,6 @@ func (h *handler) CreateGallery(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var req GalleryRequest
-	// Attempt to bind multipart/form-data
 	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body: "+err.Error(), nil, nil))
 		return
@@ -184,7 +182,7 @@ func (h *handler) UpdateGallery(c *gin.Context) {
 	ctx := c.Request.Context()
 	galleryID := c.Param("id")
 
-	var req UpdateGalleryRequest
+	var req GalleryRequest
 	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body: "+err.Error(), nil, nil))
 		return
@@ -210,5 +208,20 @@ func (h *handler) DeleteGallery(c *gin.Context) {
 	galleryID := c.Param("id")
 
 	res := h.service.DeleteGallery(ctx, galleryID)
+	c.JSON(res.Status, res)
+}
+func (h *handler) UpdatePublishedGallery(c *gin.Context) {
+	ctx := c.Request.Context()
+	galleryID := c.Param("id")
+
+	res := h.service.UpdatePublishedGallery(ctx, galleryID)
+	c.JSON(res.Status, res)
+}
+
+func (h *handler) UpdateArchivedGallery(c *gin.Context) {
+	ctx := c.Request.Context()
+	galleryID := c.Param("id")
+
+	res := h.service.UpdateArchivedGallery(ctx, galleryID)
 	c.JSON(res.Status, res)
 }

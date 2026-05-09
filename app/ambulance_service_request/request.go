@@ -1,8 +1,8 @@
-package ambulance_request
+package ambulance_service_request
 
 import "github.com/Vilamuzz/yota-backend/pkg"
 
-type CreateAmbulanceRequest struct {
+type CreateAmbulanceServiceRequest struct {
 	AccountID        string `json:"accountId"`
 	ApplicantName    string `json:"applicantName"`
 	ApplicantPhone   string `json:"applicantPhone"`
@@ -11,12 +11,12 @@ type CreateAmbulanceRequest struct {
 	RequestReason    string `json:"requestReason"`
 }
 
-type UpdateAmbulanceRequest struct {
+type UpdateAmbulanceServiceRequest struct {
 	Status          string `json:"status"`
 	RejectionReason string `json:"rejectionReason"`
 }
 
-type AmbulanceRequestQueryParams struct {
+type AmbulanceServiceRequestQueryParams struct {
 	AccountID string `form:"accountId"`
 	Status    string `form:"status"`
 	pkg.PaginationParams

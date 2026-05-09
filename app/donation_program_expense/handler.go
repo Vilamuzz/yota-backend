@@ -6,6 +6,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/Vilamuzz/yota-backend/pkg/enum"
+	jwt_pkg "github.com/Vilamuzz/yota-backend/pkg/jwt"
 	"github.com/gin-gonic/gin"
 )
 
@@ -87,8 +88,11 @@ func (h *handler) GetDonationProgramExpenseByID(c *gin.Context) {
 // @Accept multipart/form-data
 // @Produce json
 // @Param id path string true "Donation Program ID"
-// @Param payload formData DonationProgramExpenseRequest true "Donation Program Expense Data"
-// @Param proof_file formData file false "Proof File"
+// @Param title formData string true "Expense Title"
+// @Param amount formData number true "Expense Amount"
+// @Param expenseDate formData string true "Expense Date (YYYY-MM-DD)"
+// @Param note formData string false "Expense Note"
+// @Param proofFile formData file false "Proof File"
 // @Success 201 {object} pkg.Response
 // @Router /api/admin/donation-programs/{id}/expenses [post]
 func (h *handler) CreateDonationProgramExpense(c *gin.Context) {
@@ -97,10 +101,13 @@ func (h *handler) CreateDonationProgramExpense(c *gin.Context) {
 
 	var req DonationProgramExpenseRequest
 	if err := c.ShouldBind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body: "+err.Error(), nil, nil))
 		return
 	}
-	resp := h.service.CreateDonationProgramExpense(ctx, donationProgramID, &req)
+	userData, _ := c.Get("user_data")
+	claims := userData.(jwt_pkg.UserJWTClaims)
+
+	resp := h.service.CreateDonationProgramExpense(ctx, claims.AccountID, donationProgramID, &req)
 	c.JSON(resp.Status, resp)
 }
 
@@ -119,6 +126,9 @@ func (h *handler) DeleteDonationProgramExpense(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	id := c.Param("id")
-	resp := h.service.DeleteDonationProgramExpense(ctx, id)
+	userData, _ := c.Get("user_data")
+	claims := userData.(jwt_pkg.UserJWTClaims)
+
+	resp := h.service.DeleteDonationProgramExpense(ctx, claims.AccountID, id)
 	c.JSON(resp.Status, resp)
 }
