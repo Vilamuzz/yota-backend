@@ -118,8 +118,17 @@ func (r *repository) FindAllFosterChildrenCandidates(ctx context.Context, option
 	var candidates []FosterChildrenCandidate
 	query := r.Conn.WithContext(ctx).Preload("Account").Preload("Account.UserProfile")
 
-	if status, ok := options["status"]; ok && status != "" {
-		query = query.Where("status = ?", status)
+	if status, ok := options["status"]; ok {
+		switch v := status.(type) {
+		case string:
+			if v != "" {
+				query = query.Where("status = ?", v)
+			}
+		case []string:
+			if len(v) > 0 {
+				query = query.Where("status IN ?", v)
+			}
+		}
 	}
 	if accountID, ok := options["account_id"]; ok && accountID != "" {
 		query = query.Where("submitted_by = ?", accountID)

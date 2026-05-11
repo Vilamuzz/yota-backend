@@ -77,8 +77,8 @@ type FosterChildrenCandidate struct {
 type Status string
 
 const (
-	StatusPending  Status = "pending"
-	StatusAccepted Status = "accepted"
-	StatusRejected Status = "rejected"
-	StatusCanceled Status = "canceled"
+	StatusSubmitted Status = "diajukan"
+	StatusVerified  Status = "menunggu_verifikasi"
+	StatusAccepted  Status = "disetujui"
+	StatusRejected  Status = "ditolak"
 )

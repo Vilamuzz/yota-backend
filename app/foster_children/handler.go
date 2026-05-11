@@ -39,7 +39,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	me.Use(h.middleware.AuthRequired())
 	{
 		me.GET("/candidates", h.GetMyFosterChildrenCandidateList)
-		me.DELETE("/candidates/:id", h.CancelFosterChildrenCandidate)
+		//me.DELETE("/candidates/:id", h.CancelFosterChildrenCandidate)
 	}
 
 	admin := r.Group("/admin")
@@ -218,14 +218,14 @@ func (h *handler) CreateFosterChildrenCandidate(c *gin.Context) {
 // @Param id path string true "Candidate ID"
 // @Success 200 {object} pkg.Response
 // @Router /api/me/foster-children/candidates/{id} [delete]
-func (h *handler) CancelFosterChildrenCandidate(c *gin.Context) {
+/*func (h *handler) CancelFosterChildrenCandidate(c *gin.Context) {
 	ctx := c.Request.Context()
 	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
 	id := c.Param("id")
 
 	res := h.service.CancelFosterChildrenCandidate(ctx, claims.AccountID, id)
 	c.JSON(res.Status, res)
-}
+}*/
 
 // GetMyFosterChildrenCandidateList
 //

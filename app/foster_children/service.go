@@ -23,7 +23,6 @@ type Service interface {
 	GetFosterChildrenCandidateByID(ctx context.Context, id string) pkg.Response
 	CreateFosterChildrenCandidate(ctx context.Context, accountID string, req CreateFosterChildrenCandidateRequest) pkg.Response
 	UpdateFosterChildrenCandidateStatus(ctx context.Context, id string, req UpdateFosterChildrenCandidateStatusRequest) pkg.Response
-	CancelFosterChildrenCandidate(ctx context.Context, accountID string, id string) pkg.Response
 }
 
 type service struct {
@@ -227,7 +226,7 @@ func (s *service) CreateFosterChildren(ctx context.Context, req CreateFosterChil
 	}
 
 	s.logService.CreateLog(ctx, nil, "CREATE", "foster_children", fosterChildren.ID.String(), nil, fosterChildren.ToFosterChildrenResponse())
-	return pkg.NewResponse(http.StatusCreated, "Foster children successfully created", nil, fosterChildren.ToFosterChildrenResponse())
+	return pkg.NewResponse(http.StatusCreated, "Data anak asuh berhasil ditambahkan", nil, fosterChildren.ToFosterChildrenResponse())
 }
 
 func (s *service) UpdateFosterChildren(ctx context.Context, id string, req UpdateFosterChildrenRequest) pkg.Response {
@@ -379,7 +378,7 @@ func (s *service) UpdateFosterChildren(ctx context.Context, id string, req Updat
 	}
 
 	s.logService.CreateLog(ctx, nil, "UPDATE", "foster_children", id, existing.ToFosterChildrenResponse(), updateData)
-	return pkg.NewResponse(http.StatusOK, "Foster children updated successfully", nil, nil)
+	return pkg.NewResponse(http.StatusOK, "Data anak asuh berhasil diubah", nil, nil)
 }
 
 func (s *service) DeleteFosterChildren(ctx context.Context, id string) pkg.Response {
@@ -392,7 +391,7 @@ func (s *service) DeleteFosterChildren(ctx context.Context, id string) pkg.Respo
 
 	fosterChildren, err := s.repo.FindOneFosterChildren(ctx, map[string]interface{}{"id": id})
 	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Foster children not found", nil, nil)
+		return pkg.NewResponse(http.StatusNotFound, "Data anak asuh tidak ditemukan", nil, nil)
 	}
 
 	// Delete achievements from S3
@@ -437,13 +436,28 @@ func (s *service) DeleteFosterChildren(ctx context.Context, id string) pkg.Respo
 	}
 
 	s.logService.CreateLog(ctx, nil, "DELETE", "foster_children", id, fosterChildren.ToFosterChildrenResponse(), nil)
-	return pkg.NewResponse(http.StatusOK, "Foster children deleted successfully", nil, nil)
+	return pkg.NewResponse(http.StatusOK, "Data anak asuh berhasil dihapus", nil, nil)
 }
 
 func (s *service) GetFosterChildrenCandidateList(ctx context.Context, params FosterChildrenCandidateQueryParams) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
+	role, _ := ctx.Value("role").(string)
 
+	allowedStatus := []string{}
+	switch role {
+	case "chairman":
+		allowedStatus = []string{
+			string(StatusVerified),
+			string(StatusAccepted),
+			string(StatusRejected),
+		}
+	case "social_manager":
+		allowedStatus = []string{
+			string(StatusSubmitted),
+			string(StatusVerified),
+		}
+	}
 	if params.Limit <= 0 {
 		params.Limit = 10
 	}
@@ -454,8 +468,25 @@ func (s *service) GetFosterChildrenCandidateList(ctx context.Context, params Fos
 	options := map[string]interface{}{
 		"limit": params.Limit,
 	}
-	if params.Status != "" {
+	if params.Status != "" && params.Status != "all" {
+		isAllowed := false
+		for _, status := range allowedStatus {
+			if status == string(params.Status) {
+				isAllowed = true
+				break
+			}
+		}
+		if !isAllowed {
+			return pkg.NewResponse(
+				http.StatusForbidden,
+				"Unauthorized status access",
+				nil,
+				nil,
+			)
+		}
 		options["status"] = params.Status
+	} else {
+		options["status"] = allowedStatus
 	}
 	if params.AccountID != "" {
 		options["account_id"] = params.AccountID
@@ -606,7 +637,7 @@ func (s *service) CreateFosterChildrenCandidate(ctx context.Context, accountID s
 		SubmitterAddress: req.SubmitterAddress,
 		SubmitterIDCard:  submitterIDCardURL,
 		SubmittedBy:      uuid.MustParse(accountID),
-		Status:           StatusPending,
+		Status:           StatusSubmitted,
 		CreatedAt:        now,
 		UpdatedAt:        now,
 	}
@@ -623,20 +654,55 @@ func (s *service) CreateFosterChildrenCandidate(ctx context.Context, accountID s
 func (s *service) UpdateFosterChildrenCandidateStatus(ctx context.Context, id string, req UpdateFosterChildrenCandidateStatusRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
+	role, _ := ctx.Value("role").(string)
+	switch role {
+	case "social_manager":
+		if req.Status != StatusVerified &&
+			req.Status != StatusRejected {
 
-	if req.Status != StatusAccepted && req.Status != StatusRejected {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"status": "Invalid status, must be accepted or rejected"}, nil)
+			return pkg.NewResponse(
+				http.StatusForbidden,
+				"Social manager cannot set this status",
+				nil,
+				nil,
+			)
+		}
+
+	case "chairman":
+		if req.Status != StatusAccepted &&
+			req.Status != StatusRejected {
+
+			return pkg.NewResponse(
+				http.StatusForbidden,
+				"Chairman cannot set this status",
+				nil,
+				nil,
+			)
+		}
+	}
+
+	if req.Status != StatusVerified && req.Status != StatusAccepted && req.Status != StatusRejected {
+		return pkg.NewResponse(http.StatusBadRequest, "Validasi gagal", map[string]string{"status": "Status tidak valid"}, nil)
 	}
 
 	existing, err := s.repo.FindOneFosterChildrenCandidate(ctx, map[string]interface{}{
 		"id": id,
 	})
 	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Candidate not found", nil, nil)
+		return pkg.NewResponse(http.StatusNotFound, "Data ajuan anak asuh tidak ditemukan", nil, nil)
 	}
 
-	if existing.Status != StatusPending {
-		return pkg.NewResponse(http.StatusBadRequest, "Only pending candidates can be updated", nil, nil)
+	switch existing.Status {
+	case StatusSubmitted:
+		if req.Status != StatusVerified && req.Status != StatusRejected {
+			return pkg.NewResponse(http.StatusBadRequest, "Status hanya bisa menjadi menunggu verifikasi atau ditolak", nil, nil)
+		}
+	case StatusVerified:
+		if req.Status != StatusAccepted && req.Status != StatusRejected {
+			return pkg.NewResponse(http.StatusBadRequest, "Status hanya bisa menjadi disetujui atau ditolak", nil, nil)
+		}
+	default:
+		return pkg.NewResponse(http.StatusBadRequest, "Status ajuan anak asuh tidak dapat diubah", nil, nil)
 	}
 
 	updateData := map[string]interface{}{
@@ -651,8 +717,8 @@ func (s *service) UpdateFosterChildrenCandidateStatus(ctx context.Context, id st
 	}
 
 	if err := s.repo.UpdateFosterChildrenCandidate(ctx, id, updateData); err != nil {
-		logrus.WithError(err).Error("failed to update candidate status")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update candidate status", nil, nil)
+		logrus.WithError(err).Error("gagal memperbarui data ajuan anak asuh")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui data ajuan anak asuh", nil, nil)
 	}
 
 	if req.Status == StatusAccepted {
@@ -678,37 +744,4 @@ func (s *service) UpdateFosterChildrenCandidateStatus(ctx context.Context, id st
 
 	s.logService.CreateLog(ctx, nil, "UPDATE", "foster_children_candidate", id, existing.ToFosterChildrenCandidateResponse(), updateData)
 	return pkg.NewResponse(http.StatusOK, "Candidate status updated successfully", nil, nil)
-}
-
-func (s *service) CancelFosterChildrenCandidate(ctx context.Context, accountID string, id string) pkg.Response {
-	ctx, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	existing, err := s.repo.FindOneFosterChildrenCandidate(ctx, map[string]interface{}{
-		"id": id,
-	})
-	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Candidate not found", nil, nil)
-	}
-
-	if existing.SubmittedBy.String() != accountID {
-		return pkg.NewResponse(http.StatusForbidden, "You are not authorized to cancel this candidate", nil, nil)
-	}
-
-	if existing.Status != StatusPending {
-		return pkg.NewResponse(http.StatusBadRequest, "Only pending candidates can be cancelled", nil, nil)
-	}
-
-	updateData := map[string]interface{}{
-		"status":     StatusCanceled,
-		"updated_at": time.Now(),
-	}
-
-	if err := s.repo.UpdateFosterChildrenCandidate(ctx, id, updateData); err != nil {
-		logrus.WithError(err).Error("failed to cancel candidate")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to cancel candidate", nil, nil)
-	}
-
-	s.logService.CreateLog(ctx, &accountID, "UPDATE", "foster_children_candidate", id, existing.ToFosterChildrenCandidateResponse(), updateData)
-	return pkg.NewResponse(http.StatusOK, "Candidate cancelled successfully", nil, nil)
 }

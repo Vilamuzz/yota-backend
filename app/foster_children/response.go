@@ -1,6 +1,10 @@
 package foster_children
 
-import "github.com/Vilamuzz/yota-backend/pkg"
+import (
+	"time"
+
+	"github.com/Vilamuzz/yota-backend/pkg"
+)
 
 type AchievementResponse struct {
 	ID  string `json:"id"`
@@ -20,6 +24,7 @@ type FosterChildrenResponse struct {
 	FamilyCard     string                `json:"familyCard"`
 	SKTM           string                `json:"sktm"`
 	Achievements   []AchievementResponse `json:"achievements"`
+	CreatedAt      time.Time             `json:"createdAt"`
 }
 
 type FosterChildrenListResponse struct {
@@ -52,6 +57,7 @@ func (f *FosterChildren) ToFosterChildrenResponse() FosterChildrenResponse {
 		FamilyCard:     f.FamilyCard,
 		SKTM:           f.SKTM,
 		Achievements:   achievements,
+		CreatedAt:      f.CreatedAt,
 	}
 }
 
