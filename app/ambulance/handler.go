@@ -30,7 +30,9 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	admin := r.Group("/admin/ambulances")
 	admin.Use(h.middleware.RequireRoles(enum.RoleAmbulanceManager))
 	{
-		admin.POST("/", h.CreateAmbulance)
+		admin.GET("", h.ListAmbulances)
+		admin.GET("/:id", h.GetAmbulanceByID)
+		admin.POST("", h.CreateAmbulance)
 		admin.PUT("/:id", h.UpdateAmbulance)
 		admin.DELETE("/:id", h.DeleteAmbulance)
 	}

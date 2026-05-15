@@ -50,17 +50,17 @@ type Container struct {
 	Timeout        time.Duration
 
 	// Repositories
-	AccountRepo             account.Repository
-	AuthRepo                auth.Repository
-	DonationRepo            donation_program.Repository
-	NewsRepo                news.Repository
-	GalleryRepo             gallery.Repository
-	MediaRepo               media.Repository
-	PrayerRepo              prayer.Repository
-	TransactionDonationRepo donation_program_transaction.Repository
-	DonationExpenseRepo     donation_program_expense.Repository
-	FinanceRecordRepo       finance_record.Repository
-	AmbulanceRepo           ambulance.Repository
+	AccountRepo                   account.Repository
+	AuthRepo                      auth.Repository
+	DonationRepo                  donation_program.Repository
+	NewsRepo                      news.Repository
+	GalleryRepo                   gallery.Repository
+	MediaRepo                     media.Repository
+	PrayerRepo                    prayer.Repository
+	TransactionDonationRepo       donation_program_transaction.Repository
+	DonationExpenseRepo           donation_program_expense.Repository
+	FinanceRecordRepo             finance_record.Repository
+	AmbulanceRepo                 ambulance.Repository
 	AmbulanceHistoryRepo          ambulance_history.Repository
 	AmbulanceServiceRequestRepo   ambulance_service_request.Repository
 	FosterChildrenRepo            foster_children.Repository
@@ -74,16 +74,16 @@ type Container struct {
 	LogRepo                       app_log.Repository
 
 	// Services
-	AuthService                auth.Service
-	AccountService             account.Service
-	DonationService            donation_program.Service
-	NewsService                news.Service
-	GalleryService             gallery.Service
-	MediaService               media.Service
-	TransactionDonationService donation_program_transaction.Service
-	PrayerService              prayer.Service
-	DonationExpenseService     donation_program_expense.Service
-	FinanceRecordService       finance_record.Service
+	AuthService                      auth.Service
+	AccountService                   account.Service
+	DonationService                  donation_program.Service
+	NewsService                      news.Service
+	GalleryService                   gallery.Service
+	MediaService                     media.Service
+	TransactionDonationService       donation_program_transaction.Service
+	PrayerService                    prayer.Service
+	DonationExpenseService           donation_program_expense.Service
+	FinanceRecordService             finance_record.Service
 	AmbulanceService                 ambulance.Service
 	AmbulanceHistoryService          ambulance_history.Service
 	AmbulanceServiceRequestService   ambulance_service_request.Service
@@ -220,7 +220,7 @@ func (c *Container) initServices() {
 	c.FosterChildrenTransactionService = foster_children_transaction.NewService(c.FosterChildrenTransactionRepo, c.AccountRepo, c.FosterChildrenRepo, c.FinanceRecordRepo, c.MidtransClient, c.LogService, c.Timeout)
 	c.SocialProgramService = social_program.NewService(c.SocialProgramRepo, c.LogService, c.S3Client, c.Timeout)
 	c.SocialProgramExpenseService = social_program_expense.NewService(c.SocialProgramExpenseRepo, c.FinanceRecordRepo, c.SocialProgramRepo, c.S3Client, c.LogService, c.Timeout)
-	c.SocialProgramInvoiceService = social_program_invoice.NewService(c.SocialProgramInvoiceRepo, c.Timeout)
+	c.SocialProgramInvoiceService = social_program_invoice.NewService(c.SocialProgramInvoiceRepo, c.SocialProgramSubscriptionRepo, c.Timeout)
 	c.SocialProgramSubscriptionService = social_program_subscription.NewService(c.SocialProgramSubscriptionRepo, c.SocialProgramRepo, c.Timeout)
 	c.SocialProgramTransactionService = social_program_transaction.NewService(c.SocialProgramTransactionRepo, c.AccountRepo, c.SocialProgramInvoiceRepo, c.FinanceRecordRepo, c.MidtransClient, c.LogService, c.Timeout)
 }
@@ -240,6 +240,13 @@ func (c *Container) initScheduler() {
 	c.Scheduler.Add("0 0 * * *", "update-expired-donations", func() {
 		if err := c.DonationService.UpdateExpiredDonationProgram(context.Background()); err != nil {
 			// error is logged inside the scheduler wrapper; log detail here
+			_ = err
+		}
+	})
+
+	// Generate monthly invoices for social programs every midnight
+	c.Scheduler.Add("0 0 * * *", "generate-monthly-invoices", func() {
+		if err := c.SocialProgramInvoiceService.GenerateMonthlyInvoices(context.Background()); err != nil {
 			_ = err
 		}
 	})

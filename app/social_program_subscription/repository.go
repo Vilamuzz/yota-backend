@@ -13,6 +13,7 @@ type Repository interface {
 	CreateSocialProgramSubscription(ctx context.Context, subscription *SocialProgramSubscription) error
 	UpdateSocialProgramSubscription(ctx context.Context, subscriptionID string, updates map[string]interface{}) error
 	DeleteSocialProgramSubscription(ctx context.Context, subscriptionID string) error
+	FindSubscriptionsDueForBilling(ctx context.Context, billingDay int) ([]SocialProgramSubscription, error)
 }
 
 type repository struct {
@@ -25,31 +26,32 @@ func NewRepository(conn *gorm.DB) Repository {
 
 func (r *repository) FindAllSocialProgramSubscriptions(ctx context.Context, options map[string]interface{}) ([]SocialProgramSubscription, error) {
 	var subscriptions []SocialProgramSubscription
-	query := r.Conn.WithContext(ctx)
+	query := r.Conn.WithContext(ctx).Preload("Account.UserProfile")
 
 	if socialProgramID, ok := options["social_program_id"]; ok && socialProgramID.(string) != "" {
 		query = query.Where("social_program_id = ?", socialProgramID.(string))
 	}
-	if accountID, ok := options["account_id"]; ok && accountID.(string) != "" {
-		query = query.Where("account_id = ?", accountID.(string))
-	}
 	if status, ok := options["status"]; ok && status.(string) != "" {
 		query = query.Where("status = ?", status.(string))
 	}
-	
+
 	if nextCursor, ok := options["next_cursor"]; ok && nextCursor.(string) != "" {
 		cursorData, err := pkg.DecodeCursor(nextCursor.(string))
 		if err == nil {
-			query = query.Where("(created_at, id) < (?, ?)", cursorData.CreatedAt, cursorData.ID)
+			query = query.Where("created_at < ? OR (created_at = ? AND id < ?)",
+				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
 		}
 	} else if prevCursor, ok := options["prev_cursor"]; ok && prevCursor.(string) != "" {
 		cursorData, err := pkg.DecodeCursor(prevCursor.(string))
 		if err == nil {
-			query = query.Where("(created_at, id) > (?, ?)", cursorData.CreatedAt, cursorData.ID)
+			query = query.Where("created_at > ? OR (created_at = ? AND id > ?)",
+				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
 		}
 	}
 
-	if _, usingPrevCursor := options["prev_cursor"]; !usingPrevCursor {
+	if _, isPrev := options["prev_cursor"]; isPrev {
+		query = query.Order("created_at ASC, id ASC")
+	} else {
 		query = query.Order("created_at DESC, id DESC")
 	}
 
@@ -67,7 +69,7 @@ func (r *repository) FindAllSocialProgramSubscriptions(ctx context.Context, opti
 
 func (r *repository) FindOneSocialProgramSubscription(ctx context.Context, options map[string]interface{}) (*SocialProgramSubscription, error) {
 	var subscription SocialProgramSubscription
-	query := r.Conn.WithContext(ctx)
+	query := r.Conn.WithContext(ctx).Preload("Account.UserProfile")
 
 	if id, ok := options["id"]; ok && id.(string) != "" {
 		query = query.Where("id = ?", id.(string))
@@ -78,9 +80,14 @@ func (r *repository) FindOneSocialProgramSubscription(ctx context.Context, optio
 	if accountID, ok := options["account_id"]; ok && accountID.(string) != "" {
 		query = query.Where("account_id = ?", accountID.(string))
 	}
+	if status, ok := options["status"]; ok && status.(string) != "" {
+		query = query.Where("status = ?", status.(string))
+	}
 
-	err := query.First(&subscription).Error
-	return &subscription, err
+	if err := query.First(&subscription).Error; err != nil {
+		return nil, err
+	}
+	return &subscription, nil
 }
 
 func (r *repository) CreateSocialProgramSubscription(ctx context.Context, subscription *SocialProgramSubscription) error {
@@ -95,4 +102,16 @@ func (r *repository) UpdateSocialProgramSubscription(ctx context.Context, subscr
 
 func (r *repository) DeleteSocialProgramSubscription(ctx context.Context, subscriptionID string) error {
 	return r.Conn.WithContext(ctx).Where("id = ?", subscriptionID).Delete(&SocialProgramSubscription{}).Error
+}
+
+func (r *repository) FindSubscriptionsDueForBilling(ctx context.Context, billingDay int) ([]SocialProgramSubscription, error) {
+	var subscriptions []SocialProgramSubscription
+	err := r.Conn.WithContext(ctx).
+		Joins("JOIN social_programs ON social_programs.id = social_program_subscriptions.social_program_id").
+		Where("social_program_subscriptions.status = ?", StatusActive).
+		Where("social_programs.status = ?", "active").
+		Where("social_programs.billing_day = ?", billingDay).
+		Preload("SocialProgram").
+		Find(&subscriptions).Error
+	return subscriptions, err
 }

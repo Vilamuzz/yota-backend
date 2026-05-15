@@ -8,9 +8,9 @@ type Response struct {
 }
 
 type CursorPagination struct {
-	NextCursor string `json:"nextCursor,omitempty"`
-	PrevCursor string `json:"prevCursor,omitempty"`
-	Limit      int    `json:"limit"`
+	NextCursor string `json:"nextCursor,omitempty" form:"nextCursor"`
+	PrevCursor string `json:"prevCursor,omitempty" form:"prevCursor"`
+	Limit      int    `json:"limit" form:"limit"`
 }
 
 func NewResponse(status int, message string, validation map[string]string, data interface{}) Response {
@@ -19,5 +19,5 @@ func NewResponse(status int, message string, validation map[string]string, data 
 		Message:    message,
 		Validation: validation,
 		Data:       data,
-	}   
+	}
 }

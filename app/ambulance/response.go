@@ -1,11 +1,17 @@
 package ambulance
 
-import "github.com/Vilamuzz/yota-backend/pkg"
+import (
+	"github.com/Vilamuzz/yota-backend/pkg"
+	"github.com/google/uuid"
+)
 
 type AmbulanceResponse struct {
-	ID          string `json:"id"`
-	PlateNumber string `json:"plateNumber"`
-	Phone       string `json:"phone"`
+	ID          string          `json:"id"`
+	DriverName  string          `json:"driverName"`
+	DriverPhone string          `json:"driverPhone"`
+	Image       string          `json:"image"`
+	PlateNumber string          `json:"plateNumber"`
+	Status      AmbulanceStatus `json:"status"`
 }
 
 type AmbulanceListResponse struct {
@@ -14,10 +20,23 @@ type AmbulanceListResponse struct {
 }
 
 func (a *Ambulance) toAmbulanceResponse() AmbulanceResponse {
+	driverName := "Unknown"
+	driverPhone := "-"
+
+	if a.Driver.ID != uuid.Nil && a.Driver.UserProfile.ID != uuid.Nil {
+		driverName = a.Driver.UserProfile.Username
+		if a.Driver.UserProfile.Phone != nil {
+			driverPhone = *a.Driver.UserProfile.Phone
+		}
+	}
+
 	return AmbulanceResponse{
 		ID:          a.ID.String(),
 		PlateNumber: a.PlateNumber,
-		Phone:       a.Phone,
+		Image:       a.Image,
+		DriverName:  driverName,
+		DriverPhone: driverPhone,
+		Status:      a.Status,
 	}
 }
 

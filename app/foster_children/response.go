@@ -1,6 +1,10 @@
 package foster_children
 
-import "github.com/Vilamuzz/yota-backend/pkg"
+import (
+	"time"
+
+	"github.com/Vilamuzz/yota-backend/pkg"
+)
 
 type AchievementResponse struct {
 	ID  string `json:"id"`
@@ -20,6 +24,7 @@ type FosterChildrenResponse struct {
 	FamilyCard     string                `json:"familyCard"`
 	SKTM           string                `json:"sktm"`
 	Achievements   []AchievementResponse `json:"achievements"`
+	CreatedAt      time.Time             `json:"createdAt"`
 }
 
 type FosterChildrenListResponse struct {
@@ -52,6 +57,7 @@ func (f *FosterChildren) ToFosterChildrenResponse() FosterChildrenResponse {
 		FamilyCard:     f.FamilyCard,
 		SKTM:           f.SKTM,
 		Achievements:   achievements,
+		CreatedAt:      f.CreatedAt,
 	}
 }
 
@@ -70,26 +76,26 @@ func ToFosterChildrenListResponse(fosterChildren []FosterChildren, pagination pk
 }
 
 type FosterChildrenCandidateResponse struct {
-	ID               string `json:"id"`
-	Name             string `json:"name"`
-	ProfilePicture   string `json:"profilePicture"`
-	Gender           string `json:"gender"`
-	Category         string `json:"category"`
-	BirthDate        string `json:"birthDate"`
-	BirthPlace       string `json:"birthPlace"`
-	Address          string `json:"address"`
-	FamilyCard       string `json:"familyCard"`
-	SKTM             string `json:"sktm"`
-	SubmitterName    string `json:"submitterName"`
-	SubmitterPhone   string `json:"submitterPhone"`
-	SubmitterAddress string `json:"submitterAddress"`
-	SubmitterIDCard  string `json:"submitterIdCard"`
-	SubmittedBy      string `json:"submittedBy"`
-	Status           string `json:"status"`
-	RejectionReason  string `json:"rejectionReason"`
-	CreatedAt        string `json:"createdAt"`
-	UpdatedAt        string `json:"updatedAt"`
-	AccountUsername  string `json:"accountUsername,omitempty"`
+	ID               string    `json:"id"`
+	Name             string    `json:"name"`
+	ProfilePicture   string    `json:"profilePicture"`
+	Gender           string    `json:"gender"`
+	Category         string    `json:"category"`
+	BirthDate        string    `json:"birthDate"`
+	BirthPlace       string    `json:"birthPlace"`
+	Address          string    `json:"address"`
+	FamilyCard       string    `json:"familyCard"`
+	SKTM             string    `json:"sktm"`
+	SubmitterName    string    `json:"submitterName"`
+	SubmitterPhone   string    `json:"submitterPhone"`
+	SubmitterAddress string    `json:"submitterAddress"`
+	SubmitterIDCard  string    `json:"submitterIdCard"`
+	SubmittedBy      string    `json:"submittedBy"`
+	Status           string    `json:"status"`
+	RejectionReason  string    `json:"rejectionReason"`
+	CreatedAt        time.Time `json:"createdAt"`
+	UpdatedAt        time.Time `json:"updatedAt"`
+	AccountUsername  string    `json:"accountUsername,omitempty"`
 }
 
 type FosterChildrenCandidateListResponse struct {
@@ -121,8 +127,8 @@ func (c *FosterChildrenCandidate) ToFosterChildrenCandidateResponse() FosterChil
 		SubmittedBy:      c.SubmittedBy.String(),
 		Status:           string(c.Status),
 		RejectionReason:  c.RejectionReason,
-		CreatedAt:        c.CreatedAt.Format("2006-01-02 15:04:05"),
-		UpdatedAt:        c.UpdatedAt.Format("2006-01-02 15:04:05"),
+		CreatedAt:        c.CreatedAt,
+		UpdatedAt:        c.UpdatedAt,
 		AccountUsername:  accountUsername,
 	}
 }

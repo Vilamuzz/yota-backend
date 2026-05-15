@@ -15,7 +15,7 @@ import (
 )
 
 type Service interface {
-	GetAccountList(ctx context.Context, params AccountQueryParam) pkg.Response
+	GetAccountList(ctx context.Context, params AccountQueryParam, excludeSuperadmin bool) pkg.Response
 	GetAccountByID(ctx context.Context, accountID string) pkg.Response
 	SetAccountBanStatus(ctx context.Context, accountID string, payload SetAccountBanStatusRequest) pkg.Response
 
@@ -42,7 +42,7 @@ func NewService(r Repository, timeout time.Duration, s3Client s3_pkg.Client) Ser
 	}
 }
 
-func (s *service) GetAccountList(ctx context.Context, params AccountQueryParam) pkg.Response {
+func (s *service) GetAccountList(ctx context.Context, params AccountQueryParam, excludeSuperadmin bool) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -55,7 +55,7 @@ func (s *service) GetAccountList(ctx context.Context, params AccountQueryParam) 
 
 	options := map[string]interface{}{
 		"limit":              params.Limit,
-		"exclude_superadmin": true,
+		"exclude_superadmin": excludeSuperadmin,
 	}
 	if params.RoleID != 0 {
 		options["role_id"] = params.RoleID

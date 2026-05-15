@@ -92,7 +92,7 @@ func (s *service) CreateAmbulanceHistory(ctx context.Context, payload CreateAmbu
 	if payload.AmbulanceID == "" {
 		errValidation["ambulance_id"] = "Ambulance ID is required"
 	} else if payload.AmbulanceID != "" {
-		_, err := s.ambulanceRepo.FindByID(ctx, payload.AmbulanceID)
+		_, err := s.ambulanceRepo.FindOneAmbulance(ctx, map[string]interface{}{"id": payload.AmbulanceID})
 		if err != nil {
 			if err.Error() == gorm.ErrRecordNotFound.Error() {
 				errValidation["ambulance_id"] = "Ambulance not found"

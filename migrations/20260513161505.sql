@@ -1,0 +1,2 @@
+-- Modify "ambulances" table
+ALTER TABLE "ambulances" ALTER COLUMN "image" DROP NOT NULL, ALTER COLUMN "plate_number" DROP NOT NULL, DROP COLUMN "phone", ALTER COLUMN "created_at" DROP NOT NULL, ALTER COLUMN "updated_at" DROP NOT NULL, ALTER COLUMN "deleted_at" DROP NOT NULL, ADD COLUMN "status" text NULL, ADD CONSTRAINT "fk_ambulances_driver" FOREIGN KEY ("driver_id") REFERENCES "accounts" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION;

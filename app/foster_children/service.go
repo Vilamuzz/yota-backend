@@ -7,6 +7,7 @@ import (
 
 	app_log "github.com/Vilamuzz/yota-backend/app/log"
 	"github.com/Vilamuzz/yota-backend/pkg"
+	"github.com/Vilamuzz/yota-backend/pkg/enum"
 	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -22,7 +23,8 @@ type Service interface {
 	GetFosterChildrenCandidateList(ctx context.Context, params FosterChildrenCandidateQueryParams) pkg.Response
 	GetFosterChildrenCandidateByID(ctx context.Context, id string) pkg.Response
 	CreateFosterChildrenCandidate(ctx context.Context, accountID string, req CreateFosterChildrenCandidateRequest) pkg.Response
-	UpdateFosterChildrenCandidateStatus(ctx context.Context, id string, req UpdateFosterChildrenCandidateStatusRequest) pkg.Response
+	AcceptFosterChildrenCandidate(ctx context.Context, id string, role enum.RoleName) pkg.Response
+	RejectFosterChildrenCandidate(ctx context.Context, id string, req RejectFosterChildrenCandidateRequest) pkg.Response
 	CancelFosterChildrenCandidate(ctx context.Context, accountID string, id string) pkg.Response
 }
 
@@ -71,7 +73,7 @@ func (s *service) GetFosterChildrenList(ctx context.Context, params FosterChildr
 
 	fosterChildren, err := s.repo.FindAllFosterChildren(ctx, options)
 	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch foster children", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data anak asuh", nil, nil)
 	}
 
 	hasNext := len(fosterChildren) > params.Limit
@@ -96,23 +98,23 @@ func (s *service) GetFosterChildrenList(ctx context.Context, params FosterChildr
 		Limit:      params.Limit,
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, ToFosterChildrenListResponse(fosterChildren, pagination))
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, ToFosterChildrenListResponse(fosterChildren, pagination))
 }
 
 func (s *service) GetFosterChildrenByID(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(id); err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid foster children ID format"}, nil)
+	if err := uuid.Validate(id); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID anak asuh tidak valid"}, nil)
 	}
 
 	fosterChildren, err := s.repo.FindOneFosterChildren(ctx, map[string]interface{}{"id": id})
 	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Foster children not found", nil, nil)
+		return pkg.NewResponse(http.StatusNotFound, "Anak asuh tidak ditemukan", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, fosterChildren.ToFosterChildrenResponse())
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, fosterChildren.ToFosterChildrenResponse())
 }
 
 func (s *service) CreateFosterChildren(ctx context.Context, req CreateFosterChildrenRequest) pkg.Response {
@@ -121,62 +123,62 @@ func (s *service) CreateFosterChildren(ctx context.Context, req CreateFosterChil
 
 	errValidation := make(map[string]string)
 	if req.Name == "" {
-		errValidation["name"] = "Name is required"
+		errValidation["name"] = "Nama wajib diisi"
 	}
 	if req.Gender == "" {
-		errValidation["gender"] = "Gender is required"
+		errValidation["gender"] = "Jenis kelamin wajib diisi"
 	} else if req.Gender != Male && req.Gender != Female {
-		errValidation["gender"] = "Invalid gender"
+		errValidation["gender"] = "Jenis kelamin tidak valid"
 	}
 	if req.Category == "" {
-		errValidation["category"] = "Category is required"
+		errValidation["category"] = "Kategori wajib diisi"
 	} else if req.Category != CategoryFatherless && req.Category != CategoryMotherless && req.Category != CategoryOrphan {
-		errValidation["category"] = "Invalid category"
+		errValidation["category"] = "Kategori tidak valid"
 	}
 	if req.BirthDate == "" {
-		errValidation["birthDate"] = "Birth date is required"
+		errValidation["birthDate"] = "Tanggal lahir wajib diisi"
 	}
 	if req.BirthPlace == "" {
-		errValidation["birthPlace"] = "Birth place is required"
+		errValidation["birthPlace"] = "Tempat lahir wajib diisi"
 	}
 	if req.Address == "" {
-		errValidation["address"] = "Address is required"
+		errValidation["address"] = "Alamat wajib diisi"
 	}
 	if req.ProfilePicture == nil {
-		errValidation["profilePicture"] = "Profile picture is required"
+		errValidation["profilePicture"] = "Foto profil wajib diisi"
 	}
 	if req.FamilyCard == nil {
-		errValidation["familyCard"] = "Family card is required"
+		errValidation["familyCard"] = "Kartu keluarga wajib diisi"
 	}
 	if req.SKTM == nil {
-		errValidation["sktm"] = "SKTM is required"
+		errValidation["sktm"] = "SKTM wajib diisi"
 	}
 
 	if len(errValidation) > 0 {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
 	birthDate, err := time.Parse("2006-01-02", req.BirthDate)
 	if err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"birthDate": "Invalid date format, expected YYYY-MM-DD"}, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"birthDate": "Format tanggal tidak valid, diharapkan YYYY-MM-DD"}, nil)
 	}
 
 	// Upload profile picture
 	profilePictureURL, err := s.s3Client.UploadFile(ctx, req.ProfilePicture, "foster-children")
 	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload profile picture", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah foto profil", nil, nil)
 	}
 
 	// Upload family card
 	familyCardURL, err := s.s3Client.UploadFile(ctx, req.FamilyCard, "foster-children")
 	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload family card", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah kartu keluarga", nil, nil)
 	}
 
 	// Upload SKTM
 	sktmURL, err := s.s3Client.UploadFile(ctx, req.SKTM, "foster-children")
 	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload SKTM", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah SKTM", nil, nil)
 	}
 
 	now := time.Now()
@@ -201,16 +203,23 @@ func (s *service) CreateFosterChildren(ctx context.Context, req CreateFosterChil
 	// Upload achievements
 	if len(req.Achievements) > 0 {
 		var achievements []Achivement
-		for _, file := range req.Achievements {
+		for i, file := range req.Achievements {
 			achievementURL, err := s.s3Client.UploadFile(ctx, file, "foster-children/achievements")
 			if err != nil {
 				logrus.WithError(err).Error("failed to upload achievement")
 				continue
 			}
+
+			note := ""
+			if i < len(req.AchivementNotes) {
+				note = req.AchivementNotes[i]
+			}
+
 			achievements = append(achievements, Achivement{
 				ID:               uuid.New(),
 				FosterChildrenID: fosterChildrenID,
 				URL:              achievementURL,
+				Note:             note,
 				CreatedAt:        now,
 				UpdatedAt:        now,
 			})
@@ -223,24 +232,24 @@ func (s *service) CreateFosterChildren(ctx context.Context, req CreateFosterChil
 			"component": "foster_children.service",
 			"name":      req.Name,
 		}).WithError(err).Error("failed to create foster children")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create foster children", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat data anak asuh", nil, nil)
 	}
 
 	s.logService.CreateLog(ctx, nil, "CREATE", "foster_children", fosterChildren.ID.String(), nil, fosterChildren.ToFosterChildrenResponse())
-	return pkg.NewResponse(http.StatusCreated, "Foster children successfully created", nil, fosterChildren.ToFosterChildrenResponse())
+	return pkg.NewResponse(http.StatusCreated, "Anak asuh berhasil dibuat", nil, fosterChildren.ToFosterChildrenResponse())
 }
 
 func (s *service) UpdateFosterChildren(ctx context.Context, id string, req UpdateFosterChildrenRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(id); err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid foster children ID format"}, nil)
+	if err := uuid.Validate(id); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID anak asuh tidak valid"}, nil)
 	}
 
 	existing, err := s.repo.FindOneFosterChildren(ctx, map[string]interface{}{"id": id})
 	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Foster children not found", nil, nil)
+		return pkg.NewResponse(http.StatusNotFound, "Anak asuh tidak ditemukan", nil, nil)
 	}
 
 	errValidation := make(map[string]string)
@@ -251,7 +260,7 @@ func (s *service) UpdateFosterChildren(ctx context.Context, id string, req Updat
 	}
 	if req.Gender != "" {
 		if req.Gender != Male && req.Gender != Female {
-			errValidation["gender"] = "Invalid gender"
+			errValidation["gender"] = "Jenis kelamin tidak valid"
 		} else {
 			updateData["gender"] = req.Gender
 		}
@@ -261,7 +270,7 @@ func (s *service) UpdateFosterChildren(ctx context.Context, id string, req Updat
 	}
 	if req.Category != "" {
 		if req.Category != CategoryFatherless && req.Category != CategoryMotherless && req.Category != CategoryOrphan {
-			errValidation["category"] = "Invalid category"
+			errValidation["category"] = "Kategori tidak valid"
 		} else {
 			updateData["category"] = req.Category
 		}
@@ -269,7 +278,7 @@ func (s *service) UpdateFosterChildren(ctx context.Context, id string, req Updat
 	if req.BirthDate != "" {
 		birthDate, err := time.Parse("2006-01-02", req.BirthDate)
 		if err != nil {
-			errValidation["birthDate"] = "Invalid date format, expected YYYY-MM-DD"
+			errValidation["birthDate"] = "Format tanggal tidak valid, diharapkan YYYY-MM-DD"
 		} else {
 			updateData["birthDate"] = birthDate
 		}
@@ -282,7 +291,7 @@ func (s *service) UpdateFosterChildren(ctx context.Context, id string, req Updat
 	}
 
 	if len(errValidation) > 0 {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
 	// Upload profile picture
@@ -293,7 +302,7 @@ func (s *service) UpdateFosterChildren(ctx context.Context, id string, req Updat
 		}
 		profilePictureURL, err := s.s3Client.UploadFile(ctx, req.ProfilePicture, "foster-children")
 		if err != nil {
-			return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload profile picture", nil, nil)
+			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah foto profil", nil, nil)
 		}
 		updateData["profile_picture"] = profilePictureURL
 	}
@@ -306,7 +315,7 @@ func (s *service) UpdateFosterChildren(ctx context.Context, id string, req Updat
 		}
 		familyCardURL, err := s.s3Client.UploadFile(ctx, req.FamilyCard, "foster-children")
 		if err != nil {
-			return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload family card", nil, nil)
+			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah kartu keluarga", nil, nil)
 		}
 		updateData["family_card"] = familyCardURL
 	}
@@ -319,38 +328,77 @@ func (s *service) UpdateFosterChildren(ctx context.Context, id string, req Updat
 		}
 		sktmURL, err := s.s3Client.UploadFile(ctx, req.SKTM, "foster-children")
 		if err != nil {
-			return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload SKTM", nil, nil)
+			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah SKTM", nil, nil)
 		}
 		updateData["sktm"] = sktmURL
 	}
 
 	// Handle achievements replacement
-	if len(req.Achievements) > 0 {
-		// Delete existing achievements from S3
-		for _, ach := range existing.Achivements {
+	if len(req.UpdateAchivementNotes) > 0 && len(req.UpdateAchivementNotes) != len(req.AchivementIDs) {
+		errValidation["updateAchivementNotes"] = "Jumlah catatan prestasi yang diperbarui harus sama dengan jumlah ID prestasi"
+	}
+
+	if len(errValidation) > 0 {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
+	}
+
+	// 1. Identify and Delete Missing Achievements
+	payloadAchivementIDMap := make(map[string]bool)
+	for _, aid := range req.AchivementIDs {
+		payloadAchivementIDMap[aid] = true
+	}
+
+	for _, ach := range existing.Achivements {
+		if !payloadAchivementIDMap[ach.ID.String()] {
 			objectName := s3_pkg.ExtractObjectNameFromURL(ach.URL)
 			if err := s.s3Client.DeleteFile(ctx, objectName); err != nil {
 				logrus.WithError(err).Warn("failed to delete existing achievement from S3")
 			}
+
+			if err := s.repo.DeleteAchievementByID(ctx, ach.ID.String()); err != nil {
+				logrus.WithError(err).Error("failed to delete existing achievement from DB")
+			}
 		}
-		// Delete existing achievements from DB
-		if err := s.repo.DeleteAchievementsByFosterChildrenID(ctx, id); err != nil {
-			logrus.WithError(err).Error("failed to delete existing achievements")
+	}
+
+	// 2. Update Existing Achievements Metadata
+	for i, aid := range req.AchivementIDs {
+		updateAchivementData := make(map[string]interface{})
+		if i < len(req.UpdateAchivementNotes) {
+			updateAchivementData["note"] = req.UpdateAchivementNotes[i]
 		}
 
-		// Upload new achievements
+		if len(updateAchivementData) > 0 {
+			if err := s.repo.UpdateAchievement(ctx, aid, updateAchivementData); err != nil {
+				logrus.WithFields(logrus.Fields{
+					"component":     "foster_children.service",
+					"achivement_id": aid,
+				}).WithError(err).Warn("failed to update achievement metadata")
+			}
+		}
+	}
+
+	// 3. Add New Achievements
+	if len(req.Achievements) > 0 {
 		var achievements []Achivement
 		now := time.Now()
-		for _, file := range req.Achievements {
+		for i, file := range req.Achievements {
 			achievementURL, err := s.s3Client.UploadFile(ctx, file, "foster-children/achievements")
 			if err != nil {
 				logrus.WithError(err).Error("failed to upload achievement")
 				continue
 			}
+
+			note := ""
+			if i < len(req.AchivementNotes) {
+				note = req.AchivementNotes[i]
+			}
+
 			achievements = append(achievements, Achivement{
 				ID:               uuid.New(),
 				FosterChildrenID: existing.ID,
 				URL:              achievementURL,
+				Note:             note,
 				CreatedAt:        now,
 				UpdatedAt:        now,
 			})
@@ -362,8 +410,8 @@ func (s *service) UpdateFosterChildren(ctx context.Context, id string, req Updat
 		}
 	}
 
-	if len(updateData) == 0 && len(req.Achievements) == 0 {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"updateData": "No fields to update"}, nil)
+	if len(updateData) == 0 && len(req.Achievements) == 0 && len(req.AchivementIDs) == 0 && len(existing.Achivements) == 0 {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"updateData": "Tidak ada data untuk diperbarui"}, nil)
 	}
 
 	if len(updateData) > 0 {
@@ -374,25 +422,25 @@ func (s *service) UpdateFosterChildren(ctx context.Context, id string, req Updat
 				"component":          "foster_children.service",
 				"foster_children_id": id,
 			}).WithError(err).Error("failed to update foster children")
-			return pkg.NewResponse(http.StatusInternalServerError, "Failed to update foster children", nil, nil)
+			return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui data anak asuh", nil, nil)
 		}
 	}
 
 	s.logService.CreateLog(ctx, nil, "UPDATE", "foster_children", id, existing.ToFosterChildrenResponse(), updateData)
-	return pkg.NewResponse(http.StatusOK, "Foster children updated successfully", nil, nil)
+	return pkg.NewResponse(http.StatusOK, "Anak asuh berhasil diperbarui", nil, nil)
 }
 
 func (s *service) DeleteFosterChildren(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(id); err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid foster children ID format"}, nil)
+	if err := uuid.Validate(id); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID anak asuh tidak valid"}, nil)
 	}
 
 	fosterChildren, err := s.repo.FindOneFosterChildren(ctx, map[string]interface{}{"id": id})
 	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Foster children not found", nil, nil)
+		return pkg.NewResponse(http.StatusNotFound, "Anak asuh tidak ditemukan", nil, nil)
 	}
 
 	// Delete achievements from S3
@@ -433,11 +481,11 @@ func (s *service) DeleteFosterChildren(ctx context.Context, id string) pkg.Respo
 			"component":          "foster_children.service",
 			"foster_children_id": id,
 		}).WithError(err).Error("failed to delete foster children")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to delete foster children", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menghapus data anak asuh", nil, nil)
 	}
 
 	s.logService.CreateLog(ctx, nil, "DELETE", "foster_children", id, fosterChildren.ToFosterChildrenResponse(), nil)
-	return pkg.NewResponse(http.StatusOK, "Foster children deleted successfully", nil, nil)
+	return pkg.NewResponse(http.StatusOK, "Anak asuh berhasil dihapus", nil, nil)
 }
 
 func (s *service) GetFosterChildrenCandidateList(ctx context.Context, params FosterChildrenCandidateQueryParams) pkg.Response {
@@ -469,7 +517,7 @@ func (s *service) GetFosterChildrenCandidateList(ctx context.Context, params Fos
 
 	candidates, err := s.repo.FindAllFosterChildrenCandidates(ctx, options)
 	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch foster children candidates", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data calon anak asuh", nil, nil)
 	}
 
 	hasNext := len(candidates) > params.Limit
@@ -494,25 +542,25 @@ func (s *service) GetFosterChildrenCandidateList(ctx context.Context, params Fos
 		Limit:      params.Limit,
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, ToFosterChildrenCandidateListResponse(candidates, pagination))
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, ToFosterChildrenCandidateListResponse(candidates, pagination))
 }
 
 func (s *service) GetFosterChildrenCandidateByID(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(id); err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid format"}, nil)
+	if err := uuid.Validate(id); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format tidak valid"}, nil)
 	}
 
 	candidate, err := s.repo.FindOneFosterChildrenCandidate(ctx, map[string]interface{}{
 		"id": id,
 	})
 	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Candidate not found", nil, nil)
+		return pkg.NewResponse(http.StatusNotFound, "Calon tidak ditemukan", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, candidate.ToFosterChildrenCandidateResponse())
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, candidate.ToFosterChildrenCandidateResponse())
 }
 
 func (s *service) CreateFosterChildrenCandidate(ctx context.Context, accountID string, req CreateFosterChildrenCandidateRequest) pkg.Response {
@@ -521,72 +569,72 @@ func (s *service) CreateFosterChildrenCandidate(ctx context.Context, accountID s
 
 	errValidation := make(map[string]string)
 	if req.Name == "" {
-		errValidation["name"] = "Name is required"
+		errValidation["name"] = "Nama wajib diisi"
 	}
 	if req.Gender == "" {
-		errValidation["gender"] = "Gender is required"
+		errValidation["gender"] = "Jenis kelamin wajib diisi"
 	}
 	if req.Category == "" {
-		errValidation["category"] = "Category is required"
+		errValidation["category"] = "Kategori wajib diisi"
 	}
 	if req.BirthDate == "" {
-		errValidation["birthDate"] = "Birth date is required"
+		errValidation["birthDate"] = "Tanggal lahir wajib diisi"
 	}
 	if req.BirthPlace == "" {
-		errValidation["birthPlace"] = "Birth place is required"
+		errValidation["birthPlace"] = "Tempat lahir wajib diisi"
 	}
 	if req.Address == "" {
-		errValidation["address"] = "Address is required"
+		errValidation["address"] = "Alamat wajib diisi"
 	}
 	if req.ProfilePicture == nil {
-		errValidation["profilePicture"] = "Profile picture is required"
+		errValidation["profilePicture"] = "Foto profil wajib diisi"
 	}
 	if req.FamilyCard == nil {
-		errValidation["familyCard"] = "Family card is required"
+		errValidation["familyCard"] = "Kartu keluarga wajib diisi"
 	}
 	if req.SKTM == nil {
-		errValidation["sktm"] = "SKTM is required"
+		errValidation["sktm"] = "SKTM wajib diisi"
 	}
 	if req.SubmitterName == "" {
-		errValidation["submitterName"] = "Submitter name is required"
+		errValidation["submitterName"] = "Nama pengirim wajib diisi"
 	}
 	if req.SubmitterPhone == "" {
-		errValidation["submitterPhone"] = "Submitter phone is required"
+		errValidation["submitterPhone"] = "Nomor telepon pengirim wajib diisi"
 	}
 	if req.SubmitterAddress == "" {
-		errValidation["submitterAddress"] = "Submitter address is required"
+		errValidation["submitterAddress"] = "Alamat pengirim wajib diisi"
 	}
 	if req.SubmitterIDCard == nil {
-		errValidation["submitterIdCard"] = "Submitter ID card is required"
+		errValidation["submitterIdCard"] = "KTP pengirim wajib diisi"
 	}
 
 	if len(errValidation) > 0 {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
 	birthDate, err := time.Parse("2006-01-02", req.BirthDate)
 	if err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"birthDate": "Invalid date format, expected YYYY-MM-DD"}, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"birthDate": "Format tanggal tidak valid, diharapkan YYYY-MM-DD"}, nil)
 	}
 
 	profilePictureURL, err := s.s3Client.UploadFile(ctx, req.ProfilePicture, "foster-children-candidates")
 	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload profile picture", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah foto profil", nil, nil)
 	}
 
 	familyCardURL, err := s.s3Client.UploadFile(ctx, req.FamilyCard, "foster-children-candidates")
 	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload family card", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah kartu keluarga", nil, nil)
 	}
 
 	sktmURL, err := s.s3Client.UploadFile(ctx, req.SKTM, "foster-children-candidates")
 	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload SKTM", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah SKTM", nil, nil)
 	}
 
 	submitterIDCardURL, err := s.s3Client.UploadFile(ctx, req.SubmitterIDCard, "foster-children-candidates")
 	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to upload ID card", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah KTP", nil, nil)
 	}
 
 	now := time.Now()
@@ -613,49 +661,56 @@ func (s *service) CreateFosterChildrenCandidate(ctx context.Context, accountID s
 
 	if err := s.repo.CreateFosterChildrenCandidate(ctx, candidate); err != nil {
 		logrus.WithError(err).Error("failed to create foster children candidate")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create candidate", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat calon anak asuh", nil, nil)
 	}
 
 	s.logService.CreateLog(ctx, &accountID, "CREATE", "foster_children_candidate", candidate.ID.String(), nil, candidate.ToFosterChildrenCandidateResponse())
-	return pkg.NewResponse(http.StatusCreated, "Candidate created successfully", nil, candidate.ToFosterChildrenCandidateResponse())
+	return pkg.NewResponse(http.StatusCreated, "Calon anak asuh berhasil dibuat", nil, candidate.ToFosterChildrenCandidateResponse())
 }
 
-func (s *service) UpdateFosterChildrenCandidateStatus(ctx context.Context, id string, req UpdateFosterChildrenCandidateStatusRequest) pkg.Response {
+func (s *service) AcceptFosterChildrenCandidate(ctx context.Context, id string, role enum.RoleName) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
-
-	if req.Status != StatusAccepted && req.Status != StatusRejected {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"status": "Invalid status, must be accepted or rejected"}, nil)
-	}
 
 	existing, err := s.repo.FindOneFosterChildrenCandidate(ctx, map[string]interface{}{
 		"id": id,
 	})
 	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Candidate not found", nil, nil)
+		return pkg.NewResponse(http.StatusNotFound, "Calon tidak ditemukan", nil, nil)
 	}
 
-	if existing.Status != StatusPending {
-		return pkg.NewResponse(http.StatusBadRequest, "Only pending candidates can be updated", nil, nil)
+	var nextStatus Status
+	var message string
+
+	if role == enum.RoleSocialManager {
+		if existing.Status != StatusPending {
+			return pkg.NewResponse(http.StatusBadRequest, "Hanya calon dengan status pending yang dapat disetujui oleh Koordinator Sosial", nil, nil)
+		}
+		nextStatus = StatusSocialManagerAccepted
+		message = "Calon berhasil disetujui oleh Koordinator Sosial"
+	} else if role == enum.RoleChairman {
+		if existing.Status != StatusSocialManagerAccepted {
+			return pkg.NewResponse(http.StatusBadRequest, "Hanya calon yang telah disetujui oleh Koordinator Sosial yang dapat disetujui oleh Ketua Yayasan", nil, nil)
+		}
+		nextStatus = StatusAccepted
+		message = "Calon berhasil disetujui oleh Ketua Yayasan"
+	} else {
+		return pkg.NewResponse(http.StatusForbidden, "Anda tidak memiliki akses untuk melakukan tindakan ini", nil, nil)
 	}
 
 	updateData := map[string]interface{}{
-		"status":     req.Status,
-		"updated_at": time.Now(),
-	}
-
-	if req.Status == StatusRejected {
-		updateData["rejection_reason"] = req.RejectionReason
-	} else {
-		updateData["rejection_reason"] = ""
+		"status":           nextStatus,
+		"rejection_reason": "",
+		"updated_at":       time.Now(),
 	}
 
 	if err := s.repo.UpdateFosterChildrenCandidate(ctx, id, updateData); err != nil {
 		logrus.WithError(err).Error("failed to update candidate status")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update candidate status", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui status calon", nil, nil)
 	}
 
-	if req.Status == StatusAccepted {
+	// If fully accepted by chairman, create foster children record
+	if nextStatus == StatusAccepted {
 		fc := &FosterChildren{
 			ID:             uuid.New(),
 			Name:           existing.Name,
@@ -677,7 +732,41 @@ func (s *service) UpdateFosterChildrenCandidateStatus(ctx context.Context, id st
 	}
 
 	s.logService.CreateLog(ctx, nil, "UPDATE", "foster_children_candidate", id, existing.ToFosterChildrenCandidateResponse(), updateData)
-	return pkg.NewResponse(http.StatusOK, "Candidate status updated successfully", nil, nil)
+	return pkg.NewResponse(http.StatusOK, message, nil, nil)
+}
+
+func (s *service) RejectFosterChildrenCandidate(ctx context.Context, id string, req RejectFosterChildrenCandidateRequest) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	if req.RejectionReason == "" {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"rejectionReason": "Alasan penolakan wajib diisi"}, nil)
+	}
+
+	existing, err := s.repo.FindOneFosterChildrenCandidate(ctx, map[string]interface{}{
+		"id": id,
+	})
+	if err != nil {
+		return pkg.NewResponse(http.StatusNotFound, "Calon tidak ditemukan", nil, nil)
+	}
+
+	if existing.Status != StatusPending && existing.Status != StatusSocialManagerAccepted {
+		return pkg.NewResponse(http.StatusBadRequest, "Hanya calon dengan status pending atau disetujui Koordinator Sosial yang dapat ditolak", nil, nil)
+	}
+
+	updateData := map[string]interface{}{
+		"status":           StatusRejected,
+		"rejection_reason": req.RejectionReason,
+		"updated_at":       time.Now(),
+	}
+
+	if err := s.repo.UpdateFosterChildrenCandidate(ctx, id, updateData); err != nil {
+		logrus.WithError(err).Error("failed to update candidate status")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui status calon", nil, nil)
+	}
+
+	s.logService.CreateLog(ctx, nil, "UPDATE", "foster_children_candidate", id, existing.ToFosterChildrenCandidateResponse(), updateData)
+	return pkg.NewResponse(http.StatusOK, "Calon berhasil ditolak", nil, nil)
 }
 
 func (s *service) CancelFosterChildrenCandidate(ctx context.Context, accountID string, id string) pkg.Response {
@@ -688,15 +777,15 @@ func (s *service) CancelFosterChildrenCandidate(ctx context.Context, accountID s
 		"id": id,
 	})
 	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Candidate not found", nil, nil)
+		return pkg.NewResponse(http.StatusNotFound, "Calon tidak ditemukan", nil, nil)
 	}
 
 	if existing.SubmittedBy.String() != accountID {
-		return pkg.NewResponse(http.StatusForbidden, "You are not authorized to cancel this candidate", nil, nil)
+		return pkg.NewResponse(http.StatusForbidden, "Anda tidak memiliki akses untuk membatalkan calon ini", nil, nil)
 	}
 
 	if existing.Status != StatusPending {
-		return pkg.NewResponse(http.StatusBadRequest, "Only pending candidates can be cancelled", nil, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Hanya calon dengan status pending yang dapat dibatalkan", nil, nil)
 	}
 
 	updateData := map[string]interface{}{
@@ -706,9 +795,9 @@ func (s *service) CancelFosterChildrenCandidate(ctx context.Context, accountID s
 
 	if err := s.repo.UpdateFosterChildrenCandidate(ctx, id, updateData); err != nil {
 		logrus.WithError(err).Error("failed to cancel candidate")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to cancel candidate", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membatalkan calon", nil, nil)
 	}
 
 	s.logService.CreateLog(ctx, &accountID, "UPDATE", "foster_children_candidate", id, existing.ToFosterChildrenCandidateResponse(), updateData)
-	return pkg.NewResponse(http.StatusOK, "Candidate cancelled successfully", nil, nil)
+	return pkg.NewResponse(http.StatusOK, "Calon berhasil dibatalkan", nil, nil)
 }

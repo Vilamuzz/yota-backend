@@ -7,6 +7,7 @@ import (
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,14 +34,21 @@ func (s *service) CreateAmbulance(ctx context.Context, payload CreateAmbulanceRe
 	defer cancel()
 
 	errValidation := make(map[string]string)
+	if err := uuid.Validate(payload.DriverID); err != nil {
+		errValidation["driverId"] = "Format Driver tidak valid"
+	}
 	if payload.Image == nil {
 		errValidation["image"] = "Gambar wajib diisi"
 	}
 	if payload.PlateNumber == "" {
 		errValidation["plateNumber"] = "Nomor plat wajib diisi"
 	}
-	if payload.Phone == "" {
-		errValidation["phone"] = "Nomor telepon wajib diisi"
+	if payload.Status == "" {
+		errValidation["status"] = "Status wajib diisi"
+	} else {
+		if payload.Status != AmbulanceStatusAvailable && payload.Status != AmbulanceStatusInUse && payload.Status != AmbulanceStatusMaintenance {
+			errValidation["status"] = "Status tidak valid"
+		}
 	}
 	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
@@ -60,15 +68,17 @@ func (s *service) CreateAmbulance(ctx context.Context, payload CreateAmbulanceRe
 	}
 
 	now := time.Now()
-	ambulance := Ambulance{
+	ambulance := &Ambulance{
+		ID:          uuid.New(),
+		DriverID:    uuid.MustParse(payload.DriverID),
 		PlateNumber: payload.PlateNumber,
-		Phone:       payload.Phone,
 		Image:       imageURL,
+		Status:      payload.Status,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
 
-	if err := s.repo.Create(ctx, ambulance); err != nil {
+	if err := s.repo.CreateAmbulance(ctx, ambulance); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat data ambulans", nil, nil)
 	}
 	return pkg.NewResponse(http.StatusOK, "Ambulans berhasil dibuat", nil, nil)
@@ -77,7 +87,10 @@ func (s *service) CreateAmbulance(ctx context.Context, payload CreateAmbulanceRe
 func (s *service) FindAmbulanceById(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
-	ambulance, err := s.repo.FindByID(ctx, id)
+	if err := uuid.Validate(id); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID ambulans tidak valid"}, nil)
+	}
+	ambulance, err := s.repo.FindOneAmbulance(ctx, map[string]interface{}{"id": id})
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menemukan data ambulans", nil, nil)
 	}
@@ -102,7 +115,7 @@ func (s *service) ListAmbulance(ctx context.Context, queryParams AmbulanceQueryP
 		options["prev_cursor"] = queryParams.PrevCursor
 	}
 
-	ambulances, err := s.repo.FindAll(ctx, options)
+	ambulances, err := s.repo.FindAllAmbulances(ctx, options)
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data ambulans", nil, nil)
 	}
@@ -132,7 +145,7 @@ func (s *service) ListAmbulance(ctx context.Context, queryParams AmbulanceQueryP
 func (s *service) UpdateAmbulance(ctx context.Context, id string, payload UpdateAmbulanceRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
-	ambulance, err := s.repo.FindByID(ctx, id)
+	ambulance, err := s.repo.FindOneAmbulance(ctx, map[string]interface{}{"id": id})
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menemukan data ambulans", nil, nil)
 	}
@@ -141,8 +154,17 @@ func (s *service) UpdateAmbulance(ctx context.Context, id string, payload Update
 	if payload.PlateNumber != "" {
 		updateData["plate_number"] = payload.PlateNumber
 	}
-	if payload.Phone != "" {
-		updateData["phone"] = payload.Phone
+	if payload.DriverID != "" {
+		if err := uuid.Validate(payload.DriverID); err != nil {
+			return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"driverId": "Format Driver tidak valid"}, nil)
+		}
+		updateData["driver_id"] = uuid.MustParse(payload.DriverID)
+	}
+	if payload.Status != "" {
+		if payload.Status != AmbulanceStatusAvailable && payload.Status != AmbulanceStatusInUse && payload.Status != AmbulanceStatusMaintenance {
+			return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"status": "Status tidak valid"}, nil)
+		}
+		updateData["status"] = payload.Status
 	}
 	if payload.Image != nil {
 		uploadedURL, err := s.s3Client.UploadFile(ctx, payload.Image, "ambulances")
@@ -161,7 +183,7 @@ func (s *service) UpdateAmbulance(ctx context.Context, id string, payload Update
 		updateData["image"] = uploadedURL
 	}
 
-	if err := s.repo.Update(ctx, id, updateData); err != nil {
+	if err := s.repo.UpdateAmbulance(ctx, id, updateData); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui data ambulans", nil, nil)
 	}
 	return pkg.NewResponse(http.StatusOK, "Data ambulans berhasil diperbarui", nil, nil)
@@ -170,7 +192,7 @@ func (s *service) UpdateAmbulance(ctx context.Context, id string, payload Update
 func (s *service) DeleteAmbulance(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
-	if err := s.repo.Delete(ctx, id); err != nil {
+	if err := s.repo.DeleteAmbulance(ctx, id); err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menghapus data ambulans", nil, nil)
 	}
 	return pkg.NewResponse(http.StatusOK, "Data ambulans berhasil dihapus", nil, nil)

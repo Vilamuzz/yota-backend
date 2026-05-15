@@ -10,7 +10,7 @@ import (
 type Gallery struct {
 	ID          uuid.UUID           `json:"id" gorm:"primaryKey"`
 	Title       string              `json:"title" gorm:"not null"`
-	Slug        string              `json:"slug" gorm:"unique;not null"`
+	Slug        string              `json:"slug" gorm:"not null"`
 	Category    media.MediaCategory `json:"category"`
 	CoverImage  string              `json:"coverImage"`
 	Status      media.MediaStatus   `json:"status" gorm:"type:varchar(20);not null;default:'draft'"`

@@ -14,7 +14,6 @@ type Repository interface {
 	FindOneNews(ctx context.Context, options map[string]interface{}) (*News, error)
 	CreateNews(ctx context.Context, news *News) error
 	UpdateNews(ctx context.Context, id string, updateData map[string]interface{}) error
-	UpdateNewsMedia(ctx context.Context, news *News, media []media.Media) error
 	DeleteNews(ctx context.Context, id string) error
 	IncrementViews(ctx context.Context, id string) error
 }
@@ -54,7 +53,9 @@ func (r *repository) FindAllNews(ctx context.Context, options map[string]interfa
 		}
 	}
 
-	if _, usingPrevCursor := options["prev_cursor"]; !usingPrevCursor {
+	if _, isPrev := options["prev_cursor"]; isPrev {
+		query = query.Order("created_at ASC, id ASC")
+	} else {
 		query = query.Order("created_at DESC, id DESC")
 	}
 
@@ -79,6 +80,9 @@ func (r *repository) FindOneNews(ctx context.Context, options map[string]interfa
 	if slug, ok := options["slug"]; ok && slug != "" {
 		query = query.Where("slug = ?", slug)
 	}
+	if title, ok := options["title"]; ok && title != "" {
+		query = query.Where("title = ?", title)
+	}
 	if published, ok := options["published"]; ok && published.(bool) {
 		query = query.Where("status = ?", media.MediaStatusPublished)
 	}
@@ -94,10 +98,6 @@ func (r *repository) CreateNews(ctx context.Context, news *News) error {
 
 func (r *repository) UpdateNews(ctx context.Context, id string, updateData map[string]interface{}) error {
 	return r.Conn.WithContext(ctx).Model(&News{}).Where("id = ?", id).Updates(updateData).Error
-}
-
-func (r *repository) UpdateNewsMedia(ctx context.Context, news *News, media []media.Media) error {
-	return r.Conn.WithContext(ctx).Model(news).Association("Media").Replace(media)
 }
 
 func (r *repository) DeleteNews(ctx context.Context, id string) error {

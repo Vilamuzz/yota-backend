@@ -52,7 +52,6 @@ func (s *service) GetDonationProgramExpenseList(ctx context.Context, donationPro
 		params.Limit = 100
 	}
 
-	usingPrevCursor := params.PrevCursor != ""
 
 	options := map[string]interface{}{
 		"limit": params.Limit,
@@ -63,7 +62,7 @@ func (s *service) GetDonationProgramExpenseList(ctx context.Context, donationPro
 	if params.NextCursor != "" {
 		options["next_cursor"] = params.NextCursor
 	}
-	if usingPrevCursor {
+	if params.PrevCursor != "" {
 		options["prev_cursor"] = params.PrevCursor
 	}
 
@@ -75,21 +74,25 @@ func (s *service) GetDonationProgramExpenseList(ctx context.Context, donationPro
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data pengeluaran", nil, nil)
 	}
 
-	hasMore := len(expenses) > params.Limit
-	if hasMore {
-		expenses = expenses[:params.Limit]
-	}
-
-	if usingPrevCursor {
+	var hasNext, hasPrev bool
+	if params.PrevCursor != "" {
+		hasPrev = len(expenses) > params.Limit
+		hasNext = true
+		if len(expenses) > params.Limit {
+			expenses = expenses[:params.Limit]
+		}
 		for i, j := 0, len(expenses)-1; i < j; i, j = i+1, j-1 {
 			expenses[i], expenses[j] = expenses[j], expenses[i]
+		}
+	} else {
+		hasNext = len(expenses) > params.Limit
+		hasPrev = params.NextCursor != ""
+		if hasNext {
+			expenses = expenses[:params.Limit]
 		}
 	}
 
 	var nextCursor, prevCursor string
-	hasNext := (!usingPrevCursor && hasMore) || (usingPrevCursor && params.NextCursor == "")
-	hasPrev := (usingPrevCursor && hasMore) || (!usingPrevCursor && params.NextCursor != "")
-
 	if len(expenses) > 0 {
 		first := expenses[0]
 		last := expenses[len(expenses)-1]
@@ -112,7 +115,7 @@ func (s *service) GetDonationProgramExpenseByID(ctx context.Context, id string) 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(id); err != nil {
+	if err := uuid.Validate(id); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID pengeluaran tidak valid"}, nil)
 	}
 
@@ -135,7 +138,7 @@ func (s *service) CreateDonationProgramExpense(ctx context.Context, accountID, d
 	errValidation := make(map[string]string)
 	if donationProgramID == "" {
 		errValidation["donationProgramId"] = "ID Program Donasi wajib diisi"
-	} else if _, err := uuid.Parse(donationProgramID); err != nil {
+	} else if err := uuid.Validate(donationProgramID); err != nil {
 		errValidation["donationProgramId"] = "Format ID program donasi tidak valid"
 	}
 	if payload.Title == "" {
@@ -211,7 +214,7 @@ func (s *service) DeleteDonationProgramExpense(ctx context.Context, accountID, d
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(donationProgramExpenseID); err != nil {
+	if err := uuid.Validate(donationProgramExpenseID); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID pengeluaran tidak valid"}, nil)
 	}
 

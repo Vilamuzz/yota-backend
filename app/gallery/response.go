@@ -1,6 +1,8 @@
 package gallery
 
 import (
+	"time"
+
 	"github.com/Vilamuzz/yota-backend/app/media"
 	"github.com/Vilamuzz/yota-backend/pkg"
 )
@@ -9,21 +11,25 @@ type GalleryResponse struct {
 	ID          string                `json:"id"`
 	Title       string                `json:"title"`
 	Slug        string                `json:"slug"`
+	CoverImage  string                `json:"coverImage"`
 	Category    media.MediaCategory   `json:"category"`
 	Description string                `json:"description"`
 	Media       []media.MediaResponse `json:"media"`
 	Views       int                   `json:"views"`
 	Status      media.MediaStatus     `json:"status"`
+	CreatedAt   time.Time             `json:"createdAt"`
 }
 
 type GalleryListResponseItem struct {
 	ID          string              `json:"id"`
 	Title       string              `json:"title"`
+	CoverImage  string              `json:"coverImage"`
 	Slug        string              `json:"slug"`
 	Category    media.MediaCategory `json:"category"`
 	Description string              `json:"description"`
 	Views       int                 `json:"views"`
 	Status      media.MediaStatus   `json:"status"`
+	CreatedAt   time.Time           `json:"createdAt"`
 }
 
 type GalleryListResponse struct {
@@ -39,7 +45,7 @@ func (g *Gallery) toGalleryResponse() GalleryResponse {
 			GalleryID: m.GalleryID.String(),
 			Type:      string(m.Type),
 			URL:       m.URL,
-			AltText:   m.AltText,
+			Alt:       m.Alt,
 			Order:     m.Order,
 		})
 	}
@@ -48,11 +54,13 @@ func (g *Gallery) toGalleryResponse() GalleryResponse {
 		ID:          g.ID.String(),
 		Title:       g.Title,
 		Slug:        g.Slug,
+		CoverImage:  g.CoverImage,
 		Category:    g.Category,
 		Description: g.Description,
 		Media:       mediaResponses,
 		Views:       g.Views,
 		Status:      g.Status,
+		CreatedAt:   g.CreatedAt,
 	}
 }
 
@@ -61,10 +69,12 @@ func (g *Gallery) toGalleryListResponseItem() GalleryListResponseItem {
 		ID:          g.ID.String(),
 		Title:       g.Title,
 		Slug:        g.Slug,
+		CoverImage:  g.CoverImage,
 		Category:    g.Category,
 		Description: g.Description,
 		Views:       g.Views,
 		Status:      g.Status,
+		CreatedAt:   g.CreatedAt,
 	}
 }
 

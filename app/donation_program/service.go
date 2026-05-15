@@ -80,20 +80,34 @@ func (s *service) GetDonationProgramList(ctx context.Context, params DonationPro
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data donasi", nil, nil)
 	}
 
-	hasNext := len(donations) > params.Limit
-	if hasNext {
-		donations = donations[:params.Limit]
+	var hasNext, hasPrev bool
+	if params.PrevCursor != "" {
+		hasPrev = len(donations) > params.Limit
+		hasNext = true
+		if len(donations) > params.Limit {
+			donations = donations[:params.Limit]
+		}
+		for i, j := 0, len(donations)-1; i < j; i, j = i+1, j-1 {
+			donations[i], donations[j] = donations[j], donations[i]
+		}
+	} else {
+		hasNext = len(donations) > params.Limit
+		hasPrev = params.NextCursor != ""
+		if hasNext {
+			donations = donations[:params.Limit]
+		}
 	}
 
 	var nextCursor, prevCursor string
-	hasPrev := params.PrevCursor != ""
-	if hasNext && len(donations) > 0 {
-		lastDonation := donations[len(donations)-1]
-		nextCursor = pkg.EncodeCursor(lastDonation.CreatedAt, lastDonation.ID.String())
-	}
-	if hasPrev && len(donations) > 0 {
-		firstDonation := donations[0]
-		prevCursor = pkg.EncodeCursor(firstDonation.CreatedAt, firstDonation.ID.String())
+	if len(donations) > 0 {
+		first := donations[0]
+		last := donations[len(donations)-1]
+		if hasNext {
+			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID.String())
+		}
+		if hasPrev {
+			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID.String())
+		}
 	}
 
 	pagination := pkg.CursorPagination{
@@ -124,7 +138,7 @@ func (s *service) GetDonationProgramByID(ctx context.Context, id string) pkg.Res
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(id); err != nil {
+	if err := uuid.Validate(id); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID donasi tidak valid"}, nil)
 	}
 
@@ -279,7 +293,7 @@ func (s *service) UpdateDonationProgram(ctx context.Context, id string, payload 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(id); err != nil {
+	if err := uuid.Validate(id); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID donasi tidak valid"}, nil)
 	}
 
@@ -476,7 +490,7 @@ func (s *service) DeleteDonationProgram(ctx context.Context, id string) pkg.Resp
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(id); err != nil {
+	if err := uuid.Validate(id); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID donasi tidak valid"}, nil)
 	}
 
@@ -515,7 +529,7 @@ func (s *service) UpdateActiveDonationProgram(ctx context.Context, id string) pk
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(id); err != nil {
+	if err := uuid.Validate(id); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID donasi tidak valid"}, nil)
 	}
 
@@ -579,7 +593,7 @@ func (s *service) UpdateArchivedDonationProgram(ctx context.Context, id string) 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(id); err != nil {
+	if err := uuid.Validate(id); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID donasi tidak valid"}, nil)
 	}
 

@@ -112,7 +112,7 @@ func (s *service) GetFosterChildrenExpenseByID(ctx context.Context, id string) p
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(id); err != nil {
+	if err := uuid.Validate(id); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid expense ID format"}, nil)
 	}
 
@@ -135,7 +135,7 @@ func (s *service) CreateFosterChildrenExpense(ctx context.Context, accountID, fo
 	errValidation := make(map[string]string)
 	if fosterChildrenID == "" {
 		errValidation["foster_children_id"] = "Foster Children ID is required"
-	} else if _, err := uuid.Parse(fosterChildrenID); err != nil {
+	} else if err := uuid.Validate(fosterChildrenID); err != nil {
 		errValidation["foster_children_id"] = "Invalid foster children ID format"
 	}
 	if payload.Title == "" {
@@ -203,7 +203,7 @@ func (s *service) DeleteFosterChildrenExpense(ctx context.Context, accountID, fo
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(fosterChildrenExpenseID); err != nil {
+	if err := uuid.Validate(fosterChildrenExpenseID); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid expense ID format"}, nil)
 	}
 

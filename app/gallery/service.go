@@ -17,10 +17,10 @@ type Service interface {
 	GetGalleryList(ctx context.Context, params GalleryQueryParams, isAdmin bool) pkg.Response
 	GetGalleryBySlug(ctx context.Context, slug string) pkg.Response
 	GetGalleryByID(ctx context.Context, id string) pkg.Response
-	CreateGallery(ctx context.Context, payload GalleryRequest) pkg.Response
-	UpdateGallery(ctx context.Context, id string, payload GalleryRequest) pkg.Response
+	CreateGallery(ctx context.Context, payload GalleryCreateRequest) pkg.Response
+	UpdateGallery(ctx context.Context, id string, payload GalleryUpdateRequest) pkg.Response
 	DeleteGallery(ctx context.Context, id string) pkg.Response
-	UpdatePublishedGallery(ctx context.Context, id string) pkg.Response
+	UpdatePublishGallery(ctx context.Context, id string) pkg.Response
 	UpdateArchivedGallery(ctx context.Context, id string) pkg.Response
 }
 
@@ -80,14 +80,26 @@ func (s *service) GetGalleryList(ctx context.Context, params GalleryQueryParams,
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data galeri", nil, nil)
 	}
 
-	hasNext := len(galleries) > params.Limit
-	if hasNext {
-		galleries = galleries[:params.Limit]
+	var hasNext, hasPrev bool
+	if params.PrevCursor != "" {
+		hasPrev = len(galleries) > params.Limit
+		hasNext = true
+		if len(galleries) > params.Limit {
+			galleries = galleries[:params.Limit]
+		}
+		// Reverse the slice because the repository returns ASC order for PrevCursor
+		for i, j := 0, len(galleries)-1; i < j; i, j = i+1, j-1 {
+			galleries[i], galleries[j] = galleries[j], galleries[i]
+		}
+	} else {
+		hasNext = len(galleries) > params.Limit
+		hasPrev = params.NextCursor != ""
+		if hasNext {
+			galleries = galleries[:params.Limit]
+		}
 	}
 
 	var nextCursor, prevCursor string
-	hasPrev := params.PrevCursor != ""
-
 	if len(galleries) > 0 {
 		first := galleries[0]
 		last := galleries[len(galleries)-1]
@@ -126,7 +138,7 @@ func (s *service) GetGalleryByID(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(id); err != nil {
+	if err := uuid.Validate(id); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID galeri tidak valid"}, nil)
 	}
 
@@ -138,7 +150,7 @@ func (s *service) GetGalleryByID(ctx context.Context, id string) pkg.Response {
 	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, gallery.toGalleryResponse())
 }
 
-func (s *service) CreateGallery(ctx context.Context, payload GalleryRequest) pkg.Response {
+func (s *service) CreateGallery(ctx context.Context, payload GalleryCreateRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -169,8 +181,11 @@ func (s *service) CreateGallery(ctx context.Context, payload GalleryRequest) pkg
 		if payload.Category == "" {
 			errValidation["category"] = "Kategori wajib diisi"
 		}
-		if len(payload.Files) == 0 {
+		if len(payload.MediaFiles) == 0 {
 			errValidation["media"] = "Minimal satu file media wajib diisi"
+		}
+		if payload.CoverImage == nil {
+			errValidation["coverImage"] = "Gambar sampul wajib diisi"
 		}
 	} else {
 		if payload.Description != "" {
@@ -186,38 +201,57 @@ func (s *service) CreateGallery(ctx context.Context, payload GalleryRequest) pkg
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
+	existing, _ := s.repo.FindOneGallery(ctx, map[string]interface{}{"title": payload.Title})
+	if existing != nil {
+		errValidation["title"] = "Galeri dengan judul ini sudah ada"
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
+	}
+
 	var mediaItems []media.Media
 	var coverImageURL string
-	if len(payload.Files) > 0 {
-		uploadedMediaItems, err := s.mediaService.UploadMedia(ctx, payload.Files, "galleries")
+
+	if payload.CoverImage != nil {
+		uploadedURL, err := s.s3Client.UploadFile(ctx, payload.CoverImage, "galleries")
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
 				"component": "gallery.service",
 				"title":     payload.Title,
-			}).WithError(err).Error("failed to upload media")
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah file", nil, nil)
+			}).WithError(err).Error("failed to upload cover image")
+			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah gambar sampul", nil, nil)
+		}
+		coverImageURL = uploadedURL
+	}
+
+	for i, file := range payload.MediaFiles {
+		var finalURL string
+		if file != nil {
+			url, err := s.s3Client.UploadFile(ctx, file, "galleries")
+			if err != nil {
+				logrus.WithFields(logrus.Fields{
+					"component": "gallery.service",
+					"title":     payload.Title,
+				}).WithError(err).Error("failed to upload media")
+				return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah file media", nil, nil)
+			}
+			finalURL = url
 		}
 
-		for i, uploadedItem := range uploadedMediaItems {
+		if finalURL != "" {
+			alt := ""
+			if i < len(payload.MediaAlts) {
+				alt = payload.MediaAlts[i]
+			}
+
 			item := media.Media{
-				ID:      uuid.New(),
-				Type:    uploadedItem.Type,
-				URL:     uploadedItem.URL,
-				AltText: uploadedItem.AltText,
-				Order:   i + 1,
+				ID:    uuid.New(),
+				Type:  media.MediaTypeImage, // Default to image
+				URL:   finalURL,
+				Alt:   alt,
+				Order: i + 1,
 			}
 
-			if i < len(payload.Metadata) {
-				if payload.Metadata[i].AltText != "" {
-					item.AltText = payload.Metadata[i].AltText
-				}
-				if payload.Metadata[i].Order != 0 {
-					item.Order = payload.Metadata[i].Order
-				}
-			}
-
-			if i == 0 {
-				coverImageURL = uploadedItem.URL
+			if i == 0 && coverImageURL == "" {
+				coverImageURL = finalURL
 			}
 
 			mediaItems = append(mediaItems, item)
@@ -253,11 +287,11 @@ func (s *service) CreateGallery(ctx context.Context, payload GalleryRequest) pkg
 	return pkg.NewResponse(http.StatusCreated, "Galeri berhasil dibuat", nil, gallery.toGalleryResponse())
 }
 
-func (s *service) UpdateGallery(ctx context.Context, id string, payload GalleryRequest) pkg.Response {
+func (s *service) UpdateGallery(ctx context.Context, id string, payload GalleryUpdateRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(id); err != nil {
+	if err := uuid.Validate(id); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID galeri tidak valid"}, nil)
 	}
 
@@ -277,9 +311,16 @@ func (s *service) UpdateGallery(ctx context.Context, id string, payload GalleryR
 
 	finalTitle := existingGallery.Title
 	if payload.Title != "" {
-		finalTitle = payload.Title
-		updateData["title"] = payload.Title
-		updateData["slug"] = pkg.Slugify(payload.Title)
+		if payload.Title != existingGallery.Title {
+			existing, _ := s.repo.FindOneGallery(ctx, map[string]interface{}{"title": payload.Title})
+			if existing != nil {
+				errValidation["title"] = "Galeri dengan judul ini sudah ada"
+			} else {
+				finalTitle = payload.Title
+				updateData["title"] = payload.Title
+				updateData["slug"] = pkg.Slugify(payload.Title)
+			}
+		}
 	}
 
 	finalDescription := existingGallery.Description
@@ -313,21 +354,12 @@ func (s *service) UpdateGallery(ctx context.Context, id string, payload GalleryR
 			errValidation["category"] = "Kategori wajib diisi"
 		}
 
-		if len(payload.Files) == 0 && len(existingGallery.Media) == 0 {
-			if len(payload.Metadata) > 0 {
-				hasMedia := false
-				for _, m := range payload.Metadata {
-					if m.ID != "" {
-						hasMedia = true
-						break
-					}
-				}
-				if !hasMedia && len(payload.Files) == 0 {
-					errValidation["media"] = "Minimal satu file media wajib diisi untuk publikasi"
-				}
-			} else {
-				errValidation["media"] = "Minimal satu file media wajib diisi untuk publikasi"
-			}
+		if len(payload.MediaFiles) == 0 && len(existingGallery.Media) == 0 {
+			errValidation["media"] = "Minimal satu file media wajib diisi untuk publikasi"
+		}
+
+		if payload.CoverImage == nil && existingGallery.CoverImage == "" {
+			errValidation["coverImage"] = "Gambar sampul wajib diisi"
 		}
 	} else {
 		if finalDescription != "" {
@@ -343,97 +375,122 @@ func (s *service) UpdateGallery(ctx context.Context, id string, payload GalleryR
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
-	if len(payload.Metadata) > 0 || len(payload.Files) > 0 {
-		var existingMediaMetadata []media.MediaMetadata
-		var newMediaMetadata []media.MediaMetadata
+	// Handle Media Updates (Deletions, Updates, and Additions)
+	existingMediaList, err := s.mediaService.FetchEntityMedia(ctx, id, "galleries")
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data media yang ada", nil, nil)
+	}
 
-		for _, m := range payload.Metadata {
-			if m.ID != "" {
-				existingMediaMetadata = append(existingMediaMetadata, m)
-			} else {
-				newMediaMetadata = append(newMediaMetadata, m)
-			}
-		}
+	// Validate update slices lengths
+	if len(payload.UpdateMediaAlts) > 0 && len(payload.UpdateMediaAlts) != len(payload.MediaIDs) {
+		errValidation["updateMediaAlts"] = "Jumlah updateMediaAlts harus sama dengan jumlah mediaIds"
+	}
+	if len(payload.UpdateMediaOrders) > 0 && len(payload.UpdateMediaOrders) != len(payload.MediaIDs) {
+		errValidation["updateMediaOrders"] = "Jumlah updateMediaOrders harus sama dengan jumlah mediaIds"
+	}
 
-		var uploadedMedia []media.MediaRequest
-		if len(payload.Files) > 0 {
-			uploadedMedia, err = s.mediaService.UploadMedia(ctx, payload.Files, "galleries")
-			if err != nil {
-				logrus.WithFields(logrus.Fields{
-					"component":  "gallery.service",
-					"gallery_id": id,
-				}).WithError(err).Error("failed to upload media")
-				return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah file", nil, nil)
-			}
+	if len(errValidation) > 0 {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
+	}
 
-			for i, item := range uploadedMedia {
-				// Set default order for new items
-				item.Order = i + 1
-				if i < len(newMediaMetadata) {
-					if newMediaMetadata[i].AltText != "" {
-						item.AltText = newMediaMetadata[i].AltText
-					}
-					if newMediaMetadata[i].Order != 0 {
-						item.Order = newMediaMetadata[i].Order
-					}
-				}
-				uploadedMedia[i] = item
-			}
-		}
+	// 1. Identify and Delete Missing Media
+	payloadMediaIDMap := make(map[string]bool)
+	for _, mid := range payload.MediaIDs {
+		payloadMediaIDMap[mid] = true
+	}
 
-		existingMediaList, err := s.mediaService.FetchEntityMedia(ctx, id, "galleries")
-		if err != nil {
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data media yang ada", nil, nil)
-		}
-		keepMediaIDs := make(map[string]media.MediaMetadata)
-		for _, m := range existingMediaMetadata {
-			keepMediaIDs[m.ID] = m
-		}
-
-		for _, existingMedia := range existingMediaList {
-			if _, shouldKeep := keepMediaIDs[existingMedia.ID.String()]; !shouldKeep {
-				if err := s.mediaService.DeleteMediaByID(ctx, existingMedia.ID.String()); err != nil {
-					continue
-				}
-			}
-		}
-
-		for _, m := range existingMediaMetadata {
-			updateMediaData := map[string]interface{}{
-				"alt_text": m.AltText,
-				"order":    m.Order,
-			}
-			if err := s.mediaService.UpdateMediaByID(ctx, m.ID, updateMediaData); err != nil {
+	for _, em := range existingMediaList {
+		if !payloadMediaIDMap[em.ID.String()] {
+			if err := s.mediaService.DeleteMediaByID(ctx, em.ID.String()); err != nil {
 				logrus.WithFields(logrus.Fields{
 					"component": "gallery.service",
-					"media_id":  m.ID,
-				}).WithError(err).Error("failed to update media metadata")
-				return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui data media", nil, nil)
-			}
-		}
-
-		if len(uploadedMedia) > 0 {
-			var newMediaItems []media.MediaRequest
-			for _, m := range uploadedMedia {
-				newMediaItems = append(newMediaItems, media.MediaRequest{
-					ID:      uuid.New(),
-					URL:     m.URL,
-					Type:    m.Type,
-					AltText: m.AltText,
-					Order:   m.Order,
-				})
-			}
-			if err := s.mediaService.CreateEntityMedia(ctx, id, "galleries", newMediaItems); err != nil {
-				logrus.WithFields(logrus.Fields{
-					"component":  "gallery.service",
-					"gallery_id": id,
-				}).WithError(err).Error("failed to create entity media")
-				return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat data media baru", nil, nil)
+					"media_id":  em.ID,
+				}).WithError(err).Warn("failed to delete media")
 			}
 		}
 	}
 
-	if len(updateData) == 0 && len(payload.Metadata) == 0 && len(payload.Files) == 0 {
+	// 2. Update Existing Media Metadata
+	for i, mid := range payload.MediaIDs {
+		updateMediaData := make(map[string]interface{})
+		if i < len(payload.UpdateMediaAlts) {
+			updateMediaData["alt"] = payload.UpdateMediaAlts[i]
+		}
+		if i < len(payload.UpdateMediaOrders) {
+			updateMediaData["order"] = payload.UpdateMediaOrders[i]
+		}
+
+		if len(updateMediaData) > 0 {
+			if err := s.mediaService.UpdateMediaByID(ctx, mid, updateMediaData); err != nil {
+				logrus.WithFields(logrus.Fields{
+					"component": "gallery.service",
+					"media_id":  mid,
+				}).WithError(err).Warn("failed to update media metadata")
+			}
+		}
+	}
+
+	// 3. Add New Media Files
+	for i, file := range payload.MediaFiles {
+		if file != nil {
+			url, err := s.s3Client.UploadFile(ctx, file, "galleries")
+			if err != nil {
+				logrus.WithFields(logrus.Fields{
+					"component": "gallery.service",
+					"id":        id,
+				}).WithError(err).Error("failed to upload media")
+				return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah file media", nil, nil)
+			}
+
+			alt := ""
+			if i < len(payload.MediaAlts) {
+				alt = payload.MediaAlts[i]
+			}
+
+			order := 0
+			if i < len(payload.MediaOrders) {
+				order = payload.MediaOrders[i]
+			}
+
+			newMedia := []media.Media{
+				{
+					ID:    uuid.New(),
+					URL:   url,
+					Type:  media.MediaTypeImage,
+					Alt:   alt,
+					Order: order,
+				},
+			}
+
+			if err := s.mediaService.CreateEntityMedia(ctx, id, "galleries", newMedia); err != nil {
+				logrus.WithFields(logrus.Fields{
+					"component": "gallery.service",
+					"id":        id,
+				}).WithError(err).Error("failed to save new media data")
+				return pkg.NewResponse(http.StatusInternalServerError, "Gagal menyimpan data media baru", nil, nil)
+			}
+		}
+	}
+
+	if payload.CoverImage != nil {
+		uploadedURL, err := s.s3Client.UploadFile(ctx, payload.CoverImage, "galleries")
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"component":  "gallery.service",
+				"gallery_id": id,
+			}).WithError(err).Error("failed to upload new cover image")
+			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah gambar sampul baru", nil, nil)
+		}
+
+		if existingGallery.CoverImage != "" {
+			existingCoverImage := s3_pkg.ExtractObjectNameFromURL(existingGallery.CoverImage)
+			_ = s.s3Client.DeleteFile(ctx, existingCoverImage)
+		}
+
+		updateData["cover_image"] = uploadedURL
+	}
+
+	if len(updateData) == 0 && len(payload.MediaFiles) == 0 && payload.CoverImage == nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"updateData": "Tidak ada data untuk diperbarui"}, nil)
 	}
 
@@ -458,7 +515,7 @@ func (s *service) DeleteGallery(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(id); err != nil {
+	if err := uuid.Validate(id); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID galeri tidak valid"}, nil)
 	}
 	existingGallery, err := s.repo.FindOneGallery(ctx, map[string]interface{}{"id": id})
@@ -466,11 +523,25 @@ func (s *service) DeleteGallery(ctx context.Context, id string) pkg.Response {
 		return pkg.NewResponse(http.StatusNotFound, "Galeri tidak ditemukan", nil, nil)
 	}
 
+	if err := s.mediaService.DeleteEntityMedia(ctx, id, "galleries"); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":  "gallery.service",
+			"gallery_id": id,
+		}).WithError(err).Warn("failed to delete associated media")
+	}
+
+	if existingGallery.CoverImage != "" {
+		objectName := s3_pkg.ExtractObjectNameFromURL(existingGallery.CoverImage)
+		if objectName != "" {
+			_ = s.s3Client.DeleteFile(ctx, objectName)
+		}
+	}
+
 	if err := s.repo.DeleteGallery(ctx, id); err != nil {
 		logrus.WithFields(logrus.Fields{
 			"component":  "gallery.service",
 			"gallery_id": id,
-		}).WithError(err).Error("failed to delete gallery")
+		}).WithError(err).Error("failed to delete gallery record")
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menghapus galeri", nil, nil)
 	}
 
@@ -479,11 +550,11 @@ func (s *service) DeleteGallery(ctx context.Context, id string) pkg.Response {
 	return pkg.NewResponse(http.StatusOK, "Galeri berhasil dihapus", nil, nil)
 }
 
-func (s *service) UpdatePublishedGallery(ctx context.Context, id string) pkg.Response {
+func (s *service) UpdatePublishGallery(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(id); err != nil {
+	if err := uuid.Validate(id); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID galeri tidak valid"}, nil)
 	}
 
@@ -515,6 +586,10 @@ func (s *service) UpdatePublishedGallery(ctx context.Context, id string) pkg.Res
 		errValidation["media"] = "Minimal satu file media wajib diisi untuk publikasi"
 	}
 
+	if gallery.CoverImage == "" {
+		errValidation["coverImage"] = "Gambar sampul wajib diisi"
+	}
+
 	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
@@ -540,7 +615,7 @@ func (s *service) UpdateArchivedGallery(ctx context.Context, id string) pkg.Resp
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(id); err != nil {
+	if err := uuid.Validate(id); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID galeri tidak valid"}, nil)
 	}
 

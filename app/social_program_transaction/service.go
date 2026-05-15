@@ -23,7 +23,7 @@ import (
 type Service interface {
 	GetSocialProgramTransactionList(ctx context.Context, accountID string, params SocialProgramTransactionQueryParams) pkg.Response
 	GetSocialProgramTransactionByID(ctx context.Context, id string) pkg.Response
-	CreateSocialProgramTransaction(ctx context.Context, accountID string, payload CreateTransactionRequest) pkg.Response
+	CreateSocialProgramTransaction(ctx context.Context, accountID string, invoiceID string, payload CreateTransactionRequest) pkg.Response
 	HandleNotification(ctx context.Context, payload payment_pkg.MidtransNotificationRequest) pkg.Response
 	GetMySocialProgramTransactionList(ctx context.Context, accountID string, params SocialProgramTransactionQueryParams) pkg.Response
 	GetMySocialProgramTransactionByID(ctx context.Context, id string, accountID string) pkg.Response
@@ -144,16 +144,28 @@ func (s *service) GetSocialProgramTransactionByID(ctx context.Context, id string
 	return pkg.NewResponse(http.StatusOK, "Success", nil, transaction.toSocialProgramTransactionResponse())
 }
 
-func (s *service) CreateSocialProgramTransaction(ctx context.Context, accountID string, payload CreateTransactionRequest) pkg.Response {
+func (s *service) CreateSocialProgramTransaction(ctx context.Context, accountID string, invoiceID string, payload CreateTransactionRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	errValidation := make(map[string]string)
 	
-	if payload.SocialProgramInvoiceID == "" {
-		errValidation["social_program_invoice_id"] = "Invoice ID is required"
-	} else if _, err := s.invoiceRepo.FindOneSocialProgramInvoice(ctx, map[string]interface{}{"id": payload.SocialProgramInvoiceID}); err != nil {
+	invoice, err := s.invoiceRepo.FindOneSocialProgramInvoice(ctx, map[string]interface{}{"id": invoiceID})
+	if err != nil {
 		errValidation["social_program_invoice_id"] = "Invoice not found"
+	} else if invoice.Status == social_program_invoice.InvoiceStatusPaid {
+		return pkg.NewResponse(http.StatusBadRequest, "Invoice is already paid", nil, nil)
+	}
+
+	// Check if transaction already exists for this invoice
+	existingTx, err := s.repo.FindOneSocialProgramTransaction(ctx, map[string]interface{}{"social_program_invoice_id": invoiceID})
+	if err == nil {
+		if existingTx.TransactionStatus == "pending" {
+			return pkg.NewResponse(http.StatusOK, "Waiting for payment", nil, existingTx.toSocialProgramTransactionResponse())
+		}
+		if existingTx.TransactionStatus == "settlement" || existingTx.TransactionStatus == "capture" {
+			return pkg.NewResponse(http.StatusBadRequest, "Invoice is already paid", nil, nil)
+		}
 	}
 
 	account, err := s.accountRepo.FindOneAccount(ctx, map[string]interface{}{"id": accountID})
@@ -192,7 +204,7 @@ func (s *service) CreateSocialProgramTransaction(ctx context.Context, accountID 
 		},
 		Items: &[]midtrans.ItemDetails{
 			{
-				ID:    payload.SocialProgramInvoiceID,
+				ID:    invoiceID,
 				Price: grossAmountInt,
 				Qty:   1,
 				Name:  "Social Program Invoice Payment",
@@ -208,7 +220,7 @@ func (s *service) CreateSocialProgramTransaction(ctx context.Context, accountID 
 	now := time.Now()
 	transaction := &SocialProgramTransaction{
 		ID:                     uuid.New(),
-		SocialProgramInvoiceID: uuid.MustParse(payload.SocialProgramInvoiceID),
+		SocialProgramInvoiceID: uuid.MustParse(invoiceID),
 		AccountID:              uuid.MustParse(accountID),
 		OrderID:                orderID,
 		IsOnline:               true,
@@ -225,7 +237,7 @@ func (s *service) CreateSocialProgramTransaction(ctx context.Context, accountID 
 	if err := s.repo.CreateSocialProgramTransaction(ctx, transaction); err != nil {
 		logrus.WithFields(logrus.Fields{
 			"component":  "social_program_transaction.service",
-			"invoice_id": payload.SocialProgramInvoiceID,
+			"invoice_id": invoiceID,
 			"order_id":   orderID,
 		}).WithError(err).Error("failed to save transaction")
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to save transaction", nil, nil)

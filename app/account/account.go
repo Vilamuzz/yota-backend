@@ -46,5 +46,13 @@ type AccountRole struct {
 	Role    Role    `json:"role" gorm:"foreignKey:RoleID;references:ID"`
 }
 
-const ProtectedSuperAdminRoleID = 8
-const OrangTuaAsuhRoleID = 1
+const (
+	OrangTuaAsuhRoleID        = 1
+	ChairmanRoleID            = 2
+	SocialManagerRoleID       = 3
+	FinanceRoleID             = 4
+	AmbulanceManagerRoleID    = 5
+	PublicationManagerRoleID  = 6
+	AmbulanceDriverRoleID     = 7
+	ProtectedSuperAdminRoleID = 8
+)

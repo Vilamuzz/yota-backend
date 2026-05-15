@@ -26,7 +26,7 @@ func NewRepository(conn *gorm.DB) Repository {
 
 func (r *repository) FindAllDonationProgramTransactions(ctx context.Context, options map[string]interface{}) ([]DonationProgramTransaction, error) {
 	var transactions []DonationProgramTransaction
-	query := r.Conn.WithContext(ctx)
+	query := r.Conn.WithContext(ctx).Preload("DonationProgram")
 
 	if status, ok := options["status"]; ok && status.(string) != "" {
 		query = query.Where("transaction_status = ?", status.(string))
@@ -50,7 +50,9 @@ func (r *repository) FindAllDonationProgramTransactions(ctx context.Context, opt
 		}
 	}
 
-	if _, usingPrevCursor := options["prev_cursor"]; !usingPrevCursor {
+	if _, isPrev := options["prev_cursor"]; isPrev {
+		query = query.Order("created_at ASC, id ASC")
+	} else {
 		query = query.Order("created_at DESC, id DESC")
 	}
 
@@ -68,20 +70,21 @@ func (r *repository) FindAllDonationProgramTransactions(ctx context.Context, opt
 
 func (r *repository) FindOneDonationProgramTransaction(ctx context.Context, options map[string]interface{}) (*DonationProgramTransaction, error) {
 	var tx DonationProgramTransaction
+	query := r.Conn.WithContext(ctx).Preload("DonationProgram")
 	if id, ok := options["id"]; ok && id.(string) != "" {
-		err := r.Conn.WithContext(ctx).Where("id = ?", id.(string)).First(&tx).Error
+		err := query.Where("id = ?", id.(string)).First(&tx).Error
 		return &tx, err
 	}
 	if orderID, ok := options["order_id"]; ok && orderID.(string) != "" {
-		err := r.Conn.WithContext(ctx).Where("order_id = ?", orderID.(string)).First(&tx).Error
+		err := query.Where("order_id = ?", orderID.(string)).First(&tx).Error
 		return &tx, err
 	}
 	if accountID, ok := options["account_id"]; ok && accountID.(string) != "" {
-		err := r.Conn.WithContext(ctx).Where("account_id = ?", accountID.(string)).First(&tx).Error
+		err := query.Where("account_id = ?", accountID.(string)).First(&tx).Error
 		return &tx, err
 	}
 	if donationProgramID, ok := options["donation_program_id"]; ok && donationProgramID.(string) != "" {
-		err := r.Conn.WithContext(ctx).Where("donation_program_id = ?", donationProgramID.(string)).First(&tx).Error
+		err := query.Where("donation_program_id = ?", donationProgramID.(string)).First(&tx).Error
 		return &tx, err
 	}
 	return nil, gorm.ErrRecordNotFound

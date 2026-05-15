@@ -69,7 +69,6 @@ func (s *service) GetDonationProgramTransactionList(ctx context.Context, account
 		params.Limit = 100
 	}
 
-	usingPrevCursor := params.PrevCursor != ""
 
 	options := map[string]interface{}{
 		"limit": params.Limit,
@@ -99,19 +98,23 @@ func (s *service) GetDonationProgramTransactionList(ctx context.Context, account
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data transaksi", nil, nil)
 	}
 
-	hasMore := len(transactions) > params.Limit
-	if hasMore {
-		transactions = transactions[:params.Limit]
-	}
-
-	if usingPrevCursor {
+	var hasNext, hasPrev bool
+	if params.PrevCursor != "" {
+		hasPrev = len(transactions) > params.Limit
+		hasNext = true
+		if len(transactions) > params.Limit {
+			transactions = transactions[:params.Limit]
+		}
 		for i, j := 0, len(transactions)-1; i < j; i, j = i+1, j-1 {
 			transactions[i], transactions[j] = transactions[j], transactions[i]
 		}
+	} else {
+		hasNext = len(transactions) > params.Limit
+		hasPrev = params.NextCursor != ""
+		if hasNext {
+			transactions = transactions[:params.Limit]
+		}
 	}
-
-	hasNext := (!usingPrevCursor && hasMore) || (usingPrevCursor && params.NextCursor == "")
-	hasPrev := (usingPrevCursor && hasMore) || (!usingPrevCursor && params.NextCursor != "")
 
 	var nextCursor, prevCursor string
 	if len(transactions) > 0 {
@@ -136,7 +139,7 @@ func (s *service) GetDonationProgramTransactionByID(ctx context.Context, donatio
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(donationProgramTransactionID); err != nil {
+	if err := uuid.Validate(donationProgramTransactionID); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID transaksi tidak valid"}, nil)
 	}
 
@@ -161,12 +164,15 @@ func (s *service) CreateOfflineDonationProgramTransaction(ctx context.Context, a
 	defer cancel()
 	errValidation := make(map[string]string)
 
+	var donationProg *donation_program.DonationProgram
 	if donationProgramID == "" {
 		errValidation["donationProgramId"] = "ID Program Donasi wajib diisi"
 	} else {
-		_, err := s.donationRepo.FindOneDonationProgram(ctx, map[string]interface{}{"id": donationProgramID, "status": donation_program.StatusActive})
+		prog, err := s.donationRepo.FindOneDonationProgram(ctx, map[string]interface{}{"id": donationProgramID, "status": donation_program.StatusActive})
 		if err != nil {
 			errValidation["donationProgramId"] = "Program Donasi tidak ditemukan"
+		} else {
+			donationProg = prog
 		}
 	}
 
@@ -228,6 +234,7 @@ func (s *service) CreateOfflineDonationProgramTransaction(ctx context.Context, a
 		}).WithError(err).Warn("failed to create finance record for offline transaction")
 	}
 
+	transaction.DonationProgram = donationProg
 	s.logService.CreateLog(ctx, &accountID, "CREATE", "donation_program_transaction", transaction.ID.String(), nil, transaction.toDonationProgramTransactionResponse())
 
 	return pkg.NewResponse(http.StatusCreated, "Transaksi offline berhasil dibuat", nil, transaction.toDonationProgramTransactionResponse())
@@ -240,6 +247,7 @@ func (s *service) CreateDonationProgramTransaction(ctx context.Context, accountI
 	errValidation := make(map[string]string)
 	var donationProgramID string
 
+	var donationProg *donation_program.DonationProgram
 	if donationSlug == "" {
 		errValidation["donationProgramSlug"] = "Slug Program Donasi wajib diisi"
 	} else {
@@ -248,6 +256,7 @@ func (s *service) CreateDonationProgramTransaction(ctx context.Context, accountI
 			errValidation["donationProgramSlug"] = "Program Donasi tidak ditemukan"
 		} else {
 			donationProgramID = program.ID.String()
+			donationProg = program
 		}
 	}
 
@@ -353,6 +362,7 @@ func (s *service) CreateDonationProgramTransaction(ctx context.Context, accountI
 		}
 	}
 
+	transaction.DonationProgram = donationProg
 	return pkg.NewResponse(http.StatusCreated, "Transaksi berhasil dibuat", nil, transaction.toDonationProgramTransactionResponse())
 }
 
@@ -474,7 +484,7 @@ func (s *service) GetMyDonationProgramTransactionByID(ctx context.Context, donat
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(donationProgramTransactionID); err != nil {
+	if err := uuid.Validate(donationProgramTransactionID); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID transaksi tidak valid"}, nil)
 	}
 

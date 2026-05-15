@@ -24,7 +24,7 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 }
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
-	r.POST("/subscriptions/invoices/:id/pay", h.CreateSocialProgramTransaction, h.middleware.RequireRoles(enum.RoleOrangTuaAsuh))
+	r.POST("social-programs/subscriptions/invoices/:id/pay", h.middleware.RequireRoles(enum.RoleOrangTuaAsuh), h.CreateSocialProgramTransaction)
 
 	// r.POST("/admin/subscriptions/invoices/:id/pay-offline", h.CreateOfflineSocialProgramTransaction, h.middleware.RequireRoles(enum.RoleSocialManager))
 }
@@ -85,6 +85,7 @@ func (h *handler) GetSocialProgramTransactionByID(c *gin.Context) {
 // @Router /api/social-programs/transactions [post]
 func (h *handler) CreateSocialProgramTransaction(c *gin.Context) {
 	ctx := c.Request.Context()
+	id := c.Param("id")
 
 	accountID := ""
 	if userData, exists := c.Get("user_data"); exists {
@@ -99,7 +100,7 @@ func (h *handler) CreateSocialProgramTransaction(c *gin.Context) {
 		return
 	}
 
-	res := h.service.CreateSocialProgramTransaction(ctx, accountID, req)
+	res := h.service.CreateSocialProgramTransaction(ctx, accountID, id, req)
 	c.JSON(res.Status, res)
 }
 

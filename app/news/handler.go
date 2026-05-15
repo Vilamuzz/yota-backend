@@ -24,35 +24,35 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	public := r.Group("/news")
-	public.GET("", h.ListPublishedNews)
+	public.GET("", h.GetNewsList)
 	public.GET("/:slug", h.GetNewsBySlug)
 
 	admin := r.Group("/admin/news")
-	admin.Use(h.middleware.RequireRoles(enum.RolePublicationManager, enum.RoleSuperadmin))
+	admin.Use(h.middleware.RequireRoles(enum.RolePublicationManager))
 	{
-		admin.GET("", h.ListNews)
-		admin.GET("/:id", h.GetNews)
+		admin.GET("", h.GetAdminNewsList)
+		admin.GET("/:id", h.GetNewsByID)
 		admin.POST("", h.CreateNews)
 		admin.PUT("/:id", h.UpdateNews)
 		admin.DELETE("/:id", h.DeleteNews)
-		admin.PATCH("/:id/published", h.UpdatePublishedNews)
-		admin.PATCH("/:id/archived", h.UpdateArchivedNews)
+		admin.PATCH("/:id/publish", h.UpdatePublishNews)
+		admin.PATCH("/:id/archive", h.UpdateArchiveNews)
 	}
 }
 
-// ListPublishedNews
+// GetNewsList
 //
 // @Summary List Published News
-// @Description Retrieve a list of published news with cursor-based pagination and optional filters
+// @Description Retrieve a list of published news items with cursor-based pagination and optional filters
 // @Tags News
 // @Accept json
 // @Produce json
 // @Param category query string false "Filter by category"
 // @Param cursor query string false "Cursor for pagination (encoded string)"
 // @Param limit query int false "Items per page (default: 10, max: 100)"
-// @Success 200 {object} pkg.Response
+// @Success 200 {object} pkg.Response{data=NewsListResponse}
 // @Router /api/news/ [get]
-func (h *handler) ListPublishedNews(c *gin.Context) {
+func (h *handler) GetNewsList(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var queryParams NewsQueryParams
@@ -73,7 +73,7 @@ func (h *handler) ListPublishedNews(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param slug path string true "News Slug"
-// @Success 200 {object} pkg.Response
+// @Success 200 {object} pkg.Response{data=NewsResponse}
 // @Router /api/news/{slug} [get]
 func (h *handler) GetNewsBySlug(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -83,10 +83,10 @@ func (h *handler) GetNewsBySlug(c *gin.Context) {
 	c.JSON(res.Status, res)
 }
 
-// ListNews
+// GetAdminNewsList
 //
 // @Summary List All News (Protected)
-// @Description Retrieve a list of all news (requires publication manager or superadmin role)
+// @Description Retrieve a list of all news items (requires publication manager or superadmin role)
 // @Tags News
 // @Security BearerAuth
 // @Accept json
@@ -95,9 +95,9 @@ func (h *handler) GetNewsBySlug(c *gin.Context) {
 // @Param status query string false "Filter by status"
 // @Param cursor query string false "Cursor for pagination (encoded string)"
 // @Param limit query int false "Items per page (default: 10, max: 100)"
-// @Success 200 {object} pkg.Response
+// @Success 200 {object} pkg.Response{data=NewsListResponse}
 // @Router /api/admin/news/ [get]
-func (h *handler) ListNews(c *gin.Context) {
+func (h *handler) GetAdminNewsList(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	var queryParams NewsQueryParams
@@ -110,7 +110,7 @@ func (h *handler) ListNews(c *gin.Context) {
 	c.JSON(res.Status, res)
 }
 
-// GetNews
+// GetNewsByID
 //
 // @Summary Get News (Protected)
 // @Description Get detailed information of a specific news article (requires publication manager or superadmin role)
@@ -119,9 +119,9 @@ func (h *handler) ListNews(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path string true "News ID"
-// @Success 200 {object} pkg.Response
+// @Success 200 {object} pkg.Response{data=NewsResponse}
 // @Router /api/admin/news/{id} [get]
-func (h *handler) GetNews(c *gin.Context) {
+func (h *handler) GetNewsByID(c *gin.Context) {
 	ctx := c.Request.Context()
 	newsID := c.Param("id")
 
@@ -132,7 +132,7 @@ func (h *handler) GetNews(c *gin.Context) {
 // CreateNews
 //
 // @Summary Create News
-// @Description Create a new news entry (requires authentication and proper role)
+// @Description Create a new news item (requires publication manager or superadmin role)
 // @Tags News
 // @Security BearerAuth
 // @Accept multipart/form-data
@@ -140,28 +140,28 @@ func (h *handler) GetNews(c *gin.Context) {
 // @Param title formData string true "News Title"
 // @Param category formData string true "News Category"
 // @Param content formData string true "News Content"
-// @Param status formData string false "News Status"
-// @Param coverImage formData file true "Cover Image"
-// @Param metadata formData string false "Media metadata JSON array"
-// @Param files formData file false "Additional Media Files"
-// @Success 201 {object} pkg.Response
+// @Param status formData string true "News Status (draft, published, archived)"
+// @Param coverImage formData file false "News Cover Image"
+// @Param mediaFiles[] formData file false "News Media Files"
+// @Param mediaAlt[] formData string false "Media Alt Texts"
+// @Success 201 {object} pkg.Response{data=NewsResponse}
 // @Router /api/admin/news [post]
 func (h *handler) CreateNews(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var req NewsRequest
+	var req NewsCreateRequest
 	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body: "+err.Error(), nil, nil))
 		return
 	}
-	resp := h.service.CreateNews(ctx, req)
-	c.JSON(resp.Status, resp)
+	res := h.service.CreateNews(ctx, req)
+	c.JSON(res.Status, res)
 }
 
 // UpdateNews
 //
 // @Summary Update News
-// @Description Update an existing news entry (requires authentication and proper role)
+// @Description Update an existing news item (requires publication manager or superadmin role)
 // @Tags News
 // @Security BearerAuth
 // @Accept multipart/form-data
@@ -171,22 +171,22 @@ func (h *handler) CreateNews(c *gin.Context) {
 // @Param category formData string false "News Category"
 // @Param content formData string false "News Content"
 // @Param status formData string false "News Status"
-// @Param coverImage formData file false "Cover Image"
-// @Param metadata formData string false "Media metadata JSON array"
-// @Param files formData file false "Additional Media Files"
+// @Param coverImage formData file false "News Cover Image"
+// @Param mediaFiles[] formData file false "News Media Files"
+// @Param mediaAlt[] formData string false "Media Alt Texts"
 // @Success 200 {object} pkg.Response
 // @Router /api/admin/news/{id} [put]
 func (h *handler) UpdateNews(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
 
-	var req NewsRequest
+	var req NewsUpdateRequest
 	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body: "+err.Error(), nil, nil))
 		return
 	}
-	resp := h.service.UpdateNews(ctx, id, req)
-	c.JSON(resp.Status, resp)
+	res := h.service.UpdateNews(ctx, id, req)
+	c.JSON(res.Status, res)
 }
 
 // DeleteNews
@@ -208,18 +208,40 @@ func (h *handler) DeleteNews(c *gin.Context) {
 	c.JSON(res.Status, res)
 }
 
-func (h *handler) UpdatePublishedNews(c *gin.Context) {
+// UpdatePublishNews
+//
+// @Summary Update Publish News
+// @Description Update an existing news to publish (requires publication manager or superadmin role)
+// @Tags News
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "News ID"
+// @Success 200 {object} pkg.Response
+// @Router /api/admin/news/{id}/publish [patch]
+func (h *handler) UpdatePublishNews(c *gin.Context) {
 	ctx := c.Request.Context()
 	newsID := c.Param("id")
 
-	res := h.service.UpdatePublishedNews(ctx, newsID)
+	res := h.service.UpdatePublishNews(ctx, newsID)
 	c.JSON(res.Status, res)
 }
 
-func (h *handler) UpdateArchivedNews(c *gin.Context) {
+// UpdateArchiveNews
+//
+// @Summary Update Archive News
+// @Description Update an existing news to archived (requires publication manager or superadmin role)
+// @Tags News
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "News ID"
+// @Success 200 {object} pkg.Response
+// @Router /api/admin/news/{id}/archive [patch]
+func (h *handler) UpdateArchiveNews(c *gin.Context) {
 	ctx := c.Request.Context()
 	newsID := c.Param("id")
 
-	res := h.service.UpdateArchivedNews(ctx, newsID)
+	res := h.service.UpdateArchiveNews(ctx, newsID)
 	c.JSON(res.Status, res)
 }

@@ -8,28 +8,28 @@ import (
 )
 
 type Service interface {
-	UploadMedia(ctx context.Context, files []*multipart.FileHeader, prefix string) ([]MediaRequest, error)
+	UploadMedia(ctx context.Context, files []*multipart.FileHeader, prefix string) ([]Media, error)
 	DeleteEntityMedia(ctx context.Context, entityID, entityType string) error
-	CreateEntityMedia(ctx context.Context, entityID, entityType string, mediaRequests []MediaRequest) error
+	CreateEntityMedia(ctx context.Context, entityID, entityType string, mediaRequests []Media) error
 	DeleteMediaByID(ctx context.Context, mediaID string) error
 	FetchEntityMedia(ctx context.Context, entityID, entityType string) ([]Media, error)
 	UpdateMediaByID(ctx context.Context, mediaID string, updateData map[string]interface{}) error
 }
 
 type service struct {
-	repo        Repository
-	s3Client     s3_pkg.Client
+	repo     Repository
+	s3Client s3_pkg.Client
 }
 
 func NewService(repo Repository, s3Client s3_pkg.Client) Service {
 	return &service{
-		repo:        repo,
-		s3Client:     s3Client,
+		repo:     repo,
+		s3Client: s3Client,
 	}
 }
 
-func (s *service) UploadMedia(ctx context.Context, files []*multipart.FileHeader, prefix string) ([]MediaRequest, error) {
-	var mediaItems []MediaRequest
+func (s *service) UploadMedia(ctx context.Context, files []*multipart.FileHeader, prefix string) ([]Media, error) {
+	var mediaItems []Media
 
 	for _, file := range files {
 		// Determine folder based on file type (image or video)
@@ -50,10 +50,10 @@ func (s *service) UploadMedia(ctx context.Context, files []*multipart.FileHeader
 			return nil, err
 		}
 
-		mediaItems = append(mediaItems, MediaRequest{
-			URL:     fileURL,
-			Type:    mediaType,
-			AltText: file.Filename,
+		mediaItems = append(mediaItems, Media{
+			URL:  fileURL,
+			Type: mediaType,
+			Alt:  file.Filename,
 		})
 	}
 
@@ -82,14 +82,15 @@ func (s *service) DeleteEntityMedia(ctx context.Context, entityID, entityType st
 	return s.repo.DeleteEntityMedia(ctx, entityID, entityType)
 }
 
-func (s *service) CreateEntityMedia(ctx context.Context, entityID, entityType string, mediaRequests []MediaRequest) error {
+func (s *service) CreateEntityMedia(ctx context.Context, entityID, entityType string, mediaRequests []Media) error {
 	var mediaItems []Media
 	for _, m := range mediaRequests {
 		mediaItems = append(mediaItems, Media{
-			ID:      m.ID,
-			Type:    m.Type,
-			URL:     m.URL,
-			AltText: m.AltText,
+			ID:    m.ID,
+			Type:  m.Type,
+			URL:   m.URL,
+			Alt:   m.Alt,
+			Order: m.Order,
 		})
 	}
 	return s.repo.CreateEntityMedia(ctx, entityID, entityType, mediaItems)

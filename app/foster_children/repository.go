@@ -14,6 +14,8 @@ type Repository interface {
 	UpdateFosterChildren(ctx context.Context, fosterChildrenID string, updateData map[string]interface{}) error
 	DeleteFosterChildren(ctx context.Context, fosterChildrenID string) error
 	DeleteAchievementsByFosterChildrenID(ctx context.Context, fosterChildrenID string) error
+	DeleteAchievementByID(ctx context.Context, id string) error
+	UpdateAchievement(ctx context.Context, id string, updateData map[string]interface{}) error
 	CreateAchievements(ctx context.Context, achievements []Achivement) error
 
 	FindAllFosterChildrenCandidates(ctx context.Context, options map[string]interface{}) ([]FosterChildrenCandidate, error)
@@ -108,6 +110,14 @@ func (r *repository) DeleteFosterChildren(ctx context.Context, fosterChildrenID 
 
 func (r *repository) DeleteAchievementsByFosterChildrenID(ctx context.Context, fosterChildrenID string) error {
 	return r.Conn.WithContext(ctx).Where("foster_children_id = ?", fosterChildrenID).Delete(&Achivement{}).Error
+}
+
+func (r *repository) DeleteAchievementByID(ctx context.Context, id string) error {
+	return r.Conn.WithContext(ctx).Where("id = ?", id).Delete(&Achivement{}).Error
+}
+
+func (r *repository) UpdateAchievement(ctx context.Context, id string, updateData map[string]interface{}) error {
+	return r.Conn.WithContext(ctx).Model(&Achivement{}).Where("id = ?", id).Updates(updateData).Error
 }
 
 func (r *repository) CreateAchievements(ctx context.Context, achievements []Achivement) error {

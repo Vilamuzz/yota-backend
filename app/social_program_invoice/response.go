@@ -1,14 +1,20 @@
 package social_program_invoice
 
-import "github.com/Vilamuzz/yota-backend/pkg"
+import (
+	"time"
+
+	"github.com/Vilamuzz/yota-backend/pkg"
+)
 
 type SocialProgramInvoiceResponse struct {
-	ID             string  `json:"id"`
-	SubscriptionID string  `json:"subscriptionId"`
-	BillingPeriod  string  `json:"billingPeriod"`
-	Amount         float64 `json:"amount"`
-	Status         string  `json:"status"`
-	DueDate        string  `json:"dueDate"`
+	ID                 string        `json:"id"`
+	SocialProgramTitle string        `json:"socialProgramTitle"`
+	BillingPeriod      time.Time     `json:"billingPeriod"`
+	MinimumAmount      float64       `json:"minimumAmount"`
+	Status             InvoiceStatus `json:"status"`
+	DueDate            time.Time     `json:"dueDate"`
+	SnapToken          string        `json:"snapToken"`
+	CreatedAt          time.Time     `json:"createdAt"`
 }
 
 type SocialProgramInvoiceListResponse struct {
@@ -18,12 +24,13 @@ type SocialProgramInvoiceListResponse struct {
 
 func (r *SocialProgramInvoice) toSocialProgramInvoiceResponse() SocialProgramInvoiceResponse {
 	return SocialProgramInvoiceResponse{
-		ID:             r.ID.String(),
-		SubscriptionID: r.SubscriptionID.String(),
-		BillingPeriod:  r.BillingPeriod.Format("2006-01-02 15:04:05"),
-		Amount:         r.Amount,
-		Status:         string(r.Status),
-		DueDate:        r.DueDate.Format("2006-01-02 15:04:05"),
+		ID:            r.ID.String(),
+		BillingPeriod: r.BillingPeriod,
+		MinimumAmount: r.MinimumAmount,
+		Status:        r.Status,
+		DueDate:       r.DueDate,
+		SnapToken:     r.SnapToken,
+		CreatedAt:     r.CreatedAt,
 	}
 }
 

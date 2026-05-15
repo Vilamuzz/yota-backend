@@ -24,7 +24,7 @@ func NewRepository(conn *gorm.DB) Repository {
 
 func (r *repository) FindAllFosterChildrenTransactions(ctx context.Context, options map[string]interface{}) ([]FosterChildrenTransaction, error) {
 	var transactions []FosterChildrenTransaction
-	query := r.Conn.WithContext(ctx)
+	query := r.Conn.WithContext(ctx).Preload("FosterChildren")
 
 	if status, ok := options["status"]; ok && status.(string) != "" {
 		query = query.Where("transaction_status = ?", status.(string))
@@ -66,20 +66,21 @@ func (r *repository) FindAllFosterChildrenTransactions(ctx context.Context, opti
 
 func (r *repository) FindOneFosterChildrenTransaction(ctx context.Context, options map[string]interface{}) (*FosterChildrenTransaction, error) {
 	var tx FosterChildrenTransaction
+	query := r.Conn.WithContext(ctx).Preload("FosterChildren")
 	if id, ok := options["id"]; ok && id.(string) != "" {
-		err := r.Conn.WithContext(ctx).Where("id = ?", id.(string)).First(&tx).Error
+		err := query.Where("id = ?", id.(string)).First(&tx).Error
 		return &tx, err
 	}
 	if orderID, ok := options["order_id"]; ok && orderID.(string) != "" {
-		err := r.Conn.WithContext(ctx).Where("order_id = ?", orderID.(string)).First(&tx).Error
+		err := query.Where("order_id = ?", orderID.(string)).First(&tx).Error
 		return &tx, err
 	}
 	if accountID, ok := options["account_id"]; ok && accountID.(string) != "" {
-		err := r.Conn.WithContext(ctx).Where("account_id = ?", accountID.(string)).First(&tx).Error
+		err := query.Where("account_id = ?", accountID.(string)).First(&tx).Error
 		return &tx, err
 	}
 	if fosterChildrenID, ok := options["foster_children_id"]; ok && fosterChildrenID.(string) != "" {
-		err := r.Conn.WithContext(ctx).Where("foster_children_id = ?", fosterChildrenID.(string)).First(&tx).Error
+		err := query.Where("foster_children_id = ?", fosterChildrenID.(string)).First(&tx).Error
 		return &tx, err
 	}
 	return nil, gorm.ErrRecordNotFound

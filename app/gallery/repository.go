@@ -54,7 +54,9 @@ func (r *repository) FindAllGalleries(ctx context.Context, options map[string]in
 		}
 	}
 
-	if _, usingPrevCursor := options["prev_cursor"]; !usingPrevCursor {
+	if _, isPrev := options["prev_cursor"]; isPrev {
+		query = query.Order("created_at ASC, id ASC")
+	} else {
 		query = query.Order("created_at DESC, id DESC")
 	}
 
@@ -78,6 +80,9 @@ func (r *repository) FindOneGallery(ctx context.Context, options map[string]inte
 	}
 	if slug, ok := options["slug"]; ok && slug != "" {
 		query = query.Where("slug = ?", slug)
+	}
+	if title, ok := options["title"]; ok && title != "" {
+		query = query.Where("title = ?", title)
 	}
 	if published, ok := options["published"]; ok && published.(bool) {
 		query = query.Where("status = ?", media.MediaStatusPublished)

@@ -1,9 +1,9 @@
 package media
 
 type PublishedMediaResponse struct {
-	URL     string `json:"url"`
-	AltText string `json:"altText"`
-	Order   int    `json:"order"`
+	URL   string `json:"url"`
+	Alt   string `json:"alt"`
+	Order int    `json:"order"`
 }
 
 type MediaResponse struct {
@@ -12,6 +12,6 @@ type MediaResponse struct {
 	GalleryID string `json:"galleryId"`
 	Type      string `json:"type"`
 	URL       string `json:"url"`
-	AltText   string `json:"altText"`
+	Alt       string `json:"alt"`
 	Order     int    `json:"order"`
 }

@@ -8,6 +8,8 @@ type PrayerResponse struct {
 	ID        string `json:"id"`
 	Username  string `json:"username"`
 	Content   string `json:"content"`
+	IsAmen    bool   `json:"isAmen"`
+	AmenCount int64  `json:"amenCount"`
 	CreatedAt string `json:"createdAt"`
 }
 
@@ -26,6 +28,8 @@ func (p *Prayer) toPrayerResponse() PrayerResponse {
 		ID:        p.ID.String(),
 		Username:  username,
 		Content:   p.Content,
+		IsAmen:    p.IsAmen,
+		AmenCount: p.AmenCount,
 		CreatedAt: p.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 }

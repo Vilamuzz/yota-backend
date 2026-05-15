@@ -130,7 +130,7 @@ func (s *service) GetFosterChildrenTransactionByID(ctx context.Context, fosterCh
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(fosterChildrenTransactionID); err != nil {
+	if err := uuid.Validate(fosterChildrenTransactionID); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid transaction ID format"}, nil)
 	}
 
@@ -155,12 +155,15 @@ func (s *service) CreateOfflineFosterChildrenTransaction(ctx context.Context, ac
 	defer cancel()
 	errValidation := make(map[string]string)
 
+	var fosterChild *foster_children.FosterChildren
 	if fosterChildrenID == "" {
 		errValidation["foster_children_id"] = "Foster Children ID is required"
 	} else {
-		_, err := s.fosterChildrenRepo.FindOneFosterChildren(ctx, map[string]interface{}{"id": fosterChildrenID})
+		fc, err := s.fosterChildrenRepo.FindOneFosterChildren(ctx, map[string]interface{}{"id": fosterChildrenID})
 		if err != nil {
 			errValidation["foster_children_id"] = "Foster Children not found"
+		} else {
+			fosterChild = fc
 		}
 	}
 
@@ -222,6 +225,7 @@ func (s *service) CreateOfflineFosterChildrenTransaction(ctx context.Context, ac
 		}).WithError(err).Warn("failed to create finance record for offline transaction")
 	}
 
+	transaction.FosterChildren = fosterChild
 	s.logService.CreateLog(ctx, &accountID, "CREATE", "foster_children_transaction", transaction.ID.String(), nil, transaction.toFosterChildrenTransactionResponse())
 
 	return pkg.NewResponse(http.StatusCreated, "Offline transaction created successfully", nil, transaction.toFosterChildrenTransactionResponse())
@@ -233,12 +237,15 @@ func (s *service) CreateFosterChildrenTransaction(ctx context.Context, accountID
 
 	errValidation := make(map[string]string)
 
+	var fosterChild *foster_children.FosterChildren
 	if fosterChildrenID == "" {
 		errValidation["foster_children_id"] = "Foster Children ID is required"
 	} else {
-		_, err := s.fosterChildrenRepo.FindOneFosterChildren(ctx, map[string]interface{}{"id": fosterChildrenID})
+		fc, err := s.fosterChildrenRepo.FindOneFosterChildren(ctx, map[string]interface{}{"id": fosterChildrenID})
 		if err != nil {
 			errValidation["foster_children_id"] = "Foster Children not found"
+		} else {
+			fosterChild = fc
 		}
 	}
 
@@ -293,11 +300,17 @@ func (s *service) CreateFosterChildrenTransaction(ctx context.Context, accountID
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create Midtrans transaction: "+err.Error(), nil, nil)
 	}
 
+	var accountIDPtr *uuid.UUID
+	if accountID != "" {
+		id := uuid.MustParse(accountID)
+		accountIDPtr = &id
+	}
+
 	now := time.Now()
 	transaction := &FosterChildrenTransaction{
 		ID:                uuid.New(),
 		FosterChildrenID:  uuid.MustParse(fosterChildrenID),
-		AccountID:         uuid.MustParse(accountID),
+		AccountID:         accountIDPtr,
 		OrderID:           orderID,
 		DonorName:         donorName,
 		DonorEmail:        donorEmail,
@@ -321,6 +334,7 @@ func (s *service) CreateFosterChildrenTransaction(ctx context.Context, accountID
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to save transaction", nil, nil)
 	}
 
+	transaction.FosterChildren = fosterChild
 	return pkg.NewResponse(http.StatusCreated, "Transaction created successfully", nil, transaction.toFosterChildrenTransactionResponse())
 }
 
@@ -406,7 +420,7 @@ func (s *service) GetMyFosterChildrenTransactionByID(ctx context.Context, foster
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(fosterChildrenTransactionID); err != nil {
+	if err := uuid.Validate(fosterChildrenTransactionID); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid transaction ID format"}, nil)
 	}
 

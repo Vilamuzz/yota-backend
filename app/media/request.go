@@ -1,18 +1,19 @@
 package media
 
-import "github.com/google/uuid"
+import (
+	"mime/multipart"
+
+	"github.com/google/uuid"
+)
 
 type MediaRequest struct {
-	ID  uuid.UUID `json:"id"`
-	URL string    `json:"url"`
-
-	Type    MediaType `json:"type"`
-	AltText string    `json:"altText"`
-	Order   int       `json:"order"`
+	ID   uuid.UUID             `form:"id"`
+	File *multipart.FileHeader `form:"media[][file]"`
+	Alt  string                `form:"media[][alt]"`
 }
 
 type MediaMetadata struct {
-	ID      string `json:"id"`
-	AltText string `json:"altText"`
-	Order   int    `json:"order"`
+	ID    string `json:"id"`
+	Alt   string `json:"alt"`
+	Order int    `json:"order"`
 }

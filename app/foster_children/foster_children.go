@@ -30,14 +30,15 @@ type FosterChildren struct {
 type Gender string
 
 const (
-	Male   Gender = "male"
-	Female Gender = "female"
+	Male   Gender = "laki-laki"
+	Female Gender = "perempuan"
 )
 
 type Achivement struct {
 	ID               uuid.UUID `json:"id" gorm:"primaryKey"`
 	FosterChildrenID uuid.UUID `json:"fosterChildrenId" gorm:"not null"`
 	URL              string    `json:"url" gorm:"not null"`
+	Note             string    `json:"note"`
 	CreatedAt        time.Time `json:"createdAt" gorm:"not null"`
 	UpdatedAt        time.Time `json:"updatedAt" gorm:"not null"`
 }
@@ -77,8 +78,9 @@ type FosterChildrenCandidate struct {
 type Status string
 
 const (
-	StatusPending  Status = "pending"
-	StatusAccepted Status = "accepted"
-	StatusRejected Status = "rejected"
-	StatusCanceled Status = "canceled"
+	StatusPending               Status = "pending"
+	StatusSocialManagerAccepted Status = "social_manager_accepted"
+	StatusAccepted              Status = "accepted"
+	StatusRejected              Status = "rejected"
+	StatusCanceled              Status = "canceled"
 )

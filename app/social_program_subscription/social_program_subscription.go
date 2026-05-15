@@ -13,7 +13,6 @@ type SocialProgramSubscription struct {
 	SocialProgramID uuid.UUID `json:"socialProgramId" gorm:"not null"`
 	AccountID       uuid.UUID `json:"accountId" gorm:"not null"`
 	Status          Status    `json:"status" gorm:"type:varchar(20);not null;default:'active'"`
-	Amount          float64   `json:"amount" gorm:"not null"`
 	CreatedAt       time.Time `json:"createdAt"`
 	UpdatedAt       time.Time `json:"updatedAt"`
 
@@ -24,7 +23,7 @@ type SocialProgramSubscription struct {
 type Status string
 
 const (
-	StatusActive  Status = "active"
-	StatusPaused  Status = "paused"
-	StatusStopped Status = "stopped"
+	StatusActive   Status = "active"
+	StatusPaused   Status = "paused"
+	StatusInactive Status = "inactive"
 )

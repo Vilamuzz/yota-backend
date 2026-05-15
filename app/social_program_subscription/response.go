@@ -7,27 +7,28 @@ import (
 )
 
 type SocialProgramSubscriptionResponse struct {
-	ID              string    `json:"id"`
-	SocialProgramID string    `json:"socialProgramId"`
-	AccountID       string    `json:"accountId"`
-	Status          string    `json:"status"`
-	Amount          float64   `json:"amount"`
-	CreatedAt       time.Time `json:"createdAt"`
+	ID        string    `json:"id"`
+	Username  string    `json:"username"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 type SocialProgramSubscriptionListResponse struct {
-	SocialProgramSubscriptions []SocialProgramSubscriptionResponse `json:"socialProgramSubscriptions"`
-	Pagination                 pkg.CursorPagination                `json:"pagination"`
+	Subscriptions []SocialProgramSubscriptionResponse `json:"subscriptions"`
+	Pagination    pkg.CursorPagination                `json:"pagination"`
 }
 
 func (s *SocialProgramSubscription) toSocialProgramSubscriptionResponse() SocialProgramSubscriptionResponse {
+	username := "Unknown"
+	if s.Account != nil {
+		username = s.Account.UserProfile.Username
+	}
+
 	return SocialProgramSubscriptionResponse{
-		ID:              s.ID.String(),
-		SocialProgramID: s.SocialProgramID.String(),
-		AccountID:       s.AccountID.String(),
-		Status:          string(s.Status),
-		Amount:          s.Amount,
-		CreatedAt:       s.CreatedAt,
+		ID:        s.ID.String(),
+		Username:  username,
+		Status:    string(s.Status),
+		CreatedAt: s.CreatedAt,
 	}
 }
 
@@ -40,7 +41,7 @@ func toSocialProgramSubscriptionListResponse(subscriptions []SocialProgramSubscr
 		responses = []SocialProgramSubscriptionResponse{}
 	}
 	return SocialProgramSubscriptionListResponse{
-		SocialProgramSubscriptions: responses,
-		Pagination:                 pagination,
+		Subscriptions: responses,
+		Pagination:    pagination,
 	}
 }

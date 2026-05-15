@@ -25,7 +25,7 @@ func NewRepository(conn *gorm.DB) Repository {
 
 func (r *repository) FindAllSocialProgramInvoices(ctx context.Context, options map[string]interface{}) ([]SocialProgramInvoice, error) {
 	var invoices []SocialProgramInvoice
-	query := r.Conn.WithContext(ctx)
+	query := r.Conn.WithContext(ctx).Select("social_program_invoices.*, (SELECT snap_token FROM social_program_transactions WHERE social_program_invoice_id = social_program_invoices.id AND transaction_status = 'pending' LIMIT 1) as snap_token")
 
 	if subscriptionID, ok := options["subscription_id"]; ok && subscriptionID.(string) != "" {
 		query = query.Where("subscription_id = ?", subscriptionID.(string))
@@ -65,14 +65,22 @@ func (r *repository) FindAllSocialProgramInvoices(ctx context.Context, options m
 
 func (r *repository) FindOneSocialProgramInvoice(ctx context.Context, options map[string]interface{}) (*SocialProgramInvoice, error) {
 	var invoice SocialProgramInvoice
-	query := r.Conn.WithContext(ctx)
+	query := r.Conn.WithContext(ctx).Select("social_program_invoices.*, (SELECT snap_token FROM social_program_transactions WHERE social_program_invoice_id = social_program_invoices.id AND transaction_status = 'pending' LIMIT 1) as snap_token")
 
 	if id, ok := options["id"]; ok && id.(string) != "" {
 		query = query.Where("id = ?", id.(string))
 	}
-	
-	err := query.First(&invoice).Error
-	return &invoice, err
+	if subscriptionID, ok := options["subscription_id"]; ok && subscriptionID.(string) != "" {
+		query = query.Where("subscription_id = ?", subscriptionID.(string))
+	}
+	if billingPeriod, ok := options["billing_period"]; ok && billingPeriod.(string) != "" {
+		query = query.Where("DATE(billing_period) = ?", billingPeriod.(string))
+	}
+
+	if err := query.First(&invoice).Error; err != nil {
+		return nil, err
+	}
+	return &invoice, nil
 }
 
 func (r *repository) CreateSocialProgramInvoice(ctx context.Context, socialProgramInvoice *SocialProgramInvoice) error {

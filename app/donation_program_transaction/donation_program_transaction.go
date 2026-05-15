@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/app/account"
+	"github.com/Vilamuzz/yota-backend/app/donation_program"
 	"github.com/google/uuid"
 )
 
@@ -27,6 +28,7 @@ type DonationProgramTransaction struct {
 	UpdatedAt         time.Time  `json:"updated_at"`
 
 	Account *account.Account `json:"-" gorm:"foreignKey:AccountID;references:ID"`
+	DonationProgram *donation_program.DonationProgram `json:"-" gorm:"foreignKey:DonationProgramID;references:ID"`
 }
 
 type TransactionStatus string

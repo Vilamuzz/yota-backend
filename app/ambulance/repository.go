@@ -2,17 +2,18 @@ package ambulance
 
 import (
 	"context"
+	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
 )
 
 type Repository interface {
-	Create(ctx context.Context, ambulance Ambulance) error
-	FindByID(ctx context.Context, id string) (Ambulance, error)
-	FindAll(ctx context.Context, options map[string]interface{}) ([]Ambulance, error)
-	Update(ctx context.Context, id string, updateData map[string]interface{}) error
-	Delete(ctx context.Context, id string) error
+	FindAllAmbulances(ctx context.Context, options map[string]interface{}) ([]Ambulance, error)
+	FindOneAmbulance(ctx context.Context, options map[string]interface{}) (*Ambulance, error)
+	CreateAmbulance(ctx context.Context, ambulance *Ambulance) error
+	UpdateAmbulance(ctx context.Context, id string, updateData map[string]interface{}) error
+	DeleteAmbulance(ctx context.Context, id string) error
 }
 
 type repository struct {
@@ -20,27 +21,20 @@ type repository struct {
 }
 
 func NewRepository(conn *gorm.DB) Repository {
-	return &repository{Conn: conn}
-}
-
-func (r *repository) Create(ctx context.Context, ambulance Ambulance) error {
-	return r.Conn.WithContext(ctx).Create(&ambulance).Error
-}
-
-func (r *repository) FindByID(ctx context.Context, id string) (Ambulance, error) {
-	var ambulance Ambulance
-	if err := r.Conn.WithContext(ctx).First(&ambulance, id).Error; err != nil {
-		return Ambulance{}, err
+	return &repository{
+		Conn: conn,
 	}
-	return ambulance, nil
 }
 
-func (r *repository) FindAll(ctx context.Context, options map[string]interface{}) ([]Ambulance, error) {
+func (r *repository) FindAllAmbulances(ctx context.Context, options map[string]interface{}) ([]Ambulance, error) {
 	var ambulances []Ambulance
-	query := r.Conn.WithContext(ctx)
+	query := r.Conn.WithContext(ctx).Preload("Driver.UserProfile").Where("deleted_at IS NULL")
 
 	if search, ok := options["search"]; ok && search != "" {
-		query = query.Where("plate_number LIKE ?", "%"+search.(string)+"%")
+		query = query.Where("plate_number ILIKE ?", "%"+search.(string)+"%")
+	}
+	if status, ok := options["status"]; ok && status != "" {
+		query = query.Where("status = ?", status)
 	}
 
 	if nextCursor, ok := options["next_cursor"]; ok && nextCursor != "" {
@@ -53,12 +47,13 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 		cursorData, err := pkg.DecodeCursor(prevCursor.(string))
 		if err == nil {
 			query = query.Where("created_at > ? OR (created_at = ? AND id > ?)",
-				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID).
-				Order("created_at ASC, id ASC")
+				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
 		}
 	}
 
-	if _, usingPrevCursor := options["prev_cursor"]; !usingPrevCursor {
+	if _, isPrev := options["prev_cursor"]; isPrev {
+		query = query.Order("created_at ASC, id ASC")
+	} else {
 		query = query.Order("created_at DESC, id DESC")
 	}
 
@@ -74,10 +69,31 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 	return ambulances, nil
 }
 
-func (r *repository) Update(ctx context.Context, id string, updateData map[string]interface{}) error {
+func (r *repository) FindOneAmbulance(ctx context.Context, options map[string]interface{}) (*Ambulance, error) {
+	var ambulance Ambulance
+	query := r.Conn.WithContext(ctx).Preload("Driver.UserProfile").Where("deleted_at IS NULL")
+
+	if id, ok := options["id"]; ok && id != "" {
+		query = query.Where("id = ?", id)
+	}
+	if plateNumber, ok := options["plate_number"]; ok && plateNumber != "" {
+		query = query.Where("plate_number = ?", plateNumber)
+	}
+
+	if err := query.First(&ambulance).Error; err != nil {
+		return nil, err
+	}
+	return &ambulance, nil
+}
+
+func (r *repository) CreateAmbulance(ctx context.Context, ambulance *Ambulance) error {
+	return r.Conn.WithContext(ctx).Create(ambulance).Error
+}
+
+func (r *repository) UpdateAmbulance(ctx context.Context, id string, updateData map[string]interface{}) error {
 	return r.Conn.WithContext(ctx).Model(&Ambulance{}).Where("id = ?", id).Updates(updateData).Error
 }
 
-func (r *repository) Delete(ctx context.Context, id string) error {
-	return r.Conn.WithContext(ctx).Delete(&Ambulance{}, id).Error
+func (r *repository) DeleteAmbulance(ctx context.Context, id string) error {
+	return r.Conn.WithContext(ctx).Model(&Ambulance{}).Where("id = ?", id).Update("deleted_at", time.Now()).Error
 }

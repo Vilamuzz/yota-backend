@@ -38,22 +38,21 @@ func (r *repository) FindAllAccounts(ctx context.Context, options map[string]int
 	var accounts []Account
 	query := r.Conn.WithContext(ctx).
 		Preload("UserProfile").
-		Preload("AccountRoles.Role").
-		Joins("LEFT JOIN account_roles ON account_roles.account_id = accounts.id").
-		Group("accounts.id")
+		Preload("AccountRoles.Role")
 
 	if excludeSuperadmin, ok := options["exclude_superadmin"]; ok && excludeSuperadmin.(bool) {
 		query = query.Where("accounts.id NOT IN (SELECT account_id FROM account_roles WHERE role_id = ?)", 8)
 	}
 	if roleID, ok := options["role_id"]; ok && roleID != 0 {
-		query = query.Where("account_roles.role_id = ?", roleID)
+		query = query.Where("accounts.id IN (SELECT account_id FROM account_roles WHERE role_id = ?)", roleID)
 	}
 	if isBanned, ok := options["is_banned"]; ok {
 		query = query.Where("accounts.is_banned = ?", isBanned.(bool))
 	}
 	if search, ok := options["search"]; ok && search != "" {
 		searchStr := "%" + search.(string) + "%"
-		query = query.Joins("UserProfile").Where(`"UserProfile".username LIKE ? OR accounts.email LIKE ?"`, searchStr, searchStr)
+		query = query.Joins("LEFT JOIN user_profiles ON user_profiles.account_id = accounts.id").
+			Where("user_profiles.username LIKE ? OR accounts.email LIKE ?", searchStr, searchStr)
 	}
 	sortOrder := enum.SortOrderDesc
 	if val, ok := options["sort_order"].(enum.SortOrderEnum); ok && val != "" {

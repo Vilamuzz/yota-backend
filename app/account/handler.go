@@ -36,13 +36,22 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	}
 
 	admin := r.Group("/admin/accounts")
-	admin.Use(h.middleware.RequireRoles(enum.RoleSuperadmin))
+	admin.Use(h.middleware.RequireRoles(enum.RoleSocialManager, enum.RoleAmbulanceManager))
 	{
-		admin.GET("", h.GetAccountList)
+		admin.GET("", h.GetActiveAccountList)
+		admin.GET("/drivers", h.GetDriverAccountList)
+		admin.GET("/foster-parents", h.GetFosterParentAccountList)
 		admin.GET("/:accountId", h.GetAccountByID)
-		admin.PATCH("/:accountId/ban", h.BanAccount)
-		admin.POST("/:accountId/roles/:roleId", h.AddAccountRole)
-		admin.PATCH("/:accountId/roles/:roleId", h.UpdateAccountRole)
+	}
+
+	superadmin := r.Group("/superadmin/accounts")
+	superadmin.Use(h.middleware.RequireRoles(enum.RoleSuperadmin))
+	{
+		superadmin.GET("", h.GetAccountList)
+		superadmin.GET("/:accountId", h.GetAccountByID)
+		superadmin.PATCH("/:accountId/ban", h.BanAccount)
+		superadmin.POST("/:accountId/roles/:roleId", h.AddAccountRole)
+		superadmin.PATCH("/:accountId/roles/:roleId", h.UpdateAccountRole)
 	}
 }
 
@@ -71,7 +80,104 @@ func (h *handler) GetAccountList(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Permintaan tidak valid", nil, nil))
 		return
 	}
-	res := h.service.GetAccountList(ctx, queryParam)
+	res := h.service.GetAccountList(ctx, queryParam, false)
+	c.JSON(res.Status, res)
+}
+
+// GetActiveAccountList
+//
+// @Summary Get Active Accounts List (Excludes Superadmin)
+// @Description Get a list of active accounts excluding superadmins. Forced filter: is_banned=false, exclude_superadmin=true.
+// @Tags Account
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param search query string false "Search query"
+// @Param role_id query int false "Role ID filter"
+// @Param sort_by query string false "Sort by"
+// @Param sort_order query string false "Sort order"
+// @Param limit query int false "Pagination limit"
+// @Param next_cursor query string false "Pagination cursor (next page)"
+// @Param prev_cursor query string false "Pagination cursor (prev page)"
+// @Success 200 {object} pkg.Response{data=[]AccountResponse}
+// @Router /api/admin/accounts/active [get]
+func (h *handler) GetActiveAccountList(c *gin.Context) {
+	ctx := c.Request.Context()
+	var queryParam AccountQueryParam
+	if err := c.ShouldBindQuery(&queryParam); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Permintaan tidak valid", nil, nil))
+		return
+	}
+
+	// Force active only and exclude superadmin
+	isBanned := false
+	queryParam.IsBanned = &isBanned
+
+	res := h.service.GetAccountList(ctx, queryParam, true)
+	c.JSON(res.Status, res)
+}
+
+// GetDriverAccountList
+//
+// @Summary Get Driver Accounts List
+// @Description Get a list of active accounts with Driver role.
+// @Tags Account
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param search query string false "Search query"
+// @Param sort_by query string false "Sort by"
+// @Param sort_order query string false "Sort order"
+// @Param limit query int false "Pagination limit"
+// @Param next_cursor query string false "Pagination cursor (next page)"
+// @Param prev_cursor query string false "Pagination cursor (prev page)"
+// @Success 200 {object} pkg.Response{data=[]AccountResponse}
+// @Router /api/admin/accounts/drivers [get]
+func (h *handler) GetDriverAccountList(c *gin.Context) {
+	ctx := c.Request.Context()
+	var queryParam AccountQueryParam
+	if err := c.ShouldBindQuery(&queryParam); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Permintaan tidak valid", nil, nil))
+		return
+	}
+
+	isBanned := false
+	queryParam.IsBanned = &isBanned
+	queryParam.RoleID = AmbulanceDriverRoleID
+
+	res := h.service.GetAccountList(ctx, queryParam, true)
+	c.JSON(res.Status, res)
+}
+
+// GetFosterParentAccountList
+//
+// @Summary Get Foster Parent Accounts List
+// @Description Get a list of active accounts with Orang Tua Asuh role.
+// @Tags Account
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param search query string false "Search query"
+// @Param sort_by query string false "Sort by"
+// @Param sort_order query string false "Sort order"
+// @Param limit query int false "Pagination limit"
+// @Param next_cursor query string false "Pagination cursor (next page)"
+// @Param prev_cursor query string false "Pagination cursor (prev page)"
+// @Success 200 {object} pkg.Response{data=[]AccountResponse}
+// @Router /api/admin/accounts/foster-parents [get]
+func (h *handler) GetFosterParentAccountList(c *gin.Context) {
+	ctx := c.Request.Context()
+	var queryParam AccountQueryParam
+	if err := c.ShouldBindQuery(&queryParam); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Permintaan tidak valid", nil, nil))
+		return
+	}
+
+	isBanned := false
+	queryParam.IsBanned = &isBanned
+	queryParam.RoleID = OrangTuaAsuhRoleID
+
+	res := h.service.GetAccountList(ctx, queryParam, true)
 	c.JSON(res.Status, res)
 }
 

@@ -7,31 +7,35 @@ import (
 )
 
 type CreateFosterChildrenRequest struct {
-	Name           string                  `form:"name"`
-	Gender         Gender                  `form:"gender"`
-	IsGraduated    bool                    `form:"isGraduated"`
-	Category       Category                `form:"category"`
-	BirthDate      string                  `form:"birthDate"`
-	BirthPlace     string                  `form:"birthPlace"`
-	Address        string                  `form:"address"`
-	ProfilePicture *multipart.FileHeader   `form:"profilePicture" swaggerignore:"true"`
-	FamilyCard     *multipart.FileHeader   `form:"familyCard" swaggerignore:"true"`
-	SKTM           *multipart.FileHeader   `form:"sktm" swaggerignore:"true"`
-	Achievements   []*multipart.FileHeader `form:"achievements" swaggerignore:"true"`
+	Name            string                  `form:"name"`
+	Gender          Gender                  `form:"gender"`
+	IsGraduated     bool                    `form:"isGraduated"`
+	Category        Category                `form:"category"`
+	BirthDate       string                  `form:"birthDate"`
+	BirthPlace      string                  `form:"birthPlace"`
+	Address         string                  `form:"address"`
+	ProfilePicture  *multipart.FileHeader   `form:"profilePicture" swaggerignore:"true"`
+	FamilyCard      *multipart.FileHeader   `form:"familyCard" swaggerignore:"true"`
+	SKTM            *multipart.FileHeader   `form:"sktm" swaggerignore:"true"`
+	Achievements    []*multipart.FileHeader `form:"achievements[]" swaggerignore:"true"`
+	AchivementNotes []string                `form:"achivementNotes[]"`
 }
 
 type UpdateFosterChildrenRequest struct {
-	Name           string                  `form:"name"`
-	Gender         Gender                  `form:"gender"`
-	IsGraduated    *bool                   `form:"isGraduated"`
-	Category       Category                `form:"category"`
-	BirthDate      string                  `form:"birthDate"`
-	BirthPlace     string                  `form:"birthPlace"`
-	Address        string                  `form:"address"`
-	ProfilePicture *multipart.FileHeader   `form:"profilePicture" swaggerignore:"true"`
-	FamilyCard     *multipart.FileHeader   `form:"familyCard" swaggerignore:"true"`
-	SKTM           *multipart.FileHeader   `form:"sktm" swaggerignore:"true"`
-	Achievements   []*multipart.FileHeader `form:"achievements" swaggerignore:"true"`
+	Name                  string                  `form:"name"`
+	Gender                Gender                  `form:"gender"`
+	IsGraduated           *bool                   `form:"isGraduated"`
+	Category              Category                `form:"category"`
+	BirthDate             string                  `form:"birthDate"`
+	BirthPlace            string                  `form:"birthPlace"`
+	Address               string                  `form:"address"`
+	ProfilePicture        *multipart.FileHeader   `form:"profilePicture" swaggerignore:"true"`
+	FamilyCard            *multipart.FileHeader   `form:"familyCard" swaggerignore:"true"`
+	SKTM                  *multipart.FileHeader   `form:"sktm" swaggerignore:"true"`
+	Achievements          []*multipart.FileHeader `form:"achievements[]" swaggerignore:"true"`
+	AchivementNotes       []string                `form:"achivementNotes[]"`
+	AchivementIDs         []string                `form:"achivementIDs[]"`
+	UpdateAchivementNotes []string                `form:"updateAchivementNotes[]"`
 }
 
 type FosterChildrenQueryParams struct {
@@ -56,8 +60,7 @@ type CreateFosterChildrenCandidateRequest struct {
 	SubmitterIDCard  *multipart.FileHeader `form:"submitterIdCard" swaggerignore:"true"`
 }
 
-type UpdateFosterChildrenCandidateStatusRequest struct {
-	Status          Status `json:"status"`
+type RejectFosterChildrenCandidateRequest struct {
 	RejectionReason string `json:"rejectionReason"`
 }
 

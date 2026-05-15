@@ -23,7 +23,8 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 }
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
-	r.GET("/me/subscriptions/:id/invoices", h.GetSocialProgramInvoiceList, h.middleware.RequireRoles(enum.RoleOrangTuaAsuh))
+	r.GET("/social-programs/subscriptions/invoices/me", h.middleware.RequireRoles(enum.RoleOrangTuaAsuh), h.GetSocialProgramInvoiceList)
+	r.GET("/social-programs/subscriptions/invoices/me/:id", h.middleware.RequireRoles(enum.RoleOrangTuaAsuh), h.GetSocialProgramInvoiceByID)
 }
 
 // GetSocialProgramInvoiceList
@@ -40,7 +41,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // @Param next_cursor query string false "Pagination cursor (next page)"
 // @Param prev_cursor query string false "Pagination cursor (prev page)"
 // @Success 200 {object} pkg.Response
-// @Router /api/me/subscriptions/{id}/invoices [get]
+// @Router /api/subscriptions/invoices/me [get]
 func (h *handler) GetSocialProgramInvoiceList(c *gin.Context) {
 	ctx := c.Request.Context()
 

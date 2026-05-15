@@ -32,29 +32,28 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	user := r.Group("/foster-children/candidates")
 	user.Use(h.middleware.RequireRoles(enum.RoleOrangTuaAsuh))
 	{
-		user.POST("/submit", h.CreateFosterChildrenCandidate)
+		user.POST("", h.CreateFosterChildrenCandidate)
+		user.GET("/me", h.GetMyFosterChildrenCandidateList)
+		user.DELETE("/me/:id", h.CancelFosterChildrenCandidate)
 	}
 
-	me := r.Group("/me/foster-children")
-	me.Use(h.middleware.AuthRequired())
-	{
-		me.GET("/candidates", h.GetMyFosterChildrenCandidateList)
-		me.DELETE("/candidates/:id", h.CancelFosterChildrenCandidate)
-	}
-
-	admin := r.Group("/admin")
+	admin := r.Group("/admin/foster-children/candidates")
 	admin.Use(h.middleware.RequireRoles(enum.RoleSocialManager, enum.RoleChairman))
 	{
-		fosterChildren := admin.Group("/foster-children")
-		fosterChildren.POST("", h.CreateFosterChildren)
-		fosterChildren.PUT("/:id", h.UpdateFosterChildren)
-		fosterChildren.DELETE("/:id", h.DeleteFosterChildren)
-
-		fosterCandidate := fosterChildren.Group("/candidates")
-		fosterCandidate.GET("", h.GetFosterChildrenCandidateList)
-		fosterCandidate.GET("/:id", h.GetFosterChildrenCandidateByID)
-		fosterCandidate.PATCH("/:id", h.UpdateFosterChildrenCandidateStatus)
+		admin.GET("", h.GetFosterChildrenCandidateList)
+		admin.GET("/:id", h.GetFosterChildrenCandidateByID)
+		admin.PATCH("/:id/accept", h.AcceptFosterChildrenCandidate)
+		admin.PATCH("/:id/reject", h.RejectFosterChildrenCandidate)
 	}
+
+	socialManager := r.Group("/admin/foster-children")
+	socialManager.Use(h.middleware.RequireRoles(enum.RoleSocialManager))
+	{
+		socialManager.POST("", h.CreateFosterChildren)
+		socialManager.PUT("/:id", h.UpdateFosterChildren)
+		socialManager.DELETE("/:id", h.DeleteFosterChildren)
+	}
+
 }
 
 // GetFosterChildrenList
@@ -76,7 +75,7 @@ func (h *handler) GetFosterChildrenList(c *gin.Context) {
 
 	var queryParams FosterChildrenQueryParams
 	if err := c.ShouldBindQuery(&queryParams); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Parameter query tidak valid", nil, nil))
 		return
 	}
 
@@ -122,7 +121,7 @@ func (h *handler) CreateFosterChildren(c *gin.Context) {
 
 	var req CreateFosterChildrenRequest
 	if err := c.ShouldBind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Body request tidak valid", nil, nil))
 		return
 	}
 
@@ -152,7 +151,7 @@ func (h *handler) UpdateFosterChildren(c *gin.Context) {
 
 	var req UpdateFosterChildrenRequest
 	if err := c.ShouldBind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Body request tidak valid", nil, nil))
 		return
 	}
 
@@ -200,7 +199,7 @@ func (h *handler) CreateFosterChildrenCandidate(c *gin.Context) {
 
 	var req CreateFosterChildrenCandidateRequest
 	if err := c.ShouldBind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request payload", nil, nil))
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Payload request tidak valid", nil, nil))
 		return
 	}
 
@@ -246,7 +245,7 @@ func (h *handler) GetMyFosterChildrenCandidateList(c *gin.Context) {
 
 	var queryParams FosterChildrenCandidateQueryParams
 	if err := c.ShouldBindQuery(&queryParams); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Parameter query tidak valid", nil, nil))
 		return
 	}
 	queryParams.AccountID = claims.AccountID
@@ -274,7 +273,7 @@ func (h *handler) GetFosterChildrenCandidateList(c *gin.Context) {
 
 	var queryParams FosterChildrenCandidateQueryParams
 	if err := c.ShouldBindQuery(&queryParams); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Parameter query tidak valid", nil, nil))
 		return
 	}
 
@@ -300,28 +299,58 @@ func (h *handler) GetFosterChildrenCandidateByID(c *gin.Context) {
 	c.JSON(res.Status, res)
 }
 
-// UpdateFosterChildrenCandidateStatus
+// AcceptFosterChildrenCandidate
 //
-// @Summary Update Foster Children Candidate Status
-// @Description Accept or reject a foster children candidate
+// @Summary Accept Foster Children Candidate
+// @Description Accept a foster children candidate. This is a two-step process: first by Social Manager (Koordinator Sosial) and then by Chairman (Ketua Yayasan).
+// @Tags Foster Children Candidates
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Candidate ID"
+// @Success 200 {object} pkg.Response
+// @Router /api/admin/foster-children/candidates/{id}/accept [patch]
+func (h *handler) AcceptFosterChildrenCandidate(c *gin.Context) {
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	userData, exists := c.Get("user_data")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "Tidak terautorisasi", nil, nil))
+		return
+	}
+
+	claims, ok := userData.(jwt_pkg.UserJWTClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "Gagal memproses data user", nil, nil))
+		return
+	}
+
+	res := h.service.AcceptFosterChildrenCandidate(ctx, id, claims.ActiveRole)
+	c.JSON(res.Status, res)
+}
+
+// RejectFosterChildrenCandidate
+//
+// @Summary Reject Foster Children Candidate
+// @Description Reject a pending foster children candidate with a reason
 // @Tags Foster Children Candidates
 // @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param id path string true "Candidate ID"
-// @Param body body UpdateFosterChildrenCandidateStatusRequest true "Status Update Request"
+// @Param body body RejectFosterChildrenCandidateRequest true "Rejection Reason Request"
 // @Success 200 {object} pkg.Response
-// @Router /api/admin/foster-children/candidates/{id} [patch]
-func (h *handler) UpdateFosterChildrenCandidateStatus(c *gin.Context) {
+// @Router /api/admin/foster-children/candidates/{id}/reject [patch]
+func (h *handler) RejectFosterChildrenCandidate(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
 
-	var req UpdateFosterChildrenCandidateStatusRequest
+	var req RejectFosterChildrenCandidateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request payload", nil, nil))
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Payload request tidak valid", nil, nil))
 		return
 	}
 
-	res := h.service.UpdateFosterChildrenCandidateStatus(ctx, id, req)
+	res := h.service.RejectFosterChildrenCandidate(ctx, id, req)
 	c.JSON(res.Status, res)
 }

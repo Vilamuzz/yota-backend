@@ -68,6 +68,9 @@ func (r *repository) FindOneSocialProgramTransaction(ctx context.Context, option
 	if id, ok := options["id"]; ok && id.(string) != "" {
 		query = query.Where("id = ?", id.(string))
 	}
+	if socialProgramInvoiceID, ok := options["social_program_invoice_id"]; ok && socialProgramInvoiceID.(string) != "" {
+		query = query.Where("social_program_invoice_id = ?", socialProgramInvoiceID.(string))
+	}
 	if orderID, ok := options["order_id"]; ok && orderID.(string) != "" {
 		query = query.Where("order_id = ?", orderID.(string))
 	}

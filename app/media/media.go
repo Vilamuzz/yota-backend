@@ -7,13 +7,13 @@ import (
 )
 
 type Media struct {
-	ID        uuid.UUID `json:"id" gorm:"primaryKey"`
+	ID        uuid.UUID  `json:"id" gorm:"primaryKey"`
 	NewsID    *uuid.UUID `json:"newsId" gorm:"index"`
 	GalleryID *uuid.UUID `json:"galleryId" gorm:"index"`
-	Type      MediaType `json:"type" gorm:"not null"`
+	Type      MediaType  `json:"type" gorm:"not null"`
 
 	URL       string    `json:"url" gorm:"not null"`
-	AltText   string    `json:"altText"`
+	Alt       string    `json:"alt"`
 	Order     int       `json:"order" gorm:"not null;default:0"`
 	CreatedAt time.Time `json:"createdAt" gorm:"not null"`
 	UpdatedAt time.Time `json:"updatedAt" gorm:"not null"`

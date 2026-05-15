@@ -7,21 +7,17 @@ import (
 )
 
 type DonationProgramTransactionResponse struct {
-	ID                string     `json:"id"`
-	DonationProgramID string     `json:"donationProgramId"`
-	OrderID           string     `json:"orderId"`
-	DonorName         string     `json:"donorName"`
-	DonorEmail        string     `json:"donorEmail"`
-	IsOnline          bool       `json:"isOnline"`
-	GrossAmount       float64    `json:"grossAmount"`
-	FraudStatus       string     `json:"fraudStatus"`
-	TransactionStatus string     `json:"transactionStatus"`
-	Provider          string     `json:"provider"`
-	TransactionID     string     `json:"transactionId"`
-	SnapToken         string     `json:"snapToken"`
-	SnapRedirectURL   string     `json:"snapRedirectUrl"`
-	PaidAt            *time.Time `json:"paidAt"`
-	CreatedAt         time.Time  `json:"createdAt"`
+	ID                   string     `json:"id"`
+	DonationProgramTitle string     `json:"donationProgramTitle"`
+	OrderID              string     `json:"orderId"`
+	DonorName            string     `json:"donorName"`
+	DonorEmail           string     `json:"donorEmail"`
+	IsOnline             bool       `json:"isOnline"`
+	GrossAmount          float64    `json:"grossAmount"`
+	TransactionStatus    string     `json:"transactionStatus"`
+	SnapToken            string     `json:"snapToken"`
+	PaidAt               *time.Time `json:"paidAt"`
+	CreatedAt            time.Time  `json:"createdAt"`
 }
 
 type DonationProgramTransactionListResponse struct {
@@ -31,21 +27,17 @@ type DonationProgramTransactionListResponse struct {
 
 func (tx *DonationProgramTransaction) toDonationProgramTransactionResponse() DonationProgramTransactionResponse {
 	return DonationProgramTransactionResponse{
-		ID:                tx.ID.String(),
-		DonationProgramID: tx.DonationProgramID.String(),
-		OrderID:           tx.OrderID,
-		DonorName:         tx.DonorName,
-		DonorEmail:        tx.DonorEmail,
-		IsOnline:          tx.IsOnline,
-		GrossAmount:       tx.GrossAmount,
-		FraudStatus:       tx.FraudStatus,
-		TransactionStatus: tx.TransactionStatus,
-		Provider:          tx.Provider,
-		TransactionID:     tx.TransactionID,
-		SnapToken:         tx.SnapToken,
-		SnapRedirectURL:   tx.SnapRedirectURL,
-		PaidAt:            tx.PaidAt,
-		CreatedAt:         tx.CreatedAt,
+		ID:                   tx.ID.String(),
+		DonationProgramTitle: tx.DonationProgram.Title,
+		OrderID:              tx.OrderID,
+		DonorName:            tx.DonorName,
+		DonorEmail:           tx.DonorEmail,
+		IsOnline:             tx.IsOnline,
+		GrossAmount:          tx.GrossAmount,
+		TransactionStatus:    tx.TransactionStatus,
+		SnapToken:            tx.SnapToken,
+		PaidAt:               tx.PaidAt,
+		CreatedAt:            tx.CreatedAt,
 	}
 }
 

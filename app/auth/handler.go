@@ -43,7 +43,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	api.POST("/resend-verification", h.middleware.CustomRateLimitHandler(3, 1*time.Minute), h.ResendVerification)
 	api.GET("/oauth/:provider", h.middleware.CustomRateLimitHandler(10, 1*time.Minute), h.OAuthLogin)
 	api.GET("/oauth/:provider/callback", h.OAuthCallback)
-	api.POST("/switch-role", authRateLimit, h.middleware.AuthRequired(), h.SwitchRole)
+	api.POST("/switch-role", h.middleware.AuthRequired(), h.SwitchRole)
 }
 
 // Register

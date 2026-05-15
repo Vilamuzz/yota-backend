@@ -24,10 +24,10 @@ func NewHandler(r *gin.RouterGroup, service Service, m middleware.AppMiddleware)
 }
 
 func (h *handler) RegisterRoutes(router *gin.RouterGroup) {
-	router.GET("/donation-programs/:slug/prayers", h.GetPrayerList, h.middleware.AuthOptional())
-	router.GET("/prayers/:id", h.GetPrayerByID, h.middleware.AuthOptional())
+	router.GET("/donation-programs/:slug/prayers", h.middleware.AuthOptional(), h.GetPrayerList)
+	router.GET("/donation-programs/prayers/:id", h.middleware.AuthOptional(), h.GetPrayerByID)
 
-	publicProtected := router.Group("/prayers")
+	publicProtected := router.Group("/donation-programs/prayers")
 	publicProtected.Use(h.middleware.AuthRequired())
 	{
 		publicProtected.POST("/:id/amen", h.CreateAmenPrayer)
@@ -131,7 +131,8 @@ func (h *handler) GetPrayerList(c *gin.Context) {
 			accountID = claims.AccountID
 		}
 	}
-	res := h.service.GetPrayerList(ctx, accountID, donationSlug, params)
+
+	res := h.service.GetPrayerList(ctx, accountID, donationSlug, false, params)
 	c.JSON(res.Status, res)
 }
 
@@ -153,7 +154,7 @@ func (h *handler) GetReportedPrayerList(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
 		return
 	}
-	res := h.service.GetReportedPrayerList(ctx, params)
+	res := h.service.GetPrayerList(ctx, "", "", true, params)
 	c.JSON(res.Status, res)
 }
 

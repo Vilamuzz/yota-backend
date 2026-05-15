@@ -7,18 +7,21 @@ import (
 )
 
 type CreateAmbulanceRequest struct {
+	DriverID    string                `form:"driverId"`
 	Image       *multipart.FileHeader `form:"image" swaggerignore:"true"`
 	PlateNumber string                `form:"plateNumber"`
-	Phone       string                `form:"phone"`
+	Status      AmbulanceStatus       `form:"status"`
 }
 
 type UpdateAmbulanceRequest struct {
+	DriverID    string                `form:"driverId"`
 	Image       *multipart.FileHeader `form:"image" swaggerignore:"true"`
 	PlateNumber string                `form:"plateNumber"`
-	Phone       string                `form:"phone"`
+	Status      AmbulanceStatus       `form:"status"`
 }
 
 type AmbulanceQueryParams struct {
-	Search string `json:"search"`
+	Search string          `json:"search"`
+	Status AmbulanceStatus `json:"status"`
 	pkg.CursorPagination
 }

@@ -56,12 +56,13 @@ func (r *repository) FindAllDonationPrograms(ctx context.Context, options map[st
 		cursorData, err := pkg.DecodeCursor(prevCursor.(string))
 		if err == nil {
 			query = query.Where("created_at > ? OR (created_at = ? AND id > ?)",
-				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID).
-				Order("created_at ASC, id ASC")
+				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
 		}
 	}
 
-	if _, usingPrevCursor := options["prev_cursor"]; !usingPrevCursor {
+	if _, isPrev := options["prev_cursor"]; isPrev {
+		query = query.Order("created_at ASC, id ASC")
+	} else {
 		query = query.Order("created_at DESC, id DESC")
 	}
 
