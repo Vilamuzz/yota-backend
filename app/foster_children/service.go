@@ -141,6 +141,12 @@ func (s *service) CreateFosterChildren(ctx context.Context, req CreateFosterChil
 	if req.BirthPlace == "" {
 		errValidation["birthPlace"] = "Tempat lahir wajib diisi"
 	}
+	if req.SchoolName == "" {
+		errValidation["schoolName"] = "Nama sekolah wajib diisi"
+	}
+	if req.EducationLevel <= 0 || req.EducationLevel > 12 {
+		errValidation["educationLevel"] = "Tingkat pendidikan tidak valid (maksimal kelas 12)"
+	}
 	if req.Address == "" {
 		errValidation["address"] = "Alamat wajib diisi"
 	}
@@ -193,6 +199,8 @@ func (s *service) CreateFosterChildren(ctx context.Context, req CreateFosterChil
 		Category:       req.Category,
 		BirthDate:      birthDate,
 		BirthPlace:     req.BirthPlace,
+		SchoolName:     req.SchoolName,
+		EducationLevel: req.EducationLevel,
 		Address:        req.Address,
 		FamilyCard:     familyCardURL,
 		SKTM:           sktmURL,
@@ -285,6 +293,16 @@ func (s *service) UpdateFosterChildren(ctx context.Context, id string, req Updat
 	}
 	if req.BirthPlace != "" {
 		updateData["birth_place"] = req.BirthPlace
+	}
+	if req.SchoolName != "" {
+		updateData["school_name"] = req.SchoolName
+	}
+	if req.EducationLevel != 0 {
+		if req.EducationLevel < 1 || req.EducationLevel > 12 {
+			errValidation["educationLevel"] = "Tingkat pendidikan tidak valid (maksimal kelas 12)"
+		} else {
+			updateData["education_level"] = req.EducationLevel
+		}
 	}
 	if req.Address != "" {
 		updateData["address"] = req.Address
@@ -583,6 +601,12 @@ func (s *service) CreateFosterChildrenCandidate(ctx context.Context, accountID s
 	if req.BirthPlace == "" {
 		errValidation["birthPlace"] = "Tempat lahir wajib diisi"
 	}
+	if req.SchoolName == "" {
+		errValidation["schoolName"] = "Nama sekolah wajib diisi"
+	}
+	if req.EducationLevel <= 0 || req.EducationLevel > 12 {
+		errValidation["educationLevel"] = "Tingkat pendidikan tidak valid (maksimal kelas 12)"
+	}
 	if req.Address == "" {
 		errValidation["address"] = "Alamat wajib diisi"
 	}
@@ -646,6 +670,8 @@ func (s *service) CreateFosterChildrenCandidate(ctx context.Context, accountID s
 		Category:         req.Category,
 		BirthDate:        birthDate,
 		BirthPlace:       req.BirthPlace,
+		SchoolName:       req.SchoolName,
+		EducationLevel:   req.EducationLevel,
 		Address:          req.Address,
 		FamilyCard:       familyCardURL,
 		SKTM:             sktmURL,
@@ -720,6 +746,8 @@ func (s *service) AcceptFosterChildrenCandidate(ctx context.Context, id string, 
 			Category:       existing.Category,
 			BirthDate:      existing.BirthDate,
 			BirthPlace:     existing.BirthPlace,
+			SchoolName:     existing.SchoolName,
+			EducationLevel: existing.EducationLevel,
 			Address:        existing.Address,
 			FamilyCard:     existing.FamilyCard,
 			SKTM:           existing.SKTM,

@@ -3,6 +3,7 @@ package social_program_invoice
 import (
 	"time"
 
+	"github.com/Vilamuzz/yota-backend/app/social_program_subscription"
 	"github.com/google/uuid"
 )
 
@@ -16,6 +17,8 @@ type SocialProgramInvoice struct {
 	CreatedAt      time.Time     `json:"createdAt"`
 	UpdatedAt      time.Time     `json:"updatedAt"`
 	SnapToken      string        `json:"snapToken" gorm:"->"`
+
+	Subscription *social_program_subscription.SocialProgramSubscription `gorm:"foreignKey:SubscriptionID;references:ID"`
 }
 
 type InvoiceStatus string

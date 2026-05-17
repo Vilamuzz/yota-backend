@@ -9,7 +9,6 @@ import (
 type SocialProgramInvoiceResponse struct {
 	ID                 string        `json:"id"`
 	SocialProgramTitle string        `json:"socialProgramTitle"`
-	BillingPeriod      time.Time     `json:"billingPeriod"`
 	MinimumAmount      float64       `json:"minimumAmount"`
 	Status             InvoiceStatus `json:"status"`
 	DueDate            time.Time     `json:"dueDate"`
@@ -23,14 +22,19 @@ type SocialProgramInvoiceListResponse struct {
 }
 
 func (r *SocialProgramInvoice) toSocialProgramInvoiceResponse() SocialProgramInvoiceResponse {
+	title := "Program Sosial"
+	if r.Subscription != nil && r.Subscription.SocialProgram != nil {
+		title = r.Subscription.SocialProgram.Title
+	}
+
 	return SocialProgramInvoiceResponse{
-		ID:            r.ID.String(),
-		BillingPeriod: r.BillingPeriod,
-		MinimumAmount: r.MinimumAmount,
-		Status:        r.Status,
-		DueDate:       r.DueDate,
-		SnapToken:     r.SnapToken,
-		CreatedAt:     r.CreatedAt,
+		ID:                 r.ID.String(),
+		SocialProgramTitle: title,
+		MinimumAmount:      r.MinimumAmount,
+		Status:             r.Status,
+		DueDate:            r.DueDate,
+		SnapToken:          r.SnapToken,
+		CreatedAt:          r.CreatedAt,
 	}
 }
 

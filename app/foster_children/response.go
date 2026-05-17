@@ -20,6 +20,8 @@ type FosterChildrenResponse struct {
 	Category       Category              `json:"category"`
 	BirthDate      string                `json:"birthDate"`
 	BirthPlace     string                `json:"birthPlace"`
+	SchoolName     string                `json:"schoolName"`
+	EducationLevel int                   `json:"educationLevel"`
 	Address        string                `json:"address"`
 	FamilyCard     string                `json:"familyCard"`
 	SKTM           string                `json:"sktm"`
@@ -53,6 +55,8 @@ func (f *FosterChildren) ToFosterChildrenResponse() FosterChildrenResponse {
 		Category:       f.Category,
 		BirthDate:      f.BirthDate.Format("2006-01-02"),
 		BirthPlace:     f.BirthPlace,
+		SchoolName:     f.SchoolName,
+		EducationLevel: f.EducationLevel,
 		Address:        f.Address,
 		FamilyCard:     f.FamilyCard,
 		SKTM:           f.SKTM,
@@ -83,6 +87,8 @@ type FosterChildrenCandidateResponse struct {
 	Category         string    `json:"category"`
 	BirthDate        string    `json:"birthDate"`
 	BirthPlace       string    `json:"birthPlace"`
+	SchoolName       string    `json:"schoolName"`
+	EducationLevel   int       `json:"educationLevel"`
 	Address          string    `json:"address"`
 	FamilyCard       string    `json:"familyCard"`
 	SKTM             string    `json:"sktm"`
@@ -118,6 +124,8 @@ func (c *FosterChildrenCandidate) ToFosterChildrenCandidateResponse() FosterChil
 		BirthDate:        c.BirthDate.Format("2006-01-02"),
 		BirthPlace:       c.BirthPlace,
 		Address:          c.Address,
+		SchoolName:       c.SchoolName,
+		EducationLevel:   c.EducationLevel,
 		FamilyCard:       c.FamilyCard,
 		SKTM:             c.SKTM,
 		SubmitterName:    c.SubmitterName,

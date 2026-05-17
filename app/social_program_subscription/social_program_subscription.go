@@ -9,12 +9,13 @@ import (
 )
 
 type SocialProgramSubscription struct {
-	ID              uuid.UUID `json:"id" gorm:"primaryKey"`
-	SocialProgramID uuid.UUID `json:"socialProgramId" gorm:"not null"`
-	AccountID       uuid.UUID `json:"accountId" gorm:"not null"`
-	Status          Status    `json:"status" gorm:"type:varchar(20);not null;default:'active'"`
-	CreatedAt       time.Time `json:"createdAt"`
-	UpdatedAt       time.Time `json:"updatedAt"`
+	ID               uuid.UUID `json:"id" gorm:"primaryKey"`
+	SocialProgramID  uuid.UUID `json:"socialProgramId" gorm:"not null"`
+	AccountID        uuid.UUID `json:"accountId" gorm:"not null"`
+	Status           Status    `json:"status" gorm:"type:varchar(20);not null;default:'active'"`
+	TotalPaidPeriods int       `json:"totalPaidPeriods" gorm:"not null;default:0"`
+	CreatedAt        time.Time `json:"createdAt"`
+	UpdatedAt        time.Time `json:"updatedAt"`
 
 	SocialProgram *social_program.SocialProgram `gorm:"foreignKey:SocialProgramID;references:ID"`
 	Account       *account.Account              `gorm:"foreignKey:AccountID;references:ID"`
@@ -24,6 +25,5 @@ type Status string
 
 const (
 	StatusActive   Status = "active"
-	StatusPaused   Status = "paused"
 	StatusInactive Status = "inactive"
 )

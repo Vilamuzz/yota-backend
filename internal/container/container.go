@@ -222,7 +222,7 @@ func (c *Container) initServices() {
 	c.SocialProgramExpenseService = social_program_expense.NewService(c.SocialProgramExpenseRepo, c.FinanceRecordRepo, c.SocialProgramRepo, c.S3Client, c.LogService, c.Timeout)
 	c.SocialProgramInvoiceService = social_program_invoice.NewService(c.SocialProgramInvoiceRepo, c.SocialProgramSubscriptionRepo, c.Timeout)
 	c.SocialProgramSubscriptionService = social_program_subscription.NewService(c.SocialProgramSubscriptionRepo, c.SocialProgramRepo, c.Timeout)
-	c.SocialProgramTransactionService = social_program_transaction.NewService(c.SocialProgramTransactionRepo, c.AccountRepo, c.SocialProgramInvoiceRepo, c.FinanceRecordRepo, c.MidtransClient, c.LogService, c.Timeout)
+	c.SocialProgramTransactionService = social_program_transaction.NewService(c.SocialProgramTransactionRepo, c.AccountRepo, c.SocialProgramSubscriptionRepo, c.SocialProgramInvoiceRepo, c.FinanceRecordRepo, c.MidtransClient, c.LogService, c.Timeout)
 }
 
 func (c *Container) initMiddleware() {
@@ -247,6 +247,13 @@ func (c *Container) initScheduler() {
 	// Generate monthly invoices for social programs every midnight
 	c.Scheduler.Add("0 0 * * *", "generate-monthly-invoices", func() {
 		if err := c.SocialProgramInvoiceService.GenerateMonthlyInvoices(context.Background()); err != nil {
+			_ = err
+		}
+	})
+
+	// Mark overdue invoices every midnight at 00:05
+	c.Scheduler.Add("5 0 * * *", "mark-overdue-invoices", func() {
+		if err := c.SocialProgramInvoiceService.MarkOverdueInvoices(context.Background()); err != nil {
 			_ = err
 		}
 	})
