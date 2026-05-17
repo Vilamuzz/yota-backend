@@ -16,6 +16,7 @@ type Service interface {
 	GetSocialProgramInvoiceList(ctx context.Context, params SocialProgramInvoiceQueryParams) pkg.Response
 	GetSocialProgramInvoiceByID(ctx context.Context, id string) pkg.Response
 	GenerateMonthlyInvoices(ctx context.Context) error
+	MarkOverdueInvoices(ctx context.Context) error
 }
 
 type service struct {
@@ -66,7 +67,7 @@ func (s *service) GetSocialProgramInvoiceList(ctx context.Context, params Social
 		logrus.WithFields(logrus.Fields{
 			"component": "social_program_invoice.service",
 		}).WithError(err).Error("failed to fetch invoices")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch invoices", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data tagihan", nil, nil)
 	}
 
 	hasMore := len(invoices) > params.Limit
@@ -95,7 +96,7 @@ func (s *service) GetSocialProgramInvoiceList(ctx context.Context, params Social
 		}
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Invoices found successfully", nil, toSocialProgramInvoiceListResponse(invoices, pkg.CursorPagination{
+	return pkg.NewResponse(http.StatusOK, "Tagihan berhasil ditemukan", nil, toSocialProgramInvoiceListResponse(invoices, pkg.CursorPagination{
 		NextCursor: nextCursor,
 		PrevCursor: prevCursor,
 		Limit:      params.Limit,
@@ -107,22 +108,22 @@ func (s *service) GetSocialProgramInvoiceByID(ctx context.Context, id string) pk
 	defer cancel()
 
 	if _, err := uuid.Parse(id); err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid invoice ID format"}, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID tagihan tidak valid"}, nil)
 	}
 
 	invoice, err := s.repo.FindOneSocialProgramInvoice(ctx, map[string]interface{}{"id": id})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return pkg.NewResponse(http.StatusNotFound, "Invoice not found", nil, nil)
+			return pkg.NewResponse(http.StatusNotFound, "Tagihan tidak ditemukan", nil, nil)
 		}
 		logrus.WithFields(logrus.Fields{
 			"component":  "social_program_invoice.service",
 			"invoice_id": id,
 		}).WithError(err).Error("failed to fetch invoice")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch invoice", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data tagihan", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Invoice found successfully", nil, invoice.toSocialProgramInvoiceResponse())
+	return pkg.NewResponse(http.StatusOK, "Tagihan berhasil ditemukan", nil, invoice.toSocialProgramInvoiceResponse())
 }
 
 func (s *service) GenerateMonthlyInvoices(ctx context.Context) error {
@@ -130,18 +131,18 @@ func (s *service) GenerateMonthlyInvoices(ctx context.Context) error {
 	defer cancel()
 
 	now := time.Now()
-	
+
 	// Determine the target billing day
 	// If today is the last day of the month, we also need to generate invoices for
 	// programs whose billing day is > today (e.g. billing day 31, but today is 30th)
 	// For simplicity right now, we will match exact days, but adjust for end of month.
-	
+
 	currentDay := now.Day()
 	daysInMonth := time.Date(now.Year(), now.Month()+1, 0, 0, 0, 0, 0, now.Location()).Day()
-	
+
 	var targetDays []int
 	targetDays = append(targetDays, currentDay)
-	
+
 	// If today is the last day of the month, include all days greater than today
 	if currentDay == daysInMonth {
 		for i := currentDay + 1; i <= 31; i++ {
@@ -159,13 +160,7 @@ func (s *service) GenerateMonthlyInvoices(ctx context.Context) error {
 		for _, sub := range subscriptions {
 			// Calculate billing period (start of the current month)
 			billingPeriod := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-			dueDate := time.Date(now.Year(), now.Month(), day, 23, 59, 59, 0, now.Location())
-			
-			// If we're generating on the last day but the billing day is technically later,
-			// just use the end of this month as due date
-			if dueDate.Month() != now.Month() {
-				dueDate = time.Date(now.Year(), now.Month(), daysInMonth, 23, 59, 59, 0, now.Location())
-			}
+			dueDate := time.Date(now.Year(), now.Month(), daysInMonth, 23, 59, 59, 0, now.Location())
 
 			// Check if invoice already exists for this subscription and period
 			options := map[string]interface{}{
@@ -201,6 +196,17 @@ func (s *service) GenerateMonthlyInvoices(ctx context.Context) error {
 			}
 		}
 	}
-	
+
+	return nil
+}
+
+func (s *service) MarkOverdueInvoices(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	if err := s.repo.UpdateOverdueInvoices(ctx, time.Now()); err != nil {
+		logrus.WithError(err).Error("failed to mark overdue invoices")
+		return err
+	}
 	return nil
 }

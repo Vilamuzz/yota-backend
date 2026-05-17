@@ -2,6 +2,7 @@ package social_program_invoice
 
 import (
 	"context"
+	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
@@ -13,6 +14,7 @@ type Repository interface {
 	CreateSocialProgramInvoice(ctx context.Context, socialProgramInvoice *SocialProgramInvoice) error
 	UpdateSocialProgramInvoice(ctx context.Context, socialProgramInvoiceID string, updates map[string]interface{}) error
 	DeleteSocialProgramInvoice(ctx context.Context, socialProgramInvoiceID string) error
+	UpdateOverdueInvoices(ctx context.Context, now time.Time) error
 }
 
 type repository struct {
@@ -25,7 +27,9 @@ func NewRepository(conn *gorm.DB) Repository {
 
 func (r *repository) FindAllSocialProgramInvoices(ctx context.Context, options map[string]interface{}) ([]SocialProgramInvoice, error) {
 	var invoices []SocialProgramInvoice
-	query := r.Conn.WithContext(ctx).Select("social_program_invoices.*, (SELECT snap_token FROM social_program_transactions WHERE social_program_invoice_id = social_program_invoices.id AND transaction_status = 'pending' LIMIT 1) as snap_token")
+	query := r.Conn.WithContext(ctx).
+		Preload("Subscription.SocialProgram").
+		Select("social_program_invoices.*, (SELECT snap_token FROM social_program_transactions WHERE social_program_invoice_id = social_program_invoices.id AND transaction_status = 'pending' LIMIT 1) as snap_token")
 
 	if subscriptionID, ok := options["subscription_id"]; ok && subscriptionID.(string) != "" {
 		query = query.Where("subscription_id = ?", subscriptionID.(string))
@@ -65,7 +69,9 @@ func (r *repository) FindAllSocialProgramInvoices(ctx context.Context, options m
 
 func (r *repository) FindOneSocialProgramInvoice(ctx context.Context, options map[string]interface{}) (*SocialProgramInvoice, error) {
 	var invoice SocialProgramInvoice
-	query := r.Conn.WithContext(ctx).Select("social_program_invoices.*, (SELECT snap_token FROM social_program_transactions WHERE social_program_invoice_id = social_program_invoices.id AND transaction_status = 'pending' LIMIT 1) as snap_token")
+	query := r.Conn.WithContext(ctx).
+		Preload("Subscription.SocialProgram").
+		Select("social_program_invoices.*, (SELECT snap_token FROM social_program_transactions WHERE social_program_invoice_id = social_program_invoices.id AND transaction_status = 'pending' LIMIT 1) as snap_token")
 
 	if id, ok := options["id"]; ok && id.(string) != "" {
 		query = query.Where("id = ?", id.(string))
@@ -95,4 +101,11 @@ func (r *repository) UpdateSocialProgramInvoice(ctx context.Context, socialProgr
 
 func (r *repository) DeleteSocialProgramInvoice(ctx context.Context, socialProgramInvoiceID string) error {
 	return r.Conn.WithContext(ctx).Where("id = ?", socialProgramInvoiceID).Delete(&SocialProgramInvoice{}).Error
+}
+
+func (r *repository) UpdateOverdueInvoices(ctx context.Context, now time.Time) error {
+	return r.Conn.WithContext(ctx).Model(&SocialProgramInvoice{}).
+		Where("status = ?", InvoiceStatusPending).
+		Where("due_date < ?", now).
+		Update("status", InvoiceStatusOverdue).Error
 }

@@ -6,6 +6,10 @@ type CreateTransactionRequest struct {
 	GrossAmount float64 `json:"grossAmount"`
 }
 
+type CreateOfflineTransactionRequest struct {
+	GrossAmount float64 `json:"grossAmount" binding:"required,gt=0"`
+}
+
 type SocialProgramTransactionQueryParams struct {
 	Status string `form:"status"`
 	pkg.PaginationParams

@@ -26,20 +26,22 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	// User Routes
 	r.POST("/social-programs/:id/subscribe", h.middleware.RequireRoles(enum.RoleOrangTuaAsuh), h.CreateSocialProgramSubscription)
-	
+	r.PATCH("/social-programs/:id/unsubscribe", h.middleware.RequireRoles(enum.RoleOrangTuaAsuh), h.DeactivateMySocialProgramSubscription)
 
-	me := r.Group("/me/subscriptions")
+	me := r.Group("/social-programs/subscriptions/me")
 	me.Use(h.middleware.RequireRoles(enum.RoleOrangTuaAsuh))
 	{
 		// me.GET("", h.GetMySocialProgramSubscriptionList)
-		me.PATCH("/:id/deactivate", h.DeactivateMySocialProgramSubscription)
 	}
 
 	// Admin routes
 	admin := r.Group("/admin/social-programs")
 	admin.Use(h.middleware.RequireRoles(enum.RoleSocialManager))
 	{
+		admin.GET("/subscribers", h.GetSubscribers)
+		admin.GET("/subscribers/:id", h.GetSubscriberByID)
 		admin.GET("/:id/subscriptions", h.GetSocialProgramSubscriptionList)
+		admin.GET("/accounts/:account_id/subscriptions", h.GetSocialProgramSubscriptionsByAccountID)
 		admin.GET("/subscriptions/:id", h.GetSocialProgramSubscriptionByID)
 		admin.POST("/:id/subscriptions", h.CreateOfflineSocialProgramSubscription)
 		admin.PATCH("/subscriptions/:id/deactivate", h.DeactivateSocialProgramSubscription)
@@ -178,5 +180,79 @@ func (h *handler) DeactivateMySocialProgramSubscription(c *gin.Context) {
 	id := c.Param("id")
 
 	res := h.service.DeactivateSocialProgramSubscription(ctx, id, claims.AccountID)
+	c.JSON(res.Status, res)
+}
+
+// GetSubscribers
+//
+// @Summary List All Subscribers
+// @Description Retrieve a unique list of accounts that have at least one social program subscription (admin only)
+// @Tags Social Programs
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param limit query int false "Pagination limit"
+// @Param next_cursor query string false "Pagination cursor (next page)"
+// @Param prev_cursor query string false "Pagination cursor (prev page)"
+// @Success 200 {object} pkg.Response
+// @Router /api/admin/social-programs/subscribers [get]
+func (h *handler) GetSubscribers(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var params pkg.PaginationParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
+		return
+	}
+
+	res := h.service.GetSubscribers(ctx, params)
+	c.JSON(res.Status, res)
+}
+
+// GetSubscriberByID
+//
+// @Summary Get Subscriber By ID
+// @Description Retrieve a subscriber's profile and stats by their Account ID (admin only)
+// @Tags Social Programs
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Account ID (Subscriber ID)"
+// @Success 200 {object} pkg.Response
+// @Router /api/admin/social-programs/subscribers/{id} [get]
+func (h *handler) GetSubscriberByID(c *gin.Context) {
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	res := h.service.GetSubscriberByID(ctx, id)
+	c.JSON(res.Status, res)
+}
+
+// GetSocialProgramSubscriptionsByAccountID
+//
+// @Summary List Social Program Subscriptions by Account ID
+// @Description Retrieve a list of social program subscriptions for a specific account (admin only)
+// @Tags Social Programs
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param account_id path string true "Account ID"
+// @Param status query string false "Filter by status"
+// @Param limit query int false "Pagination limit"
+// @Param next_cursor query string false "Pagination cursor (next page)"
+// @Param prev_cursor query string false "Pagination cursor (prev page)"
+// @Success 200 {object} pkg.Response
+// @Router /api/admin/social-programs/accounts/{account_id}/subscriptions [get]
+func (h *handler) GetSocialProgramSubscriptionsByAccountID(c *gin.Context) {
+	ctx := c.Request.Context()
+	accountID := c.Param("account_id")
+
+	var queryParams SocialProgramSubscriptionQueryParams
+	if err := c.ShouldBindQuery(&queryParams); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
+		return
+	}
+
+	res := h.service.GetSocialProgramSubscriptionsByAccountID(ctx, accountID, queryParams)
 	c.JSON(res.Status, res)
 }
