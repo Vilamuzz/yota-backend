@@ -13,6 +13,8 @@ type CreateFosterChildrenRequest struct {
 	Category        Category                `form:"category"`
 	BirthDate       string                  `form:"birthDate"`
 	BirthPlace      string                  `form:"birthPlace"`
+	SchoolName      string                  `form:"schoolName"`
+	EducationLevel  int                     `form:"educationLevel"`
 	Address         string                  `form:"address"`
 	ProfilePicture  *multipart.FileHeader   `form:"profilePicture" swaggerignore:"true"`
 	FamilyCard      *multipart.FileHeader   `form:"familyCard" swaggerignore:"true"`
@@ -28,6 +30,8 @@ type UpdateFosterChildrenRequest struct {
 	Category              Category                `form:"category"`
 	BirthDate             string                  `form:"birthDate"`
 	BirthPlace            string                  `form:"birthPlace"`
+	SchoolName            string                  `form:"schoolName"`
+	EducationLevel        int                     `form:"educationLevel"`
 	Address               string                  `form:"address"`
 	ProfilePicture        *multipart.FileHeader   `form:"profilePicture" swaggerignore:"true"`
 	FamilyCard            *multipart.FileHeader   `form:"familyCard" swaggerignore:"true"`
@@ -50,6 +54,8 @@ type CreateFosterChildrenCandidateRequest struct {
 	Category         Category              `form:"category"`
 	BirthDate        string                `form:"birthDate"`
 	BirthPlace       string                `form:"birthPlace"`
+	SchoolName       string                `form:"schoolName"`
+	EducationLevel   int                   `form:"educationLevel"`
 	Address          string                `form:"address"`
 	ProfilePicture   *multipart.FileHeader `form:"profilePicture" swaggerignore:"true"`
 	FamilyCard       *multipart.FileHeader `form:"familyCard" swaggerignore:"true"`

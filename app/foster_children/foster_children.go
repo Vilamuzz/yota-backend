@@ -17,6 +17,8 @@ type FosterChildren struct {
 	Category       Category   `json:"category"`
 	BirthDate      time.Time  `json:"birthDate"`
 	BirthPlace     string     `json:"birthPlace"`
+	SchoolName     string     `json:"schoolName"`
+	EducationLevel int        `json:"educationLevel"`
 	Address        string     `json:"address"`
 	FamilyCard     string     `json:"familyCard" gorm:"not null"`
 	SKTM           string     `json:"sktm" gorm:"not null"`
@@ -59,6 +61,8 @@ type FosterChildrenCandidate struct {
 	Category         Category  `json:"category"`
 	BirthDate        time.Time `json:"birthDate"`
 	BirthPlace       string    `json:"birthPlace"`
+	SchoolName       string    `json:"schoolName"`
+	EducationLevel   int       `json:"educationLevel"`
 	Address          string    `json:"address"`
 	FamilyCard       string    `json:"familyCard" gorm:"not null"`
 	SKTM             string    `json:"sktm" gorm:"not null"`
