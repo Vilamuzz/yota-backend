@@ -3,6 +3,7 @@ package news_comment
 import (
 	"time"
 
+	"github.com/Vilamuzz/yota-backend/app/account"
 	"github.com/Vilamuzz/yota-backend/app/news"
 	"github.com/google/uuid"
 )
@@ -13,12 +14,16 @@ type NewsComment struct {
 	ParentCommentID *uuid.UUID `json:"parentCommentId"`
 	AccountID       uuid.UUID  `json:"accountId" gorm:"index;not null"`
 	Content         string     `json:"content" gorm:"not null"`
+	ReportCount     int64      `json:"reportCount" gorm:"default:0"`
+	Reported        *bool      `json:"reported" gorm:"index"`
 	CreatedAt       time.Time  `json:"createdAt"`
 	DeletedAt       *time.Time `json:"deletedAt" gorm:"index"`
 
 	News               news.News           `gorm:"foreignKey:NewsID"`
 	ParentComment      *NewsComment        `gorm:"foreignKey:ParentCommentID"`
+	Replies            []NewsComment       `gorm:"foreignKey:ParentCommentID"`
 	NewsCommentReports []NewsCommentReport `gorm:"foreignKey:NewsCommentID"`
+	Account            account.Account     `gorm:"foreignKey:AccountID"`
 }
 
 type NewsCommentReport struct {

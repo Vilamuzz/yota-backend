@@ -2,7 +2,6 @@ package prayer
 
 import (
 	"context"
-	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
@@ -67,7 +66,7 @@ func (r *repository) FindAllPrayers(ctx context.Context, options map[string]inte
 	}
 	if reported, ok := options["reported"]; ok {
 		if reported.(bool) {
-			query = query.Where("report_count > ?", 0)
+			query = query.Where("reported = ?", true)
 		}
 	}
 
@@ -108,11 +107,31 @@ func (r *repository) CreatePrayer(ctx context.Context, prayer *Prayer) error {
 }
 
 func (r *repository) UpdatePrayer(ctx context.Context, prayer *Prayer) error {
-	return r.Conn.WithContext(ctx).Save(prayer).Error
+	return r.Conn.WithContext(ctx).Omit("DonationProgramTransaction").Save(prayer).Error
 }
 
 func (r *repository) DeletePrayer(ctx context.Context, prayerID string) error {
-	return r.Conn.WithContext(ctx).Where("id = ?", prayerID).Update("deleted_at", time.Now()).Error
+	tx := r.Conn.WithContext(ctx).Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	if err := tx.Where("prayer_id = ?", prayerID).Delete(&PrayerAmen{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Where("prayer_id = ?", prayerID).Delete(&PrayerReport{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Where("id = ?", prayerID).Delete(&Prayer{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit().Error
 }
 
 func (r *repository) CreateAmen(ctx context.Context, amen *PrayerAmen) error {
@@ -149,6 +168,9 @@ func (r *repository) CreateReport(ctx context.Context, report *PrayerReport) err
 	if err := r.Conn.WithContext(ctx).Create(report).Error; err != nil {
 		return err
 	}
-	// Increment report count
-	return r.Conn.WithContext(ctx).Model(&Prayer{}).Where("id = ?", report.PrayerID).Update("report_count", gorm.Expr("report_count + ?", 1)).Error
+	// Increment report count and set reported to true
+	return r.Conn.WithContext(ctx).Model(&Prayer{}).Where("id = ?", report.PrayerID).Updates(map[string]interface{}{
+		"report_count": gorm.Expr("report_count + ?", 1),
+		"reported":     true,
+	}).Error
 }

@@ -34,10 +34,11 @@ func (h *handler) RegisterRoutes(router *gin.RouterGroup) {
 		publicProtected.POST("/:id/report", h.CreateReportPrayer)
 	}
 
-	admin := router.Group("/admin/prayers")
+	admin := router.Group("/admin/donation-programs/prayers")
 	admin.Use(h.middleware.RequireRoles(enum.RolePublicationManager))
 	{
-		admin.GET("/", h.GetReportedPrayerList)
+		admin.GET("", h.GetReportedPrayerList)
+		admin.PATCH("/:id/allow", h.AllowPrayer)
 		admin.DELETE("/:id", h.DeletePrayer)
 	}
 }
@@ -82,6 +83,13 @@ func (h *handler) CreateReportPrayer(c *gin.Context) {
 	}
 	prayerID := c.Param("id")
 	res := h.service.CreateReportPrayer(ctx, prayerID, accountID, payload)
+	c.JSON(res.Status, res)
+}
+
+func (h *handler) AllowPrayer(c *gin.Context) {
+	ctx := c.Request.Context()
+	prayerID := c.Param("id")
+	res := h.service.AllowPrayer(ctx, prayerID)
 	c.JSON(res.Status, res)
 }
 

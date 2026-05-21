@@ -18,6 +18,7 @@ type Prayer struct {
 	IsPublished                  bool      `json:"isPublished" gorm:"default:false;index"`
 	CreatedAt                    time.Time `json:"createdAt" gorm:"not null"`
 	DeletedAt                    time.Time `json:"deletedAt" gorm:"index;not null"`
+	Reported                     *bool     `json:"reported" gorm:"index"`
 	AmenCount                    int64     `json:"amenCount" gorm:"default:0"`
 	ReportCount                  int64     `json:"reportCount" gorm:"default:0"`
 	IsAmen                       bool      `json:"isAmen" gorm:"->"`

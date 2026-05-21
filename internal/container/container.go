@@ -24,6 +24,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/media"
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/app/news"
+	"github.com/Vilamuzz/yota-backend/app/news_comment"
 	"github.com/Vilamuzz/yota-backend/app/payment"
 	"github.com/Vilamuzz/yota-backend/app/prayer"
 	"github.com/Vilamuzz/yota-backend/app/social_program"
@@ -54,6 +55,7 @@ type Container struct {
 	AuthRepo                      auth.Repository
 	DonationRepo                  donation_program.Repository
 	NewsRepo                      news.Repository
+	NewsCommentRepo               news_comment.Repository
 	GalleryRepo                   gallery.Repository
 	MediaRepo                     media.Repository
 	PrayerRepo                    prayer.Repository
@@ -78,6 +80,7 @@ type Container struct {
 	AccountService                   account.Service
 	DonationService                  donation_program.Service
 	NewsService                      news.Service
+	NewsCommentService               news_comment.Service
 	GalleryService                   gallery.Service
 	MediaService                     media.Service
 	TransactionDonationService       donation_program_transaction.Service
@@ -180,6 +183,7 @@ func (c *Container) initRepositories() {
 	c.AuthRepo = auth.NewRepository(c.DB)
 	c.DonationRepo = donation_program.NewRepository(c.DB)
 	c.NewsRepo = news.NewRepository(c.DB)
+	c.NewsCommentRepo = news_comment.NewRepository(c.DB)
 	c.GalleryRepo = gallery.NewRepository(c.DB)
 	c.MediaRepo = media.NewRepository(c.DB)
 	c.PrayerRepo = prayer.NewRepository(c.DB)
@@ -207,6 +211,7 @@ func (c *Container) initServices() {
 	c.DonationService = donation_program.NewService(c.DonationRepo, c.LogService, c.S3Client, c.Timeout)
 	c.MediaService = media.NewService(c.MediaRepo, c.S3Client)
 	c.NewsService = news.NewService(c.NewsRepo, c.LogService, c.S3Client, c.MediaService, c.Timeout)
+	c.NewsCommentService = news_comment.NewService(c.NewsCommentRepo, c.NewsRepo, c.Timeout)
 	c.GalleryService = gallery.NewService(c.GalleryRepo, c.LogService, c.S3Client, c.MediaService, c.Timeout)
 	c.TransactionDonationService = donation_program_transaction.NewService(c.TransactionDonationRepo, c.AccountRepo, c.DonationRepo, c.PrayerRepo, c.FinanceRecordRepo, c.MidtransClient, c.LogService, c.Timeout)
 	c.PrayerService = prayer.NewService(c.PrayerRepo, c.DonationRepo, c.Timeout)
@@ -265,6 +270,7 @@ func (c *Container) RegisterHandlers(router *gin.RouterGroup) {
 	account.NewHandler(router, c.AccountService, *c.Middleware)
 	donation_program.NewHandler(router, c.DonationService, *c.Middleware)
 	news.NewHandler(router, c.NewsService, *c.Middleware)
+	news_comment.NewHandler(router, c.NewsCommentService, *c.Middleware)
 	gallery.NewHandler(router, c.GalleryService, c.MediaService, *c.Middleware)
 	donation_program_transaction.NewHandler(router, c.TransactionDonationService, *c.Middleware)
 	prayer.NewHandler(router, c.PrayerService, *c.Middleware)
