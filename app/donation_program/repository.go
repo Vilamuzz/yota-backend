@@ -34,7 +34,12 @@ func (r *repository) FindAllDonationPrograms(ctx context.Context, options map[st
 	collectedFundSubquery := r.Conn.Table("donation_program_transactions").
 		Select("COALESCE(SUM(gross_amount), 0)").
 		Where("donation_program_id = donation_programs.id AND transaction_status = 'settlement'")
-	query = query.Select("donation_programs.*, (?) as collected_fund", collectedFundSubquery)
+
+	totalExpenseSubquery := r.Conn.Table("donation_program_expenses").
+		Select("COALESCE(SUM(amount), 0)").
+		Where("donation_program_id = donation_programs.id AND deleted_at IS NULL")
+
+	query = query.Select("donation_programs.*, (?) as collected_fund, (?) as total_expense", collectedFundSubquery, totalExpenseSubquery)
 
 	if search, ok := options["search"]; ok && search != "" {
 		query = query.Where("title ILIKE ?", "%"+search.(string)+"%")
@@ -83,8 +88,13 @@ func (r *repository) FindOneDonationProgram(ctx context.Context, options map[str
 	collectedFundSubquery := r.Conn.Table("donation_program_transactions").
 		Select("COALESCE(SUM(gross_amount), 0)").
 		Where("donation_program_id = donation_programs.id AND transaction_status = 'settlement'")
+
+	totalExpenseSubquery := r.Conn.Table("donation_program_expenses").
+		Select("COALESCE(SUM(amount), 0)").
+		Where("donation_program_id = donation_programs.id AND deleted_at IS NULL")
+
 	query := r.Conn.WithContext(ctx).
-		Select("donation_programs.*, (?) as collected_fund", collectedFundSubquery).
+		Select("donation_programs.*, (?) as collected_fund, (?) as total_expense", collectedFundSubquery, totalExpenseSubquery).
 		Where("deleted_at IS NULL")
 	if id, ok := options["id"]; ok && id != "" {
 		query = query.Where("id = ?", id)

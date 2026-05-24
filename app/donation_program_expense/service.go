@@ -15,6 +15,7 @@ import (
 )
 
 type Service interface {
+	GetPublicDonationProgramExpenseList(ctx context.Context, slug string, params DonationProgramExpenseQueryParams) pkg.Response
 	GetDonationProgramExpenseList(ctx context.Context, donationProgramID string, params DonationProgramExpenseQueryParams) pkg.Response
 	GetDonationProgramExpenseByID(ctx context.Context, donationProgramExpenseID string) pkg.Response
 	CreateDonationProgramExpense(ctx context.Context, accountID, donationProgramID string, payload *DonationProgramExpenseRequest) pkg.Response
@@ -41,6 +42,18 @@ func NewService(repo Repository, financeRepo finance_record.Repository, donation
 	}
 }
 
+func (s *service) GetPublicDonationProgramExpenseList(ctx context.Context, slug string, params DonationProgramExpenseQueryParams) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	program, err := s.donationRepo.FindOneDonationProgram(ctx, map[string]interface{}{"slug": slug})
+	if err != nil {
+		return pkg.NewResponse(http.StatusNotFound, "Program donasi tidak ditemukan", nil, nil)
+	}
+
+	return s.GetDonationProgramExpenseList(ctx, program.ID.String(), params)
+}
+
 func (s *service) GetDonationProgramExpenseList(ctx context.Context, donationProgramID string, params DonationProgramExpenseQueryParams) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
@@ -51,7 +64,6 @@ func (s *service) GetDonationProgramExpenseList(ctx context.Context, donationPro
 	if params.Limit > 100 {
 		params.Limit = 100
 	}
-
 
 	options := map[string]interface{}{
 		"limit": params.Limit,
@@ -156,6 +168,16 @@ func (s *service) CreateDonationProgramExpense(ctx context.Context, accountID, d
 	}
 	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
+	}
+
+	donationProgram, err := s.donationRepo.FindOneDonationProgram(ctx, map[string]interface{}{"id": donationProgramID})
+	if err != nil {
+		return pkg.NewResponse(http.StatusNotFound, "Program donasi tidak ditemukan", nil, nil)
+	}
+
+	availableFund := donationProgram.CollectedFund - donationProgram.TotalExpense
+	if payload.Amount > availableFund {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"amount": "Jumlah pengeluaran melebihi dana yang tersedia"}, nil)
 	}
 
 	var proofFileURL string

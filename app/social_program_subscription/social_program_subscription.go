@@ -17,6 +17,7 @@ type SocialProgramSubscription struct {
 	CreatedAt        time.Time `json:"createdAt"`
 	UpdatedAt        time.Time `json:"updatedAt"`
 
+	TotalDonation float64                       `json:"totalDonation" gorm:"->"`
 	SocialProgram *social_program.SocialProgram `gorm:"foreignKey:SocialProgramID;references:ID"`
 	Account       *account.Account              `gorm:"foreignKey:AccountID;references:ID"`
 }

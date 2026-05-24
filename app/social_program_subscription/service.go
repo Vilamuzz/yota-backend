@@ -14,7 +14,7 @@ import (
 
 type Service interface {
 	GetSocialProgramSubscriptionList(ctx context.Context, socialProgramID string, params SocialProgramSubscriptionQueryParams) pkg.Response
-	GetSocialProgramSubscriptionByID(ctx context.Context, id string) pkg.Response
+	GetSocialProgramSubscriptionByID(ctx context.Context, id string, isSubscriber bool) pkg.Response
 	CreateSocialProgramSubscription(ctx context.Context, accountID string, socialProgramID string) pkg.Response
 	UpdateSocialProgramSubscription(ctx context.Context, id string, req UpdateSocialProgramSubscriptionRequest) pkg.Response
 	DeactivateSocialProgramSubscription(ctx context.Context, id string, accountID string) pkg.Response
@@ -140,7 +140,7 @@ func (s *service) GetSocialProgramSubscriptionsByAccountID(ctx context.Context, 
 			"component": "social_program_subscription.service",
 		}).WithError(err).Error("failed to fetch donations map")
 		if donationsMap == nil {
-			donationsMap = make(map[string]int)
+			donationsMap = make(map[string]float64)
 		}
 	}
 
@@ -222,8 +222,7 @@ func (s *service) getSubscriptionList(ctx context.Context, options map[string]in
 	return pkg.NewResponse(http.StatusOK, "Data langganan berhasil ditemukan", nil, toSocialProgramSubscriptionListResponse(subscriptions, pagination))
 }
 
-
-func (s *service) GetSocialProgramSubscriptionByID(ctx context.Context, id string) pkg.Response {
+func (s *service) GetSocialProgramSubscriptionByID(ctx context.Context, id string, isSubscriber bool) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -243,6 +242,9 @@ func (s *service) GetSocialProgramSubscriptionByID(ctx context.Context, id strin
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data langganan", nil, nil)
 	}
 
+	if isSubscriber {
+		return pkg.NewResponse(http.StatusOK, "Data langganan berhasil ditemukan", nil, subscription.toSubscriberSubscriptionResponse(subscription.TotalDonation))
+	}
 	return pkg.NewResponse(http.StatusOK, "Data langganan berhasil ditemukan", nil, subscription.toSocialProgramSubscriptionResponse())
 }
 

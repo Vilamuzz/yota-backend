@@ -16,7 +16,7 @@ type Repository interface {
 	FindSubscriptionsDueForBilling(ctx context.Context, billingDay int) ([]SocialProgramSubscription, error)
 	FindAllSubscribers(ctx context.Context, options map[string]interface{}) ([]SocialProgramSubscription, error)
 	GetSubscriberStats(ctx context.Context, accountIDs []string) (map[string]SubscriberStats, error)
-	GetTotalDonationBySubscriptionIDs(ctx context.Context, subscriptionIDs []string) (map[string]int, error)
+	GetTotalDonationBySubscriptionIDs(ctx context.Context, subscriptionIDs []string) (map[string]float64, error)
 }
 
 type repository struct {
@@ -29,7 +29,13 @@ func NewRepository(conn *gorm.DB) Repository {
 
 func (r *repository) FindAllSocialProgramSubscriptions(ctx context.Context, options map[string]interface{}) ([]SocialProgramSubscription, error) {
 	var subscriptions []SocialProgramSubscription
-	query := r.Conn.WithContext(ctx).Preload("Account.UserProfile").Preload("SocialProgram")
+	query := r.Conn.WithContext(ctx).Table("social_program_subscriptions").
+		Select(`social_program_subscriptions.*,
+			(SELECT COALESCE(SUM(spt.gross_amount), 0)
+			 FROM social_program_transactions spt
+			 JOIN social_program_invoices spi ON spi.id = spt.social_program_invoice_id
+			 WHERE spi.subscription_id = social_program_subscriptions.id AND spt.transaction_status = 'settlement') as total_donation`).
+		Preload("Account.UserProfile").Preload("SocialProgram")
 
 	if socialProgramID, ok := options["social_program_id"]; ok && socialProgramID.(string) != "" {
 		query = query.Where("social_program_id = ?", socialProgramID.(string))
@@ -75,19 +81,25 @@ func (r *repository) FindAllSocialProgramSubscriptions(ctx context.Context, opti
 
 func (r *repository) FindOneSocialProgramSubscription(ctx context.Context, options map[string]interface{}) (*SocialProgramSubscription, error) {
 	var subscription SocialProgramSubscription
-	query := r.Conn.WithContext(ctx).Preload("Account.UserProfile").Preload("SocialProgram")
+	query := r.Conn.WithContext(ctx).Table("social_program_subscriptions").
+		Select(`social_program_subscriptions.*,
+			(SELECT COALESCE(SUM(spt.gross_amount), 0)
+			 FROM social_program_transactions spt
+			 JOIN social_program_invoices spi ON spi.id = spt.social_program_invoice_id
+			 WHERE spi.subscription_id = social_program_subscriptions.id AND spt.transaction_status = 'settlement') as total_donation`).
+		Preload("Account.UserProfile").Preload("SocialProgram")
 
 	if id, ok := options["id"]; ok && id.(string) != "" {
-		query = query.Where("id = ?", id.(string))
+		query = query.Where("social_program_subscriptions.id = ?", id.(string))
 	}
 	if socialProgramID, ok := options["social_program_id"]; ok && socialProgramID.(string) != "" {
-		query = query.Where("social_program_id = ?", socialProgramID.(string))
+		query = query.Where("social_program_subscriptions.social_program_id = ?", socialProgramID.(string))
 	}
 	if accountID, ok := options["account_id"]; ok && accountID.(string) != "" {
-		query = query.Where("account_id = ?", accountID.(string))
+		query = query.Where("social_program_subscriptions.account_id = ?", accountID.(string))
 	}
 	if status, ok := options["status"]; ok && status.(string) != "" {
-		query = query.Where("status = ?", status.(string))
+		query = query.Where("social_program_subscriptions.status = ?", status.(string))
 	}
 
 	if err := query.First(&subscription).Error; err != nil {
@@ -169,7 +181,7 @@ func (r *repository) FindAllSubscribers(ctx context.Context, options map[string]
 type SubscriberStats struct {
 	AccountID         string
 	TotalSubscription int
-	TotalDonation     int
+	TotalDonation     float64
 }
 
 func (r *repository) GetSubscriberStats(ctx context.Context, accountIDs []string) (map[string]SubscriberStats, error) {
@@ -217,19 +229,19 @@ func (r *repository) GetSubscriberStats(ctx context.Context, accountIDs []string
 	}
 	for _, ds := range donSums {
 		s := stats[ds.AccountID]
-		s.TotalDonation = int(ds.Total)
+		s.TotalDonation = float64(ds.Total)
 		stats[ds.AccountID] = s
 	}
 
 	return stats, nil
 }
 
-func (r *repository) GetTotalDonationBySubscriptionIDs(ctx context.Context, subscriptionIDs []string) (map[string]int, error) {
+func (r *repository) GetTotalDonationBySubscriptionIDs(ctx context.Context, subscriptionIDs []string) (map[string]float64, error) {
 	if len(subscriptionIDs) == 0 {
-		return make(map[string]int), nil
+		return make(map[string]float64), nil
 	}
 
-	donations := make(map[string]int)
+	donations := make(map[string]float64)
 
 	type donSum struct {
 		SubscriptionID string
@@ -249,7 +261,7 @@ func (r *repository) GetTotalDonationBySubscriptionIDs(ctx context.Context, subs
 	}
 
 	for _, ds := range donSums {
-		donations[ds.SubscriptionID] = int(ds.Total)
+		donations[ds.SubscriptionID] = float64(ds.Total)
 	}
 
 	return donations, nil

@@ -7,6 +7,7 @@ import (
 
 	app_log "github.com/Vilamuzz/yota-backend/app/log"
 	"github.com/Vilamuzz/yota-backend/pkg"
+	"github.com/Vilamuzz/yota-backend/pkg/enum"
 	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -14,7 +15,7 @@ import (
 )
 
 type Service interface {
-	GetSocialProgramList(ctx context.Context, params SocialProgramQueryParams, isAdmin bool, accountID string) pkg.Response
+	GetSocialProgramList(ctx context.Context, params SocialProgramQueryParams, isAdmin bool, accountID string, role string) pkg.Response
 	GetSocialProgramBySlug(ctx context.Context, socialProgramSlug string, accountID string) pkg.Response
 	GetSocialProgramByID(ctx context.Context, socialProgramID string, accountID string) pkg.Response
 	CreateSocialProgram(ctx context.Context, payload SocialProgramRequest) pkg.Response
@@ -41,7 +42,7 @@ func NewService(repo Repository, logService app_log.Service, s3Client s3_pkg.Cli
 	}
 }
 
-func (s *service) GetSocialProgramList(ctx context.Context, params SocialProgramQueryParams, isAdmin bool, accountID string) pkg.Response {
+func (s *service) GetSocialProgramList(ctx context.Context, params SocialProgramQueryParams, isAdmin bool, accountID string, role string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -64,7 +65,7 @@ func (s *service) GetSocialProgramList(ctx context.Context, params SocialProgram
 		options["prev_cursor"] = params.PrevCursor
 	}
 
-	if !isAdmin {
+	if !isAdmin || role == string(enum.RoleFinance) {
 		options["status"] = string(StatusActive)
 	} else if params.Status != "" {
 		options["status"] = params.Status
@@ -122,7 +123,10 @@ func (s *service) GetSocialProgramList(ctx context.Context, params SocialProgram
 		Limit:      params.Limit,
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, toSocialProgramListResponse(socialPrograms, pagination))
+	if isAdmin {
+		return pkg.NewResponse(http.StatusOK, "Berhasil", nil, ToAdminSocialProgramListResponse(socialPrograms, pagination))
+	}
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, ToSocialProgramListResponse(socialPrograms, pagination))
 }
 
 func (s *service) GetSocialProgramBySlug(ctx context.Context, socialProgramSlug string, accountID string) pkg.Response {
@@ -147,7 +151,7 @@ func (s *service) GetSocialProgramBySlug(ctx context.Context, socialProgramSlug 
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch social program", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Social program found successfully", nil, socialProgram.toSocialProgramResponse())
+	return pkg.NewResponse(http.StatusOK, "Social program found successfully", nil, socialProgram.ToSocialProgramDetailResponse())
 }
 
 func (s *service) GetSocialProgramByID(ctx context.Context, socialProgramID string, accountID string) pkg.Response {
@@ -176,7 +180,7 @@ func (s *service) GetSocialProgramByID(ctx context.Context, socialProgramID stri
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch social program", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Social program found successfully", nil, socialProgram.toSocialProgramResponse())
+	return pkg.NewResponse(http.StatusOK, "Social program found successfully", nil, socialProgram.ToAdminSocialProgramDetailResponse())
 }
 
 func (s *service) CreateSocialProgram(ctx context.Context, payload SocialProgramRequest) pkg.Response {
@@ -257,8 +261,8 @@ func (s *service) CreateSocialProgram(ctx context.Context, payload SocialProgram
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat program sosial", nil, nil)
 	}
 
-	s.logService.CreateLog(ctx, nil, "CREATE", "social_program", socialProgram.ID.String(), nil, socialProgram.toSocialProgramResponse())
-	return pkg.NewResponse(http.StatusCreated, "Program sosial berhasil dibuat", nil, socialProgram.toSocialProgramResponse())
+	s.logService.CreateLog(ctx, nil, "CREATE", "social_program", socialProgram.ID.String(), nil, socialProgram.ToSocialProgramDetailResponse())
+	return pkg.NewResponse(http.StatusCreated, "Program sosial berhasil dibuat", nil, socialProgram.ToSocialProgramDetailResponse())
 }
 
 func (s *service) UpdateSocialProgram(ctx context.Context, id string, payload SocialProgramRequest) pkg.Response {
@@ -384,7 +388,7 @@ func (s *service) UpdateSocialProgram(ctx context.Context, id string, payload So
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui program sosial", nil, nil)
 	}
 
-	s.logService.CreateLog(ctx, nil, "UPDATE", "social_program", id, socialProgram.toSocialProgramResponse(), updateData)
+	s.logService.CreateLog(ctx, nil, "UPDATE", "social_program", id, socialProgram.ToSocialProgramDetailResponse(), updateData)
 	return pkg.NewResponse(http.StatusOK, "Program sosial berhasil diperbarui", nil, nil)
 }
 
@@ -420,7 +424,7 @@ func (s *service) DeleteSocialProgram(ctx context.Context, socialProgramID strin
 		_ = s.s3Client.DeleteFile(ctx, existingImage)
 	}
 
-	s.logService.CreateLog(ctx, nil, "DELETE", "social_program", socialProgramID, socialProgram.toSocialProgramResponse(), nil)
+	s.logService.CreateLog(ctx, nil, "DELETE", "social_program", socialProgramID, socialProgram.ToSocialProgramDetailResponse(), nil)
 	return pkg.NewResponse(http.StatusOK, "Program sosial berhasil dihapus", nil, nil)
 }
 
@@ -457,7 +461,7 @@ func (s *service) ActivateSocialProgram(ctx context.Context, socialProgramID str
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengaktifkan program sosial", nil, nil)
 	}
 
-	s.logService.CreateLog(ctx, nil, "UPDATE", "social_program", socialProgramID, socialProgram.toSocialProgramResponse(), updates)
+	s.logService.CreateLog(ctx, nil, "UPDATE", "social_program", socialProgramID, socialProgram.ToSocialProgramDetailResponse(), updates)
 	return pkg.NewResponse(http.StatusOK, "Program sosial berhasil diaktifkan", nil, nil)
 }
 
@@ -499,7 +503,7 @@ func (s *service) RejectSocialProgram(ctx context.Context, socialProgramID strin
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menolak program sosial", nil, nil)
 	}
 
-	s.logService.CreateLog(ctx, nil, "UPDATE", "social_program", socialProgramID, socialProgram.toSocialProgramResponse(), updates)
+	s.logService.CreateLog(ctx, nil, "UPDATE", "social_program", socialProgramID, socialProgram.ToSocialProgramDetailResponse(), updates)
 	return pkg.NewResponse(http.StatusOK, "Program sosial berhasil ditolak", nil, nil)
 }
 
@@ -536,6 +540,6 @@ func (s *service) CompleteSocialProgram(ctx context.Context, socialProgramID str
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menyelesaikan program sosial", nil, nil)
 	}
 
-	s.logService.CreateLog(ctx, nil, "UPDATE", "social_program", socialProgramID, socialProgram.toSocialProgramResponse(), updates)
+	s.logService.CreateLog(ctx, nil, "UPDATE", "social_program", socialProgramID, socialProgram.ToSocialProgramDetailResponse(), updates)
 	return pkg.NewResponse(http.StatusOK, "Program sosial berhasil diselesaikan", nil, nil)
 }

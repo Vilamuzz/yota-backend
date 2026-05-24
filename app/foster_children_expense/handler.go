@@ -24,13 +24,17 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 }
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
+	public := r.Group("/foster-children")
+	{
+		public.GET("/:id/expenses", h.GetFosterChildrenExpenseList)
+		public.GET("/expenses/:id", h.GetFosterChildrenExpenseByID)
+	}
+
 	admin := r.Group("/admin/foster-children")
 	admin.Use(h.middleware.RequireRoles(enum.RoleFinance))
 	{
-		admin.GET(":id/expenses", h.GetFosterChildrenExpenseList)
-		admin.GET("/expenses/:id", h.GetFosterChildrenExpenseByID)
-		admin.POST(":id/expenses", h.CreateFosterChildrenExpense)
-		admin.DELETE("expenses/:id", h.DeleteFosterChildrenExpense)
+		admin.POST("/:id/expenses", h.CreateFosterChildrenExpense)
+		admin.DELETE("/expenses/:id", h.DeleteFosterChildrenExpense)
 	}
 }
 
@@ -46,7 +50,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // @Param cursor query string false "Cursor for pagination"
 // @Param limit query int false "Items per page"
 // @Success 200 {object} pkg.Response
-// @Router /api/admin/foster-children/{id}/expenses [get]
+// @Router /api/foster-children/{id}/expenses [get]
 func (h *handler) GetFosterChildrenExpenseList(c *gin.Context) {
 	ctx := c.Request.Context()
 	fosterChildrenID := c.Param("id")
@@ -70,7 +74,7 @@ func (h *handler) GetFosterChildrenExpenseList(c *gin.Context) {
 // @Produce json
 // @Param id path string true "Expense ID"
 // @Success 200 {object} pkg.Response
-// @Router /api/admin/foster-children/expenses/{id} [get]
+// @Router /api/foster-children/expenses/{id} [get]
 func (h *handler) GetFosterChildrenExpenseByID(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")

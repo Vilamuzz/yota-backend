@@ -11,38 +11,32 @@ type FosterChildrenExpenseResponse struct {
 	Title       string    `json:"title"`
 	Amount      float64   `json:"amount"`
 	ExpenseDate time.Time `json:"expenseDate"`
+	ProofFile   string    `json:"proofFile"`
 	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
 type FosterChildrenExpenseDetailResponse struct {
-	ID               string    `json:"id"`
-	FosterChildrenID string    `json:"fosterChildrenId"`
-	Title            string    `json:"title"`
-	Amount           float64   `json:"amount"`
-	ExpenseDate      time.Time `json:"expenseDate"`
-	Note             string    `json:"note"`
-	ProofFile        string    `json:"proofFile"`
-	CreatedAt        time.Time `json:"createdAt"`
-	UpdatedAt        time.Time `json:"updatedAt"`
+	ID          string    `json:"id"`
+	Title       string    `json:"title"`
+	Amount      float64   `json:"amount"`
+	ExpenseDate time.Time `json:"expenseDate"`
+	Note        string    `json:"note"`
+	CreatedAt   time.Time `json:"createdAt"`
 }
 
 type FosterChildrenExpenseListResponse struct {
-	FosterChildrenExpenses []FosterChildrenExpenseResponse `json:"fosterChildrenExpenses"`
-	Pagination             pkg.CursorPagination            `json:"pagination"`
+	Expenses   []FosterChildrenExpenseResponse `json:"expenses"`
+	Pagination pkg.CursorPagination            `json:"pagination"`
 }
 
 func (e *FosterChildrenExpense) toFosterChildrenExpenseDetailResponse() FosterChildrenExpenseDetailResponse {
 	return FosterChildrenExpenseDetailResponse{
-		ID:               e.ID.String(),
-		FosterChildrenID: e.FosterChildrenID.String(),
-		Title:            e.Title,
-		Amount:           e.Amount,
-		ExpenseDate:      e.ExpenseDate,
-		Note:             e.Note,
-		ProofFile:        e.ProofFile,
-		CreatedAt:        e.CreatedAt,
-		UpdatedAt:        e.UpdatedAt,
+		ID:          e.ID.String(),
+		Title:       e.Title,
+		Amount:      e.Amount,
+		ExpenseDate: e.ExpenseDate,
+		Note:        e.Note,
+		CreatedAt:   e.CreatedAt,
 	}
 }
 
@@ -52,8 +46,8 @@ func (e *FosterChildrenExpense) toFosterChildrenExpenseResponse() FosterChildren
 		Title:       e.Title,
 		Amount:      e.Amount,
 		ExpenseDate: e.ExpenseDate,
+		ProofFile:   e.ProofFile,
 		CreatedAt:   e.CreatedAt,
-		UpdatedAt:   e.UpdatedAt,
 	}
 }
 
@@ -66,7 +60,7 @@ func toFosterChildrenExpenseListResponse(expenses []FosterChildrenExpense, pagin
 		responses = []FosterChildrenExpenseResponse{}
 	}
 	return FosterChildrenExpenseListResponse{
-		FosterChildrenExpenses: responses,
-		Pagination:             pagination,
+		Expenses:   responses,
+		Pagination: pagination,
 	}
 }

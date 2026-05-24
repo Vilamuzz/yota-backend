@@ -11,23 +11,25 @@ type SocialProgramSubscriptionResponse struct {
 	Username         string    `json:"username"`
 	Status           string    `json:"status"`
 	TotalPaidPeriods int       `json:"totalPaidPeriods"`
+	TotalDonation    float64   `json:"totalDonation"`
 	CreatedAt        time.Time `json:"createdAt"`
 }
 
 type SubscribersResponse struct {
-	ID                string `json:"id"`
-	Username          string `json:"username"`
-	Email             string `json:"email"`
-	TotalSubscription int    `json:"totalSubscription"`
-	TotalDonation     int    `json:"totalDonation"`
+	ID                string  `json:"id"`
+	Username          string  `json:"username"`
+	Email             string  `json:"email"`
+	TotalSubscription int     `json:"totalSubscription"`
+	TotalDonation     float64 `json:"totalDonation"`
 }
 
 type SubscriberSubscriptionResponse struct {
-	ID                 string `json:"id"`
-	SocialProgramTitle string `json:"socialProgramTitle"`
-	Status             string `json:"status"`
-	TotalDonation      int    `json:"totalDonation"`
-	CreatedAt          string `json:"createdAt"`
+	ID                 string  `json:"id"`
+	SocialProgramTitle string  `json:"socialProgramTitle"`
+	Status             string  `json:"status"`
+	TotalPaidPeriods   int     `json:"totalPaidPeriods"`
+	TotalDonation      float64 `json:"totalDonation"`
+	CreatedAt          string  `json:"createdAt"`
 }
 
 type SubscriberSubscriptionListResponse struct {
@@ -56,11 +58,12 @@ func (s *SocialProgramSubscription) toSocialProgramSubscriptionResponse() Social
 		Username:         username,
 		Status:           string(s.Status),
 		TotalPaidPeriods: s.TotalPaidPeriods,
+		TotalDonation:    s.TotalDonation,
 		CreatedAt:        s.CreatedAt,
 	}
 }
 
-func (s *SocialProgramSubscription) toSubscriberSubscriptionResponse(totalDonation int) SubscriberSubscriptionResponse {
+func (s *SocialProgramSubscription) toSubscriberSubscriptionResponse(totalDonation float64) SubscriberSubscriptionResponse {
 	programName := "Unknown"
 	if s.SocialProgram != nil {
 		programName = s.SocialProgram.Title
@@ -70,12 +73,13 @@ func (s *SocialProgramSubscription) toSubscriberSubscriptionResponse(totalDonati
 		ID:                 s.ID.String(),
 		SocialProgramTitle: programName,
 		Status:             string(s.Status),
+		TotalPaidPeriods:   s.TotalPaidPeriods,
 		TotalDonation:      totalDonation,
 		CreatedAt:          s.CreatedAt.Format(time.RFC3339),
 	}
 }
 
-func toSubscriberSubscriptionListResponse(subscriptions []SocialProgramSubscription, pagination pkg.CursorPagination, donationMap map[string]int) SubscriberSubscriptionListResponse {
+func toSubscriberSubscriptionListResponse(subscriptions []SocialProgramSubscription, pagination pkg.CursorPagination, donationMap map[string]float64) SubscriberSubscriptionListResponse {
 	var responses []SubscriberSubscriptionResponse
 	for _, sub := range subscriptions {
 		donation := donationMap[sub.ID.String()]

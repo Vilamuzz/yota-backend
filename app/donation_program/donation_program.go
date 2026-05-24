@@ -22,6 +22,7 @@ type DonationProgram struct {
 	DeletedAt   *time.Time `json:"deletedAt" gorm:"index"`
 
 	CollectedFund float64 `json:"collectedFund" gorm:"->"`
+	TotalExpense  float64 `json:"totalExpense" gorm:"->"`
 }
 
 type Status string

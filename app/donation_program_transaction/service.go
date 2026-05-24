@@ -168,9 +168,13 @@ func (s *service) CreateOfflineDonationProgramTransaction(ctx context.Context, a
 	if donationProgramID == "" {
 		errValidation["donationProgramId"] = "ID Program Donasi wajib diisi"
 	} else {
-		prog, err := s.donationRepo.FindOneDonationProgram(ctx, map[string]interface{}{"id": donationProgramID, "status": donation_program.StatusActive})
+		prog, err := s.donationRepo.FindOneDonationProgram(ctx, map[string]interface{}{"id": donationProgramID})
 		if err != nil {
 			errValidation["donationProgramId"] = "Program Donasi tidak ditemukan"
+		} else if prog.Status == donation_program.StatusExpired || prog.Status == donation_program.StatusCompleted {
+			errValidation["donationProgramId"] = "Program donasi sudah kedaluwarsa atau selesai"
+		} else if prog.Status != donation_program.StatusActive {
+			errValidation["donationProgramId"] = "Program Donasi tidak aktif"
 		} else {
 			donationProg = prog
 		}
@@ -251,9 +255,13 @@ func (s *service) CreateDonationProgramTransaction(ctx context.Context, accountI
 	if donationSlug == "" {
 		errValidation["donationProgramSlug"] = "Slug Program Donasi wajib diisi"
 	} else {
-		program, err := s.donationRepo.FindOneDonationProgram(ctx, map[string]interface{}{"slug": donationSlug, "status": donation_program.StatusActive})
+		program, err := s.donationRepo.FindOneDonationProgram(ctx, map[string]interface{}{"slug": donationSlug})
 		if err != nil {
 			errValidation["donationProgramSlug"] = "Program Donasi tidak ditemukan"
+		} else if program.Status == donation_program.StatusExpired || program.Status == donation_program.StatusCompleted {
+			errValidation["donationProgramSlug"] = "Program donasi sudah kedaluwarsa atau selesai"
+		} else if program.Status != donation_program.StatusActive {
+			errValidation["donationProgramSlug"] = "Program Donasi tidak aktif"
 		} else {
 			donationProgramID = program.ID.String()
 			donationProg = program

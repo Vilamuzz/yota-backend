@@ -15,6 +15,7 @@ type DonationProgramResponse struct {
 	Description   string    `json:"description"`
 	FundTarget    float64   `json:"fundTarget"`
 	CollectedFund float64   `json:"collectedFund"`
+	TotalExpense  float64   `json:"totalExpense"`
 	Status        Status    `json:"status"`
 	StartDate     time.Time `json:"startDate"`
 	EndDate       time.Time `json:"endDate"`
@@ -23,12 +24,12 @@ type DonationProgramResponse struct {
 type AdminDonationProgramResponse struct {
 	ID            string    `json:"id"`
 	Title         string    `json:"title"`
-	Slug          string    `json:"slug"`
 	Description   string    `json:"description"`
 	CoverImage    string    `json:"coverImage"`
 	Category      Category  `json:"category"`
 	FundTarget    float64   `json:"fundTarget"`
 	CollectedFund float64   `json:"collectedFund"`
+	TotalExpense  float64   `json:"totalExpense"`
 	Status        Status    `json:"status"`
 	StartDate     time.Time `json:"startDate"`
 	EndDate       time.Time `json:"endDate"`
@@ -49,12 +50,12 @@ func (d *DonationProgram) toAdminDonationProgramResponse() AdminDonationProgramR
 	return AdminDonationProgramResponse{
 		ID:            d.ID.String(),
 		Title:         d.Title,
-		Slug:          d.Slug,
 		Description:   d.Description,
 		CoverImage:    d.CoverImage,
 		Category:      d.Category,
 		FundTarget:    d.FundTarget,
 		CollectedFund: d.CollectedFund,
+		TotalExpense:  d.TotalExpense,
 		Status:        d.Status,
 		StartDate:     d.StartDate,
 		EndDate:       d.EndDate,
@@ -72,6 +73,7 @@ func (d *DonationProgram) toDonationProgramResponse() DonationProgramResponse {
 		Category:      d.Category,
 		FundTarget:    d.FundTarget,
 		CollectedFund: d.CollectedFund,
+		TotalExpense:  d.TotalExpense,
 		Status:        d.Status,
 		StartDate:     d.StartDate,
 		EndDate:       d.EndDate,

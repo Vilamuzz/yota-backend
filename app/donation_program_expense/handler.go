@@ -24,14 +24,43 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 }
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
+	public := r.Group("/donation-programs")
+	public.GET("/:slug/expenses", h.GetPublicDonationProgramExpenseList)
+	public.GET("/expenses/:id", h.GetDonationProgramExpenseByID)
+
 	admin := r.Group("/admin/donation-programs")
 	admin.Use(h.middleware.RequireRoles(enum.RoleFinance))
 	{
-		admin.GET(":id/expenses", h.GetDonationProgramExpenseList)
+		admin.GET("/:id/expenses", h.GetDonationProgramExpenseList)
 		admin.GET("/expenses/:id", h.GetDonationProgramExpenseByID)
-		admin.POST(":id/expenses", h.CreateDonationProgramExpense)
-		admin.DELETE("expenses/:id", h.DeleteDonationProgramExpense)
+		admin.POST("/:id/expenses", h.CreateDonationProgramExpense)
+		admin.DELETE("/expenses/:id", h.DeleteDonationProgramExpense)
 	}
+}
+
+// GetPublicDonationProgramExpenseList
+//
+// @Summary Get Public Donation Program Expense List
+// @Description Get paginated list of expenses for a specific donation program (publicly accessible)
+// @Tags Donation Programs
+// @Accept json
+// @Produce json
+// @Param slug path string true "Donation Program Slug"
+// @Param cursor query string false "Cursor for pagination"
+// @Param limit query int false "Items per page"
+// @Success 200 {object} pkg.Response
+// @Router /api/donation-programs/{slug}/expenses [get]
+func (h *handler) GetPublicDonationProgramExpenseList(c *gin.Context) {
+	ctx := c.Request.Context()
+	slug := c.Param("slug")
+
+	var req DonationProgramExpenseQueryParams
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
+		return
+	}
+	resp := h.service.GetPublicDonationProgramExpenseList(ctx, slug, req)
+	c.JSON(resp.Status, resp)
 }
 
 // GetDonationProgramExpenseList

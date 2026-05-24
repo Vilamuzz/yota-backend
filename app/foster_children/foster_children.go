@@ -26,7 +26,9 @@ type FosterChildren struct {
 	UpdatedAt      time.Time  `json:"updatedAt"`
 	DeletedAt      *time.Time `json:"deletedAt" gorm:"index"`
 
-	Achivements []Achivement `json:"achivements" gorm:"foreignKey:FosterChildrenID"`
+	Achivements   []Achivement `json:"achivements" gorm:"foreignKey:FosterChildrenID"`
+	CollectedFund float64      `json:"collectedFund" gorm:"->"`
+	TotalExpense  float64      `json:"totalExpense" gorm:"->"`
 }
 
 type Gender string
@@ -86,5 +88,5 @@ const (
 	StatusSocialManagerAccepted Status = "social_manager_accepted"
 	StatusAccepted              Status = "accepted"
 	StatusRejected              Status = "rejected"
-	StatusCanceled              Status = "canceled"
+	StatusCancelled             Status = "cancelled"
 )

@@ -30,8 +30,18 @@ func (r *repository) FindAllSocialPrograms(ctx context.Context, options map[stri
 		Select("COUNT(*)").
 		Where("social_program_id = social_programs.id AND status = 'active'")
 
+	collectedFundSubquery := r.Conn.Table("social_program_transactions spt").
+		Select("COALESCE(SUM(spt.gross_amount), 0)").
+		Joins("JOIN social_program_invoices spi ON spt.social_program_invoice_id = spi.id").
+		Joins("JOIN social_program_subscriptions sps ON spi.subscription_id = sps.id").
+		Where("sps.social_program_id = social_programs.id AND spt.transaction_status = 'settlement'")
+
+	totalExpenseSubquery := r.Conn.Table("social_program_expenses").
+		Select("COALESCE(SUM(amount), 0)").
+		Where("social_program_id = social_programs.id")
+
 	query := r.Conn.WithContext(ctx).
-		Select("social_programs.*, (?) as total_subscribers", subscribersSubquery).
+		Select("social_programs.*, (?) as total_subscribers, (?) as collected_fund, (?) as total_expense", subscribersSubquery, collectedFundSubquery, totalExpenseSubquery).
 		Where("deleted_at IS NULL")
 
 	if accountID, ok := options["account_id"]; ok && accountID.(string) != "" {
@@ -42,7 +52,7 @@ func (r *repository) FindAllSocialPrograms(ctx context.Context, options map[stri
 			Select("id").
 			Where("social_program_id = social_programs.id AND account_id = ? AND status = 'active'", accountID.(string)).
 			Limit(1)
-		query = query.Select("social_programs.*, (?) as total_subscribers, (?) as is_subscribed, (?) as subscription_id", subscribersSubquery, isSubscribedSubquery, subscriptionIDSubquery)
+		query = query.Select("social_programs.*, (?) as total_subscribers, (?) as collected_fund, (?) as total_expense, (?) as is_subscribed, (?) as subscription_id", subscribersSubquery, collectedFundSubquery, totalExpenseSubquery, isSubscribedSubquery, subscriptionIDSubquery)
 	}
 
 	if status, ok := options["status"]; ok && status.(string) != "" {
@@ -91,8 +101,18 @@ func (r *repository) FindOneSocialProgram(ctx context.Context, options map[strin
 		Select("COUNT(*)").
 		Where("social_program_id = social_programs.id AND status = 'active'")
 
+	collectedFundSubquery := r.Conn.Table("social_program_transactions spt").
+		Select("COALESCE(SUM(spt.gross_amount), 0)").
+		Joins("JOIN social_program_invoices spi ON spt.social_program_invoice_id = spi.id").
+		Joins("JOIN social_program_subscriptions sps ON spi.subscription_id = sps.id").
+		Where("sps.social_program_id = social_programs.id AND spt.transaction_status = 'settlement'")
+
+	totalExpenseSubquery := r.Conn.Table("social_program_expenses").
+		Select("COALESCE(SUM(amount), 0)").
+		Where("social_program_id = social_programs.id")
+
 	query := r.Conn.WithContext(ctx).
-		Select("social_programs.*, (?) as total_subscribers", subscribersSubquery).
+		Select("social_programs.*, (?) as total_subscribers, (?) as collected_fund, (?) as total_expense", subscribersSubquery, collectedFundSubquery, totalExpenseSubquery).
 		Where("deleted_at IS NULL")
 
 	if accountID, ok := options["account_id"]; ok && accountID.(string) != "" {
@@ -103,7 +123,7 @@ func (r *repository) FindOneSocialProgram(ctx context.Context, options map[strin
 			Select("id").
 			Where("social_program_id = social_programs.id AND account_id = ? AND status = 'active'", accountID.(string)).
 			Limit(1)
-		query = query.Select("social_programs.*, (?) as total_subscribers, (?) as is_subscribed, (?) as subscription_id", subscribersSubquery, isSubscribedSubquery, subscriptionIDSubquery)
+		query = query.Select("social_programs.*, (?) as total_subscribers, (?) as collected_fund, (?) as total_expense, (?) as is_subscribed, (?) as subscription_id", subscribersSubquery, collectedFundSubquery, totalExpenseSubquery, isSubscribedSubquery, subscriptionIDSubquery)
 	}
 
 	if id, ok := options["id"]; ok && id.(string) != "" {

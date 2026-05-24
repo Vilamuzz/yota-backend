@@ -20,9 +20,11 @@ type SocialProgram struct {
 	UpdatedAt       time.Time  `json:"updatedAt"`
 	DeletedAt       *time.Time `json:"deletedAt" gorm:"index"`
 
-	TotalSubscribers int64 `json:"totalSubscribers" gorm:"->"`
-	IsSubscribed     bool  `json:"isSubscribed" gorm:"->"`
-	SubscriptionID   string `json:"subscriptionId" gorm:"->"`
+	TotalSubscribers int64   `json:"totalSubscribers" gorm:"->"`
+	IsSubscribed     bool    `json:"isSubscribed" gorm:"->"`
+	SubscriptionID   string  `json:"subscriptionId" gorm:"->"`
+	CollectedFund    float64 `json:"collectedFund" gorm:"->"`
+	TotalExpense     float64 `json:"totalExpense" gorm:"->"`
 }
 
 type Status string

@@ -40,6 +40,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	{
 		admin.GET("/subscribers", h.GetSubscribers)
 		admin.GET("/subscribers/:id", h.GetSubscriberByID)
+		admin.GET("/subscribers/subscription/:id", h.GetSubscriberSubscriptionByID)
 		admin.GET("/:id/subscriptions", h.GetSocialProgramSubscriptionList)
 		admin.GET("/accounts/:account_id/subscriptions", h.GetSocialProgramSubscriptionsByAccountID)
 		admin.GET("/subscriptions/:id", h.GetSocialProgramSubscriptionByID)
@@ -93,7 +94,26 @@ func (h *handler) GetSocialProgramSubscriptionByID(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
 
-	res := h.service.GetSocialProgramSubscriptionByID(ctx, id)
+	res := h.service.GetSocialProgramSubscriptionByID(ctx, id, false)
+	c.JSON(res.Status, res)
+}
+
+// GetSubscriberSubscriptionByID
+//
+// @Summary Get Subscriber Subscription By ID
+// @Description Retrieve a specific subscriber subscription by its ID
+// @Tags Social Programs
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Subscription ID"
+// @Success 200 {object} pkg.Response
+// @Router /api/admin/social-programs/subscribers/subscription/{id} [get]
+func (h *handler) GetSubscriberSubscriptionByID(c *gin.Context) {
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	res := h.service.GetSocialProgramSubscriptionByID(ctx, id, true)
 	c.JSON(res.Status, res)
 }
 

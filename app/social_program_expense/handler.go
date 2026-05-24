@@ -24,9 +24,8 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 }
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
-	// Admin routes
 	admin := r.Group("/admin/social-programs")
-	admin.Use(h.middleware.RequireRoles(enum.RoleSocialManager, enum.RoleFinance))
+	admin.Use(h.middleware.RequireRoles(enum.RoleFinance))
 	{
 		admin.GET("/:id/expenses", h.GetSocialProgramExpenseList)
 		admin.GET("/expenses/:id", h.GetSocialProgramExpenseByID)

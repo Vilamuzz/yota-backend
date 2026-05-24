@@ -14,8 +14,8 @@ import (
 )
 
 type Service interface {
-	GetFosterChildrenList(ctx context.Context, params FosterChildrenQueryParams) pkg.Response
-	GetFosterChildrenByID(ctx context.Context, id string) pkg.Response
+	GetFosterChildrenList(ctx context.Context, params FosterChildrenQueryParams, isAdmin bool) pkg.Response
+	GetFosterChildrenByID(ctx context.Context, id string, isAdmin bool) pkg.Response
 	CreateFosterChildren(ctx context.Context, req CreateFosterChildrenRequest) pkg.Response
 	UpdateFosterChildren(ctx context.Context, id string, req UpdateFosterChildrenRequest) pkg.Response
 	DeleteFosterChildren(ctx context.Context, id string) pkg.Response
@@ -44,7 +44,7 @@ func NewService(repo Repository, logService app_log.Service, s3Client s3_pkg.Cli
 	}
 }
 
-func (s *service) GetFosterChildrenList(ctx context.Context, params FosterChildrenQueryParams) pkg.Response {
+func (s *service) GetFosterChildrenList(ctx context.Context, params FosterChildrenQueryParams, isAdmin bool) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -57,6 +57,9 @@ func (s *service) GetFosterChildrenList(ctx context.Context, params FosterChildr
 
 	options := map[string]interface{}{
 		"limit": params.Limit,
+	}
+	if isAdmin {
+		options["is_admin"] = true
 	}
 	if params.Category != "" {
 		options["category"] = params.Category
@@ -98,10 +101,13 @@ func (s *service) GetFosterChildrenList(ctx context.Context, params FosterChildr
 		Limit:      params.Limit,
 	}
 
+	if isAdmin {
+		return pkg.NewResponse(http.StatusOK, "Berhasil", nil, ToAdminFosterChildrenListResponse(fosterChildren, pagination))
+	}
 	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, ToFosterChildrenListResponse(fosterChildren, pagination))
 }
 
-func (s *service) GetFosterChildrenByID(ctx context.Context, id string) pkg.Response {
+func (s *service) GetFosterChildrenByID(ctx context.Context, id string, isAdmin bool) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -114,7 +120,10 @@ func (s *service) GetFosterChildrenByID(ctx context.Context, id string) pkg.Resp
 		return pkg.NewResponse(http.StatusNotFound, "Anak asuh tidak ditemukan", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, fosterChildren.ToFosterChildrenResponse())
+	if isAdmin {
+		return pkg.NewResponse(http.StatusOK, "Berhasil", nil, fosterChildren.ToAdminFosterChildrenDetailResponse())
+	}
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, fosterChildren.ToFosterChildrenDetailResponse())
 }
 
 func (s *service) CreateFosterChildren(ctx context.Context, req CreateFosterChildrenRequest) pkg.Response {
@@ -243,8 +252,8 @@ func (s *service) CreateFosterChildren(ctx context.Context, req CreateFosterChil
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat data anak asuh", nil, nil)
 	}
 
-	s.logService.CreateLog(ctx, nil, "CREATE", "foster_children", fosterChildren.ID.String(), nil, fosterChildren.ToFosterChildrenResponse())
-	return pkg.NewResponse(http.StatusCreated, "Anak asuh berhasil dibuat", nil, fosterChildren.ToFosterChildrenResponse())
+	s.logService.CreateLog(ctx, nil, "CREATE", "foster_children", fosterChildren.ID.String(), nil, fosterChildren.ToAdminFosterChildrenDetailResponse())
+	return pkg.NewResponse(http.StatusCreated, "Anak asuh berhasil dibuat", nil, nil)
 }
 
 func (s *service) UpdateFosterChildren(ctx context.Context, id string, req UpdateFosterChildrenRequest) pkg.Response {
@@ -444,7 +453,7 @@ func (s *service) UpdateFosterChildren(ctx context.Context, id string, req Updat
 		}
 	}
 
-	s.logService.CreateLog(ctx, nil, "UPDATE", "foster_children", id, existing.ToFosterChildrenResponse(), updateData)
+	s.logService.CreateLog(ctx, nil, "UPDATE", "foster_children", id, existing.ToAdminFosterChildrenDetailResponse(), updateData)
 	return pkg.NewResponse(http.StatusOK, "Anak asuh berhasil diperbarui", nil, nil)
 }
 
@@ -502,7 +511,7 @@ func (s *service) DeleteFosterChildren(ctx context.Context, id string) pkg.Respo
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menghapus data anak asuh", nil, nil)
 	}
 
-	s.logService.CreateLog(ctx, nil, "DELETE", "foster_children", id, fosterChildren.ToFosterChildrenResponse(), nil)
+	s.logService.CreateLog(ctx, nil, "DELETE", "foster_children", id, fosterChildren.ToAdminFosterChildrenDetailResponse(), nil)
 	return pkg.NewResponse(http.StatusOK, "Anak asuh berhasil dihapus", nil, nil)
 }
 
@@ -708,19 +717,20 @@ func (s *service) AcceptFosterChildrenCandidate(ctx context.Context, id string, 
 	var nextStatus Status
 	var message string
 
-	if role == enum.RoleSocialManager {
+	switch role {
+	case enum.RoleSocialManager:
 		if existing.Status != StatusPending {
 			return pkg.NewResponse(http.StatusBadRequest, "Hanya calon dengan status pending yang dapat disetujui oleh Koordinator Sosial", nil, nil)
 		}
 		nextStatus = StatusSocialManagerAccepted
 		message = "Calon berhasil disetujui oleh Koordinator Sosial"
-	} else if role == enum.RoleChairman {
+	case enum.RoleChairman:
 		if existing.Status != StatusSocialManagerAccepted {
 			return pkg.NewResponse(http.StatusBadRequest, "Hanya calon yang telah disetujui oleh Koordinator Sosial yang dapat disetujui oleh Ketua Yayasan", nil, nil)
 		}
 		nextStatus = StatusAccepted
 		message = "Calon berhasil disetujui oleh Ketua Yayasan"
-	} else {
+	default:
 		return pkg.NewResponse(http.StatusForbidden, "Anda tidak memiliki akses untuk melakukan tindakan ini", nil, nil)
 	}
 
@@ -817,7 +827,7 @@ func (s *service) CancelFosterChildrenCandidate(ctx context.Context, accountID s
 	}
 
 	updateData := map[string]interface{}{
-		"status":     StatusCanceled,
+		"status":     StatusCancelled,
 		"updated_at": time.Now(),
 	}
 

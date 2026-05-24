@@ -46,12 +46,19 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 		admin.PATCH("/:id/reject", h.RejectFosterChildrenCandidate)
 	}
 
-	socialManager := r.Group("/admin/foster-children")
-	socialManager.Use(h.middleware.RequireRoles(enum.RoleSocialManager))
+	adminFosterChildren := r.Group("/admin/foster-children")
+	adminFosterChildren.Use(h.middleware.RequireRoles(enum.RoleSocialManager, enum.RoleFinance))
 	{
-		socialManager.POST("", h.CreateFosterChildren)
-		socialManager.PUT("/:id", h.UpdateFosterChildren)
-		socialManager.DELETE("/:id", h.DeleteFosterChildren)
+		adminFosterChildren.GET("", h.GetAdminFosterChildrenList)
+		adminFosterChildren.GET("/:id", h.GetAdminFosterChildrenByID)
+	}
+
+	socialManagerOnly := r.Group("/admin/foster-children")
+	socialManagerOnly.Use(h.middleware.RequireRoles(enum.RoleSocialManager))
+	{
+		socialManagerOnly.POST("", h.CreateFosterChildren)
+		socialManagerOnly.PUT("/:id", h.UpdateFosterChildren)
+		socialManagerOnly.DELETE("/:id", h.DeleteFosterChildren)
 	}
 
 }
@@ -79,7 +86,20 @@ func (h *handler) GetFosterChildrenList(c *gin.Context) {
 		return
 	}
 
-	res := h.service.GetFosterChildrenList(ctx, queryParams)
+	res := h.service.GetFosterChildrenList(ctx, queryParams, false)
+	c.JSON(res.Status, res)
+}
+
+func (h *handler) GetAdminFosterChildrenList(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var queryParams FosterChildrenQueryParams
+	if err := c.ShouldBindQuery(&queryParams); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Parameter query tidak valid", nil, nil))
+		return
+	}
+
+	res := h.service.GetFosterChildrenList(ctx, queryParams, true)
 	c.JSON(res.Status, res)
 }
 
@@ -97,7 +117,15 @@ func (h *handler) GetFosterChildrenByID(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
 
-	res := h.service.GetFosterChildrenByID(ctx, id)
+	res := h.service.GetFosterChildrenByID(ctx, id, false)
+	c.JSON(res.Status, res)
+}
+
+func (h *handler) GetAdminFosterChildrenByID(c *gin.Context) {
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	res := h.service.GetFosterChildrenByID(ctx, id, true)
 	c.JSON(res.Status, res)
 }
 

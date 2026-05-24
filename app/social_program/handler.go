@@ -32,7 +32,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	}
 
 	admin := r.Group("/admin/social-programs")
-	admin.Use(h.middleware.RequireRoles(enum.RoleSocialManager, enum.RoleChairman))
+	admin.Use(h.middleware.RequireRoles(enum.RoleSocialManager, enum.RoleChairman, enum.RoleFinance))
 	{
 		admin.GET("", h.GetAdminSocialProgramList)
 		admin.GET("/:id", h.GetAdminSocialProgramByID)
@@ -79,13 +79,15 @@ func (h *handler) GetSocialProgramList(c *gin.Context) {
 	}
 
 	accountID := ""
+	role := ""
 	if userData, exists := c.Get("user_data"); exists {
 		if claims, ok := userData.(jwt_pkg.UserJWTClaims); ok {
 			accountID = claims.AccountID
+			role = string(claims.ActiveRole)
 		}
 	}
 
-	res := h.service.GetSocialProgramList(ctx, queryParams, false, accountID)
+	res := h.service.GetSocialProgramList(ctx, queryParams, false, accountID, role)
 	c.JSON(res.Status, res)
 }
 
@@ -114,13 +116,15 @@ func (h *handler) GetAdminSocialProgramList(c *gin.Context) {
 	}
 
 	accountID := ""
+	role := ""
 	if userData, exists := c.Get("user_data"); exists {
 		if claims, ok := userData.(jwt_pkg.UserJWTClaims); ok {
 			accountID = claims.AccountID
+			role = string(claims.ActiveRole)
 		}
 	}
 
-	res := h.service.GetSocialProgramList(ctx, queryParams, true, accountID)
+	res := h.service.GetSocialProgramList(ctx, queryParams, true, accountID, role)
 	c.JSON(res.Status, res)
 }
 
