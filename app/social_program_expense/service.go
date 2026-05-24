@@ -15,7 +15,8 @@ import (
 )
 
 type Service interface {
-	GetSocialProgramExpenseList(ctx context.Context, socialProgramSlug string, params SocialProgramExpenseQueryParams) pkg.Response
+	GetPublicSocialProgramExpenseList(ctx context.Context, socialProgramSlug string, params SocialProgramExpenseQueryParams) pkg.Response
+	GetSocialProgramExpenseList(ctx context.Context, socialProgramID string, params SocialProgramExpenseQueryParams) pkg.Response
 	GetSocialProgramExpenseByID(ctx context.Context, socialProgramExpenseID string) pkg.Response
 	CreateSocialProgramExpense(ctx context.Context, accountID string, socialProgramID string, payload *SocialProgramExpenseRequest) pkg.Response
 	DeleteSocialProgramExpense(ctx context.Context, accountID, socialProgramExpenseID string) pkg.Response
@@ -39,6 +40,18 @@ func NewService(repo Repository, financeRepo finance_record.Repository, socialPr
 		logService:        logService,
 		timeout:           timeout,
 	}
+}
+
+func (s *service) GetPublicSocialProgramExpenseList(ctx context.Context, socialProgramSlug string, params SocialProgramExpenseQueryParams) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	program, err := s.socialProgramRepo.FindOneSocialProgram(ctx, map[string]interface{}{"slug": socialProgramSlug})
+	if err != nil {
+		return pkg.NewResponse(http.StatusNotFound, "Program sosial tidak ditemukan", nil, nil)
+	}
+
+	return s.GetSocialProgramExpenseList(ctx, program.ID.String(), params)
 }
 
 func (s *service) GetSocialProgramExpenseList(ctx context.Context, socialProgramID string, params SocialProgramExpenseQueryParams) pkg.Response {

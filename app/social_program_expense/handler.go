@@ -24,6 +24,10 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 }
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
+	public := r.Group("/social-programs")
+	public.GET("/:slug/expenses", h.GetPublicSocialProgramExpenseList)
+	public.GET("/expenses/:id", h.GetSocialProgramExpenseByID)
+
 	admin := r.Group("/admin/social-programs")
 	admin.Use(h.middleware.RequireRoles(enum.RoleFinance))
 	{
@@ -32,6 +36,32 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 		admin.POST("/:id/expenses", h.CreateSocialProgramExpense)
 		admin.DELETE("/expenses/:id", h.DeleteSocialProgramExpense)
 	}
+}
+
+// GetPublicSocialProgramExpenseList
+//
+// @Summary Get Public Social Program Expense List
+// @Description Get paginated list of expenses for a specific social program (publicly accessible)
+// @Tags Social Programs
+// @Accept json
+// @Produce json
+// @Param slug path string true "Social Program Slug"
+// @Param cursor query string false "Cursor for pagination"
+// @Param limit query int false "Items per page"
+// @Success 200 {object} pkg.Response
+// @Router /api/social-programs/{slug}/expenses [get]
+func (h *handler) GetPublicSocialProgramExpenseList(c *gin.Context) {
+	ctx := c.Request.Context()
+	slug := c.Param("slug")
+
+	var queryParams SocialProgramExpenseQueryParams
+	if err := c.ShouldBindQuery(&queryParams); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
+		return
+	}
+
+	resp := h.service.GetPublicSocialProgramExpenseList(ctx, slug, queryParams)
+	c.JSON(resp.Status, resp)
 }
 
 // GetSocialProgramExpenseList
