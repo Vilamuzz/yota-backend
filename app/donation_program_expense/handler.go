@@ -27,11 +27,13 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	public := r.Group("/donation-programs")
 	public.GET("/:slug/expenses", h.GetPublicDonationProgramExpenseList)
 	public.GET("/expenses/:id", h.GetDonationProgramExpenseByID)
+	public.GET("/:slug/expenses/export", h.ExportDonationProgramExpenseCSV)
 
 	admin := r.Group("/admin/donation-programs")
 	admin.Use(h.middleware.RequireRoles(enum.RoleFinance))
 	{
 		admin.GET("/:id/expenses", h.GetDonationProgramExpenseList)
+
 		admin.GET("/expenses/:id", h.GetDonationProgramExpenseByID)
 		admin.POST("/:id/expenses", h.CreateDonationProgramExpense)
 		admin.DELETE("/expenses/:id", h.DeleteDonationProgramExpense)
@@ -160,4 +162,37 @@ func (h *handler) DeleteDonationProgramExpense(c *gin.Context) {
 
 	resp := h.service.DeleteDonationProgramExpense(ctx, claims.AccountID, id)
 	c.JSON(resp.Status, resp)
+}
+
+// ExportDonationProgramExpenseCSV
+//
+// @Summary Export Donation Program Expense as CSV
+// @Description Export all expenses for a specific donation program as a CSV file (publicly accessible)
+// @Tags Donation Programs
+// @Produce text/csv
+// @Param slug path string true "Donation Program Slug"
+// @Param start_date query string false "Filter start date (YYYY-MM-DD, inclusive)"
+// @Param end_date query string false "Filter end date (YYYY-MM-DD, inclusive)"
+// @Success 200 {file} binary "CSV file"
+// @Router /api/donation-programs/{slug}/expenses/export [get]
+func (h *handler) ExportDonationProgramExpenseCSV(c *gin.Context) {
+	ctx := c.Request.Context()
+	donationProgramSlug := c.Param("slug")
+
+	var params DonationProgramExpenseExportParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
+		return
+	}
+
+	csvBytes, filename, err := h.service.ExportDonationProgramExpenseCSV(ctx, donationProgramSlug, params)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
+		return
+	}
+
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Type", "text/csv; charset=utf-8")
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Data(http.StatusOK, "text/csv; charset=utf-8", csvBytes)
 }

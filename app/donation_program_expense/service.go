@@ -1,7 +1,10 @@
 package donation_program_expense
 
 import (
+	"bytes"
 	"context"
+	"encoding/csv"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -20,6 +23,7 @@ type Service interface {
 	GetDonationProgramExpenseByID(ctx context.Context, donationProgramExpenseID string) pkg.Response
 	CreateDonationProgramExpense(ctx context.Context, accountID, donationProgramID string, payload *DonationProgramExpenseRequest) pkg.Response
 	DeleteDonationProgramExpense(ctx context.Context, accountID, donationProgramExpenseID string) pkg.Response
+	ExportDonationProgramExpenseCSV(ctx context.Context, donationProgramSlug string, params DonationProgramExpenseExportParams) ([]byte, string, error)
 }
 
 type service struct {
@@ -230,6 +234,76 @@ func (s *service) CreateDonationProgramExpense(ctx context.Context, accountID, d
 	s.logService.CreateLog(ctx, &accountID, "CREATE", "donation_program_expense", expense.ID.String(), nil, expense.toDonationProgramExpenseDetailResponse())
 
 	return pkg.NewResponse(http.StatusCreated, "Pengeluaran berhasil dibuat", nil, nil)
+}
+
+func (s *service) ExportDonationProgramExpenseCSV(ctx context.Context, donationProgramSlug string, params DonationProgramExpenseExportParams) ([]byte, string, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	program, err := s.donationRepo.FindOneDonationProgram(ctx, map[string]interface{}{"slug": donationProgramSlug})
+	if err != nil {
+		return nil, "", fmt.Errorf("program donasi tidak ditemukan")
+	}
+	donationProgramID := program.ID.String()
+
+	if params.StartDate != "" {
+		if _, err := time.Parse("2006-01-02", params.StartDate); err != nil {
+			return nil, "", fmt.Errorf("format start_date tidak valid (gunakan YYYY-MM-DD)")
+		}
+	}
+	if params.EndDate != "" {
+		if _, err := time.Parse("2006-01-02", params.EndDate); err != nil {
+			return nil, "", fmt.Errorf("format end_date tidak valid (gunakan YYYY-MM-DD)")
+		}
+	}
+
+	expenses, err := s.repo.FindAllDonationProgramExpensesForExport(ctx, donationProgramID, params)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":           "donation_program_expense.service",
+			"donation_program_id": donationProgramID,
+		}).WithError(err).Error("failed to fetch expenses for export")
+		return nil, "", fmt.Errorf("gagal mengambil data pengeluaran")
+	}
+
+	var buf bytes.Buffer
+	w := csv.NewWriter(&buf)
+
+	header := []string{"No", "Judul", "Jumlah (Rp)", "Tanggal Pengeluaran", "Catatan", "Dibuat Pada"}
+	if err := w.Write(header); err != nil {
+		return nil, "", fmt.Errorf("gagal menulis header CSV")
+	}
+
+	for i, expense := range expenses {
+		row := []string{
+			fmt.Sprintf("%d", i+1),
+			expense.Title,
+			fmt.Sprintf("%.2f", expense.Amount),
+			expense.ExpenseDate.Format("2006-01-02"),
+			expense.Note,
+			expense.CreatedAt.Format("2006-01-02 15:04:05"),
+		}
+		if err := w.Write(row); err != nil {
+			return nil, "", fmt.Errorf("gagal menulis baris CSV")
+		}
+	}
+
+	w.Flush()
+	if err := w.Error(); err != nil {
+		return nil, "", fmt.Errorf("gagal menyelesaikan penulisan CSV")
+	}
+
+	// Build a descriptive filename that reflects the filtered period
+	periodPart := "all"
+	if params.StartDate != "" && params.EndDate != "" {
+		periodPart = params.StartDate + "_to_" + params.EndDate
+	} else if params.StartDate != "" {
+		periodPart = "from_" + params.StartDate
+	} else if params.EndDate != "" {
+		periodPart = "until_" + params.EndDate
+	}
+	filename := fmt.Sprintf("donation_program_expenses_%s_%s_%s.csv", donationProgramID, periodPart, time.Now().Format("20060102_150405"))
+	return buf.Bytes(), filename, nil
 }
 
 func (s *service) DeleteDonationProgramExpense(ctx context.Context, accountID, donationProgramExpenseID string) pkg.Response {

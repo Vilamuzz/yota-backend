@@ -22,22 +22,22 @@ type Service interface {
 }
 
 type service struct {
-	repo              Repository
-	financeRepo       finance_record.Repository
+	repo               Repository
+	financeRepo        finance_record.Repository
 	fosterChildrenRepo foster_children.Repository
-	s3Client          s3_pkg.Client
-	logService        app_log.Service
-	timeout           time.Duration
+	s3Client           s3_pkg.Client
+	logService         app_log.Service
+	timeout            time.Duration
 }
 
 func NewService(repo Repository, financeRepo finance_record.Repository, fosterChildrenRepo foster_children.Repository, s3Client s3_pkg.Client, logService app_log.Service, timeout time.Duration) Service {
 	return &service{
-		repo:              repo,
-		financeRepo:       financeRepo,
+		repo:               repo,
+		financeRepo:        financeRepo,
 		fosterChildrenRepo: fosterChildrenRepo,
-		s3Client:          s3Client,
-		logService:        logService,
-		timeout:           timeout,
+		s3Client:           s3Client,
+		logService:         logService,
+		timeout:            timeout,
 	}
 }
 
@@ -199,7 +199,7 @@ func (s *service) CreateFosterChildrenExpense(ctx context.Context, accountID, fo
 	// Auto-create finance record (outflow)
 	_ = s.financeRepo.Create(ctx, &finance_record.FinanceRecord{
 		ID:              uuid.New().String(),
-		FundType:        finance_record.FundTypeDonation,
+		FundType:        finance_record.FundTypeFosterChildren,
 		FundID:          expense.FosterChildrenID.String(),
 		SourceType:      finance_record.SourceTypeExpense,
 		SourceID:        expense.ID.String(),

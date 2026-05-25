@@ -25,10 +25,8 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	public := r.Group("/foster-children")
-	{
-		public.GET("/:id/expenses", h.GetFosterChildrenExpenseList)
-		public.GET("/expenses/:id", h.GetFosterChildrenExpenseByID)
-	}
+	public.GET("/:id/expenses", h.GetFosterChildrenExpenseList)
+	public.GET("/expenses/:id", h.GetFosterChildrenExpenseByID)
 
 	admin := r.Group("/admin/foster-children")
 	admin.Use(h.middleware.RequireRoles(enum.RoleFinance))

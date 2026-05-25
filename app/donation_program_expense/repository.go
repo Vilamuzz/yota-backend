@@ -10,6 +10,7 @@ import (
 
 type Repository interface {
 	FindAllDonationProgramExpenses(ctx context.Context, options map[string]interface{}) ([]DonationProgramExpense, error)
+	FindAllDonationProgramExpensesForExport(ctx context.Context, donationProgramID string, params DonationProgramExpenseExportParams) ([]DonationProgramExpense, error)
 	FindOneDonationProgramExpense(ctx context.Context, options map[string]interface{}) (*DonationProgramExpense, error)
 	GetTotalExpenseByDonationProgramID(ctx context.Context, donationProgramID string) (float64, error)
 	CreateDonationProgramExpense(ctx context.Context, donationProgramExpense *DonationProgramExpense) error
@@ -57,6 +58,22 @@ func (r *repo) FindAllDonationProgramExpenses(ctx context.Context, options map[s
 	}
 
 	query = query.Limit(limit + 1)
+	err := query.Find(&expenses).Error
+	return expenses, err
+}
+
+func (r *repo) FindAllDonationProgramExpensesForExport(ctx context.Context, donationProgramID string, params DonationProgramExpenseExportParams) ([]DonationProgramExpense, error) {
+	var expenses []DonationProgramExpense
+	query := r.Conn.WithContext(ctx).Order("expense_date ASC, created_at ASC")
+	if donationProgramID != "" {
+		query = query.Where("donation_program_id = ?", donationProgramID)
+	}
+	if params.StartDate != "" {
+		query = query.Where("expense_date >= ?", params.StartDate)
+	}
+	if params.EndDate != "" {
+		query = query.Where("expense_date <= ?", params.EndDate)
+	}
 	err := query.Find(&expenses).Error
 	return expenses, err
 }
