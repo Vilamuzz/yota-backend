@@ -9,6 +9,7 @@ type CreateAmbulanceServiceRequest struct {
 	ApplicantAddress string `json:"applicantAddress"`
 	RequestDate      string `json:"requestDate"`
 	RequestReason    string `json:"requestReason"`
+	ServiceCategory  string `json:"serviceCategory"`
 }
 
 type AcceptAmbulanceServiceRequestPayload struct {

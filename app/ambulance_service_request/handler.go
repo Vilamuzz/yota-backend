@@ -47,6 +47,8 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	{
 		ambulanceDriver.GET("/:ambulanceId", h.ListAssignedAmbulanceServiceRequests)
 		ambulanceDriver.GET("/:ambulanceId/detail/:id", h.GetAssignedAmbulanceServiceRequestByID)
+		ambulanceDriver.PATCH("/:ambulanceId/start/:id", h.StartAmbulanceServiceRequest)
+		ambulanceDriver.PATCH("/:ambulanceId/complete/:id", h.CompleteAmbulanceServiceRequest)
 	}
 }
 
@@ -285,5 +287,25 @@ func (h *handler) CancelAmbulanceServiceRequest(c *gin.Context) {
 	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
 	id := c.Param("id")
 	res := h.service.CancelAmbulanceServiceRequest(ctx, claims.AccountID, id)
+	c.JSON(res.Status, res)
+}
+
+func (h *handler) StartAmbulanceServiceRequest(c *gin.Context) {
+	ctx := c.Request.Context()
+	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
+	ambulanceID := c.Param("ambulanceId")
+	id := c.Param("id")
+
+	res := h.service.StartAmbulanceServiceRequest(ctx, claims.AccountID, ambulanceID, id)
+	c.JSON(res.Status, res)
+}
+
+func (h *handler) CompleteAmbulanceServiceRequest(c *gin.Context) {
+	ctx := c.Request.Context()
+	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
+	ambulanceID := c.Param("ambulanceId")
+	id := c.Param("id")
+
+	res := h.service.CompleteAmbulanceServiceRequest(ctx, claims.AccountID, ambulanceID, id)
 	c.JSON(res.Status, res)
 }
