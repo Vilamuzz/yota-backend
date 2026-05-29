@@ -2,6 +2,7 @@ package foundation_profile
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
 type Service interface {
@@ -44,6 +46,16 @@ func (s *service) GetFoundationProfile(ctx context.Context) pkg.Response {
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, profile.toFoundationProfileResponse())
+}
+
+type uploadError struct {
+	field string
+	msg   string
+	err   error
+}
+
+func (e uploadError) Error() string {
+	return e.msg
 }
 
 func (s *service) CreateFoundationProfile(ctx context.Context, payload FoundationProfileCreateRequest) pkg.Response {
@@ -83,76 +95,146 @@ func (s *service) CreateFoundationProfile(ctx context.Context, payload Foundatio
 		UpdatedAt:           timeNow,
 	}
 
+	var (
+		founderPictureURL        string
+		logoURL                  string
+		iconURL                  string
+		organizationStructureURL string
+		heroImageOneURL          string
+		heroImageTwoURL          string
+		heroImageThreeURL        string
+		heroImageFourURL         string
+	)
+
+	g, gCtx := errgroup.WithContext(ctx)
+
 	if payload.FounderPicture != nil {
-		url, err := s.s3Client.UploadFile(ctx, payload.FounderPicture, "foundation-profile")
-		if err != nil {
-			logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload founder picture")
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah foto pendiri", nil, nil)
-		}
-		profile.FounderPicture = url
+		g.Go(func() error {
+			url, err := s.s3Client.UploadFile(gCtx, payload.FounderPicture, "foundation-profile")
+			if err != nil {
+				logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload founder picture")
+				return uploadError{field: "founder_picture", msg: "Gagal mengunggah foto pendiri", err: err}
+			}
+			founderPictureURL = url
+			return nil
+		})
 	}
 
 	if payload.Logo != nil {
-		url, err := s.s3Client.UploadFileOriginal(ctx, payload.Logo, "foundation-profile")
-		if err != nil {
-			logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload logo")
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah logo", nil, nil)
-		}
-		profile.Logo = url
+		g.Go(func() error {
+			url, err := s.s3Client.UploadFileOriginal(gCtx, payload.Logo, "foundation-profile")
+			if err != nil {
+				logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload logo")
+				return uploadError{field: "logo", msg: "Gagal mengunggah logo", err: err}
+			}
+			logoURL = url
+			return nil
+		})
 	}
 
 	if payload.Icon != nil {
-		url, err := s.s3Client.UploadFileOriginal(ctx, payload.Icon, "foundation-profile")
-		if err != nil {
-			logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload icon")
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah ikon", nil, nil)
-		}
-		profile.Icon = url
+		g.Go(func() error {
+			url, err := s.s3Client.UploadFileOriginal(gCtx, payload.Icon, "foundation-profile")
+			if err != nil {
+				logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload icon")
+				return uploadError{field: "icon", msg: "Gagal mengunggah ikon", err: err}
+			}
+			iconURL = url
+			return nil
+		})
 	}
 
 	if payload.OrganizationStructure != nil {
-		url, err := s.s3Client.UploadFile(ctx, payload.OrganizationStructure, "foundation-profile")
-		if err != nil {
-			logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload organization structure")
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah struktur organisasi", nil, nil)
-		}
-		profile.OrganizationStructure = url
+		g.Go(func() error {
+			url, err := s.s3Client.UploadFile(gCtx, payload.OrganizationStructure, "foundation-profile")
+			if err != nil {
+				logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload organization structure")
+				return uploadError{field: "organization_structure", msg: "Gagal mengunggah struktur organisasi", err: err}
+			}
+			organizationStructureURL = url
+			return nil
+		})
 	}
 
 	if payload.HeroImageOne != nil {
-		url, err := s.s3Client.UploadFile(ctx, payload.HeroImageOne, "foundation-profile")
-		if err != nil {
-			logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload hero image one")
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah hero image 1", nil, nil)
-		}
-		profile.HeroImageOne = url
+		g.Go(func() error {
+			url, err := s.s3Client.UploadFile(gCtx, payload.HeroImageOne, "foundation-profile")
+			if err != nil {
+				logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload hero image one")
+				return uploadError{field: "hero_image_one", msg: "Gagal mengunggah hero image 1", err: err}
+			}
+			heroImageOneURL = url
+			return nil
+		})
 	}
 
 	if payload.HeroImageTwo != nil {
-		url, err := s.s3Client.UploadFile(ctx, payload.HeroImageTwo, "foundation-profile")
-		if err != nil {
-			logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload hero image two")
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah hero image 2", nil, nil)
-		}
-		profile.HeroImageTwo = url
+		g.Go(func() error {
+			url, err := s.s3Client.UploadFile(gCtx, payload.HeroImageTwo, "foundation-profile")
+			if err != nil {
+				logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload hero image two")
+				return uploadError{field: "hero_image_two", msg: "Gagal mengunggah hero image 2", err: err}
+			}
+			heroImageTwoURL = url
+			return nil
+		})
 	}
 
 	if payload.HeroImageThree != nil {
-		url, err := s.s3Client.UploadFile(ctx, payload.HeroImageThree, "foundation-profile")
-		if err != nil {
-			logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload hero image three")
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah hero image 3", nil, nil)
-		}
-		profile.HeroImageThree = url
+		g.Go(func() error {
+			url, err := s.s3Client.UploadFile(gCtx, payload.HeroImageThree, "foundation-profile")
+			if err != nil {
+				logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload hero image three")
+				return uploadError{field: "hero_image_three", msg: "Gagal mengunggah hero image 3", err: err}
+			}
+			heroImageThreeURL = url
+			return nil
+		})
 	}
 
 	if payload.HeroImageFour != nil {
-		url, err := s.s3Client.UploadFile(ctx, payload.HeroImageFour, "foundation-profile")
-		if err != nil {
-			logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload hero image four")
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah hero image 4", nil, nil)
+		g.Go(func() error {
+			url, err := s.s3Client.UploadFile(gCtx, payload.HeroImageFour, "foundation-profile")
+			if err != nil {
+				logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload hero image four")
+				return uploadError{field: "hero_image_four", msg: "Gagal mengunggah hero image 4", err: err}
+			}
+			heroImageFourURL = url
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		var uErr uploadError
+		if errors.As(err, &uErr) {
+			return pkg.NewResponse(http.StatusInternalServerError, uErr.msg, nil, nil)
 		}
-		profile.HeroImageFour = url
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah file", nil, nil)
+	}
+
+	if founderPictureURL != "" {
+		profile.FounderPicture = founderPictureURL
+	}
+	if logoURL != "" {
+		profile.Logo = logoURL
+	}
+	if iconURL != "" {
+		profile.Icon = iconURL
+	}
+	if organizationStructureURL != "" {
+		profile.OrganizationStructure = organizationStructureURL
+	}
+	if heroImageOneURL != "" {
+		profile.HeroImageOne = heroImageOneURL
+	}
+	if heroImageTwoURL != "" {
+		profile.HeroImageTwo = heroImageTwoURL
+	}
+	if heroImageThreeURL != "" {
+		profile.HeroImageThree = heroImageThreeURL
+	}
+	if heroImageFourURL != "" {
+		profile.HeroImageFour = heroImageFourURL
 	}
 
 	if err := s.repo.CreateFoundationProfile(ctx, profile); err != nil {
@@ -216,100 +298,179 @@ func (s *service) UpdateFoundationProfile(ctx context.Context, id string, payloa
 		updateData["embedded_address"] = payload.EmbeddedAddress
 	}
 
+	var (
+		founderPictureURL        string
+		logoURL                  string
+		iconURL                  string
+		organizationStructureURL string
+		heroImageOneURL          string
+		heroImageTwoURL          string
+		heroImageThreeURL        string
+		heroImageFourURL         string
+	)
+
+	g, gCtx := errgroup.WithContext(ctx)
+
 	if payload.FounderPicture != nil {
-		url, err := s.s3Client.UploadFile(ctx, payload.FounderPicture, "foundation-profile")
-		if err != nil {
-			logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload founder picture")
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah foto pendiri", nil, nil)
-		}
-		if existing.FounderPicture != "" {
-			_ = s.s3Client.DeleteFile(ctx, s3_pkg.ExtractObjectNameFromURL(existing.FounderPicture))
-		}
-		updateData["founder_picture"] = url
+		g.Go(func() error {
+			url, err := s.s3Client.UploadFile(gCtx, payload.FounderPicture, "foundation-profile")
+			if err != nil {
+				logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload founder picture")
+				return uploadError{field: "founder_picture", msg: "Gagal mengunggah foto pendiri", err: err}
+			}
+			founderPictureURL = url
+			return nil
+		})
 	}
 
 	if payload.Logo != nil {
-		url, err := s.s3Client.UploadFileOriginal(ctx, payload.Logo, "foundation-profile")
-		if err != nil {
-			logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload logo")
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah logo", nil, nil)
-		}
-		if existing.Logo != "" {
-			_ = s.s3Client.DeleteFile(ctx, s3_pkg.ExtractObjectNameFromURL(existing.Logo))
-		}
-		updateData["logo"] = url
+		g.Go(func() error {
+			url, err := s.s3Client.UploadFileOriginal(gCtx, payload.Logo, "foundation-profile")
+			if err != nil {
+				logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload logo")
+				return uploadError{field: "logo", msg: "Gagal mengunggah logo", err: err}
+			}
+			logoURL = url
+			return nil
+		})
 	}
 
 	if payload.Icon != nil {
-		url, err := s.s3Client.UploadFileOriginal(ctx, payload.Icon, "foundation-profile")
-		if err != nil {
-			logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload icon")
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah ikon", nil, nil)
-		}
-		if existing.Icon != "" {
-			_ = s.s3Client.DeleteFile(ctx, s3_pkg.ExtractObjectNameFromURL(existing.Icon))
-		}
-		updateData["icon"] = url
+		g.Go(func() error {
+			url, err := s.s3Client.UploadFileOriginal(gCtx, payload.Icon, "foundation-profile")
+			if err != nil {
+				logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload icon")
+				return uploadError{field: "icon", msg: "Gagal mengunggah ikon", err: err}
+			}
+			iconURL = url
+			return nil
+		})
 	}
 
 	if payload.OrganizationStructure != nil {
-		url, err := s.s3Client.UploadFile(ctx, payload.OrganizationStructure, "foundation-profile")
-		if err != nil {
-			logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload organization structure")
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah struktur organisasi", nil, nil)
-		}
-		if existing.OrganizationStructure != "" {
-			_ = s.s3Client.DeleteFile(ctx, s3_pkg.ExtractObjectNameFromURL(existing.OrganizationStructure))
-		}
-		updateData["organization_structure"] = url
+		g.Go(func() error {
+			url, err := s.s3Client.UploadFile(gCtx, payload.OrganizationStructure, "foundation-profile")
+			if err != nil {
+				logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload organization structure")
+				return uploadError{field: "organization_structure", msg: "Gagal mengunggah struktur organisasi", err: err}
+			}
+			organizationStructureURL = url
+			return nil
+		})
 	}
 
 	if payload.HeroImageOne != nil {
-		url, err := s.s3Client.UploadFile(ctx, payload.HeroImageOne, "foundation-profile")
-		if err != nil {
-			logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload hero image one")
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah hero image 1", nil, nil)
-		}
-		if existing.HeroImageOne != "" {
-			_ = s.s3Client.DeleteFile(ctx, s3_pkg.ExtractObjectNameFromURL(existing.HeroImageOne))
-		}
-		updateData["hero_image_one"] = url
+		g.Go(func() error {
+			url, err := s.s3Client.UploadFile(gCtx, payload.HeroImageOne, "foundation-profile")
+			if err != nil {
+				logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload hero image one")
+				return uploadError{field: "hero_image_one", msg: "Gagal mengunggah hero image 1", err: err}
+			}
+			heroImageOneURL = url
+			return nil
+		})
 	}
 
 	if payload.HeroImageTwo != nil {
-		url, err := s.s3Client.UploadFile(ctx, payload.HeroImageTwo, "foundation-profile")
-		if err != nil {
-			logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload hero image two")
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah hero image 2", nil, nil)
-		}
-		if existing.HeroImageTwo != "" {
-			_ = s.s3Client.DeleteFile(ctx, s3_pkg.ExtractObjectNameFromURL(existing.HeroImageTwo))
-		}
-		updateData["hero_image_two"] = url
+		g.Go(func() error {
+			url, err := s.s3Client.UploadFile(gCtx, payload.HeroImageTwo, "foundation-profile")
+			if err != nil {
+				logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload hero image two")
+				return uploadError{field: "hero_image_two", msg: "Gagal mengunggah hero image 2", err: err}
+			}
+			heroImageTwoURL = url
+			return nil
+		})
 	}
 
 	if payload.HeroImageThree != nil {
-		url, err := s.s3Client.UploadFile(ctx, payload.HeroImageThree, "foundation-profile")
-		if err != nil {
-			logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload hero image three")
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah hero image 3", nil, nil)
-		}
-		if existing.HeroImageThree != "" {
-			_ = s.s3Client.DeleteFile(ctx, s3_pkg.ExtractObjectNameFromURL(existing.HeroImageThree))
-		}
-		updateData["hero_image_three"] = url
+		g.Go(func() error {
+			url, err := s.s3Client.UploadFile(gCtx, payload.HeroImageThree, "foundation-profile")
+			if err != nil {
+				logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload hero image three")
+				return uploadError{field: "hero_image_three", msg: "Gagal mengunggah hero image 3", err: err}
+			}
+			heroImageThreeURL = url
+			return nil
+		})
 	}
 
 	if payload.HeroImageFour != nil {
-		url, err := s.s3Client.UploadFile(ctx, payload.HeroImageFour, "foundation-profile")
-		if err != nil {
-			logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload hero image four")
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah hero image 4", nil, nil)
+		g.Go(func() error {
+			url, err := s.s3Client.UploadFile(gCtx, payload.HeroImageFour, "foundation-profile")
+			if err != nil {
+				logrus.WithField("component", "foundation_profile.service").WithError(err).Error("failed to upload hero image four")
+				return uploadError{field: "hero_image_four", msg: "Gagal mengunggah hero image 4", err: err}
+			}
+			heroImageFourURL = url
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		var uErr uploadError
+		if errors.As(err, &uErr) {
+			return pkg.NewResponse(http.StatusInternalServerError, uErr.msg, nil, nil)
 		}
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah file", nil, nil)
+	}
+
+	var filesToDelete []string
+
+	if payload.FounderPicture != nil {
+		if existing.FounderPicture != "" {
+			filesToDelete = append(filesToDelete, existing.FounderPicture)
+		}
+		updateData["founder_picture"] = founderPictureURL
+	}
+
+	if payload.Logo != nil {
+		if existing.Logo != "" {
+			filesToDelete = append(filesToDelete, existing.Logo)
+		}
+		updateData["logo"] = logoURL
+	}
+
+	if payload.Icon != nil {
+		if existing.Icon != "" {
+			filesToDelete = append(filesToDelete, existing.Icon)
+		}
+		updateData["icon"] = iconURL
+	}
+
+	if payload.OrganizationStructure != nil {
+		if existing.OrganizationStructure != "" {
+			filesToDelete = append(filesToDelete, existing.OrganizationStructure)
+		}
+		updateData["organization_structure"] = organizationStructureURL
+	}
+
+	if payload.HeroImageOne != nil {
+		if existing.HeroImageOne != "" {
+			filesToDelete = append(filesToDelete, existing.HeroImageOne)
+		}
+		updateData["hero_image_one"] = heroImageOneURL
+	}
+
+	if payload.HeroImageTwo != nil {
+		if existing.HeroImageTwo != "" {
+			filesToDelete = append(filesToDelete, existing.HeroImageTwo)
+		}
+		updateData["hero_image_two"] = heroImageTwoURL
+	}
+
+	if payload.HeroImageThree != nil {
+		if existing.HeroImageThree != "" {
+			filesToDelete = append(filesToDelete, existing.HeroImageThree)
+		}
+		updateData["hero_image_three"] = heroImageThreeURL
+	}
+
+	if payload.HeroImageFour != nil {
 		if existing.HeroImageFour != "" {
-			_ = s.s3Client.DeleteFile(ctx, s3_pkg.ExtractObjectNameFromURL(existing.HeroImageFour))
+			filesToDelete = append(filesToDelete, existing.HeroImageFour)
 		}
-		updateData["hero_image_four"] = url
+		updateData["hero_image_four"] = heroImageFourURL
 	}
 
 	if len(updateData) == 0 {
@@ -324,6 +485,11 @@ func (s *service) UpdateFoundationProfile(ctx context.Context, id string, payloa
 	}
 
 	s.logService.CreateLog(ctx, nil, "UPDATE", "foundation_profile", id, existing.toFoundationProfileResponse(), updateData)
+
+	// Clean up old files after successful DB update
+	for _, oldFile := range filesToDelete {
+		_ = s.s3Client.DeleteFile(ctx, s3_pkg.ExtractObjectNameFromURL(oldFile))
+	}
 
 	return pkg.NewResponse(http.StatusOK, "Profil yayasan berhasil diperbarui", nil, nil)
 }
