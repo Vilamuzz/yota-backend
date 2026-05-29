@@ -19,6 +19,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/foster_children"
 	"github.com/Vilamuzz/yota-backend/app/foster_children_expense"
 	"github.com/Vilamuzz/yota-backend/app/foster_children_transaction"
+	"github.com/Vilamuzz/yota-backend/app/foundation_profile"
 	"github.com/Vilamuzz/yota-backend/app/gallery"
 	app_log "github.com/Vilamuzz/yota-backend/app/log"
 	"github.com/Vilamuzz/yota-backend/app/media"
@@ -56,6 +57,7 @@ type Container struct {
 	DonationRepo                  donation_program.Repository
 	NewsRepo                      news.Repository
 	NewsCommentRepo               news_comment.Repository
+	FoundationProfileRepo          foundation_profile.Repository
 	GalleryRepo                   gallery.Repository
 	MediaRepo                     media.Repository
 	PrayerRepo                    prayer.Repository
@@ -81,6 +83,7 @@ type Container struct {
 	DonationService                  donation_program.Service
 	NewsService                      news.Service
 	NewsCommentService               news_comment.Service
+	FoundationProfileService         foundation_profile.Service
 	GalleryService                   gallery.Service
 	MediaService                     media.Service
 	TransactionDonationService       donation_program_transaction.Service
@@ -185,6 +188,7 @@ func (c *Container) initRepositories() {
 	c.DonationRepo = donation_program.NewRepository(c.DB)
 	c.NewsRepo = news.NewRepository(c.DB)
 	c.NewsCommentRepo = news_comment.NewRepository(c.DB)
+	c.FoundationProfileRepo = foundation_profile.NewRepository(c.DB)
 	c.GalleryRepo = gallery.NewRepository(c.DB)
 	c.MediaRepo = media.NewRepository(c.DB)
 	c.PrayerRepo = prayer.NewRepository(c.DB)
@@ -213,13 +217,14 @@ func (c *Container) initServices() {
 	c.MediaService = media.NewService(c.MediaRepo, c.S3Client)
 	c.NewsService = news.NewService(c.NewsRepo, c.LogService, c.S3Client, c.MediaService, c.Timeout)
 	c.NewsCommentService = news_comment.NewService(c.NewsCommentRepo, c.NewsRepo, c.Timeout)
+	c.FoundationProfileService = foundation_profile.NewService(c.FoundationProfileRepo, c.LogService, c.S3Client, c.Timeout)
 	c.GalleryService = gallery.NewService(c.GalleryRepo, c.LogService, c.S3Client, c.MediaService, c.Timeout)
 	c.TransactionDonationService = donation_program_transaction.NewService(c.TransactionDonationRepo, c.AccountRepo, c.DonationRepo, c.PrayerRepo, c.FinanceRecordRepo, c.MidtransClient, c.LogService, c.Timeout)
 	c.PrayerService = prayer.NewService(c.PrayerRepo, c.DonationRepo, c.Timeout)
 	c.DonationExpenseService = donation_program_expense.NewService(c.DonationExpenseRepo, c.FinanceRecordRepo, c.DonationRepo, c.S3Client, c.LogService, c.Timeout)
 	c.AmbulanceService = ambulance.NewService(c.AmbulanceRepo, c.S3Client, c.Timeout)
 	c.AmbulanceHistoryService = ambulance_history.NewService(c.AmbulanceHistoryRepo, c.AmbulanceRepo, c.Timeout)
-	c.AmbulanceServiceRequestService = ambulance_service_request.NewService(c.AmbulanceServiceRequestRepo, c.Timeout)
+	c.AmbulanceServiceRequestService = ambulance_service_request.NewService(c.AmbulanceServiceRequestRepo, c.AmbulanceRepo, c.Timeout)
 	c.FosterChildrenService = foster_children.NewService(c.FosterChildrenRepo, c.LogService, c.S3Client, c.Timeout)
 	c.FosterChildrenExpenseService = foster_children_expense.NewService(c.FosterChildrenExpenseRepo, c.FinanceRecordRepo, c.FosterChildrenRepo, c.S3Client, c.LogService, c.Timeout)
 	c.FosterChildrenTransactionService = foster_children_transaction.NewService(c.FosterChildrenTransactionRepo, c.AccountRepo, c.FosterChildrenRepo, c.FinanceRecordRepo, c.MidtransClient, c.LogService, c.Timeout)
@@ -275,6 +280,7 @@ func (c *Container) RegisterHandlers(router *gin.RouterGroup) {
 	prayer.NewHandler(router, c.PrayerService, *c.Middleware)
 	news.NewHandler(router, c.NewsService, *c.Middleware)
 	news_comment.NewHandler(router, c.NewsCommentService, *c.Middleware)
+	foundation_profile.NewHandler(router, c.FoundationProfileService, *c.Middleware)
 	gallery.NewHandler(router, c.GalleryService, c.MediaService, *c.Middleware)
 	ambulance.NewHandler(router, c.AmbulanceService, *c.Middleware)
 	ambulance_history.NewHandler(router, c.AmbulanceHistoryService, *c.Middleware)

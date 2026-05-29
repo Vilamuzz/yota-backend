@@ -22,6 +22,7 @@ type Service interface {
 
 	GetFosterChildrenCandidateList(ctx context.Context, params FosterChildrenCandidateQueryParams) pkg.Response
 	GetFosterChildrenCandidateByID(ctx context.Context, id string) pkg.Response
+	GetMyFosterChildrenCandidateByID(ctx context.Context, accountID string, id string) pkg.Response
 	CreateFosterChildrenCandidate(ctx context.Context, accountID string, req CreateFosterChildrenCandidateRequest) pkg.Response
 	AcceptFosterChildrenCandidate(ctx context.Context, id string, role enum.RoleName) pkg.Response
 	RejectFosterChildrenCandidate(ctx context.Context, id string, req RejectFosterChildrenCandidateRequest) pkg.Response
@@ -585,6 +586,28 @@ func (s *service) GetFosterChildrenCandidateByID(ctx context.Context, id string)
 	})
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "Calon tidak ditemukan", nil, nil)
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, candidate.ToFosterChildrenCandidateResponse())
+}
+
+func (s *service) GetMyFosterChildrenCandidateByID(ctx context.Context, accountID string, id string) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	if err := uuid.Validate(id); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format tidak valid"}, nil)
+	}
+
+	candidate, err := s.repo.FindOneFosterChildrenCandidate(ctx, map[string]interface{}{
+		"id": id,
+	})
+	if err != nil {
+		return pkg.NewResponse(http.StatusNotFound, "Calon tidak ditemukan", nil, nil)
+	}
+
+	if candidate.SubmittedBy.String() != accountID {
+		return pkg.NewResponse(http.StatusForbidden, "Anda tidak memiliki akses untuk melihat calon ini", nil, nil)
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, candidate.ToFosterChildrenCandidateResponse())

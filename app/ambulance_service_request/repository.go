@@ -28,7 +28,9 @@ func (r *repository) Create(ctx context.Context, ambulanceServiceRequest Ambulan
 
 func (r *repository) FindByID(ctx context.Context, id string) (AmbulanceServiceRequest, error) {
 	var ambulanceServiceRequest AmbulanceServiceRequest
-	if err := r.Conn.First(&ambulanceServiceRequest, id).Error; err != nil {
+	if err := r.Conn.WithContext(ctx).
+		Preload("Ambulance.Driver.UserProfile").
+		First(&ambulanceServiceRequest, "id = ?", id).Error; err != nil {
 		return AmbulanceServiceRequest{}, err
 	}
 	return ambulanceServiceRequest, nil
@@ -37,6 +39,14 @@ func (r *repository) FindByID(ctx context.Context, id string) (AmbulanceServiceR
 func (r *repository) FindAll(ctx context.Context, options map[string]interface{}) ([]AmbulanceServiceRequest, error) {
 	var ambulanceServiceRequests []AmbulanceServiceRequest
 	query := r.Conn.WithContext(ctx)
+
+	if accountID, ok := options["account_id"]; ok && accountID != "" {
+		query = query.Where("account_id = ?", accountID)
+	}
+
+	if ambulanceID, ok := options["ambulance_id"]; ok && ambulanceID != "" {
+		query = query.Where("ambulance_id = ?", ambulanceID)
+	}
 
 	if nextCursor, ok := options["next_cursor"]; ok && nextCursor != "" {
 		cursorData, err := pkg.DecodeCursor(nextCursor.(string))

@@ -23,7 +23,7 @@ type Account struct {
 type UserProfile struct {
 	ID             uuid.UUID `json:"id" gorm:"primaryKey"`
 	AccountID      uuid.UUID `json:"accountId" gorm:"unique;not null"`
-	Username       string    `json:"username" gorm:"unique"`
+	Username       string    `json:"username"`
 	Phone          *string   `json:"phone" gorm:"unique"`
 	Address        string    `json:"address"`
 	ProfilePicture string    `json:"profilePicture"`

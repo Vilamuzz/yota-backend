@@ -2,6 +2,7 @@ package ambulance_history
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 
 type Service interface {
 	ListAmbulanceHistory(ctx context.Context, queryParams AmbulanceHistoryQueryParams) pkg.Response
+	AmbulanceHistorySummary(ctx context.Context, ambulanceID string, params AmbulanceSummaryQueryParams) pkg.Response
 	CreateAmbulanceHistory(ctx context.Context, payload CreateAmbulanceHistoryRequest) pkg.Response
 	UpdateAmbulanceHistory(ctx context.Context, id string, payload UpdateAmbulanceHistoryRequest) pkg.Response
 	DeleteAmbulanceHistory(ctx context.Context, id string) pkg.Response
@@ -43,7 +45,7 @@ func (s *service) ListAmbulanceHistory(ctx context.Context, queryParams Ambulanc
 	options := map[string]interface{}{
 		"limit": queryParams.Limit,
 	}
-	if queryParams.AmbulanceID != 0 {
+	if queryParams.AmbulanceID != "" {
 		options["ambulance_id"] = queryParams.AmbulanceID
 	}
 	if queryParams.ServiceCategory != "" {
@@ -84,6 +86,96 @@ func (s *service) ListAmbulanceHistory(ctx context.Context, queryParams Ambulanc
 	}))
 }
 
+func (s *service) AmbulanceHistorySummary(ctx context.Context, ambulanceID string, params AmbulanceSummaryQueryParams) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	if ambulanceID == "" {
+		return pkg.NewResponse(http.StatusBadRequest, "Ambulance ID is required", nil, nil)
+	}
+
+	var startDate, endDate *time.Time
+	now := time.Now()
+
+	// Default to all_time when period is not specified
+	if params.Period == "" {
+		params.Period = PeriodAllTime
+	}
+
+	switch params.Period {
+	case PeriodThisWeek:
+		weekday := int(now.Weekday())
+		if weekday == 0 {
+			weekday = 7 // Sunday → treat as end of week
+		}
+		start := now.AddDate(0, 0, -(weekday - 1)).Truncate(24 * time.Hour)
+		end := start.AddDate(0, 0, 6).Add(24*time.Hour - time.Nanosecond)
+		startDate, endDate = &start, &end
+
+	case PeriodThisMonth:
+		start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+		end := start.AddDate(0, 1, 0).Add(-time.Nanosecond)
+		startDate, endDate = &start, &end
+
+	case PeriodThisYear:
+		start := time.Date(now.Year(), 1, 1, 0, 0, 0, 0, now.Location())
+		end := start.AddDate(1, 0, 0).Add(-time.Nanosecond)
+		startDate, endDate = &start, &end
+
+	case PeriodCustom:
+		if params.StartDate == "" || params.EndDate == "" {
+			return pkg.NewResponse(http.StatusBadRequest,
+				"start_date and end_date are required when period is \"custom\"", nil, nil)
+		}
+		parsedStart, err := time.ParseInLocation("2006-01-02", params.StartDate, now.Location())
+		if err != nil {
+			return pkg.NewResponse(http.StatusBadRequest,
+				fmt.Sprintf("invalid start_date format: %s (expected YYYY-MM-DD)", params.StartDate), nil, nil)
+		}
+		parsedEnd, err := time.ParseInLocation("2006-01-02", params.EndDate, now.Location())
+		if err != nil {
+			return pkg.NewResponse(http.StatusBadRequest,
+				fmt.Sprintf("invalid end_date format: %s (expected YYYY-MM-DD)", params.EndDate), nil, nil)
+		}
+		parsedEnd = parsedEnd.Add(24*time.Hour - time.Nanosecond) // inclusive end
+		if parsedStart.After(parsedEnd) {
+			return pkg.NewResponse(http.StatusBadRequest, "start_date must be before end_date", nil, nil)
+		}
+		startDate, endDate = &parsedStart, &parsedEnd
+
+	case PeriodAllTime:
+		// no date filter
+
+	default:
+		return pkg.NewResponse(http.StatusBadRequest,
+			"invalid period; accepted values: all_time, this_week, this_month, this_year, custom", nil, nil)
+	}
+
+	counts, err := s.repo.GetSummary(ctx, ambulanceID, startDate, endDate)
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Failed to get ambulance history summary", nil, nil)
+	}
+
+	var total int64
+	for _, c := range counts {
+		total += c.Count
+	}
+
+	summary := SummaryResponse{
+		Total:      total,
+		Categories: counts,
+		Period:     string(params.Period),
+	}
+	if startDate != nil {
+		summary.StartDate = startDate.Format("2006-01-02")
+	}
+	if endDate != nil {
+		summary.EndDate = endDate.Format("2006-01-02")
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Success", nil, summary)
+}
+
 func (s *service) CreateAmbulanceHistory(ctx context.Context, payload CreateAmbulanceHistoryRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
@@ -102,10 +194,15 @@ func (s *service) CreateAmbulanceHistory(ctx context.Context, payload CreateAmbu
 		}
 	}
 	if payload.ServiceCategory == "" {
-
 		errValidation["service_category"] = "Service category is required"
-	} else if payload.ServiceCategory != SocialService && payload.ServiceCategory != EmergencyService && payload.ServiceCategory != OtherService {
+	} else if payload.ServiceCategory != SocialService && payload.ServiceCategory != EmergencyService && payload.ServiceCategory != OtherService && payload.ServiceCategory != MortuaryService && payload.ServiceCategory != PatientService {
 		errValidation["service_category"] = "Invalid service category"
+	}
+
+	if payload.DriverID == "" {
+		errValidation["driver_id"] = "Driver ID is required"
+	} else if _, err := uuid.Parse(payload.DriverID); err != nil {
+		errValidation["driver_id"] = "Invalid Driver ID format"
 	}
 
 	if len(errValidation) > 0 {
@@ -115,7 +212,9 @@ func (s *service) CreateAmbulanceHistory(ctx context.Context, payload CreateAmbu
 	now := time.Now()
 	ambulanceHistory := AmbulanceHistory{
 		AmbulanceID:     uuid.MustParse(payload.AmbulanceID),
+		DriverID:        uuid.MustParse(payload.DriverID),
 		ServiceCategory: payload.ServiceCategory,
+		Note:            payload.Note,
 		CreatedAt:       now,
 	}
 	if err := s.repo.Create(ctx, ambulanceHistory); err != nil {

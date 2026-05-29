@@ -1,17 +1,17 @@
 package ambulance
 
 import (
+	"github.com/Vilamuzz/yota-backend/app/account"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/google/uuid"
 )
 
 type AmbulanceResponse struct {
-	ID          string          `json:"id"`
-	DriverName  string          `json:"driverName"`
-	DriverPhone string          `json:"driverPhone"`
-	Image       string          `json:"image"`
-	PlateNumber string          `json:"plateNumber"`
-	Status      AmbulanceStatus `json:"status"`
+	ID          string                 `json:"id"`
+	Driver      account.DriverResponse `json:"driver"`
+	Image       string                 `json:"image"`
+	PlateNumber string                 `json:"plateNumber"`
+	Status      AmbulanceStatus        `json:"status"`
 }
 
 type AmbulanceListResponse struct {
@@ -20,24 +20,33 @@ type AmbulanceListResponse struct {
 }
 
 func (a *Ambulance) toAmbulanceResponse() AmbulanceResponse {
-	driverName := "Unknown"
-	driverPhone := "-"
+	driver := account.DriverResponse{
+		ID:       "",
+		Username: "Unknown",
+		Phone:    "-",
+	}
 
 	if a.Driver.ID != uuid.Nil && a.Driver.UserProfile.ID != uuid.Nil {
-		driverName = a.Driver.UserProfile.Username
+		driver.ID = a.DriverID.String()
+		driver.Username = a.Driver.UserProfile.Username
 		if a.Driver.UserProfile.Phone != nil {
-			driverPhone = *a.Driver.UserProfile.Phone
+			driver.Phone = *a.Driver.UserProfile.Phone
 		}
+	} else if a.DriverID != uuid.Nil {
+		driver.ID = a.DriverID.String()
 	}
 
 	return AmbulanceResponse{
 		ID:          a.ID.String(),
-		PlateNumber: a.PlateNumber,
+		Driver:      driver,
 		Image:       a.Image,
-		DriverName:  driverName,
-		DriverPhone: driverPhone,
+		PlateNumber: a.PlateNumber,
 		Status:      a.Status,
 	}
+}
+
+func (a *Ambulance) ToAmbulanceResponse() AmbulanceResponse {
+	return a.toAmbulanceResponse()
 }
 
 func toAmbulanceListResponse(ambulances []Ambulance, pagination pkg.CursorPagination) AmbulanceListResponse {

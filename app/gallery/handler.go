@@ -53,7 +53,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // @Param category_id query int false "Filter by category ID"
 // @Param cursor query string false "Cursor for pagination (encoded string)"
 // @Param limit query int false "Items per page (default: 10, max: 100)"
-// @Success 200 {object} pkg.Response{data=PublishedGalleryListResponse}
+// @Success 200 {object} pkg.Response{data=GalleryListResponse}
 // @Router /api/public/galleries/ [get]
 func (h *handler) GetGalleryList(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -76,7 +76,7 @@ func (h *handler) GetGalleryList(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path string true "Gallery ID"
-// @Success 200 {object} pkg.Response{data=PublishedGalleryResponse}
+// @Success 200 {object} pkg.Response{data=GalleryResponse}
 // @Router /api/public/galleries/{id} [get]
 func (h *handler) GetGalleryBySlug(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -97,7 +97,7 @@ func (h *handler) GetGalleryBySlug(c *gin.Context) {
 // @Param category_id query int false "Filter by category ID"
 // @Param cursor query string false "Cursor for pagination (encoded string)"
 // @Param limit query int false "Items per page (default: 10, max: 100)"
-// @Success 200 {object} pkg.Response{data=PublishedGalleryListResponse}
+// @Success 200 {object} pkg.Response{data=GalleryListResponse}
 // @Router /api/galleries/ [get]
 func (h *handler) GetAdminGalleryList(c *gin.Context) {
 	ctx := c.Request.Context()

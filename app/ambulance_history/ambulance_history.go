@@ -3,6 +3,7 @@ package ambulance_history
 import (
 	"time"
 
+	"github.com/Vilamuzz/yota-backend/app/account"
 	"github.com/google/uuid"
 )
 
@@ -13,6 +14,8 @@ type AmbulanceHistory struct {
 	ServiceCategory ServiceCategory `json:"serviceCategory" gorm:"not null"`
 	Note            string          `json:"note"`
 	CreatedAt       time.Time       `json:"createdAt" gorm:"not null"`
+
+	Driver account.Account `json:"driver" gorm:"foreignKey:DriverID"`
 }
 
 type ServiceCategory string

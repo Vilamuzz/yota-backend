@@ -1,7 +1,10 @@
 package foster_children_expense
 
 import (
+	"bytes"
 	"context"
+	"encoding/csv"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -19,6 +22,7 @@ type Service interface {
 	GetFosterChildrenExpenseByID(ctx context.Context, fosterChildrenExpenseID string) pkg.Response
 	CreateFosterChildrenExpense(ctx context.Context, accountID, fosterChildrenID string, payload *FosterChildrenExpenseRequest) pkg.Response
 	DeleteFosterChildrenExpense(ctx context.Context, accountID, fosterChildrenExpenseID string) pkg.Response
+	ExportFosterChildrenExpenseCSV(ctx context.Context, fosterChildrenID string, params FosterChildrenExpenseExportParams) ([]byte, string, error)
 }
 
 type service struct {
@@ -246,4 +250,71 @@ func (s *service) DeleteFosterChildrenExpense(ctx context.Context, accountID, fo
 	s.logService.CreateLog(ctx, &accountID, "DELETE", "foster_children_expense", fosterChildrenExpenseID, expense.toFosterChildrenExpenseDetailResponse(), nil)
 
 	return pkg.NewResponse(http.StatusOK, "Pengeluaran berhasil dihapus", nil, nil)
+}
+
+func (s *service) ExportFosterChildrenExpenseCSV(ctx context.Context, fosterChildrenID string, params FosterChildrenExpenseExportParams) ([]byte, string, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	if err := uuid.Validate(fosterChildrenID); err != nil {
+		return nil, "", fmt.Errorf("format ID anak asuh tidak valid")
+	}
+
+	if params.StartDate != "" {
+		if _, err := time.Parse("2006-01-02", params.StartDate); err != nil {
+			return nil, "", fmt.Errorf("format start_date tidak valid (gunakan YYYY-MM-DD)")
+		}
+	}
+	if params.EndDate != "" {
+		if _, err := time.Parse("2006-01-02", params.EndDate); err != nil {
+			return nil, "", fmt.Errorf("format end_date tidak valid (gunakan YYYY-MM-DD)")
+		}
+	}
+
+	expenses, err := s.repo.FindAllFosterChildrenExpensesForExport(ctx, fosterChildrenID, params)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":          "foster_children_expense.service",
+			"foster_children_id": fosterChildrenID,
+		}).WithError(err).Error("failed to fetch expenses for export")
+		return nil, "", fmt.Errorf("gagal mengambil data pengeluaran")
+	}
+
+	var buf bytes.Buffer
+	w := csv.NewWriter(&buf)
+
+	header := []string{"No", "Judul", "Jumlah (Rp)", "Tanggal Pengeluaran", "Catatan", "Dibuat Pada"}
+	if err := w.Write(header); err != nil {
+		return nil, "", fmt.Errorf("gagal menulis header CSV")
+	}
+
+	for i, expense := range expenses {
+		row := []string{
+			fmt.Sprintf("%d", i+1),
+			expense.Title,
+			fmt.Sprintf("%.2f", expense.Amount),
+			expense.ExpenseDate.Format("2006-01-02"),
+			expense.Note,
+			expense.CreatedAt.Format("2006-01-02 15:04:05"),
+		}
+		if err := w.Write(row); err != nil {
+			return nil, "", fmt.Errorf("gagal menulis baris CSV")
+		}
+	}
+
+	w.Flush()
+	if err := w.Error(); err != nil {
+		return nil, "", fmt.Errorf("gagal menyelesaikan penulisan CSV")
+	}
+
+	periodPart := "all"
+	if params.StartDate != "" && params.EndDate != "" {
+		periodPart = params.StartDate + "_to_" + params.EndDate
+	} else if params.StartDate != "" {
+		periodPart = "from_" + params.StartDate
+	} else if params.EndDate != "" {
+		periodPart = "until_" + params.EndDate
+	}
+	filename := fmt.Sprintf("foster_children_expenses_%s_%s_%s.csv", fosterChildrenID, periodPart, time.Now().Format("20060102_150405"))
+	return buf.Bytes(), filename, nil
 }

@@ -13,7 +13,7 @@ import (
 
 type Service interface {
 	CreateAmbulance(ctx context.Context, payload CreateAmbulanceRequest) pkg.Response
-	FindAmbulanceById(ctx context.Context, id string) pkg.Response
+	GetAmbulanceByID(ctx context.Context, id string) pkg.Response
 	ListAmbulance(ctx context.Context, queryParams AmbulanceQueryParams) pkg.Response
 	UpdateAmbulance(ctx context.Context, id string, payload UpdateAmbulanceRequest) pkg.Response
 	DeleteAmbulance(ctx context.Context, id string) pkg.Response
@@ -84,7 +84,7 @@ func (s *service) CreateAmbulance(ctx context.Context, payload CreateAmbulanceRe
 	return pkg.NewResponse(http.StatusOK, "Ambulans berhasil dibuat", nil, nil)
 }
 
-func (s *service) FindAmbulanceById(ctx context.Context, id string) pkg.Response {
+func (s *service) GetAmbulanceByID(ctx context.Context, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 	if err := uuid.Validate(id); err != nil {
@@ -94,7 +94,7 @@ func (s *service) FindAmbulanceById(ctx context.Context, id string) pkg.Response
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menemukan data ambulans", nil, nil)
 	}
-	return pkg.NewResponse(http.StatusOK, "Berhasil menemukan data ambulans", nil, ambulance)
+	return pkg.NewResponse(http.StatusOK, "Berhasil menemukan data ambulans", nil, ambulance.toAmbulanceResponse())
 }
 
 func (s *service) ListAmbulance(ctx context.Context, queryParams AmbulanceQueryParams) pkg.Response {
@@ -113,6 +113,9 @@ func (s *service) ListAmbulance(ctx context.Context, queryParams AmbulanceQueryP
 	}
 	if queryParams.PrevCursor != "" {
 		options["prev_cursor"] = queryParams.PrevCursor
+	}
+	if queryParams.DriverID != "" {
+		options["driver_id"] = queryParams.DriverID
 	}
 
 	ambulances, err := s.repo.FindAllAmbulances(ctx, options)

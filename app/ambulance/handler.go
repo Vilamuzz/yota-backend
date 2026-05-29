@@ -6,6 +6,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/Vilamuzz/yota-backend/pkg/enum"
+	jwt_pkg "github.com/Vilamuzz/yota-backend/pkg/jwt"
 	"github.com/gin-gonic/gin"
 )
 
@@ -28,13 +29,18 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	public.GET("/:id", h.GetAmbulanceByID)
 
 	admin := r.Group("/admin/ambulances")
-	admin.Use(h.middleware.RequireRoles(enum.RoleAmbulanceManager))
+	admin.Use(h.middleware.RequireRoles(enum.RoleAmbulanceManager, enum.RoleAmbulanceDriver))
 	{
 		admin.GET("", h.ListAmbulances)
 		admin.GET("/:id", h.GetAmbulanceByID)
-		admin.POST("", h.CreateAmbulance)
-		admin.PUT("/:id", h.UpdateAmbulance)
-		admin.DELETE("/:id", h.DeleteAmbulance)
+	}
+
+	ambulanceManager := r.Group("/admin/ambulances")
+	ambulanceManager.Use(h.middleware.RequireRoles(enum.RoleAmbulanceManager))
+	{
+		ambulanceManager.POST("", h.CreateAmbulance)
+		ambulanceManager.PUT("/:id", h.UpdateAmbulance)
+		ambulanceManager.DELETE("/:id", h.DeleteAmbulance)
 	}
 }
 
@@ -58,6 +64,16 @@ func (h *handler) ListAmbulances(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
 		return
 	}
+
+	userData, exists := c.Get("user_data")
+	if exists {
+		if claims, ok := userData.(jwt_pkg.UserJWTClaims); ok {
+			if claims.ActiveRole == enum.RoleAmbulanceDriver {
+				queryParams.DriverID = claims.AccountID
+			}
+		}
+	}
+
 	res := h.service.ListAmbulance(ctx, queryParams)
 	c.JSON(res.Status, res)
 }
@@ -65,7 +81,7 @@ func (h *handler) ListAmbulances(c *gin.Context) {
 func (h *handler) GetAmbulanceByID(c *gin.Context) {
 	ctx := c.Request.Context()
 	ambulanceID := c.Param("id")
-	res := h.service.FindAmbulanceById(ctx, ambulanceID)
+	res := h.service.GetAmbulanceByID(ctx, ambulanceID)
 	c.JSON(res.Status, res)
 }
 

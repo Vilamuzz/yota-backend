@@ -3,28 +3,33 @@ package ambulance_service_request
 import (
 	"time"
 
+	"github.com/Vilamuzz/yota-backend/app/ambulance"
 	"github.com/google/uuid"
 )
 
 type AmbulanceServiceRequest struct {
-	ID               uuid.UUID `json:"id" gorm:"primaryKey"`
-	AccountID        uuid.UUID `json:"accountId" gorm:"not null"`
-	ApplicantName    string    `json:"applicantName" gorm:"not null"`
-	ApplicantPhone   string    `json:"applicantPhone" gorm:"not null"`
-	ApplicantAddress string    `json:"applicantAddress" gorm:"not null"`
-	Description      string    `json:"description" gorm:"not null"`
-	RequestDate      time.Time `json:"requestDate" gorm:"not null"`
-	RequestReason    string    `json:"requestReason" gorm:"not null"`
-	Status           Status    `json:"status" gorm:"not null"`
-	RejectionReason  string    `json:"rejectionReason"`
-	CreatedAt        time.Time `json:"createdAt"`
-	UpdatedAt        time.Time `json:"updatedAt"`
+	ID               uuid.UUID  `json:"id" gorm:"primaryKey"`
+	AccountID        uuid.UUID  `json:"accountId" gorm:"not null"`
+	AmbulanceID      *uuid.UUID `json:"ambulanceId"`
+	ApplicantName    string     `json:"applicantName"`
+	ApplicantPhone   string     `json:"applicantPhone"`
+	ApplicantAddress string     `json:"applicantAddress"`
+	Description      string     `json:"description"`
+	RequestDate      time.Time  `json:"requestDate"`
+	RequestReason    string     `json:"requestReason"`
+	Status           Status     `json:"status"`
+	RejectionReason  string     `json:"rejectionReason"`
+	CreatedAt        time.Time  `json:"createdAt"`
+	UpdatedAt        time.Time  `json:"updatedAt"`
+
+	Ambulance *ambulance.Ambulance `json:"ambulance" gorm:"foreignKey:AmbulanceID"`
 }
 
 type Status string
 
 const (
-	StatusPending  Status = "pending"
-	StatusApproved Status = "approved"
-	StatusRejected Status = "rejected"
+	StatusPending   Status = "pending"
+	StatusApproved  Status = "approved"
+	StatusRejected  Status = "rejected"
+	StatusCancelled Status = "cancelled"
 )

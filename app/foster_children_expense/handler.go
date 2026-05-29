@@ -27,6 +27,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	public := r.Group("/foster-children")
 	public.GET("/:id/expenses", h.GetFosterChildrenExpenseList)
 	public.GET("/expenses/:id", h.GetFosterChildrenExpenseByID)
+	public.GET("/:id/expenses/export", h.ExportFosterChildrenExpenseCSV)
 
 	admin := r.Group("/admin/foster-children")
 	admin.Use(h.middleware.RequireRoles(enum.RoleFinance))
@@ -130,4 +131,37 @@ func (h *handler) DeleteFosterChildrenExpense(c *gin.Context) {
 
 	resp := h.service.DeleteFosterChildrenExpense(ctx, claims.AccountID, id)
 	c.JSON(resp.Status, resp)
+}
+
+// ExportFosterChildrenExpenseCSV
+//
+// @Summary Export Foster Children Expense as CSV
+// @Description Export all expenses for a specific foster child as a CSV file (publicly accessible)
+// @Tags Foster Children
+// @Produce text/csv
+// @Param id path string true "Foster Children ID"
+// @Param start_date query string false "Filter start date (YYYY-MM-DD, inclusive)"
+// @Param end_date query string false "Filter end date (YYYY-MM-DD, inclusive)"
+// @Success 200 {file} binary "CSV file"
+// @Router /api/foster-children/{id}/expenses/export [get]
+func (h *handler) ExportFosterChildrenExpenseCSV(c *gin.Context) {
+	ctx := c.Request.Context()
+	fosterChildrenID := c.Param("id")
+
+	var params FosterChildrenExpenseExportParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
+		return
+	}
+
+	csvBytes, filename, err := h.service.ExportFosterChildrenExpenseCSV(ctx, fosterChildrenID, params)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
+		return
+	}
+
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Type", "text/csv; charset=utf-8")
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Data(http.StatusOK, "text/csv; charset=utf-8", csvBytes)
 }

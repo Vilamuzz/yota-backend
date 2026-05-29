@@ -33,8 +33,9 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	user.Use(h.middleware.RequireRoles(enum.RoleOrangTuaAsuh))
 	{
 		user.POST("", h.CreateFosterChildrenCandidate)
-		user.GET("/me", h.GetMyFosterChildrenCandidateList)
-		user.DELETE("/me/:id", h.CancelFosterChildrenCandidate)
+		user.GET("", h.GetMyFosterChildrenCandidateList)
+		user.GET("/:id", h.GetMyFosterChildrenCandidateByID)
+		user.DELETE("/:id", h.CancelFosterChildrenCandidate)
 	}
 
 	admin := r.Group("/admin/foster-children/candidates")
@@ -251,6 +252,25 @@ func (h *handler) CancelFosterChildrenCandidate(c *gin.Context) {
 	id := c.Param("id")
 
 	res := h.service.CancelFosterChildrenCandidate(ctx, claims.AccountID, id)
+	c.JSON(res.Status, res)
+}
+
+// GetMyFosterChildrenCandidateByID
+//
+// @Summary Get My Foster Children Candidate By ID
+// @Description Get a specific foster children candidate submitted by the user
+// @Tags Foster Children Candidates
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Candidate ID"
+// @Success 200 {object} pkg.Response
+// @Router /api/foster-children/candidates/{id} [get]
+func (h *handler) GetMyFosterChildrenCandidateByID(c *gin.Context) {
+	ctx := c.Request.Context()
+	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
+	id := c.Param("id")
+
+	res := h.service.GetMyFosterChildrenCandidateByID(ctx, claims.AccountID, id)
 	c.JSON(res.Status, res)
 }
 

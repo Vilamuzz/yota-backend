@@ -36,6 +36,9 @@ func (r *repository) FindAllAmbulances(ctx context.Context, options map[string]i
 	if status, ok := options["status"]; ok && status != "" {
 		query = query.Where("status = ?", status)
 	}
+	if driverID, ok := options["driver_id"]; ok && driverID != "" {
+		query = query.Where("driver_id = ?", driverID)
+	}
 
 	if nextCursor, ok := options["next_cursor"]; ok && nextCursor != "" {
 		cursorData, err := pkg.DecodeCursor(nextCursor.(string))
@@ -78,6 +81,9 @@ func (r *repository) FindOneAmbulance(ctx context.Context, options map[string]in
 	}
 	if plateNumber, ok := options["plate_number"]; ok && plateNumber != "" {
 		query = query.Where("plate_number = ?", plateNumber)
+	}
+	if driverID, ok := options["driver_id"]; ok && driverID != "" {
+		query = query.Where("driver_id = ?", driverID)
 	}
 
 	if err := query.First(&ambulance).Error; err != nil {

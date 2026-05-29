@@ -11,6 +11,14 @@ type CreateAmbulanceServiceRequest struct {
 	RequestReason    string `json:"requestReason"`
 }
 
+type AcceptAmbulanceServiceRequestPayload struct {
+	AmbulanceID string `json:"ambulanceId"`
+}
+
+type RejectAmbulanceServiceRequest struct {
+	RejectionReason string `json:"rejectionReason"`
+}
+
 type UpdateAmbulanceServiceRequest struct {
 	Status          string `json:"status"`
 	RejectionReason string `json:"rejectionReason"`

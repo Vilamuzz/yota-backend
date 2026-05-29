@@ -21,6 +21,7 @@ import (
 
 type Client interface {
 	UploadFile(ctx context.Context, file *multipart.FileHeader, folder string) (string, error)
+	UploadFileOriginal(ctx context.Context, file *multipart.FileHeader, folder string) (string, error)
 	GetFileLink(ctx context.Context, objectName string) (string, error)
 	DeleteFile(ctx context.Context, objectName string) error
 }
@@ -80,6 +81,14 @@ func NewClient(minioClient *minio.Client) Client {
 }
 
 func (c *client) UploadFile(ctx context.Context, file *multipart.FileHeader, folder string) (string, error) {
+	return c.upload(ctx, file, folder, true)
+}
+
+func (c *client) UploadFileOriginal(ctx context.Context, file *multipart.FileHeader, folder string) (string, error) {
+	return c.upload(ctx, file, folder, false)
+}
+
+func (c *client) upload(ctx context.Context, file *multipart.FileHeader, folder string, compress bool) (string, error) {
 	// Open the file
 	src, err := file.Open()
 	if err != nil {
@@ -105,7 +114,7 @@ func (c *client) UploadFile(ctx context.Context, file *multipart.FileHeader, fol
 	// Convert any decodable image format to JPEG at 80% quality.
 	isImageUpload := strings.HasPrefix(contentType, "image/") ||
 		ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".gif" || ext == ".webp"
-	if isImageUpload {
+	if compress && isImageUpload {
 		img, _, err := image.Decode(bytes.NewReader(fileContent))
 		if err == nil {
 			buf := new(bytes.Buffer)

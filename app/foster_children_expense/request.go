@@ -19,3 +19,8 @@ type FosterChildrenExpenseQueryParams struct {
 	FosterChildrenID string `form:"fosterChildrenId"`
 	pkg.PaginationParams
 }
+
+type FosterChildrenExpenseExportParams struct {
+	StartDate string `form:"start_date"` // optional, format: YYYY-MM-DD
+	EndDate   string `form:"end_date"`   // optional, format: YYYY-MM-DD
+}
