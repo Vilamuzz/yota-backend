@@ -39,6 +39,11 @@ func (r *repository) FindAllSocialProgramInvoices(ctx context.Context, options m
 		query = query.Where("status = ?", status.(string))
 	}
 
+	if accountID, ok := options["account_id"]; ok && accountID.(string) != "" {
+		query = query.Joins("JOIN social_program_subscriptions ON social_program_subscriptions.id = social_program_invoices.subscription_id").
+			Where("social_program_subscriptions.account_id = ?", accountID.(string))
+	}
+
 	if nextCursor, ok := options["next_cursor"]; ok && nextCursor.(string) != "" {
 		cursorData, err := pkg.DecodeCursor(nextCursor.(string))
 		if err == nil {

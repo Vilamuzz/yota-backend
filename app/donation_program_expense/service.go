@@ -199,26 +199,26 @@ func (s *service) CreateDonationProgramExpense(ctx context.Context, accountID, d
 
 	now := time.Now()
 	expenseDate, _ := time.Parse("2006-01-02", payload.ExpenseDate)
-	expense := &DonationProgramExpense{
-		ID:                uuid.New(),
-		DonationProgramID: uuid.MustParse(donationProgramID),
-		Title:             payload.Title,
-		Amount:            payload.Amount,
-		ExpenseDate:       expenseDate,
-		Note:              payload.Note,
-		ProofFile:         proofFileURL,
-		CreatedBy:         uuid.MustParse(accountID),
-		CreatedAt:         now,
-		UpdatedAt:         now,
-	}
+expense := &DonationProgramExpense{
+	ID:                uuid.New(),
+	DonationProgramID: uuid.MustParse(donationProgramID),
+	Title:             payload.Title,
+	Amount:            payload.Amount,
+	ExpenseDate:       expenseDate,
+	Note:              payload.Note,
+	ProofFile:         proofFileURL,
+	CreatedBy:         uuid.MustParse(accountID),
+	CreatedAt:         now,
+	UpdatedAt:         now,
+}
 
-	if err := s.repo.CreateDonationProgramExpense(ctx, expense); err != nil {
-		logrus.WithFields(logrus.Fields{
-			"component":  "donation_program_expense.service",
-			"expense_id": expense.ID,
-		}).WithError(err).Error("failed to create expense")
-		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat pengeluaran", nil, nil)
-	}
+if err := s.repo.CreateDonationProgramExpense(ctx, expense); err != nil {
+	logrus.WithFields(logrus.Fields{
+		"component":  "donation_program_expense.service",
+		"expense_id": expense.ID,
+	}).WithError(err).Error("failed to create expense")
+	return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat pengeluaran", nil, nil)
+}
 
 	_ = s.financeRepo.Create(ctx, &finance_record.FinanceRecord{
 		ID:              uuid.New().String(),
@@ -257,43 +257,42 @@ func (s *service) ExportDonationProgramExpenseCSV(ctx context.Context, donationP
 		}
 	}
 
-	expenses, err := s.repo.FindAllDonationProgramExpensesForExport(ctx, donationProgramID, params)
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"component":           "donation_program_expense.service",
-			"donation_program_id": donationProgramID,
-		}).WithError(err).Error("failed to fetch expenses for export")
-		return nil, "", fmt.Errorf("gagal mengambil data pengeluaran")
-	}
+expenses, err := s.repo.FindAllDonationProgramExpensesForExport(ctx, donationProgramID, params)
+if err != nil {
+	logrus.WithFields(logrus.Fields{
+		"component":           "donation_program_expense.service",
+		"donation_program_id": donationProgramID,
+	}).WithError(err).Error("failed to fetch expenses for export")
+	return nil, "", fmt.Errorf("gagal mengambil data pengeluaran")
+}
 
-	var buf bytes.Buffer
-	w := csv.NewWriter(&buf)
+var buf bytes.Buffer
+w := csv.NewWriter(&buf)
 
-	header := []string{"No", "Judul", "Jumlah (Rp)", "Tanggal Pengeluaran", "Catatan", "Dibuat Pada"}
-	if err := w.Write(header); err != nil {
-		return nil, "", fmt.Errorf("gagal menulis header CSV")
-	}
+header := []string{"No", "Judul", "Jumlah (Rp)", "Tanggal Pengeluaran", "Catatan", "Dibuat Pada"}
+if err := w.Write(header); err != nil {
+	return nil, "", fmt.Errorf("gagal menulis header CSV")
+}
 
-	for i, expense := range expenses {
-		row := []string{
-			fmt.Sprintf("%d", i+1),
-			expense.Title,
-			fmt.Sprintf("%.2f", expense.Amount),
-			expense.ExpenseDate.Format("2006-01-02"),
-			expense.Note,
-			expense.CreatedAt.Format("2006-01-02 15:04:05"),
-		}
-		if err := w.Write(row); err != nil {
-			return nil, "", fmt.Errorf("gagal menulis baris CSV")
-		}
+for i, expense := range expenses {
+	row := []string{
+		fmt.Sprintf("%d", i+1),
+		expense.Title,
+		fmt.Sprintf("%.2f", expense.Amount),
+		expense.ExpenseDate.Format("2006-01-02"),
+		expense.Note,
+		expense.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
+	if err := w.Write(row); err != nil {
+		return nil, "", fmt.Errorf("gagal menulis baris CSV")
+	}
+}
 
 	w.Flush()
 	if err := w.Error(); err != nil {
 		return nil, "", fmt.Errorf("gagal menyelesaikan penulisan CSV")
 	}
 
-	// Build a descriptive filename that reflects the filtered period
 	periodPart := "all"
 	if params.StartDate != "" && params.EndDate != "" {
 		periodPart = params.StartDate + "_to_" + params.EndDate

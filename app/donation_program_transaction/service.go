@@ -69,7 +69,6 @@ func (s *service) GetDonationProgramTransactionList(ctx context.Context, account
 		params.Limit = 100
 	}
 
-
 	options := map[string]interface{}{
 		"limit": params.Limit,
 	}
@@ -397,7 +396,6 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	// Verify signature key: SHA512(order_id + status_code + gross_amount + server_key)
 	raw := payload.OrderID + payload.StatusCode + payload.GrossAmount + s.midtransClient.GetServerKey()
 	hash := sha512.Sum512([]byte(raw))
 	expectedSig := fmt.Sprintf("%x", hash)

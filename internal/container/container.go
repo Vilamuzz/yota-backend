@@ -57,7 +57,7 @@ type Container struct {
 	DonationRepo                  donation_program.Repository
 	NewsRepo                      news.Repository
 	NewsCommentRepo               news_comment.Repository
-	FoundationProfileRepo          foundation_profile.Repository
+	FoundationProfileRepo         foundation_profile.Repository
 	GalleryRepo                   gallery.Repository
 	MediaRepo                     media.Repository
 	PrayerRepo                    prayer.Repository
@@ -249,7 +249,6 @@ func (c *Container) initScheduler() {
 	// Update expired donations to 'complete' every midnight
 	c.Scheduler.Add("0 0 * * *", "update-expired-donations", func() {
 		if err := c.DonationService.UpdateExpiredDonationProgram(context.Background()); err != nil {
-			// error is logged inside the scheduler wrapper; log detail here
 			_ = err
 		}
 	})

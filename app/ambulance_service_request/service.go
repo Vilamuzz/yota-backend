@@ -576,13 +576,11 @@ func (s *service) CompleteAmbulanceServiceRequest(ctx context.Context, driverAcc
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui status permintaan ambulans", nil, nil)
 	}
 
-	// Update ambulance status to "available"
 	_ = s.ambulanceRepo.UpdateAmbulance(ctx, ambulanceID, map[string]interface{}{
 		"status":     ambulance.AmbulanceStatusAvailable,
 		"updated_at": time.Now(),
 	})
 
-	// Automatically create ambulance history
 	now := time.Now()
 	note := fmt.Sprintf("Layanan ambulans selesai untuk permintaan dari %s. Alasan: %s", existing.ApplicantName, existing.RequestReason)
 	history := ambulance_history.AmbulanceHistory{

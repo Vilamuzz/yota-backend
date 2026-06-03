@@ -6,6 +6,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/Vilamuzz/yota-backend/pkg/enum"
+	jwt_pkg "github.com/Vilamuzz/yota-backend/pkg/jwt"
 	"github.com/gin-gonic/gin"
 )
 
@@ -26,14 +27,14 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	me := r.Group("/social-programs/subscriptions/invoices/me")
 	me.Use(h.middleware.RequireRoles(enum.RoleOrangTuaAsuh))
 	{
-		me.GET("/", h.GetSocialProgramInvoiceList)
+		me.GET("", h.GetSocialProgramInvoiceList)
 		me.GET("/:id", h.GetSocialProgramInvoiceByID)
 	}
 
 	admin := r.Group("/admin/social-programs/subscriptions/invoices")
 	admin.Use(h.middleware.RequireRoles(enum.RoleSocialManager))
 	{
-		admin.GET("/", h.GetSocialProgramInvoiceList)
+		admin.GET("", h.GetSocialProgramInvoiceList)
 		admin.GET("/subscription/:id", h.GetSocialProgramInvoiceListBySubscriptionID)
 	}
 }
@@ -60,6 +61,12 @@ func (h *handler) GetSocialProgramInvoiceList(c *gin.Context) {
 	if err := c.ShouldBindQuery(&queryParams); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Parameter query tidak valid", nil, nil))
 		return
+	}
+
+	if userData, exists := c.Get("user_data"); exists {
+		if claims, ok := userData.(jwt_pkg.UserJWTClaims); ok {
+			queryParams.AccountID = claims.AccountID
+		}
 	}
 
 	res := h.service.GetSocialProgramInvoiceList(ctx, queryParams)

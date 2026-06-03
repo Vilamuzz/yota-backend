@@ -61,6 +61,9 @@ func (s *service) GetSocialProgramInvoiceList(ctx context.Context, params Social
 	if params.Status != "" {
 		options["status"] = params.Status
 	}
+	if params.AccountID != "" {
+		options["account_id"] = params.AccountID
+	}
 
 	invoices, err := s.repo.FindAllSocialProgramInvoices(ctx, options)
 	if err != nil {

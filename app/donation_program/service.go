@@ -262,31 +262,31 @@ func (s *service) CreateDonationProgram(ctx context.Context, payload DonationPro
 		coverImageURL = uploadedURL
 	}
 
-	donation := &DonationProgram{
-		ID:          uuid.New(),
-		Title:       payload.Title,
-		Slug:        pkg.Slugify(payload.Title),
-		Description: payload.Description,
-		CoverImage:  coverImageURL,
-		Category:    payload.Category,
-		FundTarget:  payload.FundTarget,
-		Status:      status,
-		StartDate:   startDate,
-		EndDate:     endDate,
-		CreatedAt:   now,
-		UpdatedAt:   now,
-	}
+donationProgram := &DonationProgram{
+	ID:          uuid.New(),
+	Title:       payload.Title,
+	Slug:        pkg.Slugify(payload.Title),
+	Description: payload.Description,
+	CoverImage:  coverImageURL,
+	Category:    payload.Category,
+	FundTarget:  payload.FundTarget,
+	Status:      status,
+	StartDate:   startDate,
+	EndDate:     endDate,
+	CreatedAt:   now,
+	UpdatedAt:   now,
+}
 
-	if err := s.repo.CreateDonationProgram(ctx, donation); err != nil {
-		logrus.WithFields(logrus.Fields{
-			"component": "donation.service",
-			"title":     payload.Title,
-		}).WithError(err).Error("failed to create donation")
-		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat donasi", nil, nil)
-	}
+if err := s.repo.CreateDonationProgram(ctx, donationProgram); err != nil {
+	logrus.WithFields(logrus.Fields{
+		"component": "donation_program.service",
+		"title":     payload.Title,
+	}).WithError(err).Error("failed to create donation_program")
+	return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat donasi_program", nil, nil)
+}
 
-	s.logService.CreateLog(ctx, nil, "CREATE", "donation", donation.ID.String(), nil, donation.toAdminDonationProgramResponse())
-	return pkg.NewResponse(http.StatusCreated, "Donasi berhasil dibuat", nil, donation.toAdminDonationProgramResponse())
+s.logService.CreateLog(ctx, nil, "CREATE", "donation_program", donationProgram.ID.String(), nil, donationProgram.toAdminDonationProgramResponse())
+return pkg.NewResponse(http.StatusCreated, "Donasi program berhasil dibuat", nil, donationProgram.toAdminDonationProgramResponse())
 }
 
 func (s *service) UpdateDonationProgram(ctx context.Context, id string, payload DonationProgramRequest) pkg.Response {
