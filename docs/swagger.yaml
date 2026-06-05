@@ -107,11 +107,31 @@ definitions:
       serviceCategory:
         $ref: '#/definitions/ambulance_history.ServiceCategory'
     type: object
-  ambulance_service_request.UpdateAmbulanceServiceRequest:
+  ambulance_service_request.AcceptAmbulanceServiceRequestPayload:
+    properties:
+      ambulanceId:
+        type: string
+    type: object
+  ambulance_service_request.CreateAmbulanceServiceRequest:
+    properties:
+      accountId:
+        type: string
+      applicantAddress:
+        type: string
+      applicantName:
+        type: string
+      applicantPhone:
+        type: string
+      requestDate:
+        type: string
+      requestReason:
+        type: string
+      serviceCategory:
+        type: string
+    type: object
+  ambulance_service_request.RejectAmbulanceServiceRequest:
     properties:
       rejectionReason:
-        type: string
-      status:
         type: string
     type: object
   auth.ForgetPasswordRequest:
@@ -157,38 +177,6 @@ definitions:
       token:
         type: string
     type: object
-  donation_program.Category:
-    enum:
-    - pendidikan
-    - kesehatan
-    - lingkungan
-    - sosial
-    - bencana
-    - kemanusiaan
-    - lainnya
-    type: string
-    x-enum-varnames:
-    - CategoryEducation
-    - CategoryHealth
-    - CategoryEnvironment
-    - CategorySocial
-    - CategoryDisaster
-    - CategoryHumanity
-    - CategoryOther
-  donation_program.Status:
-    enum:
-    - draft
-    - active
-    - completed
-    - expired
-    - archived
-    type: string
-    x-enum-varnames:
-    - StatusDraft
-    - StatusActive
-    - StatusCompleted
-    - StatusExpired
-    - StatusArchived
   donation_program_transaction.CreateDonationProgramTransactionRequest:
     properties:
       donorEmail:
@@ -202,24 +190,22 @@ definitions:
     type: object
   donation_program_transaction.DonationProgramTransactionListResponse:
     properties:
-      donationProgramTransactions:
+      pagination:
+        $ref: '#/definitions/pkg.CursorPagination'
+      transactions:
         items:
           $ref: '#/definitions/donation_program_transaction.DonationProgramTransactionResponse'
         type: array
-      pagination:
-        $ref: '#/definitions/pkg.CursorPagination'
     type: object
   donation_program_transaction.DonationProgramTransactionResponse:
     properties:
       createdAt:
         type: string
-      donationProgramId:
+      donationProgramTitle:
         type: string
       donorEmail:
         type: string
       donorName:
-        type: string
-      fraudStatus:
         type: string
       grossAmount:
         type: number
@@ -231,13 +217,7 @@ definitions:
         type: string
       paidAt:
         type: string
-      provider:
-        type: string
-      snapRedirectUrl:
-        type: string
       snapToken:
-        type: string
-      transactionId:
         type: string
       transactionStatus:
         type: string
@@ -254,30 +234,34 @@ definitions:
     - CategoryOrphan
   foster_children.Gender:
     enum:
-    - male
-    - female
+    - laki-laki
+    - perempuan
     type: string
     x-enum-varnames:
     - Male
     - Female
-  foster_children.Status:
+  foster_children_candidate.Category:
     enum:
-    - pending
-    - accepted
-    - rejected
-    - canceled
+    - yatim
+    - piatu
+    - yatim piatu
     type: string
     x-enum-varnames:
-    - StatusPending
-    - StatusAccepted
-    - StatusRejected
-    - StatusCanceled
-  foster_children.UpdateFosterChildrenCandidateStatusRequest:
+    - CategoryFatherless
+    - CategoryMotherless
+    - CategoryOrphan
+  foster_children_candidate.Gender:
+    enum:
+    - laki-laki
+    - perempuan
+    type: string
+    x-enum-varnames:
+    - Male
+    - Female
+  foster_children_candidate.RejectFosterChildrenCandidateRequest:
     properties:
       rejectionReason:
         type: string
-      status:
-        $ref: '#/definitions/foster_children.Status'
     type: object
   foster_children_transaction.CreateFosterChildrenTransactionRequest:
     properties:
@@ -290,12 +274,12 @@ definitions:
     type: object
   foster_children_transaction.FosterChildrenTransactionListResponse:
     properties:
-      fosterChildrenTransactions:
+      pagination:
+        $ref: '#/definitions/pkg.CursorPagination'
+      transactions:
         items:
           $ref: '#/definitions/foster_children_transaction.FosterChildrenTransactionResponse'
         type: array
-      pagination:
-        $ref: '#/definitions/pkg.CursorPagination'
     type: object
   foster_children_transaction.FosterChildrenTransactionResponse:
     properties:
@@ -305,9 +289,7 @@ definitions:
         type: string
       donorName:
         type: string
-      fosterChildrenId:
-        type: string
-      fraudStatus:
+      fosterChildrenName:
         type: string
       grossAmount:
         type: number
@@ -319,10 +301,6 @@ definitions:
         type: string
       paidAt:
         type: string
-      provider:
-        type: string
-      snapRedirectUrl:
-        type: string
       snapToken:
         type: string
       transactionId:
@@ -330,31 +308,103 @@ definitions:
       transactionStatus:
         type: string
     type: object
-  gallery.GalleryMediaRequest:
+  foundation_profile.FoundationProfileResponse:
     properties:
-      alt_text:
+      createdAt:
+        type: string
+      embeddedAddress:
+        type: string
+      foundationAddress:
+        type: string
+      foundationEmail:
+        type: string
+      foundationFacebook:
+        type: string
+      foundationInstagram:
+        type: string
+      foundationName:
+        type: string
+      foundationPhone:
+        type: string
+      foundationTwitter:
+        type: string
+      founderName:
+        type: string
+      founderPicture:
+        type: string
+      heroImageFour:
+        type: string
+      heroImageOne:
+        type: string
+      heroImageThree:
+        type: string
+      heroImageTwo:
+        type: string
+      icon:
         type: string
       id:
         type: string
-      object_key:
+      logo:
         type: string
-      order:
-        type: integer
+      organizationStructure:
+        type: string
+      updatedAt:
+        type: string
     type: object
-  gallery.GalleryRequest:
+  gallery.GalleryListResponse:
+    properties:
+      galleries:
+        items:
+          $ref: '#/definitions/gallery.GalleryListResponseItem'
+        type: array
+      pagination:
+        $ref: '#/definitions/pkg.CursorPagination'
+    type: object
+  gallery.GalleryListResponseItem:
     properties:
       category:
         $ref: '#/definitions/media.MediaCategory'
+      coverImage:
+        type: string
+      createdAt:
+        type: string
       description:
         type: string
-      media:
-        items:
-          $ref: '#/definitions/gallery.GalleryMediaRequest'
-        type: array
+      id:
+        type: string
+      slug:
+        type: string
       status:
         $ref: '#/definitions/media.MediaStatus'
       title:
         type: string
+      views:
+        type: integer
+    type: object
+  gallery.GalleryResponse:
+    properties:
+      category:
+        $ref: '#/definitions/media.MediaCategory'
+      coverImage:
+        type: string
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      media:
+        items:
+          $ref: '#/definitions/media.MediaResponse'
+        type: array
+      slug:
+        type: string
+      status:
+        $ref: '#/definitions/media.MediaStatus'
+      title:
+        type: string
+      views:
+        type: integer
     type: object
   media.MediaCategory:
     enum:
@@ -370,6 +420,23 @@ definitions:
     - Health
     - Environment
     - Others
+  media.MediaResponse:
+    properties:
+      alt:
+        type: string
+      galleryId:
+        type: string
+      id:
+        type: string
+      newsId:
+        type: string
+      order:
+        type: integer
+      type:
+        type: string
+      url:
+        type: string
+    type: object
   media.MediaStatus:
     enum:
     - draft
@@ -380,6 +447,116 @@ definitions:
     - MediaStatusDraft
     - MediaStatusPublished
     - MediaStatusArchived
+  news.NewsListResponse:
+    properties:
+      news:
+        items:
+          $ref: '#/definitions/news.NewsListResponseItem'
+        type: array
+      pagination:
+        $ref: '#/definitions/pkg.CursorPagination'
+    type: object
+  news.NewsListResponseItem:
+    properties:
+      category:
+        $ref: '#/definitions/media.MediaCategory'
+      coverImage:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      publishedAt:
+        type: string
+      slug:
+        type: string
+      status:
+        $ref: '#/definitions/media.MediaStatus'
+      title:
+        type: string
+      views:
+        type: integer
+    type: object
+  news.NewsResponse:
+    properties:
+      category:
+        $ref: '#/definitions/media.MediaCategory'
+      content:
+        type: string
+      coverImage:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      media:
+        items:
+          $ref: '#/definitions/media.MediaResponse'
+        type: array
+      publishedAt:
+        type: string
+      slug:
+        type: string
+      status:
+        $ref: '#/definitions/media.MediaStatus'
+      title:
+        type: string
+      updatedAt:
+        type: string
+      views:
+        type: integer
+    type: object
+  news_comment.AdminNewsCommentListResponse:
+    properties:
+      comments:
+        items:
+          $ref: '#/definitions/news_comment.AdminNewsCommentResponse'
+        type: array
+      pagination:
+        $ref: '#/definitions/pkg.CursorPagination'
+    type: object
+  news_comment.AdminNewsCommentResponse:
+    properties:
+      content:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      reportCount:
+        type: integer
+      username:
+        type: string
+    type: object
+  news_comment.NewsCommentListResponse:
+    properties:
+      comments:
+        items:
+          $ref: '#/definitions/news_comment.NewsCommentResponse'
+        type: array
+      pagination:
+        $ref: '#/definitions/pkg.CursorPagination'
+    type: object
+  news_comment.NewsCommentResponse:
+    properties:
+      content:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      replies:
+        items:
+          $ref: '#/definitions/news_comment.NewsCommentResponse'
+        type: array
+      username:
+        type: string
+    type: object
+  news_comment.ReportNewsCommentRequest:
+    properties:
+      reason:
+        type: string
+    type: object
   pkg.CursorPagination:
     properties:
       limit:
@@ -412,12 +589,16 @@ definitions:
     type: object
   prayer.PrayerResponse:
     properties:
+      amenCount:
+        type: integer
       content:
         type: string
       createdAt:
         type: string
       id:
         type: string
+      isAmen:
+        type: boolean
       username:
         type: string
     type: object
@@ -426,25 +607,16 @@ definitions:
       reason:
         type: string
     type: object
-  social_program.Status:
-    enum:
-    - active
-    - completed
-    - stopped
-    - draft
-    type: string
-    x-enum-varnames:
-    - StatusActive
-    - StatusCompleted
-    - StatusStopped
-    - StatusDraft
+  social_program.RejectSocialProgramRequest:
+    properties:
+      reason:
+        type: string
+    type: object
   social_program_expense.SocialProgramExpenseDetailResponse:
     properties:
       amount:
         type: number
       createdAt:
-        type: string
-      createdBy:
         type: string
       expenseDate:
         type: string
@@ -452,21 +624,17 @@ definitions:
         type: string
       note:
         type: string
-      proofFile:
-        type: string
-      socialProgramId:
-        type: string
       title:
         type: string
     type: object
   social_program_expense.SocialProgramExpenseListResponse:
     properties:
-      pagination:
-        $ref: '#/definitions/pkg.CursorPagination'
-      socialProgramExpenses:
+      expenses:
         items:
           $ref: '#/definitions/social_program_expense.SocialProgramExpenseResponse'
         type: array
+      pagination:
+        $ref: '#/definitions/pkg.CursorPagination'
     type: object
   social_program_expense.SocialProgramExpenseResponse:
     properties:
@@ -478,69 +646,143 @@ definitions:
         type: string
       id:
         type: string
-      note:
-        type: string
       proofFile:
-        type: string
-      socialProgramId:
         type: string
       title:
         type: string
     type: object
-  social_program_subscription.CreateSocialProgramSubscriptionRequest:
+  social_program_subscription.CreateSocialProgramSubscriptionOfflineRequest:
     properties:
-      amount:
-        type: number
-      socialProgramId:
+      accountId:
         type: string
     type: object
-  social_program_subscription.Status:
-    enum:
-    - active
-    - paused
-    - stopped
-    type: string
-    x-enum-varnames:
-    - StatusActive
-    - StatusPaused
-    - StatusStopped
-  social_program_subscription.UpdateSocialProgramSubscriptionRequest:
+  social_program_transaction.CreateOfflineTransactionRequest:
     properties:
-      status:
-        $ref: '#/definitions/social_program_subscription.Status'
+      grossAmount:
+        type: number
+    required:
+    - grossAmount
     type: object
   social_program_transaction.CreateTransactionRequest:
     properties:
       grossAmount:
         type: number
-      socialProgramInvoiceId:
-        type: string
-    type: object
-  upload.PresignRequest:
-    properties:
-      content_type:
-        type: string
-      filename:
-        type: string
-      module:
-        type: string
-    required:
-    - content_type
-    - filename
-    - module
-    type: object
-  upload.PresignResponse:
-    properties:
-      expires_at:
-        type: string
-      object_key:
-        type: string
-      presigned_url:
-        type: string
     type: object
 info:
   contact: {}
 paths:
+  /admin/ambulances/requests/{id}/accept:
+    patch:
+      consumes:
+      - application/json
+      description: Accept an ambulance service request and assign it to an ambulance
+      parameters:
+      - description: Ambulance Request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Ambulance ID to assign
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/ambulance_service_request.AcceptAmbulanceServiceRequestPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Accept Ambulance Service Request
+      tags:
+      - Ambulance Service Requests
+  /admin/ambulances/requests/assigned:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of ambulance requests assigned to the authenticated
+        ambulance driver
+      parameters:
+      - description: Number of items to return
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for next page
+        in: query
+        name: next_cursor
+        type: string
+      - description: Cursor for previous page
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List assigned ambulance requests (driver)
+      tags:
+      - Ambulance Service Requests
+  /admin/ambulances/requests/assigned/{ambulanceId}/detail/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get the details of an ambulance request assigned to the authenticated
+        driver
+      parameters:
+      - description: Ambulance Request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get assigned ambulance request by ID (driver)
+      tags:
+      - Ambulance Service Requests
   /ambulance-history:
     get:
       consumes:
@@ -683,44 +925,6 @@ paths:
       summary: Update an existing ambulance history record
       tags:
       - Ambulance History
-  /ambulance-service-requests:
-    get:
-      consumes:
-      - application/json
-      description: Get a list of ambulance requests with pagination
-      parameters:
-      - description: Number of items to return
-        in: query
-        name: limit
-        type: integer
-      - description: Cursor for next page
-        in: query
-        name: next_cursor
-        type: string
-      - description: Cursor for previous page
-        in: query
-        name: prev_cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: List ambulance requests
-      tags:
-      - Ambulance Service Requests
   /ambulance-service-requests/{id}:
     get:
       consumes:
@@ -754,85 +958,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Get ambulance request by ID
-      tags:
-      - Ambulance Service Requests
-    put:
-      consumes:
-      - application/json
-      description: Update the details of an ambulance request by its ID
-      parameters:
-      - description: Ambulance Request ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Ambulance request details to update
-        in: body
-        name: ambulance_service_request
-        required: true
-        schema:
-          $ref: '#/definitions/ambulance_service_request.UpdateAmbulanceServiceRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Update ambulance request
-      tags:
-      - Ambulance Service Requests
-  /ambulance-service-requests/me:
-    get:
-      consumes:
-      - application/json
-      description: Get a list of ambulance requests created by the authenticated user
-        with pagination
-      parameters:
-      - description: Number of items to return
-        in: query
-        name: limit
-        type: integer
-      - description: Cursor for next page
-        in: query
-        name: next_cursor
-        type: string
-      - description: Cursor for previous page
-        in: query
-        name: prev_cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: List my ambulance requests
       tags:
       - Ambulance Service Requests
   /ambulances:
@@ -871,41 +996,6 @@ paths:
       summary: List ambulances
       tags:
       - Ambulances
-    post:
-      consumes:
-      - multipart/form-data
-      description: Create a new ambulance with the provided details
-      parameters:
-      - in: formData
-        name: phone
-        type: string
-      - in: formData
-        name: plateNumber
-        type: string
-      - description: Ambulance Image
-        in: formData
-        name: image
-        type: file
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/pkg.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Create a new ambulance
-      tags:
-      - Ambulances
   /ambulances/{id}:
     delete:
       consumes:
@@ -937,26 +1027,68 @@ paths:
       summary: Delete an existing ambulance
       tags:
       - Ambulances
-    put:
+  /ambulances/{id}/history/summary:
+    get:
       consumes:
-      - multipart/form-data
-      description: Update the details of an existing ambulance by ID
+      - application/json
+      description: |-
+        Returns total service counts grouped by category for an ambulance.
+        Use the `period` query param to filter by time window.
       parameters:
       - description: Ambulance ID
         in: path
         name: id
         required: true
         type: string
-      - in: formData
-        name: phone
+      - description: 'Time period: all_time | this_week | this_month | this_year |
+          custom (default: all_time)'
+        in: query
+        name: period
         type: string
-      - in: formData
-        name: plateNumber
+      - description: Start date (YYYY-MM-DD), required when period=custom
+        in: query
+        name: start_date
         type: string
-      - description: Ambulance Image
-        in: formData
-        name: image
-        type: file
+      - description: End date (YYYY-MM-DD), required when period=custom
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Get ambulance history summary
+      tags:
+      - Ambulance History
+  /ambulances/requests:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of ambulance requests with pagination
+      parameters:
+      - description: Number of items to return
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for next page
+        in: query
+        name: next_cursor
+        type: string
+      - description: Cursor for previous page
+        in: query
+        name: prev_cursor
+        type: string
       produces:
       - application/json
       responses:
@@ -974,9 +1106,129 @@ paths:
             $ref: '#/definitions/pkg.Response'
       security:
       - BearerAuth: []
-      summary: Update an existing ambulance
+      summary: List ambulance requests
       tags:
-      - Ambulances
+      - Ambulance Service Requests
+    post:
+      consumes:
+      - application/json
+      description: Create a new ambulance service request with the provided details
+      parameters:
+      - description: Ambulance service request details
+        in: body
+        name: ambulance_service_request
+        required: true
+        schema:
+          $ref: '#/definitions/ambulance_service_request.CreateAmbulanceServiceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a new ambulance service request
+      tags:
+      - Ambulance Service Requests
+  /ambulances/requests/{id}:
+    get:
+      description: Get a specific ambulance service request submitted by the user
+      parameters:
+      - description: Candidate ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get My Ambulance Service Request By ID
+      tags:
+      - Ambulance Service Requests
+  /ambulances/requests/{id}/reject:
+    patch:
+      consumes:
+      - application/json
+      description: Reject a pending foster children candidate with a reason
+      parameters:
+      - description: Candidate ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Rejection Reason Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/ambulance_service_request.RejectAmbulanceServiceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Reject Foster Children Candidate
+      tags:
+      - Foster Children Candidates
+  /ambulances/requests/me:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of ambulance requests created by the authenticated user
+        with pagination
+      parameters:
+      - description: Number of items to return
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for next page
+        in: query
+        name: next_cursor
+        type: string
+      - description: Cursor for previous page
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List my ambulance requests
+      tags:
+      - Ambulance Service Requests
   /api/admin/accounts:
     get:
       consumes:
@@ -1152,6 +1404,158 @@ paths:
       summary: Add Account Role
       tags:
       - Account
+  /api/admin/accounts/active:
+    get:
+      consumes:
+      - application/json
+      description: 'Get a list of active accounts excluding superadmins. Forced filter:
+        is_banned=false, exclude_superadmin=true.'
+      parameters:
+      - description: Search query
+        in: query
+        name: search
+        type: string
+      - description: Role ID filter
+        in: query
+        name: role_id
+        type: integer
+      - description: Sort by
+        in: query
+        name: sort_by
+        type: string
+      - description: Sort order
+        in: query
+        name: sort_order
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/account.AccountResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get Active Accounts List (Excludes Superadmin)
+      tags:
+      - Account
+  /api/admin/accounts/drivers:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of active accounts with Driver role.
+      parameters:
+      - description: Search query
+        in: query
+        name: search
+        type: string
+      - description: Sort by
+        in: query
+        name: sort_by
+        type: string
+      - description: Sort order
+        in: query
+        name: sort_order
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/account.AccountResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get Driver Accounts List
+      tags:
+      - Account
+  /api/admin/accounts/foster-parents:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of active accounts with Orang Tua Asuh role.
+      parameters:
+      - description: Search query
+        in: query
+        name: search
+        type: string
+      - description: Sort by
+        in: query
+        name: sort_by
+        type: string
+      - description: Sort order
+        in: query
+        name: sort_order
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/account.AccountResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get Foster Parent Accounts List
+      tags:
+      - Account
   /api/admin/accounts/roles:
     get:
       consumes:
@@ -1174,14 +1578,98 @@ paths:
       summary: Get Role List
       tags:
       - Account
+  /api/admin/ambulances:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create a new ambulance with the provided details
+      parameters:
+      - description: Ambulance image
+        in: formData
+        name: image
+        required: true
+        type: file
+      - description: Plate number
+        in: formData
+        name: plateNumber
+        required: true
+        type: string
+      - description: Phone number
+        in: formData
+        name: phone
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a new ambulance
+      tags:
+      - Ambulances
+  /api/admin/ambulances/{id}:
+    put:
+      consumes:
+      - multipart/form-data
+      description: Update the details of an existing ambulance by ID
+      parameters:
+      - description: Ambulance ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Ambulance image
+        in: formData
+        name: image
+        type: file
+      - description: Plate number
+        in: formData
+        name: plateNumber
+        type: string
+      - description: Phone number
+        in: formData
+        name: phone
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update an existing ambulance
+      tags:
+      - Ambulances
   /api/admin/donation-programs:
     get:
       consumes:
       - application/json
-      description: Retrieve a list of all donation programs with cursor-based pagination
-        and optional filters
+      description: Retrieve a paginated list of all donation programs with offset-based
+        pagination, optional filters, and dynamic sorting
       parameters:
-      - description: Search query
+      - description: Search by title
         in: query
         name: search
         type: string
@@ -1189,22 +1677,23 @@ paths:
         in: query
         name: category
         type: string
-      - description: Status filter
+      - description: Status filter (draft, active, completed, expired, archived)
         in: query
         name: status
         type: string
-      - description: Pagination limit
+      - description: Sort field and direction, e.g. 'title asc', 'fund_target desc',
+          'end_date asc', 'created_at desc'
+        in: query
+        name: sortBy
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Items per page (default: 10, max: 100)'
         in: query
         name: limit
         type: integer
-      - description: Pagination cursor (next page)
-        in: query
-        name: nextCursor
-        type: string
-      - description: Pagination cursor (prev page)
-        in: query
-        name: prevCursor
-        type: string
       produces:
       - application/json
       responses:
@@ -1214,7 +1703,7 @@ paths:
             $ref: '#/definitions/pkg.Response'
       security:
       - BearerAuth: []
-      summary: Get All Donation Programs
+      summary: Get All Donation Programs (Admin)
       tags:
       - Donation Programs
     post:
@@ -1223,60 +1712,45 @@ paths:
       description: Create a new donation program entry (requires authentication and
         proper role)
       parameters:
-      - enum:
-        - pendidikan
-        - kesehatan
-        - lingkungan
-        - sosial
-        - bencana
-        - kemanusiaan
-        - lainnya
+      - description: Donation Program Title
         in: formData
-        name: category
-        type: string
-        x-enum-varnames:
-        - CategoryEducation
-        - CategoryHealth
-        - CategoryEnvironment
-        - CategorySocial
-        - CategoryDisaster
-        - CategoryHumanity
-        - CategoryOther
-      - in: formData
-        name: description
-        type: string
-      - in: formData
-        name: endDate
-        type: string
-      - in: formData
-        name: fundTarget
-        type: number
-      - in: formData
-        name: startDate
-        type: string
-      - enum:
-        - draft
-        - active
-        - completed
-        - expired
-        - archived
-        in: formData
-        name: status
-        type: string
-        x-enum-varnames:
-        - StatusDraft
-        - StatusActive
-        - StatusCompleted
-        - StatusExpired
-        - StatusArchived
-      - in: formData
         name: title
+        required: true
         type: string
-      - description: Donation Program Cover Image
+      - description: Cover Image
         in: formData
         name: coverImage
         required: true
         type: file
+      - description: Category
+        in: formData
+        name: category
+        required: true
+        type: string
+      - description: Description
+        in: formData
+        name: description
+        required: true
+        type: string
+      - description: Fund Target
+        in: formData
+        name: fundTarget
+        required: true
+        type: number
+      - description: Status
+        in: formData
+        name: status
+        type: string
+      - description: Start Date (YYYY-MM-DD)
+        in: formData
+        name: startDate
+        required: true
+        type: string
+      - description: End Date (YYYY-MM-DD)
+        in: formData
+        name: endDate
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -1339,59 +1813,38 @@ paths:
         name: id
         required: true
         type: string
-      - enum:
-        - pendidikan
-        - kesehatan
-        - lingkungan
-        - sosial
-        - bencana
-        - kemanusiaan
-        - lainnya
+      - description: Donation Program Title
         in: formData
-        name: category
-        type: string
-        x-enum-varnames:
-        - CategoryEducation
-        - CategoryHealth
-        - CategoryEnvironment
-        - CategorySocial
-        - CategoryDisaster
-        - CategoryHumanity
-        - CategoryOther
-      - in: formData
-        name: description
-        type: string
-      - in: formData
-        name: endDate
-        type: string
-      - in: formData
-        name: fundTarget
-        type: number
-      - in: formData
-        name: startDate
-        type: string
-      - enum:
-        - draft
-        - active
-        - completed
-        - expired
-        - archived
-        in: formData
-        name: status
-        type: string
-        x-enum-varnames:
-        - StatusDraft
-        - StatusActive
-        - StatusCompleted
-        - StatusExpired
-        - StatusArchived
-      - in: formData
         name: title
         type: string
-      - description: Donation Program Cover Image
+      - description: Cover Image
         in: formData
         name: coverImage
         type: file
+      - description: Category
+        in: formData
+        name: category
+        type: string
+      - description: Description
+        in: formData
+        name: description
+        type: string
+      - description: Fund Target
+        in: formData
+        name: fundTarget
+        type: number
+      - description: Status
+        in: formData
+        name: status
+        type: string
+      - description: Start Date (YYYY-MM-DD)
+        in: formData
+        name: startDate
+        type: string
+      - description: End Date (YYYY-MM-DD)
+        in: formData
+        name: endDate
+        type: string
       produces:
       - application/json
       responses:
@@ -1495,21 +1948,28 @@ paths:
         name: id
         required: true
         type: string
-      - in: formData
-        name: amount
-        type: number
-      - in: formData
-        name: expenseDate
-        type: string
-      - in: formData
-        name: note
-        type: string
-      - in: formData
+      - description: Expense Title
+        in: formData
         name: title
+        required: true
+        type: string
+      - description: Expense Amount
+        in: formData
+        name: amount
+        required: true
+        type: number
+      - description: Expense Date (YYYY-MM-DD)
+        in: formData
+        name: expenseDate
+        required: true
+        type: string
+      - description: Expense Note
+        in: formData
+        name: note
         type: string
       - description: Proof File
         in: formData
-        name: proof_file
+        name: proofFile
         type: file
       produces:
       - application/json
@@ -1669,6 +2129,12 @@ paths:
       description: Create a new foster child entry (requires authentication and social_manager
         role)
       parameters:
+      - collectionFormat: csv
+        in: formData
+        items:
+          type: string
+        name: achivementNotes
+        type: array
       - in: formData
         name: address
         type: string
@@ -1689,9 +2155,12 @@ paths:
         - CategoryFatherless
         - CategoryMotherless
         - CategoryOrphan
+      - in: formData
+        name: educationLevel
+        type: integer
       - enum:
-        - male
-        - female
+        - laki-laki
+        - perempuan
         in: formData
         name: gender
         type: string
@@ -1703,6 +2172,9 @@ paths:
         type: boolean
       - in: formData
         name: name
+        type: string
+      - in: formData
+        name: schoolName
         type: string
       - description: Profile Picture
         in: formData
@@ -1770,6 +2242,18 @@ paths:
         name: id
         required: true
         type: string
+      - collectionFormat: csv
+        in: formData
+        items:
+          type: string
+        name: achivementIDs
+        type: array
+      - collectionFormat: csv
+        in: formData
+        items:
+          type: string
+        name: achivementNotes
+        type: array
       - in: formData
         name: address
         type: string
@@ -1790,9 +2274,12 @@ paths:
         - CategoryFatherless
         - CategoryMotherless
         - CategoryOrphan
+      - in: formData
+        name: educationLevel
+        type: integer
       - enum:
-        - male
-        - female
+        - laki-laki
+        - perempuan
         in: formData
         name: gender
         type: string
@@ -1805,6 +2292,15 @@ paths:
       - in: formData
         name: name
         type: string
+      - in: formData
+        name: schoolName
+        type: string
+      - collectionFormat: csv
+        in: formData
+        items:
+          type: string
+        name: updateAchivementNotes
+        type: array
       - description: Profile Picture
         in: formData
         name: profile_picture
@@ -1834,37 +2330,6 @@ paths:
       tags:
       - Foster Children
   /api/admin/foster-children/{id}/expenses:
-    get:
-      consumes:
-      - application/json
-      description: Get detailed information of all expenses for a foster child (requires
-        authentication and proper role)
-      parameters:
-      - description: Foster Children ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Cursor for pagination
-        in: query
-        name: cursor
-        type: string
-      - description: Items per page
-        in: query
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Get Foster Children Expense List
-      tags:
-      - Foster Children
     post:
       consumes:
       - multipart/form-data
@@ -1988,18 +2453,38 @@ paths:
         in: query
         name: account_id
         type: string
+      - description: Filter by category
+        enum:
+        - yatim
+        - piatu
+        - yatim piatu
+        - dhuafa
+        in: query
+        name: category
+        type: string
+      - description: Filter by gender
+        enum:
+        - Laki-laki
+        - Perempuan
+        in: query
+        name: gender
+        type: string
+      - description: Sort by (e.g. name asc, created_at desc)
+        in: query
+        name: sortBy
+        type: string
+      - description: Search by name or submitter name
+        in: query
+        name: search
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
       - description: Pagination limit
         in: query
         name: limit
         type: integer
-      - description: Pagination cursor (next page)
-        in: query
-        name: next_cursor
-        type: string
-      - description: Pagination cursor (prev page)
-        in: query
-        name: prev_cursor
-        type: string
       produces:
       - application/json
       responses:
@@ -2033,22 +2518,16 @@ paths:
       summary: Get Foster Children Candidate By ID
       tags:
       - Foster Children Candidates
+  /api/admin/foster-children/candidates/{id}/accept:
     patch:
-      consumes:
-      - application/json
-      description: Accept or reject a foster children candidate
+      description: 'Accept a foster children candidate. This is a two-step process:
+        first by Social Manager (Koordinator Sosial) and then by Chairman (Ketua Yayasan).'
       parameters:
       - description: Candidate ID
         in: path
         name: id
         required: true
         type: string
-      - description: Status Update Request
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/foster_children.UpdateFosterChildrenCandidateStatusRequest'
       produces:
       - application/json
       responses:
@@ -2058,7 +2537,36 @@ paths:
             $ref: '#/definitions/pkg.Response'
       security:
       - BearerAuth: []
-      summary: Update Foster Children Candidate Status
+      summary: Accept Foster Children Candidate
+      tags:
+      - Foster Children Candidates
+  /api/admin/foster-children/candidates/{id}/reject:
+    patch:
+      consumes:
+      - application/json
+      description: Reject a pending foster children candidate with a reason
+      parameters:
+      - description: Candidate ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Rejection Reason Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/foster_children_candidate.RejectFosterChildrenCandidateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Reject Foster Children Candidate
       tags:
       - Foster Children Candidates
   /api/admin/foster-children/expenses/{id}:
@@ -2085,29 +2593,6 @@ paths:
       summary: Delete Foster Children Expense
       tags:
       - Foster Children
-    get:
-      consumes:
-      - application/json
-      description: Get detailed information of a specific foster children expense
-        entry (requires authentication and proper role)
-      parameters:
-      - description: Expense ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Get Foster Children Expense by ID
-      tags:
-      - Foster Children
   /api/admin/foster-children/transactions/{id}:
     get:
       description: Retrieve a specific foster children transaction (admin only)
@@ -2129,133 +2614,179 @@ paths:
       summary: Get Foster Children Transaction by ID
       tags:
       - Foster Children
-  /api/admin/galleries:
-    get:
-      consumes:
-      - application/json
-      description: Retrieve a list of all gallery items (requires publication manager
-        or superadmin role)
-      parameters:
-      - description: Filter by category
-        in: query
-        name: category
-        type: string
-      - description: Filter by status
-        in: query
-        name: status
-        type: string
-      - description: Cursor for next page
-        in: query
-        name: nextCursor
-        type: string
-      - description: Cursor for previous page
-        in: query
-        name: prevCursor
-        type: string
-      - description: 'Items per page (default: 10, max: 100)'
-        in: query
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: List All Galleries (Protected)
-      tags:
-      - Gallery
+  /api/admin/foundation-profile:
     post:
       consumes:
-      - application/json
-      description: Create a new gallery item (requires publication manager or superadmin
+      - multipart/form-data
+      description: Create the foundation profile (requires chairman or superadmin
         role)
       parameters:
-      - description: Gallery Data
-        in: body
-        name: request
+      - description: Foundation Name
+        in: formData
+        name: foundationName
         required: true
-        schema:
-          $ref: '#/definitions/gallery.GalleryRequest'
+        type: string
+      - description: Founder Name
+        in: formData
+        name: founderName
+        type: string
+      - description: Founder Picture
+        in: formData
+        name: founderPicture
+        type: file
+      - description: Foundation Address
+        in: formData
+        name: foundationAddress
+        type: string
+      - description: Foundation Phone
+        in: formData
+        name: foundationPhone
+        type: string
+      - description: Foundation Email
+        in: formData
+        name: foundationEmail
+        type: string
+      - description: Foundation Instagram
+        in: formData
+        name: foundationInstagram
+        type: string
+      - description: Foundation Facebook
+        in: formData
+        name: foundationFacebook
+        type: string
+      - description: Foundation Twitter
+        in: formData
+        name: foundationTwitter
+        type: string
+      - description: Embedded Address
+        in: formData
+        name: embeddedAddress
+        type: string
+      - description: Foundation Logo
+        in: formData
+        name: logo
+        type: file
+      - description: Foundation Icon
+        in: formData
+        name: icon
+        type: file
+      - description: Organization Structure Image
+        in: formData
+        name: organization_structure
+        type: file
+      - description: Hero Image 1
+        in: formData
+        name: hero_image_one
+        type: file
+      - description: Hero Image 2
+        in: formData
+        name: hero_image_two
+        type: file
+      - description: Hero Image 3
+        in: formData
+        name: hero_image_three
+        type: file
+      - description: Hero Image 4
+        in: formData
+        name: hero_image_four
+        type: file
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/pkg.Response'
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/foundation_profile.FoundationProfileResponse'
+              type: object
       security:
       - BearerAuth: []
-      summary: Create Gallery
+      summary: Create Foundation Profile
       tags:
-      - Gallery
-  /api/admin/galleries/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a gallery item (requires publication manager or superadmin
-        role)
-      parameters:
-      - description: Gallery ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Delete Gallery
-      tags:
-      - Gallery
-    get:
-      consumes:
-      - application/json
-      description: Get detailed information of a specific gallery item (requires publication
-        manager or superadmin role)
-      parameters:
-      - description: Gallery ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Get Gallery (Protected)
-      tags:
-      - Gallery
+      - Foundation Profile
+  /api/admin/foundation-profile/{id}:
     put:
       consumes:
-      - application/json
-      description: Update an existing gallery item (requires publication manager or
-        superadmin role)
+      - multipart/form-data
+      description: Update the foundation profile (requires chairman or superadmin
+        role)
       parameters:
-      - description: Gallery ID
+      - description: Foundation Profile ID
         in: path
         name: id
         required: true
         type: string
-      - description: Gallery Data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/gallery.GalleryRequest'
+      - description: Foundation Name
+        in: formData
+        name: foundationName
+        type: string
+      - description: Founder Name
+        in: formData
+        name: founderName
+        type: string
+      - description: Founder Picture
+        in: formData
+        name: founderPicture
+        type: file
+      - description: Foundation Address
+        in: formData
+        name: foundationAddress
+        type: string
+      - description: Foundation Phone
+        in: formData
+        name: foundationPhone
+        type: string
+      - description: Foundation Email
+        in: formData
+        name: foundationEmail
+        type: string
+      - description: Foundation Instagram
+        in: formData
+        name: foundationInstagram
+        type: string
+      - description: Foundation Facebook
+        in: formData
+        name: foundationFacebook
+        type: string
+      - description: Foundation Twitter
+        in: formData
+        name: foundationTwitter
+        type: string
+      - description: Embedded Address
+        in: formData
+        name: embeddedAddress
+        type: string
+      - description: Foundation Logo
+        in: formData
+        name: logo
+        type: file
+      - description: Foundation Icon
+        in: formData
+        name: icon
+        type: file
+      - description: Organization Structure Image
+        in: formData
+        name: organization_structure
+        type: file
+      - description: Hero Image 1
+        in: formData
+        name: hero_image_one
+        type: file
+      - description: Hero Image 2
+        in: formData
+        name: hero_image_two
+        type: file
+      - description: Hero Image 3
+        in: formData
+        name: hero_image_three
+        type: file
+      - description: Hero Image 4
+        in: formData
+        name: hero_image_four
+        type: file
       produces:
       - application/json
       responses:
@@ -2265,15 +2796,15 @@ paths:
             $ref: '#/definitions/pkg.Response'
       security:
       - BearerAuth: []
-      summary: Update Gallery
+      summary: Update Foundation Profile
       tags:
-      - Gallery
-  /api/admin/galleries/{id}/archived:
+      - Foundation Profile
+  /api/admin/galleries/{id}/archive:
     patch:
       consumes:
       - application/json
-      description: Update an existing gallery item to archived (requires publication
-        manager or superadmin role)
+      description: Update an existing gallery to archived (requires publication manager
+        or superadmin role)
       parameters:
       - description: Gallery ID
         in: path
@@ -2289,15 +2820,15 @@ paths:
             $ref: '#/definitions/pkg.Response'
       security:
       - BearerAuth: []
-      summary: Update Archived Gallery
+      summary: Update Archive Gallery
       tags:
       - Gallery
-  /api/admin/galleries/{id}/published:
+  /api/admin/galleries/{id}/publish:
     patch:
       consumes:
       - application/json
-      description: Update an existing gallery item to published (requires publication
-        manager or superadmin role)
+      description: Update an existing gallery to publish (requires publication manager
+        or superadmin role)
       parameters:
       - description: Gallery ID
         in: path
@@ -2313,15 +2844,71 @@ paths:
             $ref: '#/definitions/pkg.Response'
       security:
       - BearerAuth: []
-      summary: Update Published Gallery
+      summary: Update Publish Gallery
       tags:
       - Gallery
+  /api/admin/news:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create a new news item (requires publication manager or superadmin
+        role)
+      parameters:
+      - description: News Title
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: News Category
+        in: formData
+        name: category
+        required: true
+        type: string
+      - description: News Content
+        in: formData
+        name: content
+        required: true
+        type: string
+      - description: News Status (draft, published, archived)
+        in: formData
+        name: status
+        required: true
+        type: string
+      - description: News Cover Image
+        in: formData
+        name: coverImage
+        type: file
+      - description: News Media Files
+        in: formData
+        name: mediaFiles[]
+        type: file
+      - description: Media Alt Texts
+        in: formData
+        name: mediaAlt[]
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/news.NewsResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create News
+      tags:
+      - News
   /api/admin/news/:
     get:
       consumes:
       - application/json
-      description: Retrieve a list of all news (requires publication manager or superadmin
-        role)
+      description: Retrieve a list of all news items (requires publication manager
+        or superadmin role)
       parameters:
       - description: Filter by category
         in: query
@@ -2345,55 +2932,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/pkg.Response'
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/news.NewsListResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: List All News (Protected)
-      tags:
-      - News
-    post:
-      consumes:
-      - multipart/form-data
-      description: Create a new news article (requires publication manager or superadmin
-        role)
-      parameters:
-      - description: News Title
-        in: formData
-        name: title
-        required: true
-        type: string
-      - description: News Category
-        in: formData
-        name: category
-        required: true
-        type: string
-      - description: News Content
-        in: formData
-        name: content
-        required: true
-        type: string
-      - description: News Status
-        in: formData
-        name: status
-        type: string
-      - description: News Image File
-        in: formData
-        name: image
-        type: file
-      - description: News Image URL (if not uploading file)
-        in: formData
-        name: image_url
-        type: string
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Create News
       tags:
       - News
   /api/admin/news/{id}:
@@ -2437,7 +2984,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/pkg.Response'
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/news.NewsResponse'
+              type: object
       security:
       - BearerAuth: []
       summary: Get News (Protected)
@@ -2446,8 +2998,8 @@ paths:
     put:
       consumes:
       - multipart/form-data
-      description: Update an existing news article (requires publication manager or
-        superadmin role)
+      description: Update an existing news item (requires publication manager or superadmin
+        role)
       parameters:
       - description: News ID
         in: path
@@ -2470,13 +3022,17 @@ paths:
         in: formData
         name: status
         type: string
-      - description: News Image File
+      - description: News Cover Image
         in: formData
-        name: image
+        name: coverImage
         type: file
-      - description: News Image URL (if not uploading file)
+      - description: News Media Files
         in: formData
-        name: image_url
+        name: mediaFiles[]
+        type: file
+      - description: Media Alt Texts
+        in: formData
+        name: mediaAlt[]
         type: string
       produces:
       - application/json
@@ -2490,6 +3046,112 @@ paths:
       summary: Update News
       tags:
       - News
+  /api/admin/news/{id}/archive:
+    patch:
+      consumes:
+      - application/json
+      description: Update an existing news to archived (requires publication manager
+        or superadmin role)
+      parameters:
+      - description: News ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Archive News
+      tags:
+      - News
+  /api/admin/news/{id}/publish:
+    patch:
+      consumes:
+      - application/json
+      description: Update an existing news to publish (requires publication manager
+        or superadmin role)
+      parameters:
+      - description: News ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Publish News
+      tags:
+      - News
+  /api/admin/news/comments:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of reported news comments
+      parameters:
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/news_comment.AdminNewsCommentListResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List Reported News Comments
+      tags:
+      - News Comments
+  /api/admin/news/comments/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a news comment by its ID
+      parameters:
+      - description: Comment ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete News Comment
+      tags:
+      - News Comments
   /api/admin/prayers:
     get:
       consumes:
@@ -2552,28 +3214,38 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieve a list of social programs for admin
+      description: Retrieve a paginated list of social programs for admin with offset-based
+        pagination, optional filters, and dynamic sorting
       parameters:
-      - description: Search query
+      - description: Search by title
         in: query
         name: search
         type: string
-      - description: Status filter
+      - description: Status filter (pending, active, completed, rejected)
         in: query
         name: status
         type: string
-      - description: Pagination limit
+      - description: Filter start date for billing_day (YYYY-MM-DD)
+        in: query
+        name: startDate
+        type: string
+      - description: Filter end date for billing_day (YYYY-MM-DD)
+        in: query
+        name: endDate
+        type: string
+      - description: Sort field and direction, e.g. 'title asc', 'minimum_amount desc',
+          'billing_day asc', 'created_at desc'
+        in: query
+        name: sortBy
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Items per page (default: 10, max: 100)'
         in: query
         name: limit
         type: integer
-      - description: Pagination cursor (next page)
-        in: query
-        name: next_cursor
-        type: string
-      - description: Pagination cursor (prev page)
-        in: query
-        name: prev_cursor
-        type: string
       produces:
       - application/json
       responses:
@@ -2600,19 +3272,6 @@ paths:
       - in: formData
         name: minimumAmount
         type: number
-      - enum:
-        - active
-        - completed
-        - stopped
-        - draft
-        in: formData
-        name: status
-        type: string
-        x-enum-varnames:
-        - StatusActive
-        - StatusCompleted
-        - StatusStopped
-        - StatusDraft
       - in: formData
         name: title
         type: string
@@ -2656,6 +3315,28 @@ paths:
       summary: Delete Social Program
       tags:
       - Social Programs
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific social program for admin
+      parameters:
+      - description: Social Program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Admin Social Program by ID
+      tags:
+      - Social Programs
     put:
       consumes:
       - multipart/form-data
@@ -2675,19 +3356,6 @@ paths:
       - in: formData
         name: minimumAmount
         type: number
-      - enum:
-        - active
-        - completed
-        - stopped
-        - draft
-        in: formData
-        name: status
-        type: string
-        x-enum-varnames:
-        - StatusActive
-        - StatusCompleted
-        - StatusStopped
-        - StatusDraft
       - in: formData
         name: title
         type: string
@@ -2705,6 +3373,52 @@ paths:
       security:
       - BearerAuth: []
       summary: Update Social Program
+      tags:
+      - Social Programs
+  /api/admin/social-programs/{id}/activate:
+    patch:
+      consumes:
+      - application/json
+      description: Approve a pending social program
+      parameters:
+      - description: Social Program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Approve Social Program
+      tags:
+      - Social Programs
+  /api/admin/social-programs/{id}/complete:
+    patch:
+      consumes:
+      - application/json
+      description: Complete an active social program
+      parameters:
+      - description: Social Program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Complete Social Program
       tags:
       - Social Programs
   /api/admin/social-programs/{id}/expenses:
@@ -2747,6 +3461,145 @@ paths:
       summary: Create Social Program Expense
       tags:
       - Social Program Expenses
+  /api/admin/social-programs/{id}/reject:
+    patch:
+      consumes:
+      - application/json
+      description: Reject a pending social program with reason
+      parameters:
+      - description: Social Program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Rejection Reason
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/social_program.RejectSocialProgramRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Reject Social Program
+      tags:
+      - Social Programs
+  /api/admin/social-programs/{id}/subscriptions:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all social program subscriptions (admin only)
+      parameters:
+      - description: Filter by social program ID
+        in: query
+        name: social_program_id
+        type: string
+      - description: Filter by account ID
+        in: query
+        name: account_id
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination page
+        in: query
+        name: page
+        type: integer
+      - description: Sort by field
+        in: query
+        name: sortBy
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List All Social Program Subscriptions
+      tags:
+      - Social Programs
+    post:
+      consumes:
+      - application/json
+      description: Subscribe to a social program
+      parameters:
+      - description: Social Program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Subscription Data
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/social_program_subscription.CreateSocialProgramSubscriptionOfflineRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Social Program Subscription
+      tags:
+      - Social Programs
+  /api/admin/social-programs/accounts/{account_id}/subscriptions:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of social program subscriptions for a specific
+        account (admin only)
+      parameters:
+      - description: Account ID
+        in: path
+        name: account_id
+        required: true
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination page
+        in: query
+        name: page
+        type: integer
+      - description: Sort by field
+        in: query
+        name: sortBy
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List Social Program Subscriptions by Account ID
+      tags:
+      - Social Programs
   /api/admin/social-programs/expenses/{id}:
     delete:
       consumes:
@@ -2771,19 +3624,145 @@ paths:
       summary: Delete Social Program Expense
       tags:
       - Social Program Expenses
-  /api/admin/social-programs/subscriptions:
+  /api/admin/social-programs/subscribers:
     get:
       consumes:
       - application/json
-      description: Retrieve a list of all social program subscriptions (admin only)
+      description: Retrieve a unique list of accounts that have at least one social
+        program subscription (admin only)
       parameters:
-      - description: Filter by social program ID
+      - description: Pagination limit
         in: query
-        name: social_program_id
+        name: limit
+        type: integer
+      - description: Pagination page
+        in: query
+        name: page
+        type: integer
+      - description: Search subscriber by name or email
+        in: query
+        name: search
         type: string
-      - description: Filter by account ID
+      - description: Sort by field
         in: query
-        name: account_id
+        name: sortBy
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List All Subscribers
+      tags:
+      - Social Programs
+  /api/admin/social-programs/subscribers/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a subscriber's profile and stats by their Account ID (admin
+        only)
+      parameters:
+      - description: Account ID (Subscriber ID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Subscriber By ID
+      tags:
+      - Social Programs
+  /api/admin/social-programs/subscribers/subscription/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a specific subscriber subscription by its ID
+      parameters:
+      - description: Subscription ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Subscriber Subscription By ID
+      tags:
+      - Social Programs
+  /api/admin/social-programs/subscriptions/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a specific social program subscription by its ID
+      parameters:
+      - description: Subscription ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Social Program Subscription By ID
+      tags:
+      - Social Programs
+  /api/admin/social-programs/subscriptions/{id}/deactivate:
+    patch:
+      consumes:
+      - application/json
+      description: Deactivate a social program subscription (admin only)
+      parameters:
+      - description: Subscription ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Deactivate Social Program Subscription
+      tags:
+      - Social Programs
+  /api/admin/social-programs/subscriptions/invoices/subscription/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a paginated list of social program invoices for a specific
+        subscription
+      parameters:
+      - description: Subscription ID
+        in: path
+        name: id
+        required: true
         type: string
       - description: Filter by status
         in: query
@@ -2810,30 +3789,7 @@ paths:
             $ref: '#/definitions/pkg.Response'
       security:
       - BearerAuth: []
-      summary: List All Social Program Subscriptions
-      tags:
-      - Social Programs
-  /api/admin/social-programs/subscriptions/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Retrieve a specific social program subscription by its ID
-      parameters:
-      - description: Subscription ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Get Social Program Subscription By ID
+      summary: List Social Program Invoices by Subscription ID
       tags:
       - Social Programs
   /api/admin/social-programs/transactions:
@@ -2890,35 +3846,36 @@ paths:
       summary: Get Social Program Transaction by ID
       tags:
       - Social Programs
-  /api/admin/upload/presign:
+  /api/admin/social-programs/transactions/pay-offline/{id}:
     post:
       consumes:
       - application/json
-      description: Generate a presigned URL for direct file upload to object storage
+      description: Manually record an offline payment for a social program invoice
+        (admin only)
       parameters:
-      - description: Presign Request
+      - description: Invoice ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Offline transaction request
         in: body
-        name: request
+        name: body
         required: true
         schema:
-          $ref: '#/definitions/upload.PresignRequest'
+          $ref: '#/definitions/social_program_transaction.CreateOfflineTransactionRequest'
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "201":
+          description: Created
           schema:
-            allOf:
-            - $ref: '#/definitions/pkg.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/upload.PresignResponse'
-              type: object
+            $ref: '#/definitions/pkg.Response'
       security:
       - BearerAuth: []
-      summary: Generate Presigned URL
+      summary: Record Offline Social Program Transaction
       tags:
-      - Upload
+      - Social Programs
   /api/auth/forget-password:
     post:
       consumes:
@@ -3117,24 +4074,34 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieve a list of donation programs
+      description: Retrieve a paginated list of donation programs with optional filters
+        and sorting
       parameters:
+      - description: Search by title
+        in: query
+        name: search
+        type: string
       - description: Filter by category
         in: query
         name: category
         type: string
-      - description: Pagination limit
+      - description: Status filter (admin only)
+        in: query
+        name: status
+        type: string
+      - description: Sort field and direction, e.g. 'title asc', 'fund_target desc',
+          'end_date asc', 'created_at desc'
+        in: query
+        name: sortBy
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Items per page (default: 10, max: 100)'
         in: query
         name: limit
         type: integer
-      - description: Pagination cursor (next page)
-        in: query
-        name: nextCursor
-        type: string
-      - description: Pagination cursor (prev page)
-        in: query
-        name: prevCursor
-        type: string
       produces:
       - application/json
       responses:
@@ -3164,6 +4131,64 @@ paths:
           schema:
             $ref: '#/definitions/pkg.Response'
       summary: Get Donation Program by Slug
+      tags:
+      - Donation Programs
+  /api/donation-programs/{slug}/expenses:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of expenses for a specific donation program
+        (publicly accessible)
+      parameters:
+      - description: Donation Program Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Cursor for pagination
+        in: query
+        name: cursor
+        type: string
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Get Public Donation Program Expense List
+      tags:
+      - Donation Programs
+  /api/donation-programs/{slug}/expenses/export:
+    get:
+      description: Export all expenses for a specific donation program as a CSV file
+        (publicly accessible)
+      parameters:
+      - description: Donation Program Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Filter start date (YYYY-MM-DD, inclusive)
+        in: query
+        name: start_date
+        type: string
+      - description: Filter end date (YYYY-MM-DD, inclusive)
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: CSV file
+          schema:
+            type: file
+      summary: Export Donation Program Expense as CSV
       tags:
       - Donation Programs
   /api/donation-programs/{slug}/prayers:
@@ -3235,8 +4260,8 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieve a list of foster children with cursor-based pagination
-        and optional filters
+      description: Retrieve a paginated list of foster children with optional filters
+        and sorting
       parameters:
       - description: Search by name
         in: query
@@ -3245,6 +4270,157 @@ paths:
       - description: Filter by category
         in: query
         name: category
+        type: string
+      - description: Filter by gender (male, female)
+        in: query
+        name: gender
+        type: string
+      - description: Filter by graduation status
+        in: query
+        name: isGraduated
+        type: boolean
+      - description: Filter by education level (1-12)
+        in: query
+        name: educationLevel
+        type: integer
+      - description: Sort field and direction, e.g. 'name asc', 'education_level desc',
+          'birth_date asc', 'created_at desc'
+        in: query
+        name: sortBy
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Items per page (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: List Foster Children
+      tags:
+      - Foster Children
+  /api/foster-children/{slug}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific foster child
+      parameters:
+      - description: Foster Children Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Get Foster Children by ID
+      tags:
+      - Foster Children
+  /api/foster-children/{slug}/expenses:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of all expenses for a foster child (requires
+        authentication and proper role)
+      parameters:
+      - description: Foster Children Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Cursor for pagination
+        in: query
+        name: cursor
+        type: string
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Foster Children Expense List
+      tags:
+      - Foster Children
+  /api/foster-children/{slug}/expenses/export:
+    get:
+      description: Export all expenses for a specific foster child as a CSV file (publicly
+        accessible)
+      parameters:
+      - description: Foster Children Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Filter start date (YYYY-MM-DD, inclusive)
+        in: query
+        name: start_date
+        type: string
+      - description: Filter end date (YYYY-MM-DD, inclusive)
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: CSV file
+          schema:
+            type: file
+      summary: Export Foster Children Expense as CSV
+      tags:
+      - Foster Children
+  /api/foster-children/{slug}/transactions:
+    post:
+      consumes:
+      - application/json
+      description: Initiate a Midtrans Snap payment for a foster children donation
+      parameters:
+      - description: Foster Children Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Transaction request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/foster_children_transaction.CreateFosterChildrenTransactionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Create Foster Children Transaction
+      tags:
+      - Foster Children
+  /api/foster-children/candidates:
+    get:
+      description: Get a list of the authenticated user's foster children candidates
+      parameters:
+      - description: Filter by status
+        in: query
+        name: status
         type: string
       - description: Pagination limit
         in: query
@@ -3265,58 +4441,11 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/pkg.Response'
-      summary: List Foster Children
+      security:
+      - BearerAuth: []
+      summary: List My Foster Children Candidates
       tags:
-      - Foster Children
-  /api/foster-children/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Get detailed information of a specific foster child
-      parameters:
-      - description: Foster Children ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      summary: Get Foster Children by ID
-      tags:
-      - Foster Children
-  /api/foster-children/{id}/transactions:
-    post:
-      consumes:
-      - application/json
-      description: Initiate a Midtrans Snap payment for a foster children donation
-      parameters:
-      - description: Foster Children ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Transaction request
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/foster_children_transaction.CreateFosterChildrenTransactionRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      summary: Create Foster Children Transaction
-      tags:
-      - Foster Children
-  /api/foster-children/candidates/submit:
+      - Foster Children Candidates
     post:
       consumes:
       - multipart/form-data
@@ -3342,9 +4471,12 @@ paths:
         - CategoryFatherless
         - CategoryMotherless
         - CategoryOrphan
+      - in: formData
+        name: educationLevel
+        type: integer
       - enum:
-        - male
-        - female
+        - laki-laki
+        - perempuan
         in: formData
         name: gender
         type: string
@@ -3353,6 +4485,9 @@ paths:
         - Female
       - in: formData
         name: name
+        type: string
+      - in: formData
+        name: schoolName
         type: string
       - in: formData
         name: submitterAddress
@@ -3395,24 +4530,105 @@ paths:
       summary: Create Foster Children Candidate
       tags:
       - Foster Children Candidates
-  /api/galleries:
+  /api/foster-children/candidates/{id}:
+    delete:
+      description: Cancel a pending foster children candidate
+      parameters:
+      - description: Candidate ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Cancel Foster Children Candidate
+      tags:
+      - Foster Children Candidates
+    get:
+      description: Get a specific foster children candidate submitted by the user
+      parameters:
+      - description: Candidate ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get My Foster Children Candidate By ID
+      tags:
+      - Foster Children Candidates
+  /api/foster-children/expenses/{id}:
     get:
       consumes:
       - application/json
-      description: Retrieve a list of published gallery items with cursor-based pagination
-        and optional filters
+      description: Get detailed information of a specific foster children expense
+        entry (requires authentication and proper role)
       parameters:
-      - description: Filter by category
-        in: query
-        name: category
+      - description: Expense ID
+        in: path
+        name: id
+        required: true
         type: string
-      - description: Cursor for next page
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get Foster Children Expense by ID
+      tags:
+      - Foster Children
+  /api/foundation-profile:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve the foundation profile information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/foundation_profile.FoundationProfileResponse'
+              type: object
+      summary: Get Foundation Profile
+      tags:
+      - Foundation Profile
+  /api/galleries/:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all gallery items (requires publication manager
+        or superadmin role)
+      parameters:
+      - description: Filter by category ID
         in: query
-        name: nextCursor
-        type: string
-      - description: Cursor for previous page
+        name: category_id
+        type: integer
+      - description: Cursor for pagination (encoded string)
         in: query
-        name: prevCursor
+        name: cursor
         type: string
       - description: 'Items per page (default: 10, max: 100)'
         in: query
@@ -3424,19 +4640,82 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/pkg.Response'
-      summary: List Published Galleries
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/gallery.GalleryListResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List All Galleries (Protected)
       tags:
       - Gallery
-  /api/galleries/{slug}:
-    get:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create a new gallery item (requires publication manager or superadmin
+        role)
+      parameters:
+      - description: Gallery Title
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: Gallery Category
+        in: formData
+        name: category
+        required: true
+        type: string
+      - description: Gallery Description
+        in: formData
+        name: description
+        required: true
+        type: string
+      - description: Gallery Status (draft, published, archived)
+        in: formData
+        name: status
+        required: true
+        type: string
+      - description: Gallery Cover Image
+        in: formData
+        name: coverImage
+        type: file
+      - description: Gallery Media Files
+        in: formData
+        name: mediaFiles[]
+        type: file
+      - description: Media Alt Texts
+        in: formData
+        name: mediaAlt[]
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/gallery.GalleryResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create Gallery
+      tags:
+      - Gallery
+  /api/galleries/{id}:
+    delete:
       consumes:
       - application/json
-      description: Get detailed information of a specific published gallery item
+      description: Delete a gallery item (requires publication manager or superadmin
+        role)
       parameters:
-      - description: Gallery Slug
+      - description: Gallery ID
         in: path
-        name: slug
+        name: id
         required: true
         type: string
       produces:
@@ -3446,7 +4725,88 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/pkg.Response'
-      summary: Get Published Gallery
+      security:
+      - BearerAuth: []
+      summary: Delete Gallery
+      tags:
+      - Gallery
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific gallery item (requires publication
+        manager or superadmin role)
+      parameters:
+      - description: Gallery ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/gallery.GalleryResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get Gallery (Protected)
+      tags:
+      - Gallery
+    put:
+      consumes:
+      - multipart/form-data
+      description: Update an existing gallery item (requires publication manager or
+        superadmin role)
+      parameters:
+      - description: Gallery ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Gallery Title
+        in: formData
+        name: title
+        type: string
+      - description: Gallery Category
+        in: formData
+        name: category
+        type: string
+      - description: Gallery Description
+        in: formData
+        name: description
+        type: string
+      - description: Gallery Status
+        in: formData
+        name: status
+        type: string
+      - description: Gallery Cover Image
+        in: formData
+        name: coverImage
+        type: file
+      - description: Gallery Media Files
+        in: formData
+        name: mediaFiles[]
+        type: file
+      - description: Media Alt Texts
+        in: formData
+        name: mediaAlt[]
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Update Gallery
       tags:
       - Gallery
   /api/logs:
@@ -3571,59 +4931,6 @@ paths:
       summary: Get My Donation Program Transaction by ID
       tags:
       - Donation Programs
-  /api/me/foster-children/candidates:
-    get:
-      description: Get a list of the authenticated user's foster children candidates
-      parameters:
-      - description: Filter by status
-        in: query
-        name: status
-        type: string
-      - description: Pagination limit
-        in: query
-        name: limit
-        type: integer
-      - description: Pagination cursor (next page)
-        in: query
-        name: next_cursor
-        type: string
-      - description: Pagination cursor (prev page)
-        in: query
-        name: prev_cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: List My Foster Children Candidates
-      tags:
-      - Foster Children Candidates
-  /api/me/foster-children/candidates/{id}:
-    delete:
-      description: Cancel a pending foster children candidate
-      parameters:
-      - description: Candidate ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Cancel Foster Children Candidate
-      tags:
-      - Foster Children Candidates
   /api/me/foster-children/transactions:
     get:
       description: Retrieve a paginated list of foster children transactions for the
@@ -3714,24 +5021,29 @@ paths:
       - multipart/form-data
       description: Update profile information of the currently authenticated user
       parameters:
-      - in: formData
-        name: address
-        type: string
-      - in: formData
-        name: defaultAccountRoleId
-        type: integer
-      - in: formData
-        name: email
-        type: string
-      - in: formData
-        name: phone
-        type: string
-      - in: formData
+      - description: Username
+        in: formData
         name: username
         type: string
+      - description: Email
+        in: formData
+        name: email
+        type: string
+      - description: Phone
+        in: formData
+        name: phone
+        type: string
+      - description: Address
+        in: formData
+        name: address
+        type: string
+      - description: Default Role ID
+        in: formData
+        name: defaultAccountRoleId
+        type: integer
       - description: Profile Picture
         in: formData
-        name: profile_picture
+        name: profilePicture
         type: file
       produces:
       - application/json
@@ -3800,31 +5112,16 @@ paths:
       summary: Get My Social Program Transaction by ID
       tags:
       - Social Programs
-  /api/me/subscriptions:
-    get:
+  /api/me/subscriptions/{id}/deactivate:
+    patch:
       consumes:
       - application/json
-      description: Retrieve a list of the authenticated user's social program subscriptions
+      description: Deactivate own social program subscription
       parameters:
-      - description: Filter by social program ID
-        in: query
-        name: social_program_id
-        type: string
-      - description: Filter by status
-        in: query
-        name: status
-        type: string
-      - description: Pagination limit
-        in: query
-        name: limit
-        type: integer
-      - description: Pagination cursor (next page)
-        in: query
-        name: next_cursor
-        type: string
-      - description: Pagination cursor (prev page)
-        in: query
-        name: prev_cursor
+      - description: Subscription ID
+        in: path
+        name: id
+        required: true
         type: string
       produces:
       - application/json
@@ -3835,45 +5132,7 @@ paths:
             $ref: '#/definitions/pkg.Response'
       security:
       - BearerAuth: []
-      summary: List My Social Program Subscriptions
-      tags:
-      - Social Programs
-  /api/me/subscriptions/{id}/invoices:
-    get:
-      consumes:
-      - application/json
-      description: Retrieve a paginated list of social program invoices
-      parameters:
-      - description: Filter by subscription ID
-        in: query
-        name: subscription_id
-        type: string
-      - description: Filter by status
-        in: query
-        name: status
-        type: string
-      - description: Pagination limit
-        in: query
-        name: limit
-        type: integer
-      - description: Pagination cursor (next page)
-        in: query
-        name: next_cursor
-        type: string
-      - description: Pagination cursor (prev page)
-        in: query
-        name: prev_cursor
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: List Social Program Invoices
+      summary: Deactivate My Social Program Subscription
       tags:
       - Social Programs
   /api/me/subscriptions/invoices/{id}:
@@ -3903,7 +5162,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieve a list of published news with cursor-based pagination
+      description: Retrieve a list of published news items with cursor-based pagination
         and optional filters
       parameters:
       - description: Filter by category
@@ -3924,7 +5183,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/pkg.Response'
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/news.NewsListResponse'
+              type: object
       summary: List Published News
       tags:
       - News
@@ -3945,10 +5209,108 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/pkg.Response'
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/news.NewsResponse'
+              type: object
       summary: Get Published News
       tags:
       - News
+  /api/news/{slug}/comments:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of news comments
+      parameters:
+      - description: News Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/news_comment.NewsCommentListResponse'
+              type: object
+      summary: List News Comments
+      tags:
+      - News Comments
+  /api/news/comments/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a news comment by its ID
+      parameters:
+      - description: Comment ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/news_comment.NewsCommentResponse'
+              type: object
+      summary: Get News Comment by ID
+      tags:
+      - News Comments
+  /api/news/comments/{id}/report:
+    post:
+      consumes:
+      - application/json
+      description: Report a news comment
+      parameters:
+      - description: Comment ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Report News Comment Payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/news_comment.ReportNewsCommentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Report News Comment
+      tags:
+      - News Comments
   /api/prayers/{id}:
     get:
       consumes:
@@ -4027,13 +5389,74 @@ paths:
       summary: Report Prayer
       tags:
       - Prayer
+  /api/public/galleries/:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of published gallery items with cursor-based pagination
+        and optional filters
+      parameters:
+      - description: Filter by category ID
+        in: query
+        name: category_id
+        type: integer
+      - description: Cursor for pagination (encoded string)
+        in: query
+        name: cursor
+        type: string
+      - description: 'Items per page (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/gallery.GalleryListResponse'
+              type: object
+      summary: List Published Galleries
+      tags:
+      - Gallery
+  /api/public/galleries/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific published gallery item
+      parameters:
+      - description: Gallery ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/gallery.GalleryResponse'
+              type: object
+      summary: Get Published Gallery
+      tags:
+      - Gallery
   /api/social-programs:
     get:
       consumes:
       - application/json
-      description: Retrieve a list of social programs
+      description: Retrieve a paginated list of social programs with optional filters
+        and sorting
       parameters:
-      - description: Search query
+      - description: Search by title
         in: query
         name: search
         type: string
@@ -4041,18 +5464,27 @@ paths:
         in: query
         name: status
         type: string
-      - description: Pagination limit
+      - description: Filter start date for billing_day (YYYY-MM-DD)
+        in: query
+        name: startDate
+        type: string
+      - description: Filter end date for billing_day (YYYY-MM-DD)
+        in: query
+        name: endDate
+        type: string
+      - description: Sort field and direction, e.g. 'title asc', 'minimum_amount desc',
+          'billing_day asc', 'created_at desc'
+        in: query
+        name: sortBy
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Items per page (default: 10, max: 100)'
         in: query
         name: limit
         type: integer
-      - description: Pagination cursor (next page)
-        in: query
-        name: next_cursor
-        type: string
-      - description: Pagination cursor (prev page)
-        in: query
-        name: prev_cursor
-        type: string
       produces:
       - application/json
       responses:
@@ -4101,6 +5533,29 @@ paths:
       summary: List Social Program Expenses
       tags:
       - Social Program Expenses
+  /api/social-programs/{id}/subscribe:
+    post:
+      consumes:
+      - application/json
+      description: Subscribe to a social program
+      parameters:
+      - description: Social Program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create Social Program Subscription
+      tags:
+      - Social Programs
   /api/social-programs/{slug}:
     get:
       consumes:
@@ -4120,6 +5575,64 @@ paths:
           schema:
             $ref: '#/definitions/pkg.Response'
       summary: Get Social Program by ID
+      tags:
+      - Social Programs
+  /api/social-programs/{slug}/expenses:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of expenses for a specific social program (publicly
+        accessible)
+      parameters:
+      - description: Social Program Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Cursor for pagination
+        in: query
+        name: cursor
+        type: string
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      summary: Get Public Social Program Expense List
+      tags:
+      - Social Programs
+  /api/social-programs/{slug}/expenses/export:
+    get:
+      description: Export all expenses for a specific social program as a CSV file
+        (publicly accessible)
+      parameters:
+      - description: Social Program Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Filter start date (YYYY-MM-DD, inclusive)
+        in: query
+        name: start_date
+        type: string
+      - description: Filter end date (YYYY-MM-DD, inclusive)
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: CSV file
+          schema:
+            type: file
+      summary: Export Social Program Expense as CSV
       tags:
       - Social Programs
   /api/social-programs/expenses/{id}:
@@ -4148,59 +5661,6 @@ paths:
       summary: Get Social Program Expense by ID
       tags:
       - Social Program Expenses
-  /api/social-programs/subscriptions:
-    post:
-      consumes:
-      - application/json
-      description: Subscribe to a social program
-      parameters:
-      - description: Subscription Data
-        in: body
-        name: payload
-        required: true
-        schema:
-          $ref: '#/definitions/social_program_subscription.CreateSocialProgramSubscriptionRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Create Social Program Subscription
-      tags:
-      - Social Programs
-  /api/social-programs/subscriptions/{id}:
-    put:
-      consumes:
-      - application/json
-      description: Update the status of a social program subscription
-      parameters:
-      - description: Subscription ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Subscription Update Data
-        in: body
-        name: payload
-        required: true
-        schema:
-          $ref: '#/definitions/social_program_subscription.UpdateSocialProgramSubscriptionRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/pkg.Response'
-      security:
-      - BearerAuth: []
-      summary: Update Social Program Subscription
-      tags:
-      - Social Programs
   /api/social-programs/transactions:
     post:
       consumes:
@@ -4221,6 +5681,44 @@ paths:
           schema:
             $ref: '#/definitions/pkg.Response'
       summary: Create Social Program Transaction
+      tags:
+      - Social Programs
+  /api/subscriptions/invoices/me:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a paginated list of social program invoices
+      parameters:
+      - description: Filter by subscription ID
+        in: query
+        name: subscription_id
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination cursor (next page)
+        in: query
+        name: next_cursor
+        type: string
+      - description: Pagination cursor (prev page)
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List Social Program Invoices
       tags:
       - Social Programs
 securityDefinitions:

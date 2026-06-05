@@ -3,18 +3,19 @@ package social_program_subscription
 import (
 	"context"
 
-	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
 )
 
 type Repository interface {
 	FindAllSocialProgramSubscriptions(ctx context.Context, options map[string]interface{}) ([]SocialProgramSubscription, error)
+	CountSocialProgramSubscriptions(ctx context.Context, options map[string]interface{}) (int64, error)
 	FindOneSocialProgramSubscription(ctx context.Context, options map[string]interface{}) (*SocialProgramSubscription, error)
 	CreateSocialProgramSubscription(ctx context.Context, subscription *SocialProgramSubscription) error
 	UpdateSocialProgramSubscription(ctx context.Context, subscriptionID string, updates map[string]interface{}) error
 	DeleteSocialProgramSubscription(ctx context.Context, subscriptionID string) error
 	FindSubscriptionsDueForBilling(ctx context.Context, billingDay int) ([]SocialProgramSubscription, error)
 	FindAllSubscribers(ctx context.Context, options map[string]interface{}) ([]SocialProgramSubscription, error)
+	CountSubscribers(ctx context.Context, options map[string]interface{}) (int64, error)
 	GetSubscriberStats(ctx context.Context, accountIDs []string) (map[string]SubscriberStats, error)
 	GetTotalDonationBySubscriptionIDs(ctx context.Context, subscriptionIDs []string) (map[string]float64, error)
 }
@@ -34,7 +35,11 @@ func (r *repository) FindAllSocialProgramSubscriptions(ctx context.Context, opti
 			(SELECT COALESCE(SUM(spt.gross_amount), 0)
 			 FROM social_program_transactions spt
 			 JOIN social_program_invoices spi ON spi.id = spt.social_program_invoice_id
-			 WHERE spi.subscription_id = social_program_subscriptions.id AND spt.transaction_status = 'settlement') as total_donation`).
+			 WHERE spi.subscription_id = social_program_subscriptions.id AND spt.transaction_status = 'settlement') as total_donation,
+			(SELECT COUNT(*)
+			 FROM social_program_transactions spt
+			 JOIN social_program_invoices spi ON spi.id = spt.social_program_invoice_id
+			 WHERE spi.subscription_id = social_program_subscriptions.id AND spt.transaction_status = 'settlement') as total_paid_periods`).
 		Preload("Account.UserProfile").Preload("SocialProgram")
 
 	if socialProgramID, ok := options["social_program_id"]; ok && socialProgramID.(string) != "" {
@@ -47,36 +52,79 @@ func (r *repository) FindAllSocialProgramSubscriptions(ctx context.Context, opti
 		query = query.Where("status = ?", status.(string))
 	}
 
-	if nextCursor, ok := options["next_cursor"]; ok && nextCursor.(string) != "" {
-		cursorData, err := pkg.DecodeCursor(nextCursor.(string))
-		if err == nil {
-			query = query.Where("created_at < ? OR (created_at = ? AND id < ?)",
-				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
-		}
-	} else if prevCursor, ok := options["prev_cursor"]; ok && prevCursor.(string) != "" {
-		cursorData, err := pkg.DecodeCursor(prevCursor.(string))
-		if err == nil {
-			query = query.Where("created_at > ? OR (created_at = ? AND id > ?)",
-				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
+	if search, ok := options["search"]; ok && search.(string) != "" {
+		searchQuery := "%" + search.(string) + "%"
+		if accountID, ok := options["account_id"]; ok && accountID.(string) != "" {
+			query = query.Joins("JOIN social_programs ON social_programs.id = social_program_subscriptions.social_program_id").
+				Where("social_programs.title ILIKE ?", searchQuery)
+		} else {
+			query = query.Joins("JOIN accounts ON accounts.id = social_program_subscriptions.account_id").
+				Joins("JOIN user_profiles ON user_profiles.account_id = accounts.id").
+				Where("user_profiles.username ILIKE ? OR accounts.email ILIKE ?", searchQuery, searchQuery)
 		}
 	}
 
-	if _, isPrev := options["prev_cursor"]; isPrev {
-		query = query.Order("created_at ASC, id ASC")
-	} else {
-		query = query.Order("created_at DESC, id DESC")
+	orderClause := "social_program_subscriptions.created_at DESC"
+	if sortBy, ok := options["sort_by"]; ok && sortBy.(string) != "" {
+		switch sortBy.(string) {
+		case "total_donation desc":
+			orderClause = "(SELECT COALESCE(SUM(spt.gross_amount), 0) FROM social_program_transactions spt JOIN social_program_invoices spi ON spi.id = spt.social_program_invoice_id WHERE spi.subscription_id = social_program_subscriptions.id AND spt.transaction_status = 'settlement') DESC"
+		case "total_donation asc":
+			orderClause = "(SELECT COALESCE(SUM(spt.gross_amount), 0) FROM social_program_transactions spt JOIN social_program_invoices spi ON spi.id = spt.social_program_invoice_id WHERE spi.subscription_id = social_program_subscriptions.id AND spt.transaction_status = 'settlement') ASC"
+		case "total_paid_periods desc":
+			orderClause = "(SELECT COUNT(*) FROM social_program_transactions spt JOIN social_program_invoices spi ON spi.id = spt.social_program_invoice_id WHERE spi.subscription_id = social_program_subscriptions.id AND spt.transaction_status = 'settlement') DESC"
+		case "total_paid_periods asc":
+			orderClause = "(SELECT COUNT(*) FROM social_program_transactions spt JOIN social_program_invoices spi ON spi.id = spt.social_program_invoice_id WHERE spi.subscription_id = social_program_subscriptions.id AND spt.transaction_status = 'settlement') ASC"
+		case "created_at asc":
+			orderClause = "social_program_subscriptions.created_at ASC"
+		}
 	}
+	query = query.Order(orderClause)
 
 	limit := 10
 	if l, ok := options["limit"]; ok {
 		limit = l.(int)
 	}
+	offset := 0
+	if page, ok := options["page"]; ok && page.(int) > 1 {
+		offset = (page.(int) - 1) * limit
+	}
 
-	query = query.Limit(limit + 1)
+	query = query.Limit(limit).Offset(offset)
 	if err := query.Find(&subscriptions).Error; err != nil {
 		return nil, err
 	}
 	return subscriptions, nil
+}
+
+func (r *repository) CountSocialProgramSubscriptions(ctx context.Context, options map[string]interface{}) (int64, error) {
+	var total int64
+	query := r.Conn.WithContext(ctx).Model(&SocialProgramSubscription{})
+
+	if socialProgramID, ok := options["social_program_id"]; ok && socialProgramID.(string) != "" {
+		query = query.Where("social_program_id = ?", socialProgramID.(string))
+	}
+	if accountID, ok := options["account_id"]; ok && accountID.(string) != "" {
+		query = query.Where("account_id = ?", accountID.(string))
+	}
+	if status, ok := options["status"]; ok && status.(string) != "" {
+		query = query.Where("status = ?", status.(string))
+	}
+
+	if search, ok := options["search"]; ok && search.(string) != "" {
+		searchQuery := "%" + search.(string) + "%"
+		if accountID, ok := options["account_id"]; ok && accountID.(string) != "" {
+			query = query.Joins("JOIN social_programs ON social_programs.id = social_program_subscriptions.social_program_id").
+				Where("social_programs.title ILIKE ?", searchQuery)
+		} else {
+			query = query.Joins("JOIN accounts ON accounts.id = social_program_subscriptions.account_id").
+				Joins("JOIN user_profiles ON user_profiles.account_id = accounts.id").
+				Where("user_profiles.username ILIKE ? OR accounts.email ILIKE ?", searchQuery, searchQuery)
+		}
+	}
+
+	err := query.Count(&total).Error
+	return total, err
 }
 
 func (r *repository) FindOneSocialProgramSubscription(ctx context.Context, options map[string]interface{}) (*SocialProgramSubscription, error) {
@@ -142,40 +190,73 @@ func (r *repository) FindAllSubscribers(ctx context.Context, options map[string]
 		Select("MAX(id)").
 		Group("account_id")
 
-	query := r.Conn.WithContext(ctx).
-		Where("id IN (?)", subQuery).
+	query := r.Conn.WithContext(ctx).Model(&SocialProgramSubscription{}).
+		Where("social_program_subscriptions.id IN (?)", subQuery).
 		Preload("Account.UserProfile")
 
-	if nextCursor, ok := options["next_cursor"]; ok && nextCursor.(string) != "" {
-		cursorData, err := pkg.DecodeCursor(nextCursor.(string))
-		if err == nil {
-			query = query.Where("created_at < ? OR (created_at = ? AND id < ?)",
-				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
-		}
-	} else if prevCursor, ok := options["prev_cursor"]; ok && prevCursor.(string) != "" {
-		cursorData, err := pkg.DecodeCursor(prevCursor.(string))
-		if err == nil {
-			query = query.Where("created_at > ? OR (created_at = ? AND id > ?)",
-				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
-		}
+	if search, ok := options["search"]; ok && search.(string) != "" {
+		searchQuery := "%" + search.(string) + "%"
+		query = query.Joins("JOIN accounts ON accounts.id = social_program_subscriptions.account_id").
+			Joins("JOIN user_profiles ON user_profiles.account_id = accounts.id").
+			Where("user_profiles.username ILIKE ? OR accounts.email ILIKE ?", searchQuery, searchQuery)
 	}
 
-	if _, isPrev := options["prev_cursor"]; isPrev {
-		query = query.Order("created_at ASC, id ASC")
-	} else {
-		query = query.Order("created_at DESC, id DESC")
+	orderClause := "social_program_subscriptions.created_at DESC"
+	if sortBy, ok := options["sort_by"]; ok && sortBy.(string) != "" {
+		// Just in case we need sort by for subscribers list
+		switch sortBy.(string) {
+		case "total_donation desc":
+			orderClause = "(SELECT COALESCE(SUM(spt.gross_amount), 0) FROM social_program_transactions spt WHERE spt.account_id = social_program_subscriptions.account_id AND spt.transaction_status = 'settlement') DESC"
+		case "total_donation asc":
+			orderClause = "(SELECT COALESCE(SUM(spt.gross_amount), 0) FROM social_program_transactions spt WHERE spt.account_id = social_program_subscriptions.account_id AND spt.transaction_status = 'settlement') ASC"
+		case "total_subscription desc":
+			orderClause = "(SELECT COUNT(*) FROM social_program_subscriptions sps WHERE sps.account_id = social_program_subscriptions.account_id) DESC"
+		case "total_subscription asc":
+			orderClause = "(SELECT COUNT(*) FROM social_program_subscriptions sps WHERE sps.account_id = social_program_subscriptions.account_id) ASC"
+		case "total_paid_periods desc":
+			orderClause = "(SELECT COUNT(*) FROM social_program_transactions spt JOIN social_program_invoices spi ON spi.id = spt.social_program_invoice_id WHERE spi.subscription_id = social_program_subscriptions.id AND spt.transaction_status = 'settlement') DESC"
+		case "total_paid_periods asc":
+			orderClause = "(SELECT COUNT(*) FROM social_program_transactions spt JOIN social_program_invoices spi ON spi.id = spt.social_program_invoice_id WHERE spi.subscription_id = social_program_subscriptions.id AND spt.transaction_status = 'settlement') ASC"
+		case "created_at asc":
+			orderClause = "social_program_subscriptions.created_at ASC"
+		}
 	}
+	query = query.Order(orderClause)
 
 	limit := 10
 	if l, ok := options["limit"]; ok {
 		limit = l.(int)
 	}
+	offset := 0
+	if page, ok := options["page"]; ok && page.(int) > 1 {
+		offset = (page.(int) - 1) * limit
+	}
 
-	query = query.Limit(limit + 1)
+	query = query.Limit(limit).Offset(offset)
 	if err := query.Find(&subscriptions).Error; err != nil {
 		return nil, err
 	}
 	return subscriptions, nil
+}
+
+func (r *repository) CountSubscribers(ctx context.Context, options map[string]interface{}) (int64, error) {
+	var total int64
+	subQuery := r.Conn.Model(&SocialProgramSubscription{}).
+		Select("MAX(id)").
+		Group("account_id")
+
+	query := r.Conn.WithContext(ctx).Model(&SocialProgramSubscription{}).
+		Where("social_program_subscriptions.id IN (?)", subQuery)
+
+	if search, ok := options["search"]; ok && search.(string) != "" {
+		searchQuery := "%" + search.(string) + "%"
+		query = query.Joins("JOIN accounts ON accounts.id = social_program_subscriptions.account_id").
+			Joins("JOIN user_profiles ON user_profiles.account_id = accounts.id").
+			Where("user_profiles.username ILIKE ? OR accounts.email ILIKE ?", searchQuery, searchQuery)
+	}
+
+	err := query.Count(&total).Error
+	return total, err
 }
 
 type SubscriberStats struct {

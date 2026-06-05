@@ -50,9 +50,13 @@ func (s *service) GetDonationProgramList(ctx context.Context, params DonationPro
 	if params.Limit > 100 {
 		params.Limit = 100
 	}
+	if params.Page <= 0 {
+		params.Page = 1
+	}
 
 	options := map[string]interface{}{
 		"limit": params.Limit,
+		"page":  params.Page,
 	}
 	if params.Search != "" {
 		options["search"] = params.Search
@@ -60,11 +64,8 @@ func (s *service) GetDonationProgramList(ctx context.Context, params DonationPro
 	if params.Category != "" {
 		options["category"] = params.Category
 	}
-	if params.NextCursor != "" {
-		options["next_cursor"] = params.NextCursor
-	}
-	if params.PrevCursor != "" {
-		options["prev_cursor"] = params.PrevCursor
+	if params.SortBy != "" {
+		options["sort_by"] = params.SortBy
 	}
 
 	if isAdmin {
@@ -75,45 +76,26 @@ func (s *service) GetDonationProgramList(ctx context.Context, params DonationPro
 		options["status"] = StatusActive
 	}
 
+	total, err := s.repo.CountDonationPrograms(ctx, options)
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data donasi", nil, nil)
+	}
+
 	donations, err := s.repo.FindAllDonationPrograms(ctx, options)
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data donasi", nil, nil)
 	}
 
-	var hasNext, hasPrev bool
-	if params.PrevCursor != "" {
-		hasPrev = len(donations) > params.Limit
-		hasNext = true
-		if len(donations) > params.Limit {
-			donations = donations[:params.Limit]
-		}
-		for i, j := 0, len(donations)-1; i < j; i, j = i+1, j-1 {
-			donations[i], donations[j] = donations[j], donations[i]
-		}
-	} else {
-		hasNext = len(donations) > params.Limit
-		hasPrev = params.NextCursor != ""
-		if hasNext {
-			donations = donations[:params.Limit]
-		}
+	totalPages := int(total) / params.Limit
+	if int(total)%params.Limit != 0 {
+		totalPages++
 	}
 
-	var nextCursor, prevCursor string
-	if len(donations) > 0 {
-		first := donations[0]
-		last := donations[len(donations)-1]
-		if hasNext {
-			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID.String())
-		}
-		if hasPrev {
-			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID.String())
-		}
-	}
-
-	pagination := pkg.CursorPagination{
-		NextCursor: nextCursor,
-		PrevCursor: prevCursor,
+	pagination := pkg.OffsetPagination{
+		Page:       params.Page,
 		Limit:      params.Limit,
+		Total:      total,
+		TotalPages: totalPages,
 	}
 
 	if isAdmin {
@@ -262,31 +244,31 @@ func (s *service) CreateDonationProgram(ctx context.Context, payload DonationPro
 		coverImageURL = uploadedURL
 	}
 
-donationProgram := &DonationProgram{
-	ID:          uuid.New(),
-	Title:       payload.Title,
-	Slug:        pkg.Slugify(payload.Title),
-	Description: payload.Description,
-	CoverImage:  coverImageURL,
-	Category:    payload.Category,
-	FundTarget:  payload.FundTarget,
-	Status:      status,
-	StartDate:   startDate,
-	EndDate:     endDate,
-	CreatedAt:   now,
-	UpdatedAt:   now,
-}
+	donationProgram := &DonationProgram{
+		ID:          uuid.New(),
+		Title:       payload.Title,
+		Slug:        pkg.Slugify(payload.Title),
+		Description: payload.Description,
+		CoverImage:  coverImageURL,
+		Category:    payload.Category,
+		FundTarget:  payload.FundTarget,
+		Status:      status,
+		StartDate:   startDate,
+		EndDate:     endDate,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
 
-if err := s.repo.CreateDonationProgram(ctx, donationProgram); err != nil {
-	logrus.WithFields(logrus.Fields{
-		"component": "donation_program.service",
-		"title":     payload.Title,
-	}).WithError(err).Error("failed to create donation_program")
-	return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat donasi_program", nil, nil)
-}
+	if err := s.repo.CreateDonationProgram(ctx, donationProgram); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "donation_program.service",
+			"title":     payload.Title,
+		}).WithError(err).Error("failed to create donation_program")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat donasi_program", nil, nil)
+	}
 
-s.logService.CreateLog(ctx, nil, "CREATE", "donation_program", donationProgram.ID.String(), nil, donationProgram.toAdminDonationProgramResponse())
-return pkg.NewResponse(http.StatusCreated, "Donasi program berhasil dibuat", nil, donationProgram.toAdminDonationProgramResponse())
+	s.logService.CreateLog(ctx, nil, "CREATE", "donation_program", donationProgram.ID.String(), nil, donationProgram.toAdminDonationProgramResponse())
+	return pkg.NewResponse(http.StatusCreated, "Donasi program berhasil dibuat", nil, donationProgram.toAdminDonationProgramResponse())
 }
 
 func (s *service) UpdateDonationProgram(ctx context.Context, id string, payload DonationProgramRequest) pkg.Response {

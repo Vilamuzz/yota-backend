@@ -25,7 +25,7 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	public := r.Group("/foster-children")
-	public.POST("/:id/transactions", h.middleware.AuthOptional(), h.CreateFosterChildrenTransaction)
+	public.POST("/:slug/transactions", h.middleware.AuthOptional(), h.CreateFosterChildrenTransaction)
 
 	me := r.Group("/foster-children/transactions/me")
 	me.Use(h.middleware.AuthRequired())
@@ -123,13 +123,13 @@ func (h *handler) CreateOfflineFosterChildrenTransaction(c *gin.Context) {
 // @Tags Foster Children
 // @Accept json
 // @Produce json
-// @Param id path string true "Foster Children ID"
+// @Param slug path string true "Foster Children Slug"
 // @Param body body CreateFosterChildrenTransactionRequest true "Transaction request"
 // @Success 201 {object} pkg.Response
-// @Router /api/foster-children/{id}/transactions [post]
+// @Router /api/foster-children/{slug}/transactions [post]
 func (h *handler) CreateFosterChildrenTransaction(c *gin.Context) {
 	ctx := c.Request.Context()
-	fosterChildrenID := c.Param("id")
+	fosterChildrenSlug := c.Param("slug")
 	accountID := ""
 	if userData, exists := c.Get("user_data"); exists {
 		if claims, ok := userData.(jwt_pkg.UserJWTClaims); ok {
@@ -142,7 +142,7 @@ func (h *handler) CreateFosterChildrenTransaction(c *gin.Context) {
 		return
 	}
 
-	res := h.service.CreateFosterChildrenTransaction(ctx, accountID, fosterChildrenID, req)
+	res := h.service.CreateFosterChildrenTransaction(ctx, accountID, fosterChildrenSlug, req)
 	c.JSON(res.Status, res)
 }
 

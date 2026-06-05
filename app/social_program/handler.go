@@ -58,15 +58,17 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // GetSocialProgramList
 //
 // @Summary List Social Programs
-// @Description Retrieve a list of social programs
+// @Description Retrieve a paginated list of social programs with optional filters and sorting
 // @Tags Social Programs
 // @Accept json
 // @Produce json
-// @Param search query string false "Search query"
+// @Param search query string false "Search by title"
 // @Param status query string false "Status filter"
-// @Param limit query int false "Pagination limit"
-// @Param next_cursor query string false "Pagination cursor (next page)"
-// @Param prev_cursor query string false "Pagination cursor (prev page)"
+// @Param startDate query string false "Filter start date for billing_day (YYYY-MM-DD)"
+// @Param endDate query string false "Filter end date for billing_day (YYYY-MM-DD)"
+// @Param sortBy query string false "Sort field and direction, e.g. 'title asc', 'minimum_amount desc', 'billing_day asc', 'created_at desc'"
+// @Param page query int false "Page number (default: 1)"
+// @Param limit query int false "Items per page (default: 10, max: 100)"
 // @Success 200 {object} pkg.Response
 // @Router /api/social-programs [get]
 func (h *handler) GetSocialProgramList(c *gin.Context) {
@@ -94,16 +96,18 @@ func (h *handler) GetSocialProgramList(c *gin.Context) {
 // GetAdminSocialProgramList
 //
 // @Summary List Admin Social Programs
-// @Description Retrieve a list of social programs for admin
+// @Description Retrieve a paginated list of social programs for admin with offset-based pagination, optional filters, and dynamic sorting
 // @Tags Social Programs
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param search query string false "Search query"
-// @Param status query string false "Status filter"
-// @Param limit query int false "Pagination limit"
-// @Param next_cursor query string false "Pagination cursor (next page)"
-// @Param prev_cursor query string false "Pagination cursor (prev page)"
+// @Param search query string false "Search by title"
+// @Param status query string false "Status filter (pending, active, completed, rejected)"
+// @Param startDate query string false "Filter start date for billing_day (YYYY-MM-DD)"
+// @Param endDate query string false "Filter end date for billing_day (YYYY-MM-DD)"
+// @Param sortBy query string false "Sort field and direction, e.g. 'title asc', 'minimum_amount desc', 'billing_day asc', 'created_at desc'"
+// @Param page query int false "Page number (default: 1)"
+// @Param limit query int false "Items per page (default: 10, max: 100)"
 // @Success 200 {object} pkg.Response
 // @Router /api/admin/social-programs [get]
 func (h *handler) GetAdminSocialProgramList(c *gin.Context) {

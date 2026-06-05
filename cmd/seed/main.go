@@ -50,11 +50,17 @@ func main() {
 		if err := models.SeedDonationPrograms(db); err != nil {
 			log.Fatalf("Failed to seed donation programs: %v", err)
 		}
+		if err := models.SeedSocialPrograms(db); err != nil {
+			log.Fatalf("Failed to seed social programs: %v", err)
+		}
 		if err := models.SeedNews(db); err != nil {
 			log.Fatalf("Failed to seed news: %v", err)
 		}
 		if err := models.SeedGallery(db); err != nil {
 			log.Fatalf("Failed to seed gallery: %v", err)
+		}
+		if err := models.SeedFosterChildren(db); err != nil {
+			log.Fatalf("Failed to seed foster children: %v", err)
 		}
 	}
 

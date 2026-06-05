@@ -18,7 +18,7 @@ type Service interface {
 	CreateSocialProgramSubscription(ctx context.Context, accountID string, socialProgramID string) pkg.Response
 	UpdateSocialProgramSubscription(ctx context.Context, id string, req UpdateSocialProgramSubscriptionRequest) pkg.Response
 	DeactivateSocialProgramSubscription(ctx context.Context, id string, accountID string) pkg.Response
-	GetSubscribers(ctx context.Context, params pkg.PaginationParams) pkg.Response
+	GetSubscribers(ctx context.Context, params SocialProgramSubscriptionQueryParams) pkg.Response
 	GetSubscriberByID(ctx context.Context, id string) pkg.Response
 	GetSocialProgramSubscriptionsByAccountID(ctx context.Context, accountID string, params SocialProgramSubscriptionQueryParams) pkg.Response
 }
@@ -73,21 +73,32 @@ func (s *service) GetSocialProgramSubscriptionsByAccountID(ctx context.Context, 
 	if params.Limit > 100 {
 		params.Limit = 100
 	}
-
-	usingPrevCursor := params.PrevCursor != ""
+	if params.Page <= 0 {
+		params.Page = 1
+	}
 
 	options := map[string]interface{}{
 		"account_id": accountID,
 		"limit":      params.Limit,
+		"page":       params.Page,
 	}
-	if params.NextCursor != "" {
-		options["next_cursor"] = params.NextCursor
-	}
-	if usingPrevCursor {
-		options["prev_cursor"] = params.PrevCursor
+	if params.SortBy != "" {
+		options["sort_by"] = params.SortBy
 	}
 	if params.Status != "" {
 		options["status"] = params.Status
+	}
+	if params.Search != "" {
+		options["search"] = params.Search
+	}
+
+	total, err := s.repo.CountSocialProgramSubscriptions(ctx, options)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "social_program_subscription.service",
+			"options":   options,
+		}).WithError(err).Error("failed to count subscriptions")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menghitung data langganan", nil, nil)
 	}
 
 	subscriptions, err := s.repo.FindAllSocialProgramSubscriptions(ctx, options)
@@ -99,39 +110,9 @@ func (s *service) GetSocialProgramSubscriptionsByAccountID(ctx context.Context, 
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data langganan", nil, nil)
 	}
 
-	var hasNext, hasPrev bool
-	if params.PrevCursor != "" {
-		hasPrev = len(subscriptions) > params.Limit
-		hasNext = true
-		if len(subscriptions) > params.Limit {
-			subscriptions = subscriptions[:params.Limit]
-		}
-		for i, j := 0, len(subscriptions)-1; i < j; i, j = i+1, j-1 {
-			subscriptions[i], subscriptions[j] = subscriptions[j], subscriptions[i]
-		}
-	} else {
-		hasNext = len(subscriptions) > params.Limit
-		hasPrev = params.NextCursor != ""
-		if hasNext {
-			subscriptions = subscriptions[:params.Limit]
-		}
-	}
-
-	var nextCursor, prevCursor string
 	var subscriptionIDs []string
-	if len(subscriptions) > 0 {
-		first := subscriptions[0]
-		last := subscriptions[len(subscriptions)-1]
-		if hasNext {
-			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID.String())
-		}
-		if hasPrev {
-			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID.String())
-		}
-
-		for _, sub := range subscriptions {
-			subscriptionIDs = append(subscriptionIDs, sub.ID.String())
-		}
+	for _, sub := range subscriptions {
+		subscriptionIDs = append(subscriptionIDs, sub.ID.String())
 	}
 
 	donationsMap, err := s.repo.GetTotalDonationBySubscriptionIDs(ctx, subscriptionIDs)
@@ -144,10 +125,10 @@ func (s *service) GetSocialProgramSubscriptionsByAccountID(ctx context.Context, 
 		}
 	}
 
-	pagination := pkg.CursorPagination{
-		NextCursor: nextCursor,
-		PrevCursor: prevCursor,
-		Limit:      params.Limit,
+	pagination := pkg.OffsetPagination{
+		Page:  params.Page,
+		Limit: params.Limit,
+		Total: int64(total),
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Data langganan berhasil ditemukan", nil, toSubscriberSubscriptionListResponse(subscriptions, pagination, donationsMap))
@@ -160,18 +141,29 @@ func (s *service) getSubscriptionList(ctx context.Context, options map[string]in
 	if params.Limit > 100 {
 		params.Limit = 100
 	}
-
-	usingPrevCursor := params.PrevCursor != ""
+	if params.Page <= 0 {
+		params.Page = 1
+	}
 
 	options["limit"] = params.Limit
-	if params.NextCursor != "" {
-		options["next_cursor"] = params.NextCursor
-	}
-	if usingPrevCursor {
-		options["prev_cursor"] = params.PrevCursor
+	options["page"] = params.Page
+	if params.SortBy != "" {
+		options["sort_by"] = params.SortBy
 	}
 	if params.Status != "" {
 		options["status"] = params.Status
+	}
+	if params.Search != "" {
+		options["search"] = params.Search
+	}
+
+	total, err := s.repo.CountSocialProgramSubscriptions(ctx, options)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "social_program_subscription.service",
+			"options":   options,
+		}).WithError(err).Error("failed to count subscriptions")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menghitung data langganan", nil, nil)
 	}
 
 	subscriptions, err := s.repo.FindAllSocialProgramSubscriptions(ctx, options)
@@ -183,40 +175,10 @@ func (s *service) getSubscriptionList(ctx context.Context, options map[string]in
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data langganan", nil, nil)
 	}
 
-	var hasNext, hasPrev bool
-	if params.PrevCursor != "" {
-		hasPrev = len(subscriptions) > params.Limit
-		hasNext = true
-		if len(subscriptions) > params.Limit {
-			subscriptions = subscriptions[:params.Limit]
-		}
-		for i, j := 0, len(subscriptions)-1; i < j; i, j = i+1, j-1 {
-			subscriptions[i], subscriptions[j] = subscriptions[j], subscriptions[i]
-		}
-	} else {
-		hasNext = len(subscriptions) > params.Limit
-		hasPrev = params.NextCursor != ""
-		if hasNext {
-			subscriptions = subscriptions[:params.Limit]
-		}
-	}
-
-	var nextCursor, prevCursor string
-	if len(subscriptions) > 0 {
-		first := subscriptions[0]
-		last := subscriptions[len(subscriptions)-1]
-		if hasNext {
-			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID.String())
-		}
-		if hasPrev {
-			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID.String())
-		}
-	}
-
-	pagination := pkg.CursorPagination{
-		NextCursor: nextCursor,
-		PrevCursor: prevCursor,
-		Limit:      params.Limit,
+	pagination := pkg.OffsetPagination{
+		Page:  params.Page,
+		Limit: params.Limit,
+		Total: int64(total),
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Data langganan berhasil ditemukan", nil, toSocialProgramSubscriptionListResponse(subscriptions, pagination))
@@ -393,7 +355,7 @@ func (s *service) DeactivateSocialProgramSubscription(ctx context.Context, id st
 	return pkg.NewResponse(http.StatusOK, "Langganan berhasil dinonaktifkan", nil, nil)
 }
 
-func (s *service) GetSubscribers(ctx context.Context, params pkg.PaginationParams) pkg.Response {
+func (s *service) GetSubscribers(ctx context.Context, params SocialProgramSubscriptionQueryParams) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -403,17 +365,27 @@ func (s *service) GetSubscribers(ctx context.Context, params pkg.PaginationParam
 	if params.Limit > 100 {
 		params.Limit = 100
 	}
-
-	usingPrevCursor := params.PrevCursor != ""
+	if params.Page <= 0 {
+		params.Page = 1
+	}
 
 	options := map[string]interface{}{
 		"limit": params.Limit,
+		"page":  params.Page,
 	}
-	if params.NextCursor != "" {
-		options["next_cursor"] = params.NextCursor
+	if params.SortBy != "" {
+		options["sort_by"] = params.SortBy
 	}
-	if usingPrevCursor {
-		options["prev_cursor"] = params.PrevCursor
+	if params.Search != "" {
+		options["search"] = params.Search
+	}
+
+	total, err := s.repo.CountSubscribers(ctx, options)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "social_program_subscription.service",
+		}).WithError(err).Error("failed to count subscribers")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menghitung data pelanggan", nil, nil)
 	}
 
 	subscriptions, err := s.repo.FindAllSubscribers(ctx, options)
@@ -439,40 +411,10 @@ func (s *service) GetSubscribers(ctx context.Context, params pkg.PaginationParam
 		}
 	}
 
-	var hasNext, hasPrev bool
-	if params.PrevCursor != "" {
-		hasPrev = len(subscriptions) > params.Limit
-		hasNext = true
-		if len(subscriptions) > params.Limit {
-			subscriptions = subscriptions[:params.Limit]
-		}
-		for i, j := 0, len(subscriptions)-1; i < j; i, j = i+1, j-1 {
-			subscriptions[i], subscriptions[j] = subscriptions[j], subscriptions[i]
-		}
-	} else {
-		hasNext = len(subscriptions) > params.Limit
-		hasPrev = params.NextCursor != ""
-		if hasNext {
-			subscriptions = subscriptions[:params.Limit]
-		}
-	}
-
-	var nextCursor, prevCursor string
-	if len(subscriptions) > 0 {
-		first := subscriptions[0]
-		last := subscriptions[len(subscriptions)-1]
-		if hasNext {
-			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID.String())
-		}
-		if hasPrev {
-			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID.String())
-		}
-	}
-
-	pagination := pkg.CursorPagination{
-		NextCursor: nextCursor,
-		PrevCursor: prevCursor,
-		Limit:      params.Limit,
+	pagination := pkg.OffsetPagination{
+		Page:  params.Page,
+		Limit: params.Limit,
+		Total: int64(total),
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Data pelanggan berhasil ditemukan", nil, toSubscriptionsListResponse(subscriptions, pagination, statsMap))

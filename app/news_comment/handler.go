@@ -43,16 +43,16 @@ func (h *handler) RegisterRoutes(router *gin.RouterGroup) {
 	}
 }
 
-// @Summary Report Prayer
-// @Description Report a prayer
-// @Tags Prayer
+// @Summary Report News Comment
+// @Description Report a news comment
+// @Tags News Comments
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param id path string true "Prayer ID"
-// @Param body body ReportPrayerRequest true "Report Prayer Payload"
+// @Param id path string true "Comment ID"
+// @Param body body ReportNewsCommentRequest true "Report News Comment Payload"
 // @Success 200 {object} pkg.Response
-// @Router /api/prayers/{id}/report [post]
+// @Router /api/news/comments/{id}/report [post]
 func (h *handler) CreateReportNewsComment(c *gin.Context) {
 	ctx := c.Request.Context()
 	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
@@ -88,14 +88,14 @@ func (h *handler) CreateNewsComment(c *gin.Context) {
 	c.JSON(res.Status, res)
 }
 
-// @Summary Get Prayer by ID
-// @Description Get a prayer by its ID
-// @Tags Prayer
+// @Summary Get News Comment by ID
+// @Description Get a news comment by its ID
+// @Tags News Comments
 // @Accept json
 // @Produce json
-// @Param id path string true "Prayer ID"
-// @Success 200 {object} pkg.Response{data=PrayerResponse}
-// @Router /api/prayers/{id} [get]
+// @Param id path string true "Comment ID"
+// @Success 200 {object} pkg.Response{data=NewsCommentResponse}
+// @Router /api/news/comments/{id} [get]
 func (h *handler) GetNewsCommentByID(c *gin.Context) {
 	ctx := c.Request.Context()
 	newsCommentID := c.Param("id")
@@ -109,17 +109,17 @@ func (h *handler) GetNewsCommentByID(c *gin.Context) {
 	c.JSON(res.Status, res)
 }
 
-// @Summary List Prayers
-// @Description Get a list of prayers
-// @Tags Prayer
+// @Summary List News Comments
+// @Description Get a list of news comments
+// @Tags News Comments
 // @Accept json
 // @Produce json
-// @Param slug path string true "Donation Program Slug"
+// @Param slug path string true "News Slug"
 // @Param limit query int false "Pagination limit"
 // @Param next_cursor query string false "Pagination cursor (next page)"
 // @Param prev_cursor query string false "Pagination cursor (prev page)"
-// @Success 200 {object} pkg.Response{data=PrayerListResponse}
-// @Router /api/donation-programs/{slug}/prayers [get]
+// @Success 200 {object} pkg.Response{data=NewsCommentListResponse}
+// @Router /api/news/{slug}/comments [get]
 func (h *handler) GetNewsCommentList(c *gin.Context) {
 	ctx := c.Request.Context()
 	newsSlug := c.Param("slug")
@@ -139,17 +139,17 @@ func (h *handler) GetNewsCommentList(c *gin.Context) {
 	c.JSON(res.Status, res)
 }
 
-// @Summary List Reported Prayers
-// @Description Get a list of reported prayers
-// @Tags Prayer
+// @Summary List Reported News Comments
+// @Description Get a list of reported news comments
+// @Tags News Comments
 // @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param limit query int false "Pagination limit"
 // @Param next_cursor query string false "Pagination cursor (next page)"
 // @Param prev_cursor query string false "Pagination cursor (prev page)"
-// @Success 200 {object} pkg.Response{data=PrayerListResponse}
-// @Router /api/admin/prayers [get]
+// @Success 200 {object} pkg.Response{data=AdminNewsCommentListResponse}
+// @Router /api/admin/news/comments [get]
 func (h *handler) GetReportedNewsCommentList(c *gin.Context) {
 	ctx := c.Request.Context()
 	var params NewsCommentQueryParams
@@ -161,15 +161,15 @@ func (h *handler) GetReportedNewsCommentList(c *gin.Context) {
 	c.JSON(res.Status, res)
 }
 
-// @Summary Delete Prayer
-// @Description Delete a prayer by its ID
-// @Tags Prayer
+// @Summary Delete News Comment
+// @Description Delete a news comment by its ID
+// @Tags News Comments
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param id path string true "Prayer ID"
+// @Param id path string true "Comment ID"
 // @Success 200 {object} pkg.Response
-// @Router /api/admin/prayers/{id} [delete]
+// @Router /api/admin/news/comments/{id} [delete]
 func (h *handler) DeleteNewsComment(c *gin.Context) {
 	ctx := c.Request.Context()
 	newsCommentID := c.Param("id")

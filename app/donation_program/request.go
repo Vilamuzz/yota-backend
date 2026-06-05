@@ -2,8 +2,6 @@ package donation_program
 
 import (
 	"mime/multipart"
-
-	"github.com/Vilamuzz/yota-backend/pkg"
 )
 
 type DonationProgramRequest struct {
@@ -16,9 +14,12 @@ type DonationProgramRequest struct {
 	StartDate   string                `json:"startDate" form:"startDate"`
 	EndDate     string                `json:"endDate" form:"endDate"`
 }
+
 type DonationProgramQueryParams struct {
 	Search   string   `form:"search"`
 	Category Category `form:"category"`
 	Status   string   `form:"status"`
-	pkg.PaginationParams
+	SortBy   string   `form:"sortBy"`
+	Page     int      `form:"page"`
+	Limit    int      `form:"limit"`
 }

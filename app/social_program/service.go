@@ -52,17 +52,13 @@ func (s *service) GetSocialProgramList(ctx context.Context, params SocialProgram
 	if params.Limit > 100 {
 		params.Limit = 100
 	}
-
-	usingPrevCursor := params.PrevCursor != ""
+	if params.Page <= 0 {
+		params.Page = 1
+	}
 
 	options := map[string]interface{}{
 		"limit": params.Limit,
-	}
-	if params.NextCursor != "" {
-		options["next_cursor"] = params.NextCursor
-	}
-	if usingPrevCursor {
-		options["prev_cursor"] = params.PrevCursor
+		"page":  params.Page,
 	}
 
 	if !isAdmin || role == string(enum.RoleFinance) {
@@ -74,9 +70,30 @@ func (s *service) GetSocialProgramList(ctx context.Context, params SocialProgram
 	if params.Search != "" {
 		options["search"] = params.Search
 	}
-
+	if params.SortBy != "" {
+		options["sort_by"] = params.SortBy
+	}
 	if accountID != "" {
 		options["account_id"] = accountID
+	}
+
+	if params.StartDate != "" && params.EndDate != "" {
+		startDate, errStart := time.Parse("2006-01-02", params.StartDate)
+		endDate, errEnd := time.Parse("2006-01-02", params.EndDate)
+		if errStart == nil && errEnd == nil {
+			if endDate.Sub(startDate) < 31*24*time.Hour {
+				options["start_day"] = startDate.Day()
+				options["end_day"] = endDate.Day()
+			}
+		}
+	}
+
+	total, err := s.repo.CountSocialPrograms(ctx, options)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "social_program.service",
+		}).WithError(err).Error("failed to count social programs")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data program sosial", nil, nil)
 	}
 
 	socialPrograms, err := s.repo.FindAllSocialPrograms(ctx, options)
@@ -87,40 +104,16 @@ func (s *service) GetSocialProgramList(ctx context.Context, params SocialProgram
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data program sosial", nil, nil)
 	}
 
-	var hasNext, hasPrev bool
-	if params.PrevCursor != "" {
-		hasPrev = len(socialPrograms) > params.Limit
-		hasNext = true
-		if len(socialPrograms) > params.Limit {
-			socialPrograms = socialPrograms[:params.Limit]
-		}
-		for i, j := 0, len(socialPrograms)-1; i < j; i, j = i+1, j-1 {
-			socialPrograms[i], socialPrograms[j] = socialPrograms[j], socialPrograms[i]
-		}
-	} else {
-		hasNext = len(socialPrograms) > params.Limit
-		hasPrev = params.NextCursor != ""
-		if hasNext {
-			socialPrograms = socialPrograms[:params.Limit]
-		}
+	totalPages := int(total) / params.Limit
+	if int(total)%params.Limit != 0 {
+		totalPages++
 	}
 
-	var nextCursor, prevCursor string
-	if len(socialPrograms) > 0 {
-		first := socialPrograms[0]
-		last := socialPrograms[len(socialPrograms)-1]
-		if hasNext {
-			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID.String())
-		}
-		if hasPrev {
-			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID.String())
-		}
-	}
-
-	pagination := pkg.CursorPagination{
-		NextCursor: nextCursor,
-		PrevCursor: prevCursor,
+	pagination := pkg.OffsetPagination{
+		Page:       params.Page,
 		Limit:      params.Limit,
+		Total:      total,
+		TotalPages: totalPages,
 	}
 
 	if isAdmin {

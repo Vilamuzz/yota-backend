@@ -45,16 +45,16 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // GetDonationProgramList
 //
 // @Summary List Donation Programs
-// @Description Retrieve a list of donation programs
+// @Description Retrieve a paginated list of donation programs with optional filters and sorting
 // @Tags Donation Programs
 // @Accept json
 // @Produce json
-// @Param search query string false "Search query"
+// @Param search query string false "Search by title"
 // @Param category query string false "Filter by category"
-// @Param status query string false "Status filter"
-// @Param limit query int false "Pagination limit"
-// @Param nextCursor query string false "Pagination cursor (next page)"
-// @Param prevCursor query string false "Pagination cursor (prev page)"
+// @Param status query string false "Status filter (admin only)"
+// @Param sortBy query string false "Sort field and direction, e.g. 'title asc', 'fund_target desc', 'end_date asc', 'created_at desc'"
+// @Param page query int false "Page number (default: 1)"
+// @Param limit query int false "Items per page (default: 10, max: 100)"
 // @Success 200 {object} pkg.Response
 // @Router /api/donation-programs [get]
 func (h *handler) GetDonationProgramList(c *gin.Context) {
@@ -90,18 +90,18 @@ func (h *handler) GetDonationProgramBySlug(c *gin.Context) {
 
 // GetAdminDonationProgramList
 //
-// @Summary Get All Donation Programs
-// @Description Retrieve a list of all donation programs with cursor-based pagination and optional filters
+// @Summary Get All Donation Programs (Admin)
+// @Description Retrieve a paginated list of all donation programs with offset-based pagination, optional filters, and dynamic sorting
 // @Tags Donation Programs
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param search query string false "Search query"
+// @Param search query string false "Search by title"
 // @Param category query string false "Filter by category"
-// @Param status query string false "Status filter"
-// @Param limit query int false "Pagination limit"
-// @Param nextCursor query string false "Pagination cursor (next page)"
-// @Param prevCursor query string false "Pagination cursor (prev page)"
+// @Param status query string false "Status filter (draft, active, completed, expired, archived)"
+// @Param sortBy query string false "Sort field and direction, e.g. 'title asc', 'fund_target desc', 'end_date asc', 'created_at desc'"
+// @Param page query int false "Page number (default: 1)"
+// @Param limit query int false "Items per page (default: 10, max: 100)"
 // @Success 200 {object} pkg.Response
 // @Router /api/admin/donation-programs [get]
 func (h *handler) GetAdminDonationProgramList(c *gin.Context) {

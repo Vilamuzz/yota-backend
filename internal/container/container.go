@@ -17,6 +17,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/donation_program_transaction"
 	"github.com/Vilamuzz/yota-backend/app/finance_record"
 	"github.com/Vilamuzz/yota-backend/app/foster_children"
+	"github.com/Vilamuzz/yota-backend/app/foster_children_candidate"
 	"github.com/Vilamuzz/yota-backend/app/foster_children_expense"
 	"github.com/Vilamuzz/yota-backend/app/foster_children_transaction"
 	"github.com/Vilamuzz/yota-backend/app/foundation_profile"
@@ -67,9 +68,10 @@ type Container struct {
 	AmbulanceRepo                 ambulance.Repository
 	AmbulanceHistoryRepo          ambulance_history.Repository
 	AmbulanceServiceRequestRepo   ambulance_service_request.Repository
-	FosterChildrenRepo            foster_children.Repository
-	FosterChildrenExpenseRepo     foster_children_expense.Repository
-	FosterChildrenTransactionRepo foster_children_transaction.Repository
+	FosterChildrenRepo               foster_children.Repository
+	FosterChildrenCandidateRepo      foster_children_candidate.Repository
+	FosterChildrenExpenseRepo        foster_children_expense.Repository
+	FosterChildrenTransactionRepo    foster_children_transaction.Repository
 	SocialProgramRepo             social_program.Repository
 	SocialProgramExpenseRepo      social_program_expense.Repository
 	SocialProgramInvoiceRepo      social_program_invoice.Repository
@@ -93,9 +95,10 @@ type Container struct {
 	AmbulanceService                 ambulance.Service
 	AmbulanceHistoryService          ambulance_history.Service
 	AmbulanceServiceRequestService   ambulance_service_request.Service
-	FosterChildrenService            foster_children.Service
-	FosterChildrenExpenseService     foster_children_expense.Service
-	FosterChildrenTransactionService foster_children_transaction.Service
+	FosterChildrenService               foster_children.Service
+	FosterChildrenCandidateService     foster_children_candidate.Service
+	FosterChildrenExpenseService       foster_children_expense.Service
+	FosterChildrenTransactionService   foster_children_transaction.Service
 	SocialProgramService             social_program.Service
 	SocialProgramExpenseService      social_program_expense.Service
 	SocialProgramInvoiceService      social_program_invoice.Service
@@ -198,6 +201,7 @@ func (c *Container) initRepositories() {
 	c.AmbulanceHistoryRepo = ambulance_history.NewRepository(c.DB)
 	c.AmbulanceServiceRequestRepo = ambulance_service_request.NewRepository(c.DB)
 	c.FosterChildrenRepo = foster_children.NewRepository(c.DB)
+	c.FosterChildrenCandidateRepo = foster_children_candidate.NewRepository(c.DB)
 	c.FosterChildrenExpenseRepo = foster_children_expense.NewRepository(c.DB)
 	c.FosterChildrenTransactionRepo = foster_children_transaction.NewRepository(c.DB)
 	c.SocialProgramRepo = social_program.NewRepository(c.DB)
@@ -226,6 +230,7 @@ func (c *Container) initServices() {
 	c.AmbulanceHistoryService = ambulance_history.NewService(c.AmbulanceHistoryRepo, c.AmbulanceRepo, c.Timeout)
 	c.AmbulanceServiceRequestService = ambulance_service_request.NewService(c.AmbulanceServiceRequestRepo, c.AmbulanceRepo, c.AmbulanceHistoryRepo, c.Timeout)
 	c.FosterChildrenService = foster_children.NewService(c.FosterChildrenRepo, c.LogService, c.S3Client, c.Timeout)
+	c.FosterChildrenCandidateService = foster_children_candidate.NewService(c.FosterChildrenCandidateRepo, c.FosterChildrenRepo, c.LogService, c.S3Client, c.Timeout)
 	c.FosterChildrenExpenseService = foster_children_expense.NewService(c.FosterChildrenExpenseRepo, c.FinanceRecordRepo, c.FosterChildrenRepo, c.S3Client, c.LogService, c.Timeout)
 	c.FosterChildrenTransactionService = foster_children_transaction.NewService(c.FosterChildrenTransactionRepo, c.AccountRepo, c.FosterChildrenRepo, c.FinanceRecordRepo, c.MidtransClient, c.LogService, c.Timeout)
 	c.SocialProgramService = social_program.NewService(c.SocialProgramRepo, c.LogService, c.S3Client, c.Timeout)
@@ -285,6 +290,7 @@ func (c *Container) RegisterHandlers(router *gin.RouterGroup) {
 	ambulance_history.NewHandler(router, c.AmbulanceHistoryService, *c.Middleware)
 	ambulance_service_request.NewHandler(router, c.AmbulanceServiceRequestService, *c.Middleware)
 	foster_children.NewHandler(router, c.FosterChildrenService, *c.Middleware)
+	foster_children_candidate.NewHandler(router, c.FosterChildrenCandidateService, *c.Middleware)
 	foster_children_expense.NewHandler(router, c.FosterChildrenExpenseService, *c.Middleware)
 	foster_children_transaction.NewHandler(router, c.FosterChildrenTransactionService, *c.Middleware)
 	social_program.NewHandler(router, c.SocialProgramService, *c.Middleware)

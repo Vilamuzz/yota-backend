@@ -9,7 +9,7 @@ import (
 
 type Repository interface {
 	FindAllFosterChildrenExpenses(ctx context.Context, options map[string]interface{}) ([]FosterChildrenExpense, error)
-	FindAllFosterChildrenExpensesForExport(ctx context.Context, fosterChildrenID string, params FosterChildrenExpenseExportParams) ([]FosterChildrenExpense, error)
+	FindAllFosterChildrenExpensesForExport(ctx context.Context, fosterChildrenSlug string, params FosterChildrenExpenseExportParams) ([]FosterChildrenExpense, error)
 	FindOneFosterChildrenExpense(ctx context.Context, options map[string]interface{}) (*FosterChildrenExpense, error)
 	GetTotalExpenseByFosterChildrenID(ctx context.Context, fosterChildrenID string) (float64, error)
 	CreateFosterChildrenExpense(ctx context.Context, fosterChildrenExpense *FosterChildrenExpense) error
@@ -30,23 +30,28 @@ func (r *repo) FindAllFosterChildrenExpenses(ctx context.Context, options map[st
 	query := r.Conn.WithContext(ctx)
 
 	if fosterChildrenID, ok := options["foster_children_id"]; ok && fosterChildrenID.(string) != "" {
-		query = query.Where("foster_children_id = ?", fosterChildrenID.(string))
+		query = query.Where("foster_children_expenses.foster_children_id = ?", fosterChildrenID.(string))
+	}
+
+	if fosterChildrenSlug, ok := options["foster_children_slug"]; ok && fosterChildrenSlug.(string) != "" {
+		query = query.Joins("JOIN foster_childrens ON foster_childrens.id = foster_children_expenses.foster_children_id").
+			Where("foster_childrens.slug = ?", fosterChildrenSlug.(string))
 	}
 
 	if nextCursor, ok := options["next_cursor"]; ok && nextCursor.(string) != "" {
 		cursorData, err := pkg.DecodeCursor(nextCursor.(string))
 		if err == nil {
-			query = query.Where("(created_at, id) < (?, ?)", cursorData.CreatedAt, cursorData.ID)
+			query = query.Where("(foster_children_expenses.created_at, foster_children_expenses.id) < (?, ?)", cursorData.CreatedAt, cursorData.ID)
 		}
 	} else if prevCursor, ok := options["prev_cursor"]; ok && prevCursor.(string) != "" {
 		cursorData, err := pkg.DecodeCursor(prevCursor.(string))
 		if err == nil {
-			query = query.Where("(created_at, id) > (?, ?)", cursorData.CreatedAt, cursorData.ID)
+			query = query.Where("(foster_children_expenses.created_at, foster_children_expenses.id) > (?, ?)", cursorData.CreatedAt, cursorData.ID)
 		}
 	}
 
 	if _, usingPrevCursor := options["prev_cursor"]; !usingPrevCursor {
-		query = query.Order("created_at DESC, id DESC")
+		query = query.Order("foster_children_expenses.created_at DESC, foster_children_expenses.id DESC")
 	}
 
 	limit := 10
@@ -59,11 +64,12 @@ func (r *repo) FindAllFosterChildrenExpenses(ctx context.Context, options map[st
 	return expenses, err
 }
 
-func (r *repo) FindAllFosterChildrenExpensesForExport(ctx context.Context, fosterChildrenID string, params FosterChildrenExpenseExportParams) ([]FosterChildrenExpense, error) {
+func (r *repo) FindAllFosterChildrenExpensesForExport(ctx context.Context, fosterChildrenSlug string, params FosterChildrenExpenseExportParams) ([]FosterChildrenExpense, error) {
 	var expenses []FosterChildrenExpense
-	query := r.Conn.WithContext(ctx).Order("expense_date ASC, created_at ASC")
-	if fosterChildrenID != "" {
-		query = query.Where("foster_children_id = ?", fosterChildrenID)
+	query := r.Conn.WithContext(ctx).Order("foster_children_expenses.expense_date ASC, foster_children_expenses.created_at ASC")
+	if fosterChildrenSlug != "" {
+		query = query.Joins("JOIN foster_childrens ON foster_childrens.id = foster_children_expenses.foster_children_id").
+			Where("foster_childrens.slug = ?", fosterChildrenSlug)
 	}
 	if params.StartDate != "" {
 		query = query.Where("expense_date >= ?", params.StartDate)

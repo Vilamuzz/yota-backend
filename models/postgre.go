@@ -11,6 +11,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/donation_program_transaction"
 	"github.com/Vilamuzz/yota-backend/app/finance_record"
 	"github.com/Vilamuzz/yota-backend/app/foster_children"
+	"github.com/Vilamuzz/yota-backend/app/foster_children_candidate"
 	"github.com/Vilamuzz/yota-backend/app/foster_children_expense"
 	"github.com/Vilamuzz/yota-backend/app/foster_children_transaction"
 	"github.com/Vilamuzz/yota-backend/app/foundation_profile"
@@ -49,7 +50,7 @@ func GetAllModels() []interface{} {
 		&social_program_expense.SocialProgramExpense{},
 		&foster_children.FosterChildren{},
 		&foster_children.Achivement{},
-		&foster_children.FosterChildrenCandidate{},
+		&foster_children_candidate.FosterChildrenCandidate{},
 		&foster_children_expense.FosterChildrenExpense{},
 		&foster_children_transaction.FosterChildrenTransaction{},
 		&finance_record.FinanceRecord{},

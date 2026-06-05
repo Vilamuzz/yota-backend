@@ -231,19 +231,19 @@ func (s *service) CreateOfflineFosterChildrenTransaction(ctx context.Context, ac
 	return pkg.NewResponse(http.StatusCreated, "Offline transaction created successfully", nil, transaction.toFosterChildrenTransactionResponse())
 }
 
-func (s *service) CreateFosterChildrenTransaction(ctx context.Context, accountID string, fosterChildrenID string, payload CreateFosterChildrenTransactionRequest) pkg.Response {
+func (s *service) CreateFosterChildrenTransaction(ctx context.Context, accountID string, fosterChildrenSlug string, payload CreateFosterChildrenTransactionRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	errValidation := make(map[string]string)
 
 	var fosterChild *foster_children.FosterChildren
-	if fosterChildrenID == "" {
-		errValidation["foster_children_id"] = "Foster Children ID is required"
+	if fosterChildrenSlug == "" {
+		errValidation["foster_children_slug"] = "Foster Children Slug is required"
 	} else {
-		fc, err := s.fosterChildrenRepo.FindOneFosterChildren(ctx, map[string]interface{}{"id": fosterChildrenID})
+		fc, err := s.fosterChildrenRepo.FindOneFosterChildren(ctx, map[string]interface{}{"slug": fosterChildrenSlug})
 		if err != nil {
-			errValidation["foster_children_id"] = "Foster Children not found"
+			errValidation["foster_children_slug"] = "Foster Children not found"
 		} else {
 			fosterChild = fc
 		}
@@ -287,7 +287,7 @@ func (s *service) CreateFosterChildrenTransaction(ctx context.Context, accountID
 		},
 		Items: &[]midtrans.ItemDetails{
 			{
-				ID:    fosterChildrenID,
+				ID:    fosterChild.ID.String(),
 				Price: grossAmountInt,
 				Qty:   1,
 				Name:  "Foster Children Donation",
@@ -309,7 +309,7 @@ func (s *service) CreateFosterChildrenTransaction(ctx context.Context, accountID
 	now := time.Now()
 	transaction := &FosterChildrenTransaction{
 		ID:                uuid.New(),
-		FosterChildrenID:  uuid.MustParse(fosterChildrenID),
+		FosterChildrenID:  fosterChild.ID,
 		AccountID:         accountIDPtr,
 		OrderID:           orderID,
 		DonorName:         donorName,
@@ -328,7 +328,7 @@ func (s *service) CreateFosterChildrenTransaction(ctx context.Context, accountID
 	if err := s.repo.CreateFosterChildrenTransaction(ctx, transaction); err != nil {
 		logrus.WithFields(logrus.Fields{
 			"component":          "foster_children_transaction.service",
-			"foster_children_id": fosterChildrenID,
+			"foster_children_id": fosterChild.ID.String(),
 			"order_id":           orderID,
 		}).WithError(err).Error("failed to save online transaction")
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to save transaction", nil, nil)
