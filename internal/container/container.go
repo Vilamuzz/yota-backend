@@ -68,10 +68,10 @@ type Container struct {
 	AmbulanceRepo                 ambulance.Repository
 	AmbulanceHistoryRepo          ambulance_history.Repository
 	AmbulanceServiceRequestRepo   ambulance_service_request.Repository
-	FosterChildrenRepo               foster_children.Repository
-	FosterChildrenCandidateRepo      foster_children_candidate.Repository
-	FosterChildrenExpenseRepo        foster_children_expense.Repository
-	FosterChildrenTransactionRepo    foster_children_transaction.Repository
+	FosterChildrenRepo            foster_children.Repository
+	FosterChildrenCandidateRepo   foster_children_candidate.Repository
+	FosterChildrenExpenseRepo     foster_children_expense.Repository
+	FosterChildrenTransactionRepo foster_children_transaction.Repository
 	SocialProgramRepo             social_program.Repository
 	SocialProgramExpenseRepo      social_program_expense.Repository
 	SocialProgramInvoiceRepo      social_program_invoice.Repository
@@ -95,10 +95,10 @@ type Container struct {
 	AmbulanceService                 ambulance.Service
 	AmbulanceHistoryService          ambulance_history.Service
 	AmbulanceServiceRequestService   ambulance_service_request.Service
-	FosterChildrenService               foster_children.Service
-	FosterChildrenCandidateService     foster_children_candidate.Service
-	FosterChildrenExpenseService       foster_children_expense.Service
-	FosterChildrenTransactionService   foster_children_transaction.Service
+	FosterChildrenService            foster_children.Service
+	FosterChildrenCandidateService   foster_children_candidate.Service
+	FosterChildrenExpenseService     foster_children_expense.Service
+	FosterChildrenTransactionService foster_children_transaction.Service
 	SocialProgramService             social_program.Service
 	SocialProgramExpenseService      social_program_expense.Service
 	SocialProgramInvoiceService      social_program_invoice.Service

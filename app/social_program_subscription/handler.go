@@ -28,12 +28,6 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	r.POST("/social-programs/:id/subscribe", h.middleware.RequireRoles(enum.RoleOrangTuaAsuh), h.CreateSocialProgramSubscription)
 	r.PATCH("/social-programs/:id/unsubscribe", h.middleware.RequireRoles(enum.RoleOrangTuaAsuh), h.DeactivateMySocialProgramSubscription)
 
-	me := r.Group("/social-programs/subscriptions/me")
-	me.Use(h.middleware.RequireRoles(enum.RoleOrangTuaAsuh))
-	{
-		// me.GET("", h.GetMySocialProgramSubscriptionList)
-	}
-
 	// Admin routes
 	admin := r.Group("/admin/social-programs")
 	admin.Use(h.middleware.RequireRoles(enum.RoleSocialManager))

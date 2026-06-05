@@ -61,7 +61,13 @@ func (s *service) GetSocialProgramList(ctx context.Context, params SocialProgram
 		"page":  params.Page,
 	}
 
-	if !isAdmin || role == string(enum.RoleFinance) {
+	if !isAdmin {
+		if params.Status != "" {
+			options["status"] = params.Status
+		} else {
+			options["status"] = []string{string(StatusActive), string(StatusCompleted)}
+		}
+	} else if role == string(enum.RoleFinance) {
 		options["status"] = string(StatusActive)
 	} else if params.Status != "" {
 		options["status"] = params.Status

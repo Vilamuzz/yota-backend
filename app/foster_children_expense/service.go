@@ -19,6 +19,7 @@ import (
 
 type Service interface {
 	GetFosterChildrenExpenseList(ctx context.Context, fosterChildrenSlug string, params FosterChildrenExpenseQueryParams) pkg.Response
+	GetAdminFosterChildrenExpenseList(ctx context.Context, fosterChildrenID string, params FosterChildrenExpenseQueryParams) pkg.Response
 	GetFosterChildrenExpenseByID(ctx context.Context, fosterChildrenExpenseID string) pkg.Response
 	CreateFosterChildrenExpense(ctx context.Context, accountID, fosterChildrenID string, payload *FosterChildrenExpenseRequest) pkg.Response
 	DeleteFosterChildrenExpense(ctx context.Context, accountID, fosterChildrenExpenseID string) pkg.Response
@@ -63,6 +64,73 @@ func (s *service) GetFosterChildrenExpenseList(ctx context.Context, fosterChildr
 	}
 	if fosterChildrenSlug != "" {
 		options["foster_children_slug"] = fosterChildrenSlug
+	}
+	if params.NextCursor != "" {
+		options["next_cursor"] = params.NextCursor
+	}
+	if usingPrevCursor {
+		options["prev_cursor"] = params.PrevCursor
+	}
+
+	expenses, err := s.repo.FindAllFosterChildrenExpenses(ctx, options)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "foster_children_expense.service",
+		}).WithError(err).Error("failed to fetch expenses")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data pengeluaran", nil, nil)
+	}
+
+	hasMore := len(expenses) > params.Limit
+	if hasMore {
+		expenses = expenses[:params.Limit]
+	}
+
+	if usingPrevCursor {
+		for i, j := 0, len(expenses)-1; i < j; i, j = i+1, j-1 {
+			expenses[i], expenses[j] = expenses[j], expenses[i]
+		}
+	}
+
+	var nextCursor, prevCursor string
+	hasNext := (!usingPrevCursor && hasMore) || (usingPrevCursor && params.NextCursor == "")
+	hasPrev := (usingPrevCursor && hasMore) || (!usingPrevCursor && params.NextCursor != "")
+
+	if len(expenses) > 0 {
+		first := expenses[0]
+		last := expenses[len(expenses)-1]
+		if hasNext {
+			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID.String())
+		}
+		if hasPrev {
+			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID.String())
+		}
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, toFosterChildrenExpenseListResponse(expenses, pkg.CursorPagination{
+		NextCursor: nextCursor,
+		PrevCursor: prevCursor,
+		Limit:      params.Limit,
+	}))
+}
+
+func (s *service) GetAdminFosterChildrenExpenseList(ctx context.Context, fosterChildrenID string, params FosterChildrenExpenseQueryParams) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	if params.Limit <= 0 {
+		params.Limit = 10
+	}
+	if params.Limit > 100 {
+		params.Limit = 100
+	}
+
+	usingPrevCursor := params.PrevCursor != ""
+
+	options := map[string]interface{}{
+		"limit": params.Limit,
+	}
+	if fosterChildrenID != "" {
+		options["foster_children_id"] = fosterChildrenID
 	}
 	if params.NextCursor != "" {
 		options["next_cursor"] = params.NextCursor

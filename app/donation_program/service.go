@@ -68,12 +68,14 @@ func (s *service) GetDonationProgramList(ctx context.Context, params DonationPro
 		options["sort_by"] = params.SortBy
 	}
 
-	if isAdmin {
+	if !isAdmin {
 		if params.Status != "" {
 			options["status"] = params.Status
+		} else {
+			options["status"] = []string{string(StatusActive), string(StatusExpired), string(StatusCompleted)}
 		}
-	} else {
-		options["status"] = StatusActive
+	} else if params.Status != "" {
+		options["status"] = params.Status
 	}
 
 	total, err := s.repo.CountDonationPrograms(ctx, options)

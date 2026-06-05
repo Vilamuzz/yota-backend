@@ -61,8 +61,25 @@ func buildDonationProgramBaseQuery(conn *gorm.DB, ctx context.Context, options m
 	if category, ok := options["category"]; ok && category != "" {
 		query = query.Where("category = ?", category)
 	}
-	if status, ok := options["status"]; ok && status != "" {
-		query = query.Where("status = ?", status)
+	if status, ok := options["status"]; ok {
+		switch v := status.(type) {
+		case string:
+			if v != "" {
+				query = query.Where("status = ?", v)
+			}
+		case Status:
+			if v != "" {
+				query = query.Where("status = ?", string(v))
+			}
+		case []string:
+			if len(v) > 0 {
+				query = query.Where("status IN ?", v)
+			}
+		case []Status:
+			if len(v) > 0 {
+				query = query.Where("status IN ?", v)
+			}
+		}
 	}
 	return query
 }
@@ -112,8 +129,25 @@ func (r *repository) CountDonationPrograms(ctx context.Context, options map[stri
 	if category, ok := options["category"]; ok && category != "" {
 		query = query.Where("category = ?", category)
 	}
-	if status, ok := options["status"]; ok && status != "" {
-		query = query.Where("status = ?", status)
+	if status, ok := options["status"]; ok {
+		switch v := status.(type) {
+		case string:
+			if v != "" {
+				query = query.Where("status = ?", v)
+			}
+		case Status:
+			if v != "" {
+				query = query.Where("status = ?", string(v))
+			}
+		case []string:
+			if len(v) > 0 {
+				query = query.Where("status IN ?", v)
+			}
+		case []Status:
+			if len(v) > 0 {
+				query = query.Where("status IN ?", v)
+			}
+		}
 	}
 	err := query.Count(&total).Error
 	return total, err
@@ -144,8 +178,25 @@ func (r *repository) FindOneDonationProgram(ctx context.Context, options map[str
 	if active, ok := options["active"]; ok && active == true {
 		query = query.Where("status = ?", StatusActive)
 	}
-	if status, ok := options["status"]; ok && status != "" {
-		query = query.Where("status = ?", status)
+	if status, ok := options["status"]; ok {
+		switch v := status.(type) {
+		case string:
+			if v != "" {
+				query = query.Where("status = ?", v)
+			}
+		case Status:
+			if v != "" {
+				query = query.Where("status = ?", string(v))
+			}
+		case []string:
+			if len(v) > 0 {
+				query = query.Where("status IN ?", v)
+			}
+		case []Status:
+			if len(v) > 0 {
+				query = query.Where("status IN ?", v)
+			}
+		}
 	}
 	if err := query.First(&donationProgram).Error; err != nil {
 		return nil, err

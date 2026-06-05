@@ -222,12 +222,16 @@ func (s *service) CreateSocialProgramSubscription(ctx context.Context, accountID
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"account_id": "Format ID akun tidak valid"}, nil)
 	}
 
-	_, err := s.socialProgramRepo.FindOneSocialProgram(ctx, map[string]interface{}{"id": socialProgramID})
+	program, err := s.socialProgramRepo.FindOneSocialProgram(ctx, map[string]interface{}{"id": socialProgramID})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return pkg.NewResponse(http.StatusNotFound, "Program sosial tidak ditemukan", nil, nil)
 		}
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data program sosial", nil, nil)
+	}
+
+	if program.Status != social_program.StatusActive {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"social_program_id": "Tidak dapat berlangganan ke program sosial yang tidak aktif"}, nil)
 	}
 
 	existing, err := s.repo.FindOneSocialProgramSubscription(ctx, map[string]interface{}{

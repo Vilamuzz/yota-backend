@@ -32,6 +32,8 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	admin := r.Group("/admin/foster-children")
 	admin.Use(h.middleware.RequireRoles(enum.RoleFinance))
 	{
+		admin.GET("/:id/expenses", h.GetAdminFosterChildrenExpenseList)
+		admin.GET("/expenses/:id", h.GetFosterChildrenExpenseByID)
 		admin.POST("/:id/expenses", h.CreateFosterChildrenExpense)
 		admin.DELETE("/expenses/:id", h.DeleteFosterChildrenExpense)
 	}
@@ -60,6 +62,32 @@ func (h *handler) GetFosterChildrenExpenseList(c *gin.Context) {
 		return
 	}
 	resp := h.service.GetFosterChildrenExpenseList(ctx, fosterChildrenSlug, req)
+	c.JSON(resp.Status, resp)
+}
+
+// GetAdminFosterChildrenExpenseList
+//
+// @Summary Get Foster Children Expense List for Admin
+// @Description Get detailed information of all expenses for a foster child (requires authentication and proper role)
+// @Tags Foster Children
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Foster Children ID"
+// @Param cursor query string false "Cursor for pagination"
+// @Param limit query int false "Items per page"
+// @Success 200 {object} pkg.Response
+// @Router /api/admin/foster-children/{id}/expenses [get]
+func (h *handler) GetAdminFosterChildrenExpenseList(c *gin.Context) {
+	ctx := c.Request.Context()
+	fosterChildrenID := c.Param("id")
+
+	var req FosterChildrenExpenseQueryParams
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
+		return
+	}
+	resp := h.service.GetAdminFosterChildrenExpenseList(ctx, fosterChildrenID, req)
 	c.JSON(resp.Status, resp)
 }
 

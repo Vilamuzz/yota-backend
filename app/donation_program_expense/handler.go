@@ -25,22 +25,21 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	public := r.Group("/donation-programs")
-	public.GET("/:slug/expenses", h.GetPublicDonationProgramExpenseList)
+	public.GET("/:slug/expenses", h.GetDonationProgramExpenseList)
 	public.GET("/expenses/:id", h.GetDonationProgramExpenseByID)
 	public.GET("/:slug/expenses/export", h.ExportDonationProgramExpenseCSV)
 
 	admin := r.Group("/admin/donation-programs")
 	admin.Use(h.middleware.RequireRoles(enum.RoleFinance))
 	{
-		admin.GET("/:id/expenses", h.GetDonationProgramExpenseList)
-
+		admin.GET("/:id/expenses", h.GetAdminDonationProgramExpenseList)
 		admin.GET("/expenses/:id", h.GetDonationProgramExpenseByID)
 		admin.POST("/:id/expenses", h.CreateDonationProgramExpense)
 		admin.DELETE("/expenses/:id", h.DeleteDonationProgramExpense)
 	}
 }
 
-// GetPublicDonationProgramExpenseList
+// GetDonationProgramExpenseList
 //
 // @Summary Get Public Donation Program Expense List
 // @Description Get paginated list of expenses for a specific donation program (publicly accessible)
@@ -52,7 +51,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // @Param limit query int false "Items per page"
 // @Success 200 {object} pkg.Response
 // @Router /api/donation-programs/{slug}/expenses [get]
-func (h *handler) GetPublicDonationProgramExpenseList(c *gin.Context) {
+func (h *handler) GetDonationProgramExpenseList(c *gin.Context) {
 	ctx := c.Request.Context()
 	slug := c.Param("slug")
 
@@ -61,11 +60,11 @@ func (h *handler) GetPublicDonationProgramExpenseList(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
 		return
 	}
-	resp := h.service.GetPublicDonationProgramExpenseList(ctx, slug, req)
+	resp := h.service.GetDonationProgramExpenseList(ctx, slug, req)
 	c.JSON(resp.Status, resp)
 }
 
-// GetDonationProgramExpenseList
+// GetAdminDonationProgramExpenseList
 //
 // @Summary Get Donation Program Expense List
 // @Description Get detailed information of all expenses (requires authentication and proper role)
@@ -78,7 +77,7 @@ func (h *handler) GetPublicDonationProgramExpenseList(c *gin.Context) {
 // @Param limit query int false "Items per page"
 // @Success 200 {object} pkg.Response
 // @Router /api/admin/donation-programs/{id}/expenses [get]
-func (h *handler) GetDonationProgramExpenseList(c *gin.Context) {
+func (h *handler) GetAdminDonationProgramExpenseList(c *gin.Context) {
 	ctx := c.Request.Context()
 	donationProgramID := c.Param("id")
 
@@ -87,7 +86,7 @@ func (h *handler) GetDonationProgramExpenseList(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
 		return
 	}
-	resp := h.service.GetDonationProgramExpenseList(ctx, donationProgramID, req)
+	resp := h.service.GetAdminDonationProgramExpenseList(ctx, donationProgramID, req)
 	c.JSON(resp.Status, resp)
 }
 

@@ -67,8 +67,17 @@ func (r *repository) FindAllSocialPrograms(ctx context.Context, options map[stri
 		query = query.Select("social_programs.*, (?) as total_subscribers, (?) as collected_fund, (?) as total_expense, (?) as is_subscribed, (?) as subscription_id", subscribersSubquery, collectedFundSubquery, totalExpenseSubquery, isSubscribedSubquery, subscriptionIDSubquery)
 	}
 
-	if status, ok := options["status"]; ok && status.(string) != "" {
-		query = query.Where("status = ?", status.(string))
+	if status, ok := options["status"]; ok {
+		switch v := status.(type) {
+		case string:
+			if v != "" {
+				query = query.Where("status = ?", v)
+			}
+		case []string:
+			if len(v) > 0 {
+				query = query.Where("status IN ?", v)
+			}
+		}
 	}
 	if search, ok := options["search"]; ok && search.(string) != "" {
 		query = query.Where("title ILIKE ?", "%"+search.(string)+"%")
@@ -124,8 +133,17 @@ func (r *repository) FindAllSocialPrograms(ctx context.Context, options map[stri
 func (r *repository) CountSocialPrograms(ctx context.Context, options map[string]interface{}) (int64, error) {
 	var total int64
 	query := r.Conn.WithContext(ctx).Model(&SocialProgram{}).Where("deleted_at IS NULL")
-	if status, ok := options["status"]; ok && status.(string) != "" {
-		query = query.Where("status = ?", status.(string))
+	if status, ok := options["status"]; ok {
+		switch v := status.(type) {
+		case string:
+			if v != "" {
+				query = query.Where("status = ?", v)
+			}
+		case []string:
+			if len(v) > 0 {
+				query = query.Where("status IN ?", v)
+			}
+		}
 	}
 	if search, ok := options["search"]; ok && search.(string) != "" {
 		query = query.Where("title ILIKE ?", "%"+search.(string)+"%")
