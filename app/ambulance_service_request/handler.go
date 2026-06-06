@@ -25,7 +25,7 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	public := r.Group("/ambulances/requests")
-	public.Use(h.middleware.AuthRequired())
+	public.Use(h.middleware.RequireRoles(enum.RoleOrangTuaAsuh))
 	{
 		public.POST("", h.CreateAmbulanceServiceRequest)
 		public.GET("", h.ListMyAmbulanceServiceRequests)
@@ -59,6 +59,9 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
+// @Param status query string false "Filter by status"
+// @Param search query string false "Search by applicant name"
+// @Param sortBy query string false "Sort by (e.g. applicant_name asc, created_at desc)"
 // @Param limit query int false "Number of items to return"
 // @Param next_cursor query string false "Cursor for next page"
 // @Param prev_cursor query string false "Cursor for previous page"
@@ -104,16 +107,19 @@ func (h *handler) GetMyAmbulanceServiceRequestByID(c *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param limit query int false "Number of items to return"
-// @Param next_cursor query string false "Cursor for next page"
-// @Param prev_cursor query string false "Cursor for previous page"
+// @Param status query string false "Filter by status"
+// @Param account_id query string false "Filter by account id"
+// @Param sortBy query string false "Sort by (e.g. applicant_name asc, created_at desc)"
+// @Param search query string false "Search by applicant name"
+// @Param page query int false "Page number"
+// @Param limit query int false "Pagination limit"
 // @Success 200 {object} pkg.Response
 // @Failure 400 {object} pkg.Response
 // @Failure 500 {object} pkg.Response
 // @Router /ambulances/requests [get]
 func (h *handler) ListAmbulanceServiceRequests(c *gin.Context) {
 	ctx := c.Request.Context()
-	var queryParams AmbulanceServiceRequestQueryParams
+	var queryParams AmbulanceServiceRequestAdminQueryParams
 	if err := c.ShouldBindQuery(&queryParams); err != nil {
 		c.JSON(400, pkg.NewResponse(400, "Invalid query parameters", nil, nil))
 		return
@@ -149,6 +155,9 @@ func (h *handler) GetAmbulanceServiceRequestByID(c *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
+// @Param status query string false "Filter by status"
+// @Param search query string false "Search by applicant name"
+// @Param sortBy query string false "Sort by (e.g. applicant_name asc, created_at desc)"
 // @Param limit query int false "Number of items to return"
 // @Param next_cursor query string false "Cursor for next page"
 // @Param prev_cursor query string false "Cursor for previous page"

@@ -28,7 +28,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	public.POST("/:slug/transactions", h.middleware.AuthOptional(), h.CreateFosterChildrenTransaction)
 
 	me := r.Group("/foster-children/transactions/me")
-	me.Use(h.middleware.AuthRequired())
+	me.Use(h.middleware.RequireRoles(enum.RoleOrangTuaAsuh))
 	{
 		me.GET("", h.GetMyFosterChildrenTransactionList)
 		me.GET("/:id", h.GetMyFosterChildrenTransactionByID)

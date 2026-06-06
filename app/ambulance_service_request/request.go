@@ -26,7 +26,21 @@ type UpdateAmbulanceServiceRequest struct {
 }
 
 type AmbulanceServiceRequestQueryParams struct {
-	AccountID string `form:"accountId"`
-	Status    string `form:"status"`
+	Search          string `form:"search"`
+	SortBy          string `form:"sortBy"`
+	AccountID       string `form:"accountId"`
+	Status          string `form:"status"`
+	ServiceCategory string `form:"serviceCategory"`
 	pkg.PaginationParams
 }
+
+type AmbulanceServiceRequestAdminQueryParams struct {
+	Status          string `form:"status"`
+	AccountID       string `form:"accountId"`
+	SortBy          string `form:"sortBy"`
+	Search          string `form:"search"`
+	ServiceCategory string `form:"serviceCategory"`
+	Page            int    `form:"page"`
+	Limit           int    `form:"limit"`
+}
+

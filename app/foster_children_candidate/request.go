@@ -29,6 +29,8 @@ type RejectFosterChildrenCandidateRequest struct {
 }
 
 type FosterChildrenCandidateQueryParams struct {
+	Search    string `form:"search"`
+	SortBy    string `form:"sortBy"`
 	Status    Status `form:"status"`
 	AccountID string `form:"accountId"`
 	pkg.PaginationParams
@@ -39,7 +41,7 @@ type FosterChildrenCandidateAdminQueryParams struct {
 	AccountID string   `form:"accountId"`
 	Category  Category `form:"category"`
 	Gender    Gender   `form:"gender"`
-	SortBy    string   `form:"sortBy"` // e.g. "name asc", "created_at desc"
+	SortBy    string   `form:"sortBy"`
 	Search    string   `form:"search"`
 	Page      int      `form:"page"`
 	Limit     int      `form:"limit"`

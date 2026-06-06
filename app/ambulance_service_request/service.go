@@ -15,7 +15,7 @@ import (
 )
 
 type Service interface {
-	ListAmbulanceServiceRequest(ctx context.Context, queryParams AmbulanceServiceRequestQueryParams) pkg.Response
+	ListAmbulanceServiceRequest(ctx context.Context, queryParams AmbulanceServiceRequestAdminQueryParams) pkg.Response
 	ListMyAmbulanceServiceRequests(ctx context.Context, accountID string, queryParams AmbulanceServiceRequestQueryParams) pkg.Response
 	ListAssignedAmbulanceServiceRequests(ctx context.Context, driverAccountID string, ambulanceID string, queryParams AmbulanceServiceRequestQueryParams) pkg.Response
 	GetAmbulanceServiceRequestByID(ctx context.Context, id string) pkg.Response
@@ -41,47 +41,63 @@ func NewService(repo Repository, ambulanceRepo ambulance.Repository, ambulanceHi
 	return &service{repo: repo, ambulanceRepo: ambulanceRepo, ambulanceHistoryRepo: ambulanceHistoryRepo, timeout: timeout}
 }
 
-func (s *service) ListAmbulanceServiceRequest(ctx context.Context, queryParams AmbulanceServiceRequestQueryParams) pkg.Response {
+func (s *service) ListAmbulanceServiceRequest(ctx context.Context, queryParams AmbulanceServiceRequestAdminQueryParams) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
-	if queryParams.Limit == 0 {
+
+	if queryParams.Limit <= 0 {
 		queryParams.Limit = 10
 	}
+	if queryParams.Limit > 100 {
+		queryParams.Limit = 100
+	}
+	if queryParams.Page <= 0 {
+		queryParams.Page = 1
+	}
+
 	options := map[string]interface{}{
 		"limit": queryParams.Limit,
+		"page":  queryParams.Page,
 	}
-	if queryParams.NextCursor != "" {
-		options["next_cursor"] = queryParams.NextCursor
+	if queryParams.Status != "" {
+		options["status"] = queryParams.Status
 	}
-	if queryParams.PrevCursor != "" {
-		options["prev_cursor"] = queryParams.PrevCursor
+	if queryParams.AccountID != "" {
+		options["account_id"] = queryParams.AccountID
+	}
+	if queryParams.SortBy != "" {
+		options["sort_by"] = queryParams.SortBy
+	}
+	if queryParams.Search != "" {
+		options["search"] = queryParams.Search
+	}
+	if queryParams.ServiceCategory != "" {
+		options["service_category"] = queryParams.ServiceCategory
+	}
+
+	total, err := s.repo.Count(ctx, options)
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil jumlah total permintaan ambulans", nil, nil)
 	}
 
 	ambulanceServiceRequests, err := s.repo.FindAll(ctx, options)
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memuat daftar permintaan ambulans", nil, nil)
 	}
-	hasNext := len(ambulanceServiceRequests) > queryParams.Limit
-	if hasNext {
-		ambulanceServiceRequests = ambulanceServiceRequests[:queryParams.Limit]
+
+	totalPages := int((total + int64(queryParams.Limit) - 1) / int64(queryParams.Limit))
+	if totalPages == 0 {
+		totalPages = 1
 	}
 
-	var nextCursor, prevCursor string
-	hasPrev := queryParams.PrevCursor != ""
-	if hasNext && len(ambulanceServiceRequests) > 0 {
-		lastRequest := ambulanceServiceRequests[len(ambulanceServiceRequests)-1]
-		nextCursor = pkg.EncodeCursor(lastRequest.CreatedAt, lastRequest.ID.String())
-	}
-	if hasPrev && len(ambulanceServiceRequests) > 0 {
-		firstRequest := ambulanceServiceRequests[0]
-		prevCursor = pkg.EncodeCursor(firstRequest.CreatedAt, firstRequest.ID.String())
-	}
-
-	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, toAmbulanceServiceRequestsToListResponse(ambulanceServiceRequests, pkg.CursorPagination{
-		NextCursor: nextCursor,
-		PrevCursor: prevCursor,
+	pagination := pkg.OffsetPagination{
+		Page:       queryParams.Page,
 		Limit:      queryParams.Limit,
-	}))
+		Total:      total,
+		TotalPages: totalPages,
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, toAmbulanceServiceRequestsToAdminListResponse(ambulanceServiceRequests, pagination))
 }
 
 func (s *service) ListMyAmbulanceServiceRequests(ctx context.Context, accountID string, queryParams AmbulanceServiceRequestQueryParams) pkg.Response {
@@ -94,11 +110,24 @@ func (s *service) ListMyAmbulanceServiceRequests(ctx context.Context, accountID 
 		"limit":      queryParams.Limit,
 		"account_id": accountID,
 	}
+	if queryParams.Status != "" {
+		options["status"] = queryParams.Status
+	}
+	if queryParams.Search != "" {
+		options["search"] = queryParams.Search
+		options["search_only_name"] = true
+	}
+	if queryParams.SortBy != "" {
+		options["sort_by"] = queryParams.SortBy
+	}
 	if queryParams.NextCursor != "" {
 		options["next_cursor"] = queryParams.NextCursor
 	}
 	if queryParams.PrevCursor != "" {
 		options["prev_cursor"] = queryParams.PrevCursor
+	}
+	if queryParams.ServiceCategory != "" {
+		options["service_category"] = queryParams.ServiceCategory
 	}
 
 	ambulanceServiceRequests, err := s.repo.FindAll(ctx, options)
@@ -151,11 +180,24 @@ func (s *service) ListAssignedAmbulanceServiceRequests(ctx context.Context, driv
 		"limit":        queryParams.Limit,
 		"ambulance_id": ambulanceID,
 	}
+	if queryParams.Status != "" {
+		options["status"] = queryParams.Status
+	}
+	if queryParams.Search != "" {
+		options["search"] = queryParams.Search
+		options["search_only_name"] = true
+	}
+	if queryParams.SortBy != "" {
+		options["sort_by"] = queryParams.SortBy
+	}
 	if queryParams.NextCursor != "" {
 		options["next_cursor"] = queryParams.NextCursor
 	}
 	if queryParams.PrevCursor != "" {
 		options["prev_cursor"] = queryParams.PrevCursor
+	}
+	if queryParams.ServiceCategory != "" {
+		options["service_category"] = queryParams.ServiceCategory
 	}
 
 	ambulanceServiceRequests, err := s.repo.FindAll(ctx, options)
@@ -301,7 +343,7 @@ func (s *service) UpdateAmbulanceServiceRequest(ctx context.Context, id string, 
 
 	errValidation := make(map[string]string)
 	updateData := make(map[string]interface{})
-	if payload.Status != "" && payload.Status != string(StatusPending) && payload.Status != string(StatusApproved) && payload.Status != string(StatusRejected) {
+	if payload.Status != "" && payload.Status != string(StatusPending) && payload.Status != string(StatusAccepted) && payload.Status != string(StatusRejected) {
 		errValidation["status"] = "Nilai status tidak valid"
 	} else if payload.Status != "" {
 		updateData["status"] = payload.Status
@@ -385,7 +427,7 @@ func (s *service) AcceptAmbulanceServiceRequest(ctx context.Context, id string, 
 	}
 
 	updateData := map[string]interface{}{
-		"status":           StatusApproved,
+		"status":           StatusAccepted,
 		"ambulance_id":     ambulanceRecord.ID,
 		"rejection_reason": "",
 		"updated_at":       time.Now(),
@@ -506,7 +548,7 @@ func (s *service) StartAmbulanceServiceRequest(ctx context.Context, driverAccoun
 		return pkg.NewResponse(http.StatusForbidden, "Ambulans ini tidak ditugaskan untuk permintaan ini", nil, nil)
 	}
 
-	if existing.Status != StatusApproved {
+	if existing.Status != StatusAccepted {
 		return pkg.NewResponse(http.StatusBadRequest, "Hanya permintaan dengan status disetujui yang dapat dimulai", nil, nil)
 	}
 

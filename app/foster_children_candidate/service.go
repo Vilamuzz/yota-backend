@@ -136,6 +136,13 @@ func (s *service) GetMyFosterChildrenCandidateList(ctx context.Context, params F
 	if params.PrevCursor != "" {
 		options["prev_cursor"] = params.PrevCursor
 	}
+	if params.Search != "" {
+		options["search"] = params.Search
+		options["search_only_name"] = true
+	}
+	if params.SortBy != "" {
+		options["sort_by"] = params.SortBy
+	}
 
 	candidates, err := s.repo.FindAllFosterChildrenCandidates(ctx, options)
 	if err != nil {

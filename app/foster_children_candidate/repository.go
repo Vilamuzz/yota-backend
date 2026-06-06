@@ -48,7 +48,11 @@ func (r *repository) CountFosterChildrenCandidates(ctx context.Context, options 
 	}
 	if search, ok := options["search"]; ok && search != "" {
 		searchTerm := "%" + search.(string) + "%"
-		query = query.Where("name ILIKE ? OR submitter_name ILIKE ?", searchTerm, searchTerm)
+		if onlyName, ok := options["search_only_name"]; ok && onlyName.(bool) {
+			query = query.Where("name ILIKE ?", searchTerm)
+		} else {
+			query = query.Where("name ILIKE ? OR submitter_name ILIKE ?", searchTerm, searchTerm)
+		}
 	}
 
 	if err := query.Count(&count).Error; err != nil {
@@ -75,7 +79,11 @@ func (r *repository) FindAllFosterChildrenCandidates(ctx context.Context, option
 	}
 	if search, ok := options["search"]; ok && search != "" {
 		searchTerm := "%" + search.(string) + "%"
-		query = query.Where("name ILIKE ? OR submitter_name ILIKE ?", searchTerm, searchTerm)
+		if onlyName, ok := options["search_only_name"]; ok && onlyName.(bool) {
+			query = query.Where("name ILIKE ?", searchTerm)
+		} else {
+			query = query.Where("name ILIKE ? OR submitter_name ILIKE ?", searchTerm, searchTerm)
+		}
 	}
 
 	if nextCursor, ok := options["next_cursor"]; ok && nextCursor != "" {

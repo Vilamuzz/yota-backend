@@ -31,7 +31,7 @@ type Status string
 
 const (
 	StatusPending   Status = "pending"
-	StatusApproved  Status = "approved"
+	StatusAccepted  Status = "accepted"
 	StatusRejected  Status = "rejected"
 	StatusCancelled Status = "cancelled"
 	StatusInService Status = "in_service"

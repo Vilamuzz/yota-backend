@@ -28,7 +28,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	public.POST("/:slug/transactions", h.middleware.AuthOptional(), h.CreateDonationProgramTransaction)
 
 	me := r.Group("/donation-programs/transactions/me")
-	me.Use(h.middleware.AuthRequired())
+	me.Use(h.middleware.RequireRoles(enum.RoleOrangTuaAsuh))
 	{
 		me.GET("", h.GetMyDonationProgramTransactionList)
 		me.GET("/:id", h.GetMyDonationProgramTransactionByID)

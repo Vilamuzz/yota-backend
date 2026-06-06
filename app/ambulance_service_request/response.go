@@ -62,3 +62,23 @@ func toAmbulanceServiceRequestsToListResponse(requests []AmbulanceServiceRequest
 		Pagination: pagination,
 	}
 }
+
+type AmbulanceServiceRequestAdminListResponse struct {
+	Requests   []AmbulanceServiceRequestResponse `json:"requests"`
+	Pagination pkg.OffsetPagination              `json:"pagination"`
+}
+
+func toAmbulanceServiceRequestsToAdminListResponse(requests []AmbulanceServiceRequest, pagination pkg.OffsetPagination) AmbulanceServiceRequestAdminListResponse {
+	var responses []AmbulanceServiceRequestResponse
+	for _, request := range requests {
+		responses = append(responses, request.toAmbulanceServiceRequestResponse())
+	}
+	if requests == nil {
+		responses = []AmbulanceServiceRequestResponse{}
+	}
+	return AmbulanceServiceRequestAdminListResponse{
+		Requests:   responses,
+		Pagination: pagination,
+	}
+}
+

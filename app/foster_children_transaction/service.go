@@ -90,7 +90,7 @@ func (s *service) GetFosterChildrenTransactionList(ctx context.Context, accountI
 			"component": "foster_children_transaction.service",
 		}).WithError(err).Error("failed to fetch transactions")
 
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch transactions", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data transaksi", nil, nil)
 	}
 
 	hasMore := len(transactions) > params.Limit
@@ -119,7 +119,7 @@ func (s *service) GetFosterChildrenTransactionList(ctx context.Context, accountI
 		}
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, toFosterChildrenTransactionListResponse(transactions, pkg.CursorPagination{
+	return pkg.NewResponse(http.StatusOK, "Sukses", nil, toFosterChildrenTransactionListResponse(transactions, pkg.CursorPagination{
 		NextCursor: nextCursor,
 		PrevCursor: prevCursor,
 		Limit:      params.Limit,
@@ -131,23 +131,23 @@ func (s *service) GetFosterChildrenTransactionByID(ctx context.Context, fosterCh
 	defer cancel()
 
 	if err := uuid.Validate(fosterChildrenTransactionID); err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid transaction ID format"}, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID transaksi tidak valid"}, nil)
 	}
 
 	transaction, err := s.repo.FindOneFosterChildrenTransaction(ctx, map[string]interface{}{"id": fosterChildrenTransactionID})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return pkg.NewResponse(http.StatusNotFound, "Transaction not found", nil, nil)
+			return pkg.NewResponse(http.StatusNotFound, "Transaksi tidak ditemukan", nil, nil)
 		}
 		logrus.WithFields(logrus.Fields{
 			"component":      "foster_children_transaction.service",
 			"transaction_id": fosterChildrenTransactionID,
 		}).WithError(err).Error("failed to fetch transaction")
 
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch transaction", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data transaksi", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, transaction.toFosterChildrenTransactionResponse())
+	return pkg.NewResponse(http.StatusOK, "Sukses", nil, transaction.toFosterChildrenTransactionResponse())
 }
 
 func (s *service) CreateOfflineFosterChildrenTransaction(ctx context.Context, accountID, fosterChildrenID string, payload CreateFosterChildrenTransactionRequest) pkg.Response {
@@ -157,21 +157,23 @@ func (s *service) CreateOfflineFosterChildrenTransaction(ctx context.Context, ac
 
 	var fosterChild *foster_children.FosterChildren
 	if fosterChildrenID == "" {
-		errValidation["foster_children_id"] = "Foster Children ID is required"
+		errValidation["foster_children_id"] = "ID Anak Asuh diperlukan"
 	} else {
 		fc, err := s.fosterChildrenRepo.FindOneFosterChildren(ctx, map[string]interface{}{"id": fosterChildrenID})
 		if err != nil {
-			errValidation["foster_children_id"] = "Foster Children not found"
+			errValidation["foster_children_id"] = "Anak Asuh tidak ditemukan"
+		} else if fc.IsGraduated {
+			errValidation["foster_children_id"] = "Anak Asuh sudah lulus"
 		} else {
 			fosterChild = fc
 		}
 	}
 
 	if payload.GrossAmount <= 0 {
-		errValidation["gross_amount"] = "Gross amount must be greater than 0"
+		errValidation["gross_amount"] = "Jumlah kotor harus lebih besar dari 0"
 	}
 	if len(errValidation) > 0 {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
 	donorName := "anonymous"
@@ -205,7 +207,7 @@ func (s *service) CreateOfflineFosterChildrenTransaction(ctx context.Context, ac
 			"component":          "foster_children_transaction.service",
 			"foster_children_id": fosterChildrenID,
 		}).WithError(err).Error("failed to save offline transaction")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to save offline transaction", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menyimpan transaksi offline", nil, nil)
 	}
 
 	// Auto-create finance record (income)
@@ -228,7 +230,7 @@ func (s *service) CreateOfflineFosterChildrenTransaction(ctx context.Context, ac
 	transaction.FosterChildren = fosterChild
 	s.logService.CreateLog(ctx, &accountID, "CREATE", "foster_children_transaction", transaction.ID.String(), nil, transaction.toFosterChildrenTransactionResponse())
 
-	return pkg.NewResponse(http.StatusCreated, "Offline transaction created successfully", nil, transaction.toFosterChildrenTransactionResponse())
+	return pkg.NewResponse(http.StatusCreated, "Transaksi offline berhasil dibuat", nil, transaction.toFosterChildrenTransactionResponse())
 }
 
 func (s *service) CreateFosterChildrenTransaction(ctx context.Context, accountID string, fosterChildrenSlug string, payload CreateFosterChildrenTransactionRequest) pkg.Response {
@@ -239,11 +241,13 @@ func (s *service) CreateFosterChildrenTransaction(ctx context.Context, accountID
 
 	var fosterChild *foster_children.FosterChildren
 	if fosterChildrenSlug == "" {
-		errValidation["foster_children_slug"] = "Foster Children Slug is required"
+		errValidation["foster_children_slug"] = "Slug Anak Asuh diperlukan"
 	} else {
 		fc, err := s.fosterChildrenRepo.FindOneFosterChildren(ctx, map[string]interface{}{"slug": fosterChildrenSlug})
 		if err != nil {
-			errValidation["foster_children_slug"] = "Foster Children not found"
+			errValidation["foster_children_slug"] = "Anak Asuh tidak ditemukan"
+		} else if fc.IsGraduated {
+			errValidation["foster_children_slug"] = "Anak Asuh sudah lulus"
 		} else {
 			fosterChild = fc
 		}
@@ -252,16 +256,16 @@ func (s *service) CreateFosterChildrenTransaction(ctx context.Context, accountID
 	if accountID != "" {
 		_, err := s.accountRepo.FindOneAccount(ctx, map[string]interface{}{"id": accountID})
 		if err != nil {
-			errValidation["account_id"] = "Account not found"
+			errValidation["account_id"] = "Akun tidak ditemukan"
 		}
 	}
 
 	if payload.GrossAmount <= 0 {
-		errValidation["gross_amount"] = "Gross amount must be greater than 0"
+		errValidation["gross_amount"] = "Jumlah kotor harus lebih besar dari 0"
 	}
 
 	if len(errValidation) > 0 {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
 	donorName := "anonymous"
@@ -290,14 +294,14 @@ func (s *service) CreateFosterChildrenTransaction(ctx context.Context, accountID
 				ID:    fosterChild.ID.String(),
 				Price: grossAmountInt,
 				Qty:   1,
-				Name:  "Foster Children Donation",
+				Name:  "Donasi Anak Asuh",
 			},
 		},
 	}
 
 	snapResp, err := s.midtransClient.CreateSnapTransaction(snapReq)
 	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create Midtrans transaction: "+err.Error(), nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat transaksi Midtrans: "+err.Error(), nil, nil)
 	}
 
 	var accountIDPtr *uuid.UUID
@@ -331,11 +335,11 @@ func (s *service) CreateFosterChildrenTransaction(ctx context.Context, accountID
 			"foster_children_id": fosterChild.ID.String(),
 			"order_id":           orderID,
 		}).WithError(err).Error("failed to save online transaction")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to save transaction", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menyimpan transaksi", nil, nil)
 	}
 
 	transaction.FosterChildren = fosterChild
-	return pkg.NewResponse(http.StatusCreated, "Transaction created successfully", nil, transaction.toFosterChildrenTransactionResponse())
+	return pkg.NewResponse(http.StatusCreated, "Transaksi berhasil dibuat", nil, transaction.toFosterChildrenTransactionResponse())
 }
 
 func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.MidtransNotificationRequest) pkg.Response {
@@ -347,16 +351,16 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 	hash := sha512.Sum512([]byte(raw))
 	expectedSig := fmt.Sprintf("%x", hash)
 	if expectedSig != payload.SignatureKey {
-		return pkg.NewResponse(http.StatusUnauthorized, "Invalid signature", nil, nil)
+		return pkg.NewResponse(http.StatusUnauthorized, "Tanda tangan tidak valid", nil, nil)
 	}
 
 	transaction, err := s.repo.FindOneFosterChildrenTransaction(ctx, map[string]interface{}{"order_id": payload.OrderID})
 	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Transaction not found", nil, nil)
+		return pkg.NewResponse(http.StatusNotFound, "Transaksi tidak ditemukan", nil, nil)
 	}
 
 	if payload.TransactionStatus == transaction.TransactionStatus {
-		return pkg.NewResponse(http.StatusOK, "No status change", nil, nil)
+		return pkg.NewResponse(http.StatusOK, "Tidak ada perubahan status", nil, nil)
 	}
 
 	updates := map[string]interface{}{
@@ -379,7 +383,7 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 			"transaction_id": transaction.ID,
 			"order_id":       payload.OrderID,
 		}).WithError(err).Error("failed to update transaction")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update transaction", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui transaksi", nil, nil)
 	}
 
 	if isSettled {
@@ -409,7 +413,7 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 		}).Info("transaction settled")
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Notification handled", nil, nil)
+	return pkg.NewResponse(http.StatusOK, "Notifikasi berhasil diproses", nil, nil)
 }
 
 func (s *service) GetMyFosterChildrenTransactionList(ctx context.Context, accountID string, params FosterChildrenTransactionQueryParams) pkg.Response {
@@ -421,25 +425,25 @@ func (s *service) GetMyFosterChildrenTransactionByID(ctx context.Context, foster
 	defer cancel()
 
 	if err := uuid.Validate(fosterChildrenTransactionID); err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid transaction ID format"}, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID transaksi tidak valid"}, nil)
 	}
 
 	transaction, err := s.repo.FindOneFosterChildrenTransaction(ctx, map[string]interface{}{"id": fosterChildrenTransactionID, "account_id": accountID})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return pkg.NewResponse(http.StatusNotFound, "Transaction not found", nil, nil)
+			return pkg.NewResponse(http.StatusNotFound, "Transaksi tidak ditemukan", nil, nil)
 		}
 		logrus.WithFields(logrus.Fields{
 			"component":      "foster_children_transaction.service",
 			"transaction_id": fosterChildrenTransactionID,
 			"account_id":     accountID,
 		}).WithError(err).Error("failed to fetch transaction")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch transaction", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data transaksi", nil, nil)
 	}
 
 	if transaction.AccountID.String() != accountID {
-		return pkg.NewResponse(http.StatusForbidden, "Forbidden", nil, nil)
+		return pkg.NewResponse(http.StatusForbidden, "Akses ditolak", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, transaction.toFosterChildrenTransactionResponse())
+	return pkg.NewResponse(http.StatusOK, "Sukses", nil, transaction.toFosterChildrenTransactionResponse())
 }

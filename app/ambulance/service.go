@@ -117,6 +117,12 @@ func (s *service) ListAmbulance(ctx context.Context, queryParams AmbulanceQueryP
 	if queryParams.DriverID != "" {
 		options["driver_id"] = queryParams.DriverID
 	}
+	if queryParams.Status != "" {
+		options["status"] = queryParams.Status
+	}
+	if queryParams.Search != "" {
+		options["search"] = queryParams.Search
+	}
 
 	ambulances, err := s.repo.FindAllAmbulances(ctx, options)
 	if err != nil {
