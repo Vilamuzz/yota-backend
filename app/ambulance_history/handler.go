@@ -79,7 +79,7 @@ func (h *handler) ListAmbulanceHistory(c *gin.Context) {
 // @Produce json
 // @Param id path string true "Ambulance ID"
 // @Param period query string false "Time period: all_time | this_week | this_month | this_year | custom (default: all_time)"
-// @Param start_date query string false "Start date (YYYY-MM-DD), required when period=custom"
+// @Param startDate query string false "Start date (YYYY-MM-DD), required when period=custom"
 // @Param end_date query string false "End date (YYYY-MM-DD), required when period=custom"
 // @Success 200 {object} pkg.Response
 // @Failure 400 {object} pkg.Response

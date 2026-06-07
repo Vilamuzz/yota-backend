@@ -50,6 +50,8 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // @Param slug path string true "Foster Children Slug"
 // @Param cursor query string false "Cursor for pagination"
 // @Param limit query int false "Items per page"
+// @Param startDate query string false "Filter start date (YYYY-MM-DD, inclusive)"
+// @Param endDate query string false "Filter end date (YYYY-MM-DD, inclusive)"
 // @Success 200 {object} pkg.Response
 // @Router /api/foster-children/{slug}/expenses [get]
 func (h *handler) GetFosterChildrenExpenseList(c *gin.Context) {
@@ -76,6 +78,8 @@ func (h *handler) GetFosterChildrenExpenseList(c *gin.Context) {
 // @Param id path string true "Foster Children ID"
 // @Param cursor query string false "Cursor for pagination"
 // @Param limit query int false "Items per page"
+// @Param startDate query string false "Filter start date (YYYY-MM-DD, inclusive)"
+// @Param endDate query string false "Filter end date (YYYY-MM-DD, inclusive)"
 // @Success 200 {object} pkg.Response
 // @Router /api/admin/foster-children/{id}/expenses [get]
 func (h *handler) GetAdminFosterChildrenExpenseList(c *gin.Context) {
@@ -168,8 +172,8 @@ func (h *handler) DeleteFosterChildrenExpense(c *gin.Context) {
 // @Tags Foster Children
 // @Produce text/csv
 // @Param slug path string true "Foster Children Slug"
-// @Param start_date query string false "Filter start date (YYYY-MM-DD, inclusive)"
-// @Param end_date query string false "Filter end date (YYYY-MM-DD, inclusive)"
+// @Param startDate query string false "Filter start date (YYYY-MM-DD, inclusive)"
+// @Param endDate query string false "Filter end date (YYYY-MM-DD, inclusive)"
 // @Success 200 {file} binary "CSV file"
 // @Router /api/foster-children/{slug}/expenses/export [get]
 func (h *handler) ExportFosterChildrenExpenseCSV(c *gin.Context) {

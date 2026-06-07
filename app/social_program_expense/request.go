@@ -16,10 +16,14 @@ type SocialProgramExpenseRequest struct {
 }
 
 type SocialProgramExpenseQueryParams struct {
+	Search    string `form:"search"`
+	SortBy    string `form:"sortBy"`
+	StartDate string `form:"startDate"` // optional, format: YYYY-MM-DD
+	EndDate   string `form:"endDate"`   // optional, format: YYYY-MM-DD
 	pkg.PaginationParams
 }
 
 type SocialProgramExpenseExportParams struct {
-	StartDate string `form:"start_date"` // optional, format: YYYY-MM-DD
-	EndDate   string `form:"end_date"`   // optional, format: YYYY-MM-DD
+	StartDate string `form:"startDate"` // optional, format: YYYY-MM-DD
+	EndDate   string `form:"endDate"`   // optional, format: YYYY-MM-DD
 }

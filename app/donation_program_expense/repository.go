@@ -2,6 +2,8 @@ package donation_program_expense
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
@@ -25,6 +27,13 @@ func NewRepository(conn *gorm.DB) Repository {
 	return &repo{Conn: conn}
 }
 
+var allowedDonationProgramExpenseSortColumns = map[string]string{
+	"title":        "title",
+	"amount":       "amount",
+	"expense_date": "expense_date",
+	"created_at":   "created_at",
+}
+
 func (r *repo) FindAllDonationProgramExpenses(ctx context.Context, options map[string]interface{}) ([]DonationProgramExpense, error) {
 	var expenses []DonationProgramExpense
 
@@ -32,6 +41,18 @@ func (r *repo) FindAllDonationProgramExpenses(ctx context.Context, options map[s
 
 	if donationProgramID, ok := options["donation_program_id"]; ok && donationProgramID.(string) != "" {
 		query = query.Where("donation_program_id = ?", donationProgramID.(string))
+	}
+
+	if search, ok := options["search"]; ok && search.(string) != "" {
+		query = query.Where("title ILIKE ?", "%"+search.(string)+"%")
+	}
+
+	if startDate, ok := options["start_date"]; ok && startDate.(string) != "" {
+		query = query.Where("expense_date >= ?", startDate.(string))
+	}
+
+	if endDate, ok := options["end_date"]; ok && endDate.(string) != "" {
+		query = query.Where("expense_date <= ?", endDate.(string))
 	}
 
 	if nextCursor, ok := options["next_cursor"]; ok && nextCursor.(string) != "" {
@@ -49,7 +70,20 @@ func (r *repo) FindAllDonationProgramExpenses(ctx context.Context, options map[s
 	if _, isPrev := options["prev_cursor"]; isPrev {
 		query = query.Order("created_at ASC, id ASC")
 	} else {
-		query = query.Order("created_at DESC, id DESC")
+		orderClause := "created_at DESC, id DESC"
+		if sortBy, ok := options["sort_by"]; ok && sortBy.(string) != "" {
+			parts := strings.Fields(strings.ToLower(sortBy.(string)))
+			if len(parts) >= 1 {
+				if col, valid := allowedDonationProgramExpenseSortColumns[parts[0]]; valid {
+					dir := "ASC"
+					if len(parts) == 2 && parts[1] == "desc" {
+						dir = "DESC"
+					}
+					orderClause = fmt.Sprintf("%s %s, id DESC", col, dir)
+				}
+			}
+		}
+		query = query.Order(orderClause)
 	}
 
 	limit := 10

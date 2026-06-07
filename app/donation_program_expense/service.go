@@ -55,7 +55,7 @@ func (s *service) GetDonationProgramExpenseList(ctx context.Context, slug string
 		return pkg.NewResponse(http.StatusNotFound, "Program donasi tidak ditemukan", nil, nil)
 	}
 
-	return s.GetDonationProgramExpenseList(ctx, program.ID.String(), params)
+	return s.GetAdminDonationProgramExpenseList(ctx, program.ID.String(), params)
 }
 
 func (s *service) GetAdminDonationProgramExpenseList(ctx context.Context, donationProgramID string, params DonationProgramExpenseQueryParams) pkg.Response {
@@ -69,6 +69,21 @@ func (s *service) GetAdminDonationProgramExpenseList(ctx context.Context, donati
 		params.Limit = 100
 	}
 
+	errValidation := make(map[string]string)
+	if params.StartDate != "" {
+		if _, err := time.Parse("2006-01-02", params.StartDate); err != nil {
+			errValidation["startDate"] = "Format tanggal tidak valid (gunakan YYYY-MM-DD)"
+		}
+	}
+	if params.EndDate != "" {
+		if _, err := time.Parse("2006-01-02", params.EndDate); err != nil {
+			errValidation["endDate"] = "Format tanggal tidak valid (gunakan YYYY-MM-DD)"
+		}
+	}
+	if len(errValidation) > 0 {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
+	}
+
 	options := map[string]interface{}{
 		"limit": params.Limit,
 	}
@@ -80,6 +95,18 @@ func (s *service) GetAdminDonationProgramExpenseList(ctx context.Context, donati
 	}
 	if params.PrevCursor != "" {
 		options["prev_cursor"] = params.PrevCursor
+	}
+	if params.Search != "" {
+		options["search"] = params.Search
+	}
+	if params.SortBy != "" {
+		options["sort_by"] = params.SortBy
+	}
+	if params.StartDate != "" {
+		options["start_date"] = params.StartDate
+	}
+	if params.EndDate != "" {
+		options["end_date"] = params.EndDate
 	}
 
 	expenses, err := s.repo.FindAllDonationProgramExpenses(ctx, options)

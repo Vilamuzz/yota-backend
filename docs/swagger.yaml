@@ -707,6 +707,18 @@ paths:
       description: Get a list of ambulance requests assigned to the authenticated
         ambulance driver
       parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Search by applicant name
+        in: query
+        name: search
+        type: string
+      - description: Sort by (e.g. applicant_name asc, created_at desc)
+        in: query
+        name: sortBy
+        type: string
       - description: Number of items to return
         in: query
         name: limit
@@ -1047,7 +1059,7 @@ paths:
         type: string
       - description: Start date (YYYY-MM-DD), required when period=custom
         in: query
-        name: start_date
+        name: startDate
         type: string
       - description: End date (YYYY-MM-DD), required when period=custom
         in: query
@@ -1077,18 +1089,30 @@ paths:
       - application/json
       description: Get a list of ambulance requests with pagination
       parameters:
-      - description: Number of items to return
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by account id
+        in: query
+        name: account_id
+        type: string
+      - description: Sort by (e.g. applicant_name asc, created_at desc)
+        in: query
+        name: sortBy
+        type: string
+      - description: Search by applicant name
+        in: query
+        name: search
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Pagination limit
         in: query
         name: limit
         type: integer
-      - description: Cursor for next page
-        in: query
-        name: next_cursor
-        type: string
-      - description: Cursor for previous page
-        in: query
-        name: prev_cursor
-        type: string
       produces:
       - application/json
       responses:
@@ -1197,6 +1221,18 @@ paths:
       description: Get a list of ambulance requests created by the authenticated user
         with pagination
       parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Search by applicant name
+        in: query
+        name: search
+        type: string
+      - description: Sort by (e.g. applicant_name asc, created_at desc)
+        in: query
+        name: sortBy
+        type: string
       - description: Number of items to return
         in: query
         name: limit
@@ -1925,6 +1961,14 @@ paths:
         in: query
         name: limit
         type: integer
+      - description: Filter start date (YYYY-MM-DD, inclusive)
+        in: query
+        name: startDate
+        type: string
+      - description: Filter end date (YYYY-MM-DD, inclusive)
+        in: query
+        name: endDate
+        type: string
       produces:
       - application/json
       responses:
@@ -2349,6 +2393,14 @@ paths:
         in: query
         name: limit
         type: integer
+      - description: Filter start date (YYYY-MM-DD, inclusive)
+        in: query
+        name: startDate
+        type: string
+      - description: Filter end date (YYYY-MM-DD, inclusive)
+        in: query
+        name: endDate
+        type: string
       produces:
       - application/json
       responses:
@@ -4184,6 +4236,14 @@ paths:
         in: query
         name: limit
         type: integer
+      - description: Filter start date (YYYY-MM-DD, inclusive)
+        in: query
+        name: startDate
+        type: string
+      - description: Filter end date (YYYY-MM-DD, inclusive)
+        in: query
+        name: endDate
+        type: string
       produces:
       - application/json
       responses:
@@ -4206,11 +4266,11 @@ paths:
         type: string
       - description: Filter start date (YYYY-MM-DD, inclusive)
         in: query
-        name: start_date
+        name: startDate
         type: string
       - description: Filter end date (YYYY-MM-DD, inclusive)
         in: query
-        name: end_date
+        name: endDate
         type: string
       produces:
       - text/csv
@@ -4378,6 +4438,14 @@ paths:
         in: query
         name: limit
         type: integer
+      - description: Filter start date (YYYY-MM-DD, inclusive)
+        in: query
+        name: startDate
+        type: string
+      - description: Filter end date (YYYY-MM-DD, inclusive)
+        in: query
+        name: endDate
+        type: string
       produces:
       - application/json
       responses:
@@ -4402,11 +4470,11 @@ paths:
         type: string
       - description: Filter start date (YYYY-MM-DD, inclusive)
         in: query
-        name: start_date
+        name: startDate
         type: string
       - description: Filter end date (YYYY-MM-DD, inclusive)
         in: query
-        name: end_date
+        name: endDate
         type: string
       produces:
       - text/csv
@@ -5549,6 +5617,14 @@ paths:
         in: query
         name: prev_cursor
         type: string
+      - description: Filter start date (YYYY-MM-DD, inclusive)
+        in: query
+        name: startDate
+        type: string
+      - description: Filter end date (YYYY-MM-DD, inclusive)
+        in: query
+        name: endDate
+        type: string
       produces:
       - application/json
       responses:
@@ -5628,6 +5704,14 @@ paths:
         in: query
         name: limit
         type: integer
+      - description: Filter start date (YYYY-MM-DD, inclusive)
+        in: query
+        name: startDate
+        type: string
+      - description: Filter end date (YYYY-MM-DD, inclusive)
+        in: query
+        name: endDate
+        type: string
       produces:
       - application/json
       responses:
@@ -5650,11 +5734,11 @@ paths:
         type: string
       - description: Filter start date (YYYY-MM-DD, inclusive)
         in: query
-        name: start_date
+        name: startDate
         type: string
       - description: Filter end date (YYYY-MM-DD, inclusive)
         in: query
-        name: end_date
+        name: endDate
         type: string
       produces:
       - text/csv

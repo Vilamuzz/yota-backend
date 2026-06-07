@@ -35,6 +35,24 @@ const docTemplate = `{
                 "summary": "List assigned ambulance requests (driver)",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by applicant name",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by (e.g. applicant_name asc, created_at desc)",
+                        "name": "sortBy",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "description": "Number of items to return",
                         "name": "limit",
@@ -539,21 +557,39 @@ const docTemplate = `{
                 "summary": "List ambulance requests",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by account id",
+                        "name": "account_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by (e.g. applicant_name asc, created_at desc)",
+                        "name": "sortBy",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by applicant name",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
-                        "description": "Number of items to return",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
                         "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Cursor for next page",
-                        "name": "next_cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Cursor for previous page",
-                        "name": "prev_cursor",
                         "in": "query"
                     }
                 ],
@@ -647,6 +683,24 @@ const docTemplate = `{
                 ],
                 "summary": "List my ambulance requests",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by applicant name",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by (e.g. applicant_name asc, created_at desc)",
+                        "name": "sortBy",
+                        "in": "query"
+                    },
                     {
                         "type": "integer",
                         "description": "Number of items to return",
@@ -847,7 +901,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Start date (YYYY-MM-DD), required when period=custom",
-                        "name": "start_date",
+                        "name": "startDate",
                         "in": "query"
                     },
                     {
@@ -2093,6 +2147,18 @@ const docTemplate = `{
                         "description": "Items per page",
                         "name": "limit",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter start date (YYYY-MM-DD, inclusive)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date (YYYY-MM-DD, inclusive)",
+                        "name": "endDate",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -2908,6 +2974,18 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Items per page",
                         "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter start date (YYYY-MM-DD, inclusive)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date (YYYY-MM-DD, inclusive)",
+                        "name": "endDate",
                         "in": "query"
                     }
                 ],
@@ -5507,6 +5585,18 @@ const docTemplate = `{
                         "description": "Items per page",
                         "name": "limit",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter start date (YYYY-MM-DD, inclusive)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date (YYYY-MM-DD, inclusive)",
+                        "name": "endDate",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -5540,13 +5630,13 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Filter start date (YYYY-MM-DD, inclusive)",
-                        "name": "start_date",
+                        "name": "startDate",
                         "in": "query"
                     },
                     {
                         "type": "string",
                         "description": "Filter end date (YYYY-MM-DD, inclusive)",
-                        "name": "end_date",
+                        "name": "endDate",
                         "in": "query"
                     }
                 ],
@@ -6088,6 +6178,18 @@ const docTemplate = `{
                         "description": "Items per page",
                         "name": "limit",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter start date (YYYY-MM-DD, inclusive)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date (YYYY-MM-DD, inclusive)",
+                        "name": "endDate",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -6121,13 +6223,13 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Filter start date (YYYY-MM-DD, inclusive)",
-                        "name": "start_date",
+                        "name": "startDate",
                         "in": "query"
                     },
                     {
                         "type": "string",
                         "description": "Filter end date (YYYY-MM-DD, inclusive)",
-                        "name": "end_date",
+                        "name": "endDate",
                         "in": "query"
                     }
                 ],
@@ -7745,6 +7847,18 @@ const docTemplate = `{
                         "description": "Pagination cursor (prev page)",
                         "name": "prev_cursor",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter start date (YYYY-MM-DD, inclusive)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date (YYYY-MM-DD, inclusive)",
+                        "name": "endDate",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -7870,6 +7984,18 @@ const docTemplate = `{
                         "description": "Items per page",
                         "name": "limit",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter start date (YYYY-MM-DD, inclusive)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date (YYYY-MM-DD, inclusive)",
+                        "name": "endDate",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -7903,13 +8029,13 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Filter start date (YYYY-MM-DD, inclusive)",
-                        "name": "start_date",
+                        "name": "startDate",
                         "in": "query"
                     },
                     {
                         "type": "string",
                         "description": "Filter end date (YYYY-MM-DD, inclusive)",
-                        "name": "end_date",
+                        "name": "endDate",
                         "in": "query"
                     }
                 ],

@@ -37,6 +37,6 @@ type AmbulanceSummaryQueryParams struct {
 	// One of: all_time, this_week, this_month, this_year, custom (default: all_time)
 	Period SummaryPeriod `form:"period"`
 	// Date is used only when Period = "custom" (format: YYYY-MM-DD)
-	StartDate string `form:"start_date"`
+	StartDate string `form:"startDate"`
 	EndDate   string `form:"end_date"`
 }

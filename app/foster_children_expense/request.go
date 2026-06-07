@@ -17,10 +17,14 @@ type FosterChildrenExpenseRequest struct {
 
 type FosterChildrenExpenseQueryParams struct {
 	FosterChildrenID string `form:"fosterChildrenId"`
+	Search           string `form:"search"`
+	SortBy           string `form:"sortBy"`
+	StartDate        string `form:"startDate"` // optional, format: YYYY-MM-DD
+	EndDate          string `form:"endDate"`   // optional, format: YYYY-MM-DD
 	pkg.PaginationParams
 }
 
 type FosterChildrenExpenseExportParams struct {
-	StartDate string `form:"start_date"` // optional, format: YYYY-MM-DD
-	EndDate   string `form:"end_date"`   // optional, format: YYYY-MM-DD
+	StartDate string `form:"startDate"` // optional, format: YYYY-MM-DD
+	EndDate   string `form:"endDate"`   // optional, format: YYYY-MM-DD
 }

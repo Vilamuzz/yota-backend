@@ -2,6 +2,8 @@ package foster_children_expense
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
@@ -24,6 +26,13 @@ func NewRepository(conn *gorm.DB) Repository {
 	return &repo{Conn: conn}
 }
 
+var allowedFosterChildrenExpenseSortColumns = map[string]string{
+	"title":        "foster_children_expenses.title",
+	"amount":       "foster_children_expenses.amount",
+	"expense_date": "foster_children_expenses.expense_date",
+	"created_at":   "foster_children_expenses.created_at",
+}
+
 func (r *repo) FindAllFosterChildrenExpenses(ctx context.Context, options map[string]interface{}) ([]FosterChildrenExpense, error) {
 	var expenses []FosterChildrenExpense
 
@@ -36,6 +45,18 @@ func (r *repo) FindAllFosterChildrenExpenses(ctx context.Context, options map[st
 	if fosterChildrenSlug, ok := options["foster_children_slug"]; ok && fosterChildrenSlug.(string) != "" {
 		query = query.Joins("JOIN foster_childrens ON foster_childrens.id = foster_children_expenses.foster_children_id").
 			Where("foster_childrens.slug = ?", fosterChildrenSlug.(string))
+	}
+
+	if search, ok := options["search"]; ok && search.(string) != "" {
+		query = query.Where("foster_children_expenses.title ILIKE ?", "%"+search.(string)+"%")
+	}
+
+	if startDate, ok := options["start_date"]; ok && startDate.(string) != "" {
+		query = query.Where("foster_children_expenses.expense_date >= ?", startDate.(string))
+	}
+
+	if endDate, ok := options["end_date"]; ok && endDate.(string) != "" {
+		query = query.Where("foster_children_expenses.expense_date <= ?", endDate.(string))
 	}
 
 	if nextCursor, ok := options["next_cursor"]; ok && nextCursor.(string) != "" {
@@ -51,7 +72,20 @@ func (r *repo) FindAllFosterChildrenExpenses(ctx context.Context, options map[st
 	}
 
 	if _, usingPrevCursor := options["prev_cursor"]; !usingPrevCursor {
-		query = query.Order("foster_children_expenses.created_at DESC, foster_children_expenses.id DESC")
+		orderClause := "foster_children_expenses.created_at DESC, foster_children_expenses.id DESC"
+		if sortBy, ok := options["sort_by"]; ok && sortBy.(string) != "" {
+			parts := strings.Fields(strings.ToLower(sortBy.(string)))
+			if len(parts) >= 1 {
+				if col, valid := allowedFosterChildrenExpenseSortColumns[parts[0]]; valid {
+					dir := "ASC"
+					if len(parts) == 2 && parts[1] == "desc" {
+						dir = "DESC"
+					}
+					orderClause = fmt.Sprintf("%s %s, foster_children_expenses.id DESC", col, dir)
+				}
+			}
+		}
+		query = query.Order(orderClause)
 	}
 
 	limit := 10

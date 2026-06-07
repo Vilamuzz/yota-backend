@@ -125,21 +125,21 @@ func (s *service) AmbulanceHistorySummary(ctx context.Context, ambulanceID strin
 	case PeriodCustom:
 		if params.StartDate == "" || params.EndDate == "" {
 			return pkg.NewResponse(http.StatusBadRequest,
-				"start_date and end_date are required when period is \"custom\"", nil, nil)
+				"startDate and endDate are required when period is \"custom\"", nil, nil)
 		}
 		parsedStart, err := time.ParseInLocation("2006-01-02", params.StartDate, now.Location())
 		if err != nil {
 			return pkg.NewResponse(http.StatusBadRequest,
-				fmt.Sprintf("invalid start_date format: %s (expected YYYY-MM-DD)", params.StartDate), nil, nil)
+				fmt.Sprintf("invalid startDate format: %s (expected YYYY-MM-DD)", params.StartDate), nil, nil)
 		}
 		parsedEnd, err := time.ParseInLocation("2006-01-02", params.EndDate, now.Location())
 		if err != nil {
 			return pkg.NewResponse(http.StatusBadRequest,
-				fmt.Sprintf("invalid end_date format: %s (expected YYYY-MM-DD)", params.EndDate), nil, nil)
+				fmt.Sprintf("invalid endDate format: %s (expected YYYY-MM-DD)", params.EndDate), nil, nil)
 		}
 		parsedEnd = parsedEnd.Add(24*time.Hour - time.Nanosecond) // inclusive end
 		if parsedStart.After(parsedEnd) {
-			return pkg.NewResponse(http.StatusBadRequest, "start_date must be before end_date", nil, nil)
+			return pkg.NewResponse(http.StatusBadRequest, "startDate must be before endDate", nil, nil)
 		}
 		startDate, endDate = &parsedStart, &parsedEnd
 

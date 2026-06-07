@@ -49,6 +49,8 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // @Param slug path string true "Social Program Slug"
 // @Param cursor query string false "Cursor for pagination"
 // @Param limit query int false "Items per page"
+// @Param startDate query string false "Filter start date (YYYY-MM-DD, inclusive)"
+// @Param endDate query string false "Filter end date (YYYY-MM-DD, inclusive)"
 // @Success 200 {object} pkg.Response
 // @Router /api/social-programs/{slug}/expenses [get]
 func (h *handler) GetPublicSocialProgramExpenseList(c *gin.Context) {
@@ -76,6 +78,8 @@ func (h *handler) GetPublicSocialProgramExpenseList(c *gin.Context) {
 // @Param limit query int false "Pagination limit"
 // @Param next_cursor query string false "Pagination cursor (next page)"
 // @Param prev_cursor query string false "Pagination cursor (prev page)"
+// @Param startDate query string false "Filter start date (YYYY-MM-DD, inclusive)"
+// @Param endDate query string false "Filter end date (YYYY-MM-DD, inclusive)"
 // @Success 200 {object} pkg.Response{data=SocialProgramExpenseListResponse}
 // @Router /api/social-programs/{id}/expenses [get]
 func (h *handler) GetSocialProgramExpenseList(c *gin.Context) {
@@ -166,8 +170,8 @@ func (h *handler) DeleteSocialProgramExpense(c *gin.Context) {
 // @Tags Social Programs
 // @Produce text/csv
 // @Param slug path string true "Social Program Slug"
-// @Param start_date query string false "Filter start date (YYYY-MM-DD, inclusive)"
-// @Param end_date query string false "Filter end date (YYYY-MM-DD, inclusive)"
+// @Param startDate query string false "Filter start date (YYYY-MM-DD, inclusive)"
+// @Param endDate query string false "Filter end date (YYYY-MM-DD, inclusive)"
 // @Success 200 {file} binary "CSV file"
 // @Router /api/social-programs/{slug}/expenses/export [get]
 func (h *handler) ExportSocialProgramExpenseCSV(c *gin.Context) {

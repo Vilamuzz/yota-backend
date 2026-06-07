@@ -49,6 +49,8 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // @Param slug path string true "Donation Program Slug"
 // @Param cursor query string false "Cursor for pagination"
 // @Param limit query int false "Items per page"
+// @Param startDate query string false "Filter start date (YYYY-MM-DD, inclusive)"
+// @Param endDate query string false "Filter end date (YYYY-MM-DD, inclusive)"
 // @Success 200 {object} pkg.Response
 // @Router /api/donation-programs/{slug}/expenses [get]
 func (h *handler) GetDonationProgramExpenseList(c *gin.Context) {
@@ -75,6 +77,8 @@ func (h *handler) GetDonationProgramExpenseList(c *gin.Context) {
 // @Param id path string true "Donation Program ID"
 // @Param cursor query string false "Cursor for pagination"
 // @Param limit query int false "Items per page"
+// @Param startDate query string false "Filter start date (YYYY-MM-DD, inclusive)"
+// @Param endDate query string false "Filter end date (YYYY-MM-DD, inclusive)"
 // @Success 200 {object} pkg.Response
 // @Router /api/admin/donation-programs/{id}/expenses [get]
 func (h *handler) GetAdminDonationProgramExpenseList(c *gin.Context) {
@@ -170,8 +174,8 @@ func (h *handler) DeleteDonationProgramExpense(c *gin.Context) {
 // @Tags Donation Programs
 // @Produce text/csv
 // @Param slug path string true "Donation Program Slug"
-// @Param start_date query string false "Filter start date (YYYY-MM-DD, inclusive)"
-// @Param end_date query string false "Filter end date (YYYY-MM-DD, inclusive)"
+// @Param startDate query string false "Filter start date (YYYY-MM-DD, inclusive)"
+// @Param endDate query string false "Filter end date (YYYY-MM-DD, inclusive)"
 // @Success 200 {file} binary "CSV file"
 // @Router /api/donation-programs/{slug}/expenses/export [get]
 func (h *handler) ExportDonationProgramExpenseCSV(c *gin.Context) {
