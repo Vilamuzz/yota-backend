@@ -29,6 +29,4 @@ type NewsComment struct {
 type NewsCommentReport struct {
 	AccountID     uuid.UUID `json:"accountId" gorm:"primaryKey"`
 	NewsCommentID uuid.UUID `json:"newsCommentId" gorm:"primaryKey"`
-	Reason        string    `json:"reason" gorm:"not null"`
-	CreatedAt     time.Time `json:"createdAt"`
 }

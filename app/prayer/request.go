@@ -1,11 +1,12 @@
 package prayer
 
-import "github.com/Vilamuzz/yota-backend/pkg"
-
 type PrayerQueryParams struct {
-	pkg.PaginationParams
+	DonationSlug string `form:"-"`
+	AccountID    string `form:"-"`
+	Page         int    `form:"page"`
+	Limit        int    `form:"limit"`
+	SortBy       string `form:"sortBy"`
 }
 
 type ReportPrayerRequest struct {
-	Reason string `json:"reason"`
 }

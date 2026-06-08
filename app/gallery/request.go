@@ -4,7 +4,6 @@ import (
 	"mime/multipart"
 
 	"github.com/Vilamuzz/yota-backend/app/media"
-	"github.com/Vilamuzz/yota-backend/pkg"
 )
 
 type GalleryCreateRequest struct {
@@ -32,7 +31,10 @@ type GalleryUpdateRequest struct {
 }
 
 type GalleryQueryParams struct {
+	Search   string              `form:"search"`
 	Category media.MediaCategory `form:"category"`
 	Status   media.MediaStatus   `form:"status"`
-	pkg.PaginationParams
+	SortBy   string              `form:"sortBy"`
+	Page     int                 `form:"page"`
+	Limit    int                 `form:"limit"`
 }

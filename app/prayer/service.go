@@ -13,7 +13,7 @@ import (
 )
 
 type Service interface {
-	GetPrayerList(ctx context.Context, accountID, donationSlug string, isAdmin bool, params PrayerQueryParams) pkg.Response
+	GetPrayerList(ctx context.Context, isAdmin bool, params PrayerQueryParams) pkg.Response
 	GetPrayerByID(ctx context.Context, prayerID, accountID string) pkg.Response
 	DeletePrayer(ctx context.Context, prayerID string) pkg.Response
 	CreatePrayerAmen(ctx context.Context, prayerID, accountID string) pkg.Response
@@ -105,12 +105,6 @@ func (s *service) CreateReportPrayer(ctx context.Context, prayerID, accountID st
 		return pkg.NewResponse(http.StatusOK, "Doa berhasil dilaporkan", nil, nil)
 	}
 
-	if payload.Reason == "" {
-		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan Validasi", map[string]string{
-			"reason": "Alasan wajib diisi",
-		}, nil)
-	}
-
 	_, err = s.repo.FindReport(ctx, map[string]interface{}{
 		"prayer_id":  prayerID,
 		"account_id": accountID,
@@ -122,7 +116,6 @@ func (s *service) CreateReportPrayer(ctx context.Context, prayerID, accountID st
 	report := &PrayerReport{
 		PrayerID:  uuid.MustParse(prayerID),
 		AccountID: uuid.MustParse(accountID),
-		Reason:    payload.Reason,
 	}
 	if err := s.repo.CreateReport(ctx, report); err != nil {
 		logrus.WithFields(logrus.Fields{
@@ -179,39 +172,54 @@ func (s *service) GetPrayerByID(ctx context.Context, prayerID, accountID string)
 	return pkg.NewResponse(http.StatusOK, "Berhasil menemukan doa", nil, prayer.toPrayerResponse())
 }
 
-func (s *service) GetPrayerList(ctx context.Context, accountID, donationSlug string, isAdmin bool, params PrayerQueryParams) pkg.Response {
+func (s *service) GetPrayerList(ctx context.Context, isAdmin bool, params PrayerQueryParams) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if params.Limit == 0 {
+	if params.Limit <= 0 {
 		params.Limit = 10
+	}
+	if params.Limit > 100 {
+		params.Limit = 100
+	}
+	if params.Page <= 0 {
+		params.Page = 1
 	}
 
 	options := map[string]interface{}{
 		"limit":      params.Limit,
-		"account_id": accountID,
+		"page":       params.Page,
+		"account_id": params.AccountID,
+	}
+
+	if params.SortBy != "" {
+		options["sort_by"] = params.SortBy
 	}
 
 	if isAdmin {
 		options["reported"] = true
 	}
 
-	pagination := pkg.CursorPagination{
-		Limit: params.Limit,
-	}
-
-	if donationSlug != "" {
-		program, err := s.donationRepo.FindOneDonationProgram(ctx, map[string]interface{}{"slug": donationSlug})
+	if params.DonationSlug != "" {
+		program, err := s.donationRepo.FindOneDonationProgram(ctx, map[string]interface{}{"slug": params.DonationSlug})
 		if err != nil {
-			return pkg.NewResponse(http.StatusOK, "Berhasil menemukan doa", nil, toPrayerListResponse([]Prayer{}, pagination))
+			emptyPagination := pkg.OffsetPagination{
+				Page:       params.Page,
+				Limit:      params.Limit,
+				Total:      0,
+				TotalPages: 0,
+			}
+			if isAdmin {
+				return pkg.NewResponse(http.StatusOK, "Berhasil menemukan doa", nil, toAdminPrayerListResponse([]Prayer{}, emptyPagination))
+			}
+			return pkg.NewResponse(http.StatusOK, "Berhasil menemukan doa", nil, toPrayerListResponse([]Prayer{}, emptyPagination))
 		}
 		options["donation_program_id"] = program.ID.String()
 	}
-	if params.NextCursor != "" {
-		options["next_cursor"] = params.NextCursor
-	}
-	if params.PrevCursor != "" {
-		options["prev_cursor"] = params.PrevCursor
+
+	total, err := s.repo.CountPrayers(ctx, options)
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil jumlah data doa", nil, nil)
 	}
 
 	prayers, err := s.repo.FindAllPrayers(ctx, options)
@@ -219,40 +227,16 @@ func (s *service) GetPrayerList(ctx context.Context, accountID, donationSlug str
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menemukan doa", nil, nil)
 	}
 
-	var hasNext, hasPrev bool
-	if params.PrevCursor != "" {
-		hasPrev = len(prayers) > params.Limit
-		hasNext = true
-		if len(prayers) > params.Limit {
-			prayers = prayers[:params.Limit]
-		}
-		for i, j := 0, len(prayers)-1; i < j; i, j = i+1, j-1 {
-			prayers[i], prayers[j] = prayers[j], prayers[i]
-		}
-	} else {
-		hasNext = len(prayers) > params.Limit
-		hasPrev = params.NextCursor != ""
-		if hasNext {
-			prayers = prayers[:params.Limit]
-		}
+	totalPages := int(total) / params.Limit
+	if int(total)%params.Limit != 0 {
+		totalPages++
 	}
 
-	var nextCursor, prevCursor string
-	if len(prayers) > 0 {
-		first := prayers[0]
-		last := prayers[len(prayers)-1]
-		if hasNext {
-			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID.String())
-		}
-		if hasPrev {
-			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID.String())
-		}
-	}
-
-	pagination = pkg.CursorPagination{
-		NextCursor: nextCursor,
-		PrevCursor: prevCursor,
+	pagination := pkg.OffsetPagination{
+		Page:       params.Page,
 		Limit:      params.Limit,
+		Total:      total,
+		TotalPages: totalPages,
 	}
 
 	if isAdmin {

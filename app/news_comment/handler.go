@@ -24,15 +24,10 @@ func NewHandler(r *gin.RouterGroup, service Service, m middleware.AppMiddleware)
 }
 
 func (h *handler) RegisterRoutes(router *gin.RouterGroup) {
-	router.GET("/news/:slug/comments", h.middleware.AuthOptional(), h.GetNewsCommentList)
-	router.GET("/news/comments/:id", h.middleware.AuthOptional(), h.GetNewsCommentByID)
+	router.GET("/news/:slug/comments", h.GetNewsCommentList)
+	router.GET("/news/comments/:id", h.GetNewsCommentByID)
 	router.POST("/news/:slug/comments", h.middleware.AuthRequired(), h.CreateNewsComment)
-
-	publicProtected := router.Group("/news/comments")
-	publicProtected.Use(h.middleware.AuthRequired())
-	{
-		publicProtected.POST("/:id/report", h.CreateReportNewsComment)
-	}
+	router.POST("/news/comments/:id/report", h.middleware.AuthRequired(), h.CreateReportNewsComment)
 
 	admin := router.Group("/admin/news/comments")
 	admin.Use(h.middleware.RequireRoles(enum.RolePublicationManager))
@@ -67,6 +62,15 @@ func (h *handler) CreateReportNewsComment(c *gin.Context) {
 	c.JSON(res.Status, res)
 }
 
+// @Summary Allow News Comment
+// @Description Allow a news comment
+// @Tags News Comments
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Comment ID"
+// @Success 200 {object} pkg.Response
+// @Router /api/admin/news/comments/{id}/allow [patch]
 func (h *handler) AllowNewsComment(c *gin.Context) {
 	ctx := c.Request.Context()
 	newsCommentID := c.Param("id")
@@ -74,6 +78,16 @@ func (h *handler) AllowNewsComment(c *gin.Context) {
 	c.JSON(res.Status, res)
 }
 
+// @Summary Create News Comment
+// @Description Create a news comment
+// @Tags News Comments
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param slug path string true "News Slug"
+// @Param body body CreateNewsCommentRequest true "Create News Comment Payload"
+// @Success 200 {object} pkg.Response
+// @Router /api/news/{slug}/comments [post]
 func (h *handler) CreateNewsComment(c *gin.Context) {
 	ctx := c.Request.Context()
 	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
@@ -115,9 +129,9 @@ func (h *handler) GetNewsCommentByID(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param slug path string true "News Slug"
+// @Param page query int false "Page number"
 // @Param limit query int false "Pagination limit"
-// @Param next_cursor query string false "Pagination cursor (next page)"
-// @Param prev_cursor query string false "Pagination cursor (prev page)"
+// @Param sortBy query string false "Sort by field"
 // @Success 200 {object} pkg.Response{data=NewsCommentListResponse}
 // @Router /api/news/{slug}/comments [get]
 func (h *handler) GetNewsCommentList(c *gin.Context) {
@@ -134,8 +148,9 @@ func (h *handler) GetNewsCommentList(c *gin.Context) {
 			accountID = claims.AccountID
 		}
 	}
-
-	res := h.service.GetNewsCommentList(ctx, accountID, newsSlug, false, params)
+	params.AccountID = accountID
+	params.NewsSlug = newsSlug
+	res := h.service.GetNewsCommentList(ctx, false, params)
 	c.JSON(res.Status, res)
 }
 
@@ -145,9 +160,9 @@ func (h *handler) GetNewsCommentList(c *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
+// @Param page query int false "Page number"
 // @Param limit query int false "Pagination limit"
-// @Param next_cursor query string false "Pagination cursor (next page)"
-// @Param prev_cursor query string false "Pagination cursor (prev page)"
+// @Param sortBy query string false "Sort by field"
 // @Success 200 {object} pkg.Response{data=AdminNewsCommentListResponse}
 // @Router /api/admin/news/comments [get]
 func (h *handler) GetReportedNewsCommentList(c *gin.Context) {
@@ -157,7 +172,7 @@ func (h *handler) GetReportedNewsCommentList(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
 		return
 	}
-	res := h.service.GetNewsCommentList(ctx, "", "", true, params)
+	res := h.service.GetNewsCommentList(ctx, true, params)
 	c.JSON(res.Status, res)
 }
 

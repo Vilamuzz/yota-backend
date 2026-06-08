@@ -26,6 +26,7 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	public := r.Group("/donation-programs")
 	public.POST("/:slug/transactions", h.middleware.AuthOptional(), h.CreateDonationProgramTransaction)
+	public.GET("/:slug/transactions", h.GetPublicDonationProgramTransactionList)
 
 	me := r.Group("/donation-programs/transactions/me")
 	me.Use(h.middleware.RequireRoles(enum.RoleOrangTuaAsuh))
@@ -69,6 +70,32 @@ func (h *handler) GetDonationProgramTransactionList(c *gin.Context) {
 	}
 
 	res := h.service.GetDonationProgramTransactionList(ctx, "", donationProgramID, params)
+	c.JSON(res.Status, res)
+}
+
+// GetPublicDonationProgramTransactionList
+//
+// @Summary List Public Donation Program Transactions
+// @Description Retrieve a paginated list of successful donation transactions for a specific donation program by slug
+// @Tags Donation Programs
+// @Produce json
+// @Param slug path string true "Donation Program Slug"
+// @Param limit query int false "Items per page"
+// @Param next_cursor query string false "Cursor for next page"
+// @Param prev_cursor query string false "Cursor for previous page"
+// @Success 200 {object} pkg.Response{data=DonationProgramTransactionListResponse}
+// @Router /api/donation-programs/{slug}/transactions [get]
+func (h *handler) GetPublicDonationProgramTransactionList(c *gin.Context) {
+	ctx := c.Request.Context()
+	slug := c.Param("slug")
+
+	var params DonationProgramTransactionQueryParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
+		return
+	}
+
+	res := h.service.GetPublicDonationProgramTransactionList(ctx, slug, params)
 	c.JSON(res.Status, res)
 }
 

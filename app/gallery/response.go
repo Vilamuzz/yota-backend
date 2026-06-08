@@ -34,7 +34,7 @@ type GalleryListResponseItem struct {
 
 type GalleryListResponse struct {
 	Galleries  []GalleryListResponseItem `json:"galleries"`
-	Pagination pkg.CursorPagination      `json:"pagination"`
+	Pagination pkg.OffsetPagination      `json:"pagination"`
 }
 
 func (g *Gallery) toGalleryResponse() GalleryResponse {
@@ -78,7 +78,7 @@ func (g *Gallery) toGalleryListResponseItem() GalleryListResponseItem {
 	}
 }
 
-func toGalleryListResponse(galleries []Gallery, pagination pkg.CursorPagination) GalleryListResponse {
+func toGalleryListResponse(galleries []Gallery, pagination pkg.OffsetPagination) GalleryListResponse {
 	var galleryResponses []GalleryListResponseItem
 	for _, g := range galleries {
 		galleryResponses = append(galleryResponses, g.toGalleryListResponseItem())

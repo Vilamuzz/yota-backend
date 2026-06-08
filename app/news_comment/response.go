@@ -22,18 +22,18 @@ type AdminNewsCommentResponse struct {
 
 type AdminNewsCommentListResponse struct {
 	Comments   []AdminNewsCommentResponse `json:"comments"`
-	Pagination pkg.CursorPagination       `json:"pagination"`
+	Pagination pkg.OffsetPagination       `json:"pagination"`
 }
 
 type NewsCommentListResponse struct {
 	Comments   []NewsCommentResponse `json:"comments"`
-	Pagination pkg.CursorPagination  `json:"pagination"`
+	Pagination pkg.OffsetPagination  `json:"pagination"`
 }
 
 func (p *NewsComment) toNewsCommentResponse() NewsCommentResponse {
 	username := p.Account.UserProfile.Username
 	if username == "" {
-		username = "Anonymous"
+		username = "Hamba Allah"
 	}
 
 	var replies []NewsCommentResponse
@@ -53,7 +53,7 @@ func (p *NewsComment) toNewsCommentResponse() NewsCommentResponse {
 	}
 }
 
-func toNewsCommentListResponse(comments []NewsComment, pagination pkg.CursorPagination) NewsCommentListResponse {
+func toNewsCommentListResponse(comments []NewsComment, pagination pkg.OffsetPagination) NewsCommentListResponse {
 	var responses []NewsCommentResponse
 	for _, comment := range comments {
 		responses = append(responses, comment.toNewsCommentResponse())
@@ -70,7 +70,7 @@ func toNewsCommentListResponse(comments []NewsComment, pagination pkg.CursorPagi
 func (p *NewsComment) toAdminNewsCommentResponse() AdminNewsCommentResponse {
 	username := p.Account.UserProfile.Username
 	if username == "" {
-		username = "Anonymous"
+		username = "Hamba Allah"
 	}
 
 	return AdminNewsCommentResponse{
@@ -82,7 +82,7 @@ func (p *NewsComment) toAdminNewsCommentResponse() AdminNewsCommentResponse {
 	}
 }
 
-func toAdminNewsCommentListResponse(comments []NewsComment, pagination pkg.CursorPagination) AdminNewsCommentListResponse {
+func toAdminNewsCommentListResponse(comments []NewsComment, pagination pkg.OffsetPagination) AdminNewsCommentListResponse {
 	var responses []AdminNewsCommentResponse
 	for _, comment := range comments {
 		responses = append(responses, comment.toAdminNewsCommentResponse())
@@ -91,46 +91,6 @@ func toAdminNewsCommentListResponse(comments []NewsComment, pagination pkg.Curso
 		responses = []AdminNewsCommentResponse{}
 	}
 	return AdminNewsCommentListResponse{
-		Comments:   responses,
-		Pagination: pagination,
-	}
-}
-
-type NewsCommentReportedResponse struct {
-	ID        string `json:"id"`
-	Username  string `json:"username"`
-	Content   string `json:"content"`
-	CreatedAt string `json:"createdAt"`
-}
-
-type NewsCommentReportedListResponse struct {
-	Comments   []NewsCommentReportedResponse `json:"comments"`
-	Pagination pkg.CursorPagination          `json:"pagination"`
-}
-
-func (p *NewsComment) toNewsCommentReportedResponse() NewsCommentReportedResponse {
-	username := p.Account.UserProfile.Username
-	if username == "" {
-		username = "Anonymous"
-	}
-
-	return NewsCommentReportedResponse{
-		ID:        p.ID.String(),
-		Username:  username,
-		Content:   p.Content,
-		CreatedAt: p.CreatedAt.Format("2006-01-02 15:04:05"),
-	}
-}
-
-func toNewsCommentReportedListResponse(comments []NewsComment, pagination pkg.CursorPagination) NewsCommentReportedListResponse {
-	var responses []NewsCommentReportedResponse
-	for _, comment := range comments {
-		responses = append(responses, comment.toNewsCommentReportedResponse())
-	}
-	if responses == nil {
-		responses = []NewsCommentReportedResponse{}
-	}
-	return NewsCommentReportedListResponse{
 		Comments:   responses,
 		Pagination: pagination,
 	}

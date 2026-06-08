@@ -32,6 +32,7 @@ type Service interface {
 
 	GetMyDonationProgramTransactionList(ctx context.Context, accountID string, params DonationProgramTransactionQueryParams) pkg.Response
 	GetMyDonationProgramTransactionByID(ctx context.Context, donationProgramTransactionID, accountID string) pkg.Response
+	GetPublicDonationProgramTransactionList(ctx context.Context, slug string, params DonationProgramTransactionQueryParams) pkg.Response
 }
 
 type service struct {
@@ -186,7 +187,7 @@ func (s *service) CreateOfflineDonationProgramTransaction(ctx context.Context, a
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
-	donorName := "anonymous"
+	donorName := "Hamba Allah"
 	if payload.DonorName != "" {
 		donorName = payload.DonorName
 	}
@@ -512,4 +513,22 @@ func (s *service) GetMyDonationProgramTransactionByID(ctx context.Context, donat
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, transaction.toDonationProgramTransactionResponse())
+}
+
+func (s *service) GetPublicDonationProgramTransactionList(ctx context.Context, slug string, params DonationProgramTransactionQueryParams) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	program, err := s.donationRepo.FindOneDonationProgram(ctx, map[string]interface{}{"slug": slug})
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return pkg.NewResponse(http.StatusNotFound, "Program Donasi tidak ditemukan", nil, nil)
+		}
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data program donasi", nil, nil)
+	}
+
+	// For public route, only show settled transactions
+	params.Status = string(TransactionStatusSettlement)
+
+	return s.GetDonationProgramTransactionList(ctx, "", program.ID.String(), params)
 }

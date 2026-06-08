@@ -14,7 +14,6 @@ type CategoryCount struct {
 type SummaryResponse struct {
 	Total      int64           `json:"total"`
 	Categories []CategoryCount `json:"categories"`
-	Period     string          `json:"period"`
 	StartDate  string          `json:"startDate,omitempty"`
 	EndDate    string          `json:"endDate,omitempty"`
 }

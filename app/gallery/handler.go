@@ -46,12 +46,14 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // GetGalleryList
 //
 // @Summary List Published Galleries
-// @Description Retrieve a list of published gallery items with cursor-based pagination and optional filters
+// @Description Retrieve a list of published gallery items with offset-based pagination and optional filters
 // @Tags Gallery
 // @Accept json
 // @Produce json
-// @Param category_id query int false "Filter by category ID"
-// @Param cursor query string false "Cursor for pagination (encoded string)"
+// @Param search query string false "Search gallery by title"
+// @Param category query string false "Filter by category"
+// @Param sortBy query string false "Sort by field (e.g. 'created_at desc', 'views desc', 'title asc')"
+// @Param page query int false "Page number (default: 1)"
 // @Param limit query int false "Items per page (default: 10, max: 100)"
 // @Success 200 {object} pkg.Response{data=GalleryListResponse}
 // @Router /api/public/galleries/ [get]
@@ -94,8 +96,11 @@ func (h *handler) GetGalleryBySlug(c *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param category_id query int false "Filter by category ID"
-// @Param cursor query string false "Cursor for pagination (encoded string)"
+// @Param search query string false "Search gallery by title"
+// @Param category query string false "Filter by category"
+// @Param status query string false "Filter by status"
+// @Param sortBy query string false "Sort by field (e.g. 'created_at desc', 'views desc', 'title asc')"
+// @Param page query int false "Page number (default: 1)"
 // @Param limit query int false "Items per page (default: 10, max: 100)"
 // @Success 200 {object} pkg.Response{data=GalleryListResponse}
 // @Router /api/galleries/ [get]

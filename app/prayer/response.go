@@ -24,18 +24,18 @@ type AdminPrayerResponse struct {
 
 type AdminPrayerListResponse struct {
 	Prayers    []AdminPrayerResponse `json:"prayers"`
-	Pagination pkg.CursorPagination  `json:"pagination"`
+	Pagination pkg.OffsetPagination  `json:"pagination"`
 }
 
 type PrayerListResponse struct {
 	Prayers    []PrayerResponse     `json:"prayers"`
-	Pagination pkg.CursorPagination `json:"pagination"`
+	Pagination pkg.OffsetPagination `json:"pagination"`
 }
 
 func (p *Prayer) toPrayerResponse() PrayerResponse {
 	username := p.DonationProgramTransaction.DonorName
 	if username == "" {
-		username = "Anonymous"
+		username = "Hamba Allah"
 	}
 
 	return PrayerResponse{
@@ -48,7 +48,7 @@ func (p *Prayer) toPrayerResponse() PrayerResponse {
 	}
 }
 
-func toPrayerListResponse(prayers []Prayer, pagination pkg.CursorPagination) PrayerListResponse {
+func toPrayerListResponse(prayers []Prayer, pagination pkg.OffsetPagination) PrayerListResponse {
 	var responses []PrayerResponse
 	for _, prayer := range prayers {
 		responses = append(responses, prayer.toPrayerResponse())
@@ -65,7 +65,7 @@ func toPrayerListResponse(prayers []Prayer, pagination pkg.CursorPagination) Pra
 func (p *Prayer) toAdminPrayerResponse() AdminPrayerResponse {
 	username := p.DonationProgramTransaction.DonorName
 	if username == "" {
-		username = "Anonymous"
+		username = "Hamba Allah"
 	}
 
 	return AdminPrayerResponse{
@@ -78,7 +78,7 @@ func (p *Prayer) toAdminPrayerResponse() AdminPrayerResponse {
 	}
 }
 
-func toAdminPrayerListResponse(prayers []Prayer, pagination pkg.CursorPagination) AdminPrayerListResponse {
+func toAdminPrayerListResponse(prayers []Prayer, pagination pkg.OffsetPagination) AdminPrayerListResponse {
 	var responses []AdminPrayerResponse
 	for _, prayer := range prayers {
 		responses = append(responses, prayer.toAdminPrayerResponse())
@@ -101,7 +101,7 @@ type PrayerReportedResponse struct {
 
 type PrayerReportedListResponse struct {
 	Prayers    []PrayerReportedResponse `json:"prayers"`
-	Pagination pkg.CursorPagination     `json:"pagination"`
+	Pagination pkg.OffsetPagination     `json:"pagination"`
 }
 
 func (p *Prayer) toPrayerReportedResponse() PrayerReportedResponse {
@@ -118,7 +118,7 @@ func (p *Prayer) toPrayerReportedResponse() PrayerReportedResponse {
 	}
 }
 
-func toPrayerReportedListResponse(prayers []Prayer, pagination pkg.CursorPagination) PrayerReportedListResponse {
+func toPrayerReportedListResponse(prayers []Prayer, pagination pkg.OffsetPagination) PrayerReportedListResponse {
 	var responses []PrayerReportedResponse
 	for _, prayer := range prayers {
 		responses = append(responses, prayer.toPrayerReportedResponse())

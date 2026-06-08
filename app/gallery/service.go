@@ -52,9 +52,13 @@ func (s *service) GetGalleryList(ctx context.Context, params GalleryQueryParams,
 	if params.Limit > 100 {
 		params.Limit = 100
 	}
+	if params.Page <= 0 {
+		params.Page = 1
+	}
 
 	options := map[string]interface{}{
 		"limit": params.Limit,
+		"page":  params.Page,
 	}
 
 	if isAdmin {
@@ -68,11 +72,16 @@ func (s *service) GetGalleryList(ctx context.Context, params GalleryQueryParams,
 	if params.Category != "" {
 		options["category"] = params.Category
 	}
-	if params.NextCursor != "" {
-		options["next_cursor"] = params.NextCursor
+	if params.Search != "" {
+		options["search"] = params.Search
 	}
-	if params.PrevCursor != "" {
-		options["prev_cursor"] = params.PrevCursor
+	if params.SortBy != "" {
+		options["sort_by"] = params.SortBy
+	}
+
+	total, err := s.repo.CountGalleries(ctx, options)
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data galeri", nil, nil)
 	}
 
 	galleries, err := s.repo.FindAllGalleries(ctx, options)
@@ -80,41 +89,16 @@ func (s *service) GetGalleryList(ctx context.Context, params GalleryQueryParams,
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data galeri", nil, nil)
 	}
 
-	var hasNext, hasPrev bool
-	if params.PrevCursor != "" {
-		hasPrev = len(galleries) > params.Limit
-		hasNext = true
-		if len(galleries) > params.Limit {
-			galleries = galleries[:params.Limit]
-		}
-		// Reverse the slice because the repository returns ASC order for PrevCursor
-		for i, j := 0, len(galleries)-1; i < j; i, j = i+1, j-1 {
-			galleries[i], galleries[j] = galleries[j], galleries[i]
-		}
-	} else {
-		hasNext = len(galleries) > params.Limit
-		hasPrev = params.NextCursor != ""
-		if hasNext {
-			galleries = galleries[:params.Limit]
-		}
+	totalPages := int(total) / params.Limit
+	if int(total)%params.Limit != 0 {
+		totalPages++
 	}
 
-	var nextCursor, prevCursor string
-	if len(galleries) > 0 {
-		first := galleries[0]
-		last := galleries[len(galleries)-1]
-		if hasNext {
-			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID.String())
-		}
-		if hasPrev {
-			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID.String())
-		}
-	}
-
-	pagination := pkg.CursorPagination{
-		NextCursor: nextCursor,
-		PrevCursor: prevCursor,
+	pagination := pkg.OffsetPagination{
+		Page:       params.Page,
 		Limit:      params.Limit,
+		Total:      total,
+		TotalPages: totalPages,
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, toGalleryListResponse(galleries, pagination))

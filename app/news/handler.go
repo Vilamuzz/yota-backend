@@ -43,12 +43,14 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // GetNewsList
 //
 // @Summary List Published News
-// @Description Retrieve a list of published news items with cursor-based pagination and optional filters
+// @Description Retrieve a list of published news items with offset-based pagination and optional filters
 // @Tags News
 // @Accept json
 // @Produce json
+// @Param search query string false "Search news by title"
 // @Param category query string false "Filter by category"
-// @Param cursor query string false "Cursor for pagination (encoded string)"
+// @Param sortBy query string false "Sort by field (e.g. 'created_at desc', 'views desc', 'published_at desc', 'title asc')"
+// @Param page query int false "Page number (default: 1)"
 // @Param limit query int false "Items per page (default: 10, max: 100)"
 // @Success 200 {object} pkg.Response{data=NewsListResponse}
 // @Router /api/news/ [get]
@@ -91,9 +93,11 @@ func (h *handler) GetNewsBySlug(c *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
+// @Param search query string false "Search news by title"
 // @Param category query string false "Filter by category"
 // @Param status query string false "Filter by status"
-// @Param cursor query string false "Cursor for pagination (encoded string)"
+// @Param sortBy query string false "Sort by field (e.g. 'created_at desc', 'views desc', 'published_at desc', 'title asc')"
+// @Param page query int false "Page number (default: 1)"
 // @Param limit query int false "Items per page (default: 10, max: 100)"
 // @Success 200 {object} pkg.Response{data=NewsListResponse}
 // @Router /api/admin/news/ [get]

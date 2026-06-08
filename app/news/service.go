@@ -52,9 +52,13 @@ func (s *service) GetNewsList(ctx context.Context, params NewsQueryParams, isAdm
 	if params.Limit > 100 {
 		params.Limit = 100
 	}
+	if params.Page <= 0 {
+		params.Page = 1
+	}
 
 	options := map[string]interface{}{
 		"limit": params.Limit,
+		"page":  params.Page,
 	}
 
 	if isAdmin {
@@ -68,11 +72,16 @@ func (s *service) GetNewsList(ctx context.Context, params NewsQueryParams, isAdm
 	if params.Category != "" {
 		options["category"] = params.Category
 	}
-	if params.NextCursor != "" {
-		options["next_cursor"] = params.NextCursor
+	if params.Search != "" {
+		options["search"] = params.Search
 	}
-	if params.PrevCursor != "" {
-		options["prev_cursor"] = params.PrevCursor
+	if params.SortBy != "" {
+		options["sort_by"] = params.SortBy
+	}
+
+	total, err := s.repo.CountNews(ctx, options)
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data berita", nil, nil)
 	}
 
 	newsList, err := s.repo.FindAllNews(ctx, options)
@@ -80,41 +89,16 @@ func (s *service) GetNewsList(ctx context.Context, params NewsQueryParams, isAdm
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data berita", nil, nil)
 	}
 
-	var hasNext, hasPrev bool
-	if params.PrevCursor != "" {
-		hasPrev = len(newsList) > params.Limit
-		hasNext = true
-		if len(newsList) > params.Limit {
-			newsList = newsList[:params.Limit]
-		}
-		// Reverse the slice because the repository returns ASC order for PrevCursor
-		for i, j := 0, len(newsList)-1; i < j; i, j = i+1, j-1 {
-			newsList[i], newsList[j] = newsList[j], newsList[i]
-		}
-	} else {
-		hasNext = len(newsList) > params.Limit
-		hasPrev = params.NextCursor != ""
-		if hasNext {
-			newsList = newsList[:params.Limit]
-		}
+	totalPages := int(total) / params.Limit
+	if int(total)%params.Limit != 0 {
+		totalPages++
 	}
 
-	var nextCursor, prevCursor string
-	if len(newsList) > 0 {
-		first := newsList[0]
-		last := newsList[len(newsList)-1]
-		if hasNext {
-			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID.String())
-		}
-		if hasPrev {
-			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID.String())
-		}
-	}
-
-	pagination := pkg.CursorPagination{
-		NextCursor: nextCursor,
-		PrevCursor: prevCursor,
+	pagination := pkg.OffsetPagination{
+		Page:       params.Page,
 		Limit:      params.Limit,
+		Total:      total,
+		TotalPages: totalPages,
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, toNewsListResponse(newsList, pagination))

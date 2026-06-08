@@ -97,58 +97,27 @@ func (s *service) AmbulanceHistorySummary(ctx context.Context, ambulanceID strin
 	var startDate, endDate *time.Time
 	now := time.Now()
 
-	// Default to all_time when period is not specified
-	if params.Period == "" {
-		params.Period = PeriodAllTime
-	}
-
-	switch params.Period {
-	case PeriodThisWeek:
-		weekday := int(now.Weekday())
-		if weekday == 0 {
-			weekday = 7 // Sunday → treat as end of week
-		}
-		start := now.AddDate(0, 0, -(weekday - 1)).Truncate(24 * time.Hour)
-		end := start.AddDate(0, 0, 6).Add(24*time.Hour - time.Nanosecond)
-		startDate, endDate = &start, &end
-
-	case PeriodThisMonth:
-		start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-		end := start.AddDate(0, 1, 0).Add(-time.Nanosecond)
-		startDate, endDate = &start, &end
-
-	case PeriodThisYear:
-		start := time.Date(now.Year(), 1, 1, 0, 0, 0, 0, now.Location())
-		end := start.AddDate(1, 0, 0).Add(-time.Nanosecond)
-		startDate, endDate = &start, &end
-
-	case PeriodCustom:
-		if params.StartDate == "" || params.EndDate == "" {
-			return pkg.NewResponse(http.StatusBadRequest,
-				"startDate and endDate are required when period is \"custom\"", nil, nil)
-		}
+	if params.StartDate != "" {
 		parsedStart, err := time.ParseInLocation("2006-01-02", params.StartDate, now.Location())
 		if err != nil {
 			return pkg.NewResponse(http.StatusBadRequest,
 				fmt.Sprintf("invalid startDate format: %s (expected YYYY-MM-DD)", params.StartDate), nil, nil)
 		}
+		startDate = &parsedStart
+	}
+
+	if params.EndDate != "" {
 		parsedEnd, err := time.ParseInLocation("2006-01-02", params.EndDate, now.Location())
 		if err != nil {
 			return pkg.NewResponse(http.StatusBadRequest,
 				fmt.Sprintf("invalid endDate format: %s (expected YYYY-MM-DD)", params.EndDate), nil, nil)
 		}
 		parsedEnd = parsedEnd.Add(24*time.Hour - time.Nanosecond) // inclusive end
-		if parsedStart.After(parsedEnd) {
-			return pkg.NewResponse(http.StatusBadRequest, "startDate must be before endDate", nil, nil)
-		}
-		startDate, endDate = &parsedStart, &parsedEnd
+		endDate = &parsedEnd
+	}
 
-	case PeriodAllTime:
-		// no date filter
-
-	default:
-		return pkg.NewResponse(http.StatusBadRequest,
-			"invalid period; accepted values: all_time, this_week, this_month, this_year, custom", nil, nil)
+	if startDate != nil && endDate != nil && startDate.After(*endDate) {
+		return pkg.NewResponse(http.StatusBadRequest, "startDate must be before endDate", nil, nil)
 	}
 
 	counts, err := s.repo.GetSummary(ctx, ambulanceID, startDate, endDate)
@@ -164,7 +133,6 @@ func (s *service) AmbulanceHistorySummary(ctx context.Context, ambulanceID strin
 	summary := SummaryResponse{
 		Total:      total,
 		Categories: counts,
-		Period:     string(params.Period),
 	}
 	if startDate != nil {
 		summary.StartDate = startDate.Format("2006-01-02")

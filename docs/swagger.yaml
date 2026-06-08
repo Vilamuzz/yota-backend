@@ -1,5 +1,5 @@
 definitions:
-  account.AccountResponse:
+  app_account.AccountResponse:
     properties:
       createdAt:
         type: string
@@ -11,12 +11,12 @@ definitions:
         type: boolean
       roles:
         items:
-          $ref: '#/definitions/account.AccountRolesResponse'
+          $ref: '#/definitions/app_account.AccountRolesResponse'
         type: array
       username:
         type: string
     type: object
-  account.AccountRolesResponse:
+  app_account.AccountRolesResponse:
     properties:
       isActive:
         type: boolean
@@ -27,38 +27,38 @@ definitions:
       roleName:
         type: string
     type: object
-  account.RoleResponse:
+  app_account.RoleResponse:
     properties:
       id:
         type: integer
       name:
         type: string
     type: object
-  account.RolesResponse:
+  app_account.RolesResponse:
     properties:
       roles:
         items:
-          $ref: '#/definitions/account.RoleResponse'
+          $ref: '#/definitions/app_account.RoleResponse'
         type: array
     type: object
-  account.SetAccountBanStatusRequest:
+  app_account.SetAccountBanStatusRequest:
     properties:
       banStatus:
         type: boolean
     type: object
-  account.UpdateAccountRoleRequest:
+  app_account.UpdateAccountRoleRequest:
     properties:
       isActive:
         type: boolean
     type: object
-  account.UpdatePasswordRequest:
+  app_account.UpdatePasswordRequest:
     properties:
       currentPassword:
         type: string
       newPassword:
         type: string
     type: object
-  account.UserProfileResponse:
+  app_account.UserProfileResponse:
     properties:
       address:
         type: string
@@ -72,12 +72,12 @@ definitions:
         type: string
       roles:
         items:
-          $ref: '#/definitions/account.AccountRolesResponse'
+          $ref: '#/definitions/app_account.AccountRolesResponse'
         type: array
       username:
         type: string
     type: object
-  ambulance_history.CreateAmbulanceHistoryRequest:
+  app_ambulance_history.CreateAmbulanceHistoryRequest:
     properties:
       ambulanceId:
         type: string
@@ -86,9 +86,9 @@ definitions:
       note:
         type: string
       serviceCategory:
-        $ref: '#/definitions/ambulance_history.ServiceCategory'
+        $ref: '#/definitions/app_ambulance_history.ServiceCategory'
     type: object
-  ambulance_history.ServiceCategory:
+  app_ambulance_history.ServiceCategory:
     enum:
     - social_service
     - mortuary_service
@@ -102,17 +102,17 @@ definitions:
     - PatientService
     - EmergencyService
     - OtherService
-  ambulance_history.UpdateAmbulanceHistoryRequest:
+  app_ambulance_history.UpdateAmbulanceHistoryRequest:
     properties:
       serviceCategory:
-        $ref: '#/definitions/ambulance_history.ServiceCategory'
+        $ref: '#/definitions/app_ambulance_history.ServiceCategory'
     type: object
-  ambulance_service_request.AcceptAmbulanceServiceRequestPayload:
+  app_ambulance_service_request.AcceptAmbulanceServiceRequestPayload:
     properties:
       ambulanceId:
         type: string
     type: object
-  ambulance_service_request.CreateAmbulanceServiceRequest:
+  app_ambulance_service_request.CreateAmbulanceServiceRequest:
     properties:
       accountId:
         type: string
@@ -129,24 +129,24 @@ definitions:
       serviceCategory:
         type: string
     type: object
-  ambulance_service_request.RejectAmbulanceServiceRequest:
+  app_ambulance_service_request.RejectAmbulanceServiceRequest:
     properties:
       rejectionReason:
         type: string
     type: object
-  auth.ForgetPasswordRequest:
+  app_auth.ForgetPasswordRequest:
     properties:
       email:
         type: string
     type: object
-  auth.LoginRequest:
+  app_auth.LoginRequest:
     properties:
       email:
         type: string
       password:
         type: string
     type: object
-  auth.RegisterRequest:
+  app_auth.RegisterRequest:
     properties:
       email:
         type: string
@@ -155,29 +155,29 @@ definitions:
       username:
         type: string
     type: object
-  auth.ResendVerificationRequest:
+  app_auth.ResendVerificationRequest:
     properties:
       email:
         type: string
     type: object
-  auth.ResetPasswordRequest:
+  app_auth.ResetPasswordRequest:
     properties:
       newPassword:
         type: string
       token:
         type: string
     type: object
-  auth.SwitchRoleRequest:
+  app_auth.SwitchRoleRequest:
     properties:
       role:
         type: string
     type: object
-  auth.VerifyEmailRequest:
+  app_auth.VerifyEmailRequest:
     properties:
       token:
         type: string
     type: object
-  donation_program_transaction.CreateDonationProgramTransactionRequest:
+  app_donation_program_transaction.CreateDonationProgramTransactionRequest:
     properties:
       donorEmail:
         type: string
@@ -188,16 +188,16 @@ definitions:
       prayerContent:
         type: string
     type: object
-  donation_program_transaction.DonationProgramTransactionListResponse:
+  app_donation_program_transaction.DonationProgramTransactionListResponse:
     properties:
       pagination:
         $ref: '#/definitions/pkg.CursorPagination'
       transactions:
         items:
-          $ref: '#/definitions/donation_program_transaction.DonationProgramTransactionResponse'
+          $ref: '#/definitions/app_donation_program_transaction.DonationProgramTransactionResponse'
         type: array
     type: object
-  donation_program_transaction.DonationProgramTransactionResponse:
+  app_donation_program_transaction.DonationProgramTransactionResponse:
     properties:
       createdAt:
         type: string
@@ -222,7 +222,7 @@ definitions:
       transactionStatus:
         type: string
     type: object
-  foster_children.Category:
+  app_foster_children.Category:
     enum:
     - yatim
     - piatu
@@ -232,7 +232,7 @@ definitions:
     - CategoryFatherless
     - CategoryMotherless
     - CategoryOrphan
-  foster_children.Gender:
+  app_foster_children.Gender:
     enum:
     - laki-laki
     - perempuan
@@ -240,7 +240,7 @@ definitions:
     x-enum-varnames:
     - Male
     - Female
-  foster_children_candidate.Category:
+  app_foster_children_candidate.Category:
     enum:
     - yatim
     - piatu
@@ -250,7 +250,7 @@ definitions:
     - CategoryFatherless
     - CategoryMotherless
     - CategoryOrphan
-  foster_children_candidate.Gender:
+  app_foster_children_candidate.Gender:
     enum:
     - laki-laki
     - perempuan
@@ -258,12 +258,12 @@ definitions:
     x-enum-varnames:
     - Male
     - Female
-  foster_children_candidate.RejectFosterChildrenCandidateRequest:
+  app_foster_children_candidate.RejectFosterChildrenCandidateRequest:
     properties:
       rejectionReason:
         type: string
     type: object
-  foster_children_transaction.CreateFosterChildrenTransactionRequest:
+  app_foster_children_transaction.CreateFosterChildrenTransactionRequest:
     properties:
       donorEmail:
         type: string
@@ -272,16 +272,16 @@ definitions:
       grossAmount:
         type: number
     type: object
-  foster_children_transaction.FosterChildrenTransactionListResponse:
+  app_foster_children_transaction.FosterChildrenTransactionListResponse:
     properties:
       pagination:
         $ref: '#/definitions/pkg.CursorPagination'
       transactions:
         items:
-          $ref: '#/definitions/foster_children_transaction.FosterChildrenTransactionResponse'
+          $ref: '#/definitions/app_foster_children_transaction.FosterChildrenTransactionResponse'
         type: array
     type: object
-  foster_children_transaction.FosterChildrenTransactionResponse:
+  app_foster_children_transaction.FosterChildrenTransactionResponse:
     properties:
       createdAt:
         type: string
@@ -308,7 +308,7 @@ definitions:
       transactionStatus:
         type: string
     type: object
-  foundation_profile.FoundationProfileResponse:
+  app_foundation_profile.FoundationProfileResponse:
     properties:
       createdAt:
         type: string
@@ -351,19 +351,19 @@ definitions:
       updatedAt:
         type: string
     type: object
-  gallery.GalleryListResponse:
+  app_gallery.GalleryListResponse:
     properties:
       galleries:
         items:
-          $ref: '#/definitions/gallery.GalleryListResponseItem'
+          $ref: '#/definitions/app_gallery.GalleryListResponseItem'
         type: array
       pagination:
-        $ref: '#/definitions/pkg.CursorPagination'
+        $ref: '#/definitions/pkg.OffsetPagination'
     type: object
-  gallery.GalleryListResponseItem:
+  app_gallery.GalleryListResponseItem:
     properties:
       category:
-        $ref: '#/definitions/media.MediaCategory'
+        $ref: '#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaCategory'
       coverImage:
         type: string
       createdAt:
@@ -375,16 +375,16 @@ definitions:
       slug:
         type: string
       status:
-        $ref: '#/definitions/media.MediaStatus'
+        $ref: '#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaStatus'
       title:
         type: string
       views:
         type: integer
     type: object
-  gallery.GalleryResponse:
+  app_gallery.GalleryResponse:
     properties:
       category:
-        $ref: '#/definitions/media.MediaCategory'
+        $ref: '#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaCategory'
       coverImage:
         type: string
       createdAt:
@@ -395,18 +395,218 @@ definitions:
         type: string
       media:
         items:
-          $ref: '#/definitions/media.MediaResponse'
+          $ref: '#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaResponse'
         type: array
       slug:
         type: string
       status:
-        $ref: '#/definitions/media.MediaStatus'
+        $ref: '#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaStatus'
       title:
         type: string
       views:
         type: integer
     type: object
-  media.MediaCategory:
+  app_news.NewsListResponse:
+    properties:
+      news:
+        items:
+          $ref: '#/definitions/app_news.NewsListResponseItem'
+        type: array
+      pagination:
+        $ref: '#/definitions/pkg.OffsetPagination'
+    type: object
+  app_news.NewsListResponseItem:
+    properties:
+      category:
+        $ref: '#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaCategory'
+      coverImage:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      publishedAt:
+        type: string
+      slug:
+        type: string
+      status:
+        $ref: '#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaStatus'
+      title:
+        type: string
+      views:
+        type: integer
+    type: object
+  app_news.NewsResponse:
+    properties:
+      category:
+        $ref: '#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaCategory'
+      content:
+        type: string
+      coverImage:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      media:
+        items:
+          $ref: '#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaResponse'
+        type: array
+      publishedAt:
+        type: string
+      slug:
+        type: string
+      status:
+        $ref: '#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaStatus'
+      title:
+        type: string
+      updatedAt:
+        type: string
+      views:
+        type: integer
+    type: object
+  app_news_comment.AdminNewsCommentListResponse:
+    properties:
+      comments:
+        items:
+          $ref: '#/definitions/app_news_comment.AdminNewsCommentResponse'
+        type: array
+      pagination:
+        $ref: '#/definitions/pkg.CursorPagination'
+    type: object
+  app_news_comment.AdminNewsCommentResponse:
+    properties:
+      content:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      reportCount:
+        type: integer
+      username:
+        type: string
+    type: object
+  app_news_comment.NewsCommentListResponse:
+    properties:
+      comments:
+        items:
+          $ref: '#/definitions/app_news_comment.NewsCommentResponse'
+        type: array
+      pagination:
+        $ref: '#/definitions/pkg.CursorPagination'
+    type: object
+  app_news_comment.NewsCommentResponse:
+    properties:
+      content:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      replies:
+        items:
+          $ref: '#/definitions/app_news_comment.NewsCommentResponse'
+        type: array
+      username:
+        type: string
+    type: object
+  app_news_comment.ReportNewsCommentRequest:
+    properties:
+      reason:
+        type: string
+    type: object
+  app_prayer.PrayerListResponse:
+    properties:
+      pagination:
+        $ref: '#/definitions/pkg.CursorPagination'
+      prayers:
+        items:
+          $ref: '#/definitions/app_prayer.PrayerResponse'
+        type: array
+    type: object
+  app_prayer.PrayerResponse:
+    properties:
+      amenCount:
+        type: integer
+      content:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      isAmen:
+        type: boolean
+      username:
+        type: string
+    type: object
+  app_prayer.ReportPrayerRequest:
+    properties:
+      reason:
+        type: string
+    type: object
+  app_social_program.RejectSocialProgramRequest:
+    properties:
+      reason:
+        type: string
+    type: object
+  app_social_program_expense.SocialProgramExpenseDetailResponse:
+    properties:
+      amount:
+        type: number
+      createdAt:
+        type: string
+      expenseDate:
+        type: string
+      id:
+        type: string
+      note:
+        type: string
+      title:
+        type: string
+    type: object
+  app_social_program_expense.SocialProgramExpenseListResponse:
+    properties:
+      expenses:
+        items:
+          $ref: '#/definitions/app_social_program_expense.SocialProgramExpenseResponse'
+        type: array
+      pagination:
+        $ref: '#/definitions/pkg.CursorPagination'
+    type: object
+  app_social_program_expense.SocialProgramExpenseResponse:
+    properties:
+      amount:
+        type: number
+      createdAt:
+        type: string
+      expenseDate:
+        type: string
+      id:
+        type: string
+      proofFile:
+        type: string
+      title:
+        type: string
+    type: object
+  app_social_program_subscription.CreateSocialProgramSubscriptionOfflineRequest:
+    properties:
+      accountId:
+        type: string
+    type: object
+  app_social_program_transaction.CreateOfflineTransactionRequest:
+    properties:
+      grossAmount:
+        type: number
+    required:
+    - grossAmount
+    type: object
+  app_social_program_transaction.CreateTransactionRequest:
+    properties:
+      grossAmount:
+        type: number
+    type: object
+  github_com_Vilamuzz_yota-backend_app_media.MediaCategory:
     enum:
     - kegiatan sosial
     - bencana alam
@@ -420,7 +620,7 @@ definitions:
     - Health
     - Environment
     - Others
-  media.MediaResponse:
+  github_com_Vilamuzz_yota-backend_app_media.MediaResponse:
     properties:
       alt:
         type: string
@@ -437,7 +637,7 @@ definitions:
       url:
         type: string
     type: object
-  media.MediaStatus:
+  github_com_Vilamuzz_yota-backend_app_media.MediaStatus:
     enum:
     - draft
     - published
@@ -447,116 +647,6 @@ definitions:
     - MediaStatusDraft
     - MediaStatusPublished
     - MediaStatusArchived
-  news.NewsListResponse:
-    properties:
-      news:
-        items:
-          $ref: '#/definitions/news.NewsListResponseItem'
-        type: array
-      pagination:
-        $ref: '#/definitions/pkg.CursorPagination'
-    type: object
-  news.NewsListResponseItem:
-    properties:
-      category:
-        $ref: '#/definitions/media.MediaCategory'
-      coverImage:
-        type: string
-      createdAt:
-        type: string
-      id:
-        type: string
-      publishedAt:
-        type: string
-      slug:
-        type: string
-      status:
-        $ref: '#/definitions/media.MediaStatus'
-      title:
-        type: string
-      views:
-        type: integer
-    type: object
-  news.NewsResponse:
-    properties:
-      category:
-        $ref: '#/definitions/media.MediaCategory'
-      content:
-        type: string
-      coverImage:
-        type: string
-      createdAt:
-        type: string
-      id:
-        type: string
-      media:
-        items:
-          $ref: '#/definitions/media.MediaResponse'
-        type: array
-      publishedAt:
-        type: string
-      slug:
-        type: string
-      status:
-        $ref: '#/definitions/media.MediaStatus'
-      title:
-        type: string
-      updatedAt:
-        type: string
-      views:
-        type: integer
-    type: object
-  news_comment.AdminNewsCommentListResponse:
-    properties:
-      comments:
-        items:
-          $ref: '#/definitions/news_comment.AdminNewsCommentResponse'
-        type: array
-      pagination:
-        $ref: '#/definitions/pkg.CursorPagination'
-    type: object
-  news_comment.AdminNewsCommentResponse:
-    properties:
-      content:
-        type: string
-      createdAt:
-        type: string
-      id:
-        type: string
-      reportCount:
-        type: integer
-      username:
-        type: string
-    type: object
-  news_comment.NewsCommentListResponse:
-    properties:
-      comments:
-        items:
-          $ref: '#/definitions/news_comment.NewsCommentResponse'
-        type: array
-      pagination:
-        $ref: '#/definitions/pkg.CursorPagination'
-    type: object
-  news_comment.NewsCommentResponse:
-    properties:
-      content:
-        type: string
-      createdAt:
-        type: string
-      id:
-        type: string
-      replies:
-        items:
-          $ref: '#/definitions/news_comment.NewsCommentResponse'
-        type: array
-      username:
-        type: string
-    type: object
-  news_comment.ReportNewsCommentRequest:
-    properties:
-      reason:
-        type: string
-    type: object
   pkg.CursorPagination:
     properties:
       limit:
@@ -565,6 +655,17 @@ definitions:
         type: string
       prevCursor:
         type: string
+    type: object
+  pkg.OffsetPagination:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+      totalPages:
+        type: integer
     type: object
   pkg.Response:
     properties:
@@ -577,96 +678,6 @@ definitions:
         additionalProperties:
           type: string
         type: object
-    type: object
-  prayer.PrayerListResponse:
-    properties:
-      pagination:
-        $ref: '#/definitions/pkg.CursorPagination'
-      prayers:
-        items:
-          $ref: '#/definitions/prayer.PrayerResponse'
-        type: array
-    type: object
-  prayer.PrayerResponse:
-    properties:
-      amenCount:
-        type: integer
-      content:
-        type: string
-      createdAt:
-        type: string
-      id:
-        type: string
-      isAmen:
-        type: boolean
-      username:
-        type: string
-    type: object
-  prayer.ReportPrayerRequest:
-    properties:
-      reason:
-        type: string
-    type: object
-  social_program.RejectSocialProgramRequest:
-    properties:
-      reason:
-        type: string
-    type: object
-  social_program_expense.SocialProgramExpenseDetailResponse:
-    properties:
-      amount:
-        type: number
-      createdAt:
-        type: string
-      expenseDate:
-        type: string
-      id:
-        type: string
-      note:
-        type: string
-      title:
-        type: string
-    type: object
-  social_program_expense.SocialProgramExpenseListResponse:
-    properties:
-      expenses:
-        items:
-          $ref: '#/definitions/social_program_expense.SocialProgramExpenseResponse'
-        type: array
-      pagination:
-        $ref: '#/definitions/pkg.CursorPagination'
-    type: object
-  social_program_expense.SocialProgramExpenseResponse:
-    properties:
-      amount:
-        type: number
-      createdAt:
-        type: string
-      expenseDate:
-        type: string
-      id:
-        type: string
-      proofFile:
-        type: string
-      title:
-        type: string
-    type: object
-  social_program_subscription.CreateSocialProgramSubscriptionOfflineRequest:
-    properties:
-      accountId:
-        type: string
-    type: object
-  social_program_transaction.CreateOfflineTransactionRequest:
-    properties:
-      grossAmount:
-        type: number
-    required:
-    - grossAmount
-    type: object
-  social_program_transaction.CreateTransactionRequest:
-    properties:
-      grossAmount:
-        type: number
     type: object
 info:
   contact: {}
@@ -687,7 +698,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/ambulance_service_request.AcceptAmbulanceServiceRequestPayload'
+          $ref: '#/definitions/app_ambulance_service_request.AcceptAmbulanceServiceRequestPayload'
       produces:
       - application/json
       responses:
@@ -849,7 +860,7 @@ paths:
         name: ambulance_history
         required: true
         schema:
-          $ref: '#/definitions/ambulance_history.CreateAmbulanceHistoryRequest'
+          $ref: '#/definitions/app_ambulance_history.CreateAmbulanceHistoryRequest'
       produces:
       - application/json
       responses:
@@ -916,7 +927,7 @@ paths:
         name: ambulance_history
         required: true
         schema:
-          $ref: '#/definitions/ambulance_history.UpdateAmbulanceHistoryRequest'
+          $ref: '#/definitions/app_ambulance_history.UpdateAmbulanceHistoryRequest'
       produces:
       - application/json
       responses:
@@ -1052,18 +1063,13 @@ paths:
         name: id
         required: true
         type: string
-      - description: 'Time period: all_time | this_week | this_month | this_year |
-          custom (default: all_time)'
-        in: query
-        name: period
-        type: string
-      - description: Start date (YYYY-MM-DD), required when period=custom
+      - description: Start date (YYYY-MM-DD)
         in: query
         name: startDate
         type: string
-      - description: End date (YYYY-MM-DD), required when period=custom
+      - description: End date (YYYY-MM-DD)
         in: query
-        name: end_date
+        name: endDate
         type: string
       produces:
       - application/json
@@ -1143,7 +1149,7 @@ paths:
         name: ambulance_service_request
         required: true
         schema:
-          $ref: '#/definitions/ambulance_service_request.CreateAmbulanceServiceRequest'
+          $ref: '#/definitions/app_ambulance_service_request.CreateAmbulanceServiceRequest'
       produces:
       - application/json
       responses:
@@ -1201,7 +1207,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/ambulance_service_request.RejectAmbulanceServiceRequest'
+          $ref: '#/definitions/app_ambulance_service_request.RejectAmbulanceServiceRequest'
       produces:
       - application/json
       responses:
@@ -1314,7 +1320,7 @@ paths:
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/account.AccountResponse'
+                    $ref: '#/definitions/app_account.AccountResponse'
                   type: array
               type: object
       security:
@@ -1343,7 +1349,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/account.AccountResponse'
+                  $ref: '#/definitions/app_account.AccountResponse'
               type: object
       security:
       - BearerAuth: []
@@ -1366,7 +1372,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/account.SetAccountBanStatusRequest'
+          $ref: '#/definitions/app_account.SetAccountBanStatusRequest'
       produces:
       - application/json
       responses:
@@ -1400,7 +1406,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/account.UpdateAccountRoleRequest'
+          $ref: '#/definitions/app_account.UpdateAccountRoleRequest'
       produces:
       - application/json
       responses:
@@ -1486,7 +1492,7 @@ paths:
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/account.AccountResponse'
+                    $ref: '#/definitions/app_account.AccountResponse'
                   type: array
               type: object
       security:
@@ -1535,7 +1541,7 @@ paths:
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/account.AccountResponse'
+                    $ref: '#/definitions/app_account.AccountResponse'
                   type: array
               type: object
       security:
@@ -1584,7 +1590,7 @@ paths:
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/account.AccountResponse'
+                    $ref: '#/definitions/app_account.AccountResponse'
                   type: array
               type: object
       security:
@@ -1607,7 +1613,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/account.RolesResponse'
+                  $ref: '#/definitions/app_account.RolesResponse'
               type: object
       security:
       - BearerAuth: []
@@ -2062,7 +2068,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/donation_program_transaction.DonationProgramTransactionListResponse'
+                  $ref: '#/definitions/app_donation_program_transaction.DonationProgramTransactionListResponse'
               type: object
       security:
       - BearerAuth: []
@@ -2085,7 +2091,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/donation_program_transaction.CreateDonationProgramTransactionRequest'
+          $ref: '#/definitions/app_donation_program_transaction.CreateDonationProgramTransactionRequest'
       produces:
       - application/json
       responses:
@@ -2488,7 +2494,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/foster_children_transaction.FosterChildrenTransactionListResponse'
+                  $ref: '#/definitions/app_foster_children_transaction.FosterChildrenTransactionListResponse'
               type: object
       security:
       - BearerAuth: []
@@ -2511,7 +2517,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/foster_children_transaction.CreateFosterChildrenTransactionRequest'
+          $ref: '#/definitions/app_foster_children_transaction.CreateFosterChildrenTransactionRequest'
       produces:
       - application/json
       responses:
@@ -2639,7 +2645,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/foster_children_candidate.RejectFosterChildrenCandidateRequest'
+          $ref: '#/definitions/app_foster_children_candidate.RejectFosterChildrenCandidateRequest'
       produces:
       - application/json
       responses:
@@ -2783,7 +2789,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/foundation_profile.FoundationProfileResponse'
+                  $ref: '#/definitions/app_foundation_profile.FoundationProfileResponse'
               type: object
       security:
       - BearerAuth: []
@@ -2979,7 +2985,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/news.NewsResponse'
+                  $ref: '#/definitions/app_news.NewsResponse'
               type: object
       security:
       - BearerAuth: []
@@ -2993,6 +2999,10 @@ paths:
       description: Retrieve a list of all news items (requires publication manager
         or superadmin role)
       parameters:
+      - description: Search news by title
+        in: query
+        name: search
+        type: string
       - description: Filter by category
         in: query
         name: category
@@ -3001,10 +3011,15 @@ paths:
         in: query
         name: status
         type: string
-      - description: Cursor for pagination (encoded string)
+      - description: Sort by field (e.g. 'created_at desc', 'views desc', 'published_at
+          desc', 'title asc')
         in: query
-        name: cursor
+        name: sortBy
         type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
       - description: 'Items per page (default: 10, max: 100)'
         in: query
         name: limit
@@ -3019,7 +3034,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/news.NewsListResponse'
+                  $ref: '#/definitions/app_news.NewsListResponse'
               type: object
       security:
       - BearerAuth: []
@@ -3071,7 +3086,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/news.NewsResponse'
+                  $ref: '#/definitions/app_news.NewsResponse'
               type: object
       security:
       - BearerAuth: []
@@ -3205,7 +3220,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/news_comment.AdminNewsCommentListResponse'
+                  $ref: '#/definitions/app_news_comment.AdminNewsCommentListResponse'
               type: object
       security:
       - BearerAuth: []
@@ -3263,7 +3278,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/prayer.PrayerListResponse'
+                  $ref: '#/definitions/app_prayer.PrayerListResponse'
               type: object
       security:
       - BearerAuth: []
@@ -3560,7 +3575,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/social_program.RejectSocialProgramRequest'
+          $ref: '#/definitions/app_social_program.RejectSocialProgramRequest'
       produces:
       - application/json
       responses:
@@ -3630,7 +3645,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/social_program_subscription.CreateSocialProgramSubscriptionOfflineRequest'
+          $ref: '#/definitions/app_social_program_subscription.CreateSocialProgramSubscriptionOfflineRequest'
       produces:
       - application/json
       responses:
@@ -3946,7 +3961,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/social_program_transaction.CreateOfflineTransactionRequest'
+          $ref: '#/definitions/app_social_program_transaction.CreateOfflineTransactionRequest'
       produces:
       - application/json
       responses:
@@ -3970,7 +3985,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/auth.ForgetPasswordRequest'
+          $ref: '#/definitions/app_auth.ForgetPasswordRequest'
       produces:
       - application/json
       responses:
@@ -3992,7 +4007,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/auth.LoginRequest'
+          $ref: '#/definitions/app_auth.LoginRequest'
       produces:
       - application/json
       responses:
@@ -4052,7 +4067,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/auth.RegisterRequest'
+          $ref: '#/definitions/app_auth.RegisterRequest'
       produces:
       - application/json
       responses:
@@ -4074,7 +4089,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/auth.ResendVerificationRequest'
+          $ref: '#/definitions/app_auth.ResendVerificationRequest'
       produces:
       - application/json
       responses:
@@ -4096,7 +4111,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/auth.ResetPasswordRequest'
+          $ref: '#/definitions/app_auth.ResetPasswordRequest'
       produces:
       - application/json
       responses:
@@ -4118,7 +4133,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/auth.SwitchRoleRequest'
+          $ref: '#/definitions/app_auth.SwitchRoleRequest'
       produces:
       - application/json
       responses:
@@ -4142,7 +4157,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/auth.VerifyEmailRequest'
+          $ref: '#/definitions/app_auth.VerifyEmailRequest'
       produces:
       - application/json
       responses:
@@ -4315,7 +4330,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/prayer.PrayerListResponse'
+                  $ref: '#/definitions/app_prayer.PrayerListResponse'
               type: object
       summary: List Prayers
       tags:
@@ -4336,7 +4351,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/donation_program_transaction.CreateDonationProgramTransactionRequest'
+          $ref: '#/definitions/app_donation_program_transaction.CreateDonationProgramTransactionRequest'
       produces:
       - application/json
       responses:
@@ -4502,7 +4517,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/foster_children_transaction.CreateFosterChildrenTransactionRequest'
+          $ref: '#/definitions/app_foster_children_transaction.CreateFosterChildrenTransactionRequest'
       produces:
       - application/json
       responses:
@@ -4709,7 +4724,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/foundation_profile.FoundationProfileResponse'
+                  $ref: '#/definitions/app_foundation_profile.FoundationProfileResponse'
               type: object
       summary: Get Foundation Profile
       tags:
@@ -4721,14 +4736,26 @@ paths:
       description: Retrieve a list of all gallery items (requires publication manager
         or superadmin role)
       parameters:
-      - description: Filter by category ID
+      - description: Search gallery by title
         in: query
-        name: category_id
-        type: integer
-      - description: Cursor for pagination (encoded string)
-        in: query
-        name: cursor
+        name: search
         type: string
+      - description: Filter by category
+        in: query
+        name: category
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Sort by field (e.g. 'created_at desc', 'views desc', 'title asc')
+        in: query
+        name: sortBy
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
       - description: 'Items per page (default: 10, max: 100)'
         in: query
         name: limit
@@ -4743,7 +4770,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/gallery.GalleryListResponse'
+                  $ref: '#/definitions/app_gallery.GalleryListResponse'
               type: object
       security:
       - BearerAuth: []
@@ -4798,7 +4825,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/gallery.GalleryResponse'
+                  $ref: '#/definitions/app_gallery.GalleryResponse'
               type: object
       security:
       - BearerAuth: []
@@ -4850,7 +4877,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/gallery.GalleryResponse'
+                  $ref: '#/definitions/app_gallery.GalleryResponse'
               type: object
       security:
       - BearerAuth: []
@@ -4963,7 +4990,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/account.UserProfileResponse'
+                  $ref: '#/definitions/app_account.UserProfileResponse'
               type: object
       security:
       - BearerAuth: []
@@ -5001,7 +5028,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/donation_program_transaction.DonationProgramTransactionListResponse'
+                  $ref: '#/definitions/app_donation_program_transaction.DonationProgramTransactionListResponse'
               type: object
       security:
       - BearerAuth: []
@@ -5061,7 +5088,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/foster_children_transaction.FosterChildrenTransactionListResponse'
+                  $ref: '#/definitions/app_foster_children_transaction.FosterChildrenTransactionListResponse'
               type: object
       security:
       - BearerAuth: []
@@ -5101,7 +5128,7 @@ paths:
         name: payload
         required: true
         schema:
-          $ref: '#/definitions/account.UpdatePasswordRequest'
+          $ref: '#/definitions/app_account.UpdatePasswordRequest'
       produces:
       - application/json
       responses:
@@ -5261,17 +5288,26 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieve a list of published news items with cursor-based pagination
+      description: Retrieve a list of published news items with offset-based pagination
         and optional filters
       parameters:
+      - description: Search news by title
+        in: query
+        name: search
+        type: string
       - description: Filter by category
         in: query
         name: category
         type: string
-      - description: Cursor for pagination (encoded string)
+      - description: Sort by field (e.g. 'created_at desc', 'views desc', 'published_at
+          desc', 'title asc')
         in: query
-        name: cursor
+        name: sortBy
         type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
       - description: 'Items per page (default: 10, max: 100)'
         in: query
         name: limit
@@ -5286,7 +5322,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/news.NewsListResponse'
+                  $ref: '#/definitions/app_news.NewsListResponse'
               type: object
       summary: List Published News
       tags:
@@ -5312,7 +5348,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/news.NewsResponse'
+                  $ref: '#/definitions/app_news.NewsResponse'
               type: object
       summary: Get Published News
       tags:
@@ -5350,7 +5386,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/news_comment.NewsCommentListResponse'
+                  $ref: '#/definitions/app_news_comment.NewsCommentListResponse'
               type: object
       summary: List News Comments
       tags:
@@ -5376,7 +5412,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/news_comment.NewsCommentResponse'
+                  $ref: '#/definitions/app_news_comment.NewsCommentResponse'
               type: object
       summary: Get News Comment by ID
       tags:
@@ -5397,7 +5433,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/news_comment.ReportNewsCommentRequest'
+          $ref: '#/definitions/app_news_comment.ReportNewsCommentRequest'
       produces:
       - application/json
       responses:
@@ -5431,7 +5467,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/prayer.PrayerResponse'
+                  $ref: '#/definitions/app_prayer.PrayerResponse'
               type: object
       summary: Get Prayer by ID
       tags:
@@ -5475,7 +5511,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/prayer.ReportPrayerRequest'
+          $ref: '#/definitions/app_prayer.ReportPrayerRequest'
       produces:
       - application/json
       responses:
@@ -5492,17 +5528,25 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieve a list of published gallery items with cursor-based pagination
+      description: Retrieve a list of published gallery items with offset-based pagination
         and optional filters
       parameters:
-      - description: Filter by category ID
+      - description: Search gallery by title
         in: query
-        name: category_id
-        type: integer
-      - description: Cursor for pagination (encoded string)
-        in: query
-        name: cursor
+        name: search
         type: string
+      - description: Filter by category
+        in: query
+        name: category
+        type: string
+      - description: Sort by field (e.g. 'created_at desc', 'views desc', 'title asc')
+        in: query
+        name: sortBy
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
       - description: 'Items per page (default: 10, max: 100)'
         in: query
         name: limit
@@ -5517,7 +5561,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/gallery.GalleryListResponse'
+                  $ref: '#/definitions/app_gallery.GalleryListResponse'
               type: object
       summary: List Published Galleries
       tags:
@@ -5543,7 +5587,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/gallery.GalleryResponse'
+                  $ref: '#/definitions/app_gallery.GalleryResponse'
               type: object
       summary: Get Published Gallery
       tags:
@@ -5635,7 +5679,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/social_program_expense.SocialProgramExpenseListResponse'
+                  $ref: '#/definitions/app_social_program_expense.SocialProgramExpenseListResponse'
               type: object
       summary: List Social Program Expenses
       tags:
@@ -5771,7 +5815,7 @@ paths:
             - $ref: '#/definitions/pkg.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/social_program_expense.SocialProgramExpenseDetailResponse'
+                  $ref: '#/definitions/app_social_program_expense.SocialProgramExpenseDetailResponse'
               type: object
       summary: Get Social Program Expense by ID
       tags:
@@ -5787,7 +5831,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/social_program_transaction.CreateTransactionRequest'
+          $ref: '#/definitions/app_social_program_transaction.CreateTransactionRequest'
       produces:
       - application/json
       responses:

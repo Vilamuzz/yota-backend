@@ -1,9 +1,11 @@
 package news_comment
 
-import "github.com/Vilamuzz/yota-backend/pkg"
-
 type NewsCommentQueryParams struct {
-	pkg.PaginationParams
+	NewsSlug  string `form:"-"`
+	AccountID string `form:"-"`
+	Page      int    `form:"page"`
+	Limit     int    `form:"limit"`
+	SortBy    string `form:"sortBy"`
 }
 
 type CreateNewsCommentRequest struct {
@@ -12,5 +14,4 @@ type CreateNewsCommentRequest struct {
 }
 
 type ReportNewsCommentRequest struct {
-	Reason string `json:"reason"`
 }
