@@ -10,7 +10,9 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/ambulance_history"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/Vilamuzz/yota-backend/pkg/enum"
+	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -35,10 +37,19 @@ type service struct {
 	ambulanceRepo        ambulance.Repository
 	ambulanceHistoryRepo ambulance_history.Repository
 	timeout              time.Duration
+	emailService         *pkg.EmailService
+	s3Client             s3_pkg.Client
 }
 
-func NewService(repo Repository, ambulanceRepo ambulance.Repository, ambulanceHistoryRepo ambulance_history.Repository, timeout time.Duration) Service {
-	return &service{repo: repo, ambulanceRepo: ambulanceRepo, ambulanceHistoryRepo: ambulanceHistoryRepo, timeout: timeout}
+func NewService(repo Repository, ambulanceRepo ambulance.Repository, ambulanceHistoryRepo ambulance_history.Repository, timeout time.Duration, s3Client s3_pkg.Client) Service {
+	return &service{
+		repo:                 repo,
+		ambulanceRepo:        ambulanceRepo,
+		ambulanceHistoryRepo: ambulanceHistoryRepo,
+		timeout:              timeout,
+		emailService:         pkg.NewEmailService(),
+		s3Client:             s3Client,
+	}
 }
 
 func (s *service) ListAmbulanceServiceRequest(ctx context.Context, queryParams AmbulanceServiceRequestAdminQueryParams) pkg.Response {
@@ -276,20 +287,29 @@ func (s *service) CreateAmbulanceServiceRequest(ctx context.Context, payload Cre
 	defer cancel()
 
 	errValidation := make(map[string]string)
-	if payload.ApplicantName == "" {
-		errValidation["applicantName"] = "Nama pemohon wajib diisi"
+	if payload.SubmitterName == "" {
+		errValidation["submitterName"] = "Nama pengirim wajib diisi"
 	}
-	if payload.ApplicantPhone == "" {
-		errValidation["applicantPhone"] = "Nomor telepon pemohon wajib diisi"
+	if payload.SubmitterPhone == "" {
+		errValidation["submitterPhone"] = "Nomor telepon pengirim wajib diisi"
 	}
-	if payload.ApplicantAddress == "" {
-		errValidation["applicantAddress"] = "Alamat pemohon wajib diisi"
+	if payload.SubmitterIDCard == nil {
+		errValidation["submitterIdCard"] = "KTP pengirim wajib diisi"
 	}
-	if payload.RequestDate == "" {
-		errValidation["requestDate"] = "Tanggal permintaan wajib diisi"
+	if payload.PatientName == "" {
+		errValidation["patientName"] = "Nama pasien wajib diisi"
 	}
-	if payload.RequestReason == "" {
-		errValidation["requestReason"] = "Alasan permintaan wajib diisi"
+	if payload.PatientAddress == "" {
+		errValidation["patientAddress"] = "Alamat pasien wajib diisi"
+	}
+	if payload.PickupDate == "" {
+		errValidation["pickupDate"] = "Tanggal penjemputan wajib diisi"
+	}
+	if payload.PickupTime == "" {
+		errValidation["pickupTime"] = "Jam penjemputan wajib diisi"
+	}
+	if payload.Destination == "" {
+		errValidation["destination"] = "Tujuan wajib diisi"
 	}
 	if payload.ServiceCategory == "" {
 		errValidation["serviceCategory"] = "Kategori layanan wajib diisi"
@@ -307,16 +327,40 @@ func (s *service) CreateAmbulanceServiceRequest(ctx context.Context, payload Cre
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
+	pickupDate, err := time.Parse("2006-01-02", payload.PickupDate)
+	if err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"pickupDate": "Format tanggal tidak valid, diharapkan YYYY-MM-DD"}, nil)
+	}
+	pickupTime, err := time.Parse("15:04", payload.PickupTime)
+	if err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"pickupTime": "Format jam tidak valid, diharapkan HH:MM"}, nil)
+	}
+
+	submitterIDCardURL, err := s.s3Client.UploadFile(ctx, payload.SubmitterIDCard, "ambulance-service-requests")
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah KTP pengirim", nil, nil)
+	}
+
 	request := AmbulanceServiceRequest{
-		ID:               uuid.New(),
-		AccountID:        uuid.MustParse(payload.AccountID),
-		ApplicantName:    payload.ApplicantName,
-		ApplicantPhone:   payload.ApplicantPhone,
-		ApplicantAddress: payload.ApplicantAddress,
-		RequestDate:      time.Now(),
-		RequestReason:    payload.RequestReason,
-		Status:           StatusPending,
-		ServiceCategory:  ambulance_history.ServiceCategory(payload.ServiceCategory),
+		ID:              uuid.New(),
+		SubmittedBy:     uuid.MustParse(payload.AccountID),
+		SubmitterName:   payload.SubmitterName,
+		SubmitterPhone:  payload.SubmitterPhone,
+		SubmitterIDCard: submitterIDCardURL,
+		PatientName:     payload.PatientName,
+		PatientAddress:  payload.PatientAddress,
+		PatientAge:      payload.PatientAge,
+		IsInfectious:    payload.IsInfectious,
+		Disease:         payload.Disease,
+		IsAbleToSit:     payload.IsAbleToSit,
+		PickupDate:      pickupDate,
+		PickupTime:      pickupTime,
+		Destination:     payload.Destination,
+		Note:            payload.Note,
+		Status:          StatusPending,
+		ServiceCategory: ambulance_history.ServiceCategory(payload.ServiceCategory),
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
 	}
 
 	if err := s.repo.Create(ctx, request); err != nil {
@@ -383,7 +427,7 @@ func (s *service) GetMyAmbulanceServiceRequestByID(ctx context.Context, accountI
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memuat permintaan ambulans", nil, nil)
 	}
 
-	if ambulanceServiceRequest.AccountID.String() != accountID {
+	if ambulanceServiceRequest.SubmittedBy.String() != accountID {
 		return pkg.NewResponse(http.StatusForbidden, "Anda tidak memiliki akses untuk melihat permintaan ini", nil, nil)
 	}
 
@@ -437,6 +481,18 @@ func (s *service) AcceptAmbulanceServiceRequest(ctx context.Context, id string, 
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui status permintaan ambulans", nil, nil)
 	}
 
+	if existing.Account.Email != "" {
+		go func(email, username, submitterName string) {
+			if err := s.emailService.SendAmbulanceServiceRequestAcceptedEmail(email, username, submitterName); err != nil {
+				logrus.WithFields(logrus.Fields{
+					"component":      "ambulance_service_request.service",
+					"email":          email,
+					"submitter_name": submitterName,
+				}).WithError(err).Error("failed to send ambulance request accepted email asynchronously")
+			}
+		}(existing.Account.Email, existing.Account.UserProfile.Username, existing.SubmitterName)
+	}
+
 	return pkg.NewResponse(http.StatusOK, "Permintaan ambulans berhasil disetujui", nil, nil)
 }
 
@@ -474,6 +530,18 @@ func (s *service) RejectAmbulanceServiceRequest(ctx context.Context, id string, 
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui status permintaan ambulans", nil, nil)
 	}
 
+	if existing.Account.Email != "" {
+		go func(email, username, submitterName, rejectionReason string) {
+			if err := s.emailService.SendAmbulanceServiceRequestRejectedEmail(email, username, submitterName, rejectionReason); err != nil {
+				logrus.WithFields(logrus.Fields{
+					"component":      "ambulance_service_request.service",
+					"email":          email,
+					"submitter_name": submitterName,
+				}).WithError(err).Error("failed to send ambulance request rejected email asynchronously")
+			}
+		}(existing.Account.Email, existing.Account.UserProfile.Username, existing.SubmitterName, req.RejectionReason)
+	}
+
 	return pkg.NewResponse(http.StatusOK, "Permintaan ambulans berhasil ditolak", nil, nil)
 }
 
@@ -493,7 +561,7 @@ func (s *service) CancelAmbulanceServiceRequest(ctx context.Context, accountID s
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memuat permintaan ambulans", nil, nil)
 	}
 
-	if existing.AccountID.String() != accountID {
+	if existing.SubmittedBy.String() != accountID {
 		return pkg.NewResponse(http.StatusForbidden, "Anda tidak memiliki akses untuk melakukan tindakan ini", nil, nil)
 	}
 
@@ -624,7 +692,7 @@ func (s *service) CompleteAmbulanceServiceRequest(ctx context.Context, driverAcc
 	})
 
 	now := time.Now()
-	note := fmt.Sprintf("Layanan ambulans selesai untuk permintaan dari %s. Alasan: %s", existing.ApplicantName, existing.RequestReason)
+	note := fmt.Sprintf("Layanan ambulans selesai untuk permintaan dari %s. Pasien: %s", existing.SubmitterName, existing.PatientName)
 	history := ambulance_history.AmbulanceHistory{
 		ID:              uuid.New(),
 		AmbulanceID:     ambulanceRecord.ID,

@@ -92,3 +92,31 @@ func (e *EmailService) SendEmailVerification(to, username, verificationToken str
 
 	return e.SendEmail(to, subject, body)
 }
+
+func (e *EmailService) SendFosterChildrenCandidateAcceptedEmail(to, submitterName, candidateName string) error {
+	subject := "Pendaftaran Calon Anak Asuh Disetujui"
+	body := FosterChildrenCandidateAcceptedTemplate(submitterName, candidateName)
+
+	return e.SendEmail(to, subject, body)
+}
+
+func (e *EmailService) SendFosterChildrenCandidateRejectedEmail(to, submitterName, candidateName, rejectionReason string) error {
+	subject := "Pemberitahuan Pendaftaran Calon Anak Asuh"
+	body := FosterChildrenCandidateRejectedTemplate(submitterName, candidateName, rejectionReason)
+
+	return e.SendEmail(to, subject, body)
+}
+
+func (e *EmailService) SendAmbulanceServiceRequestAcceptedEmail(to, recipientName, submitterName string) error {
+	subject := "Permintaan Ambulans Disetujui"
+	body := AmbulanceServiceRequestAcceptedTemplate(recipientName, submitterName)
+
+	return e.SendEmail(to, subject, body)
+}
+
+func (e *EmailService) SendAmbulanceServiceRequestRejectedEmail(to, recipientName, submitterName, rejectionReason string) error {
+	subject := "Pemberitahuan Permintaan Layanan Ambulans"
+	body := AmbulanceServiceRequestRejectedTemplate(recipientName, submitterName, rejectionReason)
+
+	return e.SendEmail(to, subject, body)
+}
