@@ -36,6 +36,7 @@ type service struct {
 	logService         app_log.Service
 	s3Client           s3_pkg.Client
 	timeout            time.Duration
+	emailService       *pkg.EmailService
 }
 
 func NewService(repo Repository, fosterChildrenRepo FosterChildrenCreator, logService app_log.Service, s3Client s3_pkg.Client, timeout time.Duration) Service {
@@ -45,6 +46,7 @@ func NewService(repo Repository, fosterChildrenRepo FosterChildrenCreator, logSe
 		logService:         logService,
 		s3Client:           s3Client,
 		timeout:            timeout,
+		emailService:       pkg.NewEmailService(),
 	}
 }
 
@@ -369,7 +371,6 @@ func (s *service) AcceptFosterChildrenCandidate(ctx context.Context, id string, 
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui status calon", nil, nil)
 	}
 
-	// If fully accepted by chairman, create foster children record
 	if nextStatus == StatusAccepted {
 		if err := s.fosterChildrenRepo.CreateFosterChildrenFromCandidate(
 			ctx,
@@ -387,6 +388,18 @@ func (s *service) AcceptFosterChildrenCandidate(ctx context.Context, id string, 
 			existing.BirthDate,
 		); err != nil {
 			logrus.WithError(err).Error("failed to create foster children from accepted candidate")
+		} else {
+			if existing.Account.Email != "" {
+				go func(email, submitterName, candidateName string) {
+					if err := s.emailService.SendFosterChildrenCandidateAcceptedEmail(email, submitterName, candidateName); err != nil {
+						logrus.WithFields(logrus.Fields{
+							"component":      "foster_children_candidate.service",
+							"email":          email,
+							"candidate_name": candidateName,
+						}).WithError(err).Error("failed to send candidate accepted email asynchronously")
+					}
+				}(existing.Account.Email, existing.SubmitterName, existing.Name)
+			}
 		}
 	}
 
@@ -425,6 +438,19 @@ func (s *service) RejectFosterChildrenCandidate(ctx context.Context, id string, 
 	}
 
 	s.logService.CreateLog(ctx, nil, "UPDATE", "foster_children_candidate", id, existing.ToFosterChildrenCandidateResponse(), updateData)
+
+	if existing.Account.Email != "" {
+		go func(email, submitterName, candidateName, rejectionReason string) {
+			if err := s.emailService.SendFosterChildrenCandidateRejectedEmail(email, submitterName, candidateName, rejectionReason); err != nil {
+				logrus.WithFields(logrus.Fields{
+					"component":      "foster_children_candidate.service",
+					"email":          email,
+					"candidate_name": candidateName,
+				}).WithError(err).Error("failed to send candidate rejected email asynchronously")
+			}
+		}(existing.Account.Email, existing.SubmitterName, existing.Name, req.RejectionReason)
+	}
+
 	return pkg.NewResponse(http.StatusOK, "Calon berhasil ditolak", nil, nil)
 }
 

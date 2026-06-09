@@ -228,7 +228,7 @@ func (c *Container) initServices() {
 	c.DonationExpenseService = donation_program_expense.NewService(c.DonationExpenseRepo, c.FinanceRecordRepo, c.DonationRepo, c.S3Client, c.LogService, c.Timeout)
 	c.AmbulanceService = ambulance.NewService(c.AmbulanceRepo, c.S3Client, c.Timeout)
 	c.AmbulanceHistoryService = ambulance_history.NewService(c.AmbulanceHistoryRepo, c.AmbulanceRepo, c.Timeout)
-	c.AmbulanceServiceRequestService = ambulance_service_request.NewService(c.AmbulanceServiceRequestRepo, c.AmbulanceRepo, c.AmbulanceHistoryRepo, c.Timeout)
+	c.AmbulanceServiceRequestService = ambulance_service_request.NewService(c.AmbulanceServiceRequestRepo, c.AmbulanceRepo, c.AmbulanceHistoryRepo, c.Timeout, c.S3Client)
 	c.FosterChildrenService = foster_children.NewService(c.FosterChildrenRepo, c.LogService, c.S3Client, c.Timeout)
 	c.FosterChildrenCandidateService = foster_children_candidate.NewService(c.FosterChildrenCandidateRepo, c.FosterChildrenRepo, c.LogService, c.S3Client, c.Timeout)
 	c.FosterChildrenExpenseService = foster_children_expense.NewService(c.FosterChildrenExpenseRepo, c.FinanceRecordRepo, c.FosterChildrenRepo, c.S3Client, c.LogService, c.Timeout)
