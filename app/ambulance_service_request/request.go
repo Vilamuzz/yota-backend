@@ -1,15 +1,27 @@
 package ambulance_service_request
 
-import "github.com/Vilamuzz/yota-backend/pkg"
+import (
+	"mime/multipart"
+
+	"github.com/Vilamuzz/yota-backend/pkg"
+)
 
 type CreateAmbulanceServiceRequest struct {
-	AccountID        string `json:"accountId"`
-	ApplicantName    string `json:"applicantName"`
-	ApplicantPhone   string `json:"applicantPhone"`
-	ApplicantAddress string `json:"applicantAddress"`
-	RequestDate      string `json:"requestDate"`
-	RequestReason    string `json:"requestReason"`
-	ServiceCategory  string `json:"serviceCategory"`
+	AccountID       string                `form:"-"`
+	SubmitterName   string                `form:"submitterName"`
+	SubmitterPhone  string                `form:"submitterPhone"`
+	SubmitterIDCard *multipart.FileHeader `form:"submitterIdCard"`
+	PatientName     string                `form:"patientName"`
+	PatientAddress  string                `form:"patientAddress"`
+	PatientAge      int                   `form:"patientAge"`
+	IsInfectious    bool                  `form:"isInfectious"`
+	Disease         string                `form:"disease"`
+	IsAbleToSit     bool                  `form:"isAbleToSit"`
+	PickupDate      string                `form:"pickupDate"`
+	PickupTime      string                `form:"pickupTime"`
+	Destination     string                `form:"destination"`
+	Note            string                `form:"note"`
+	ServiceCategory string                `form:"serviceCategory"`
 }
 
 type AcceptAmbulanceServiceRequestPayload struct {
@@ -43,4 +55,3 @@ type AmbulanceServiceRequestAdminQueryParams struct {
 	Page            int    `form:"page"`
 	Limit           int    `form:"limit"`
 }
-

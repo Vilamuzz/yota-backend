@@ -207,9 +207,10 @@ func (h *handler) GetAssignedAmbulanceServiceRequestByID(c *gin.Context) {
 // @Description Create a new ambulance service request with the provided details
 // @Tags Ambulance Service Requests
 // @Security BearerAuth
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
-// @Param ambulance_service_request body CreateAmbulanceServiceRequest true "Ambulance service request details"
+// @Param payload formData CreateAmbulanceServiceRequest true "Ambulance service request details"
+// @Param submitterIdCard formData file true "Submitter ID Card Image"
 // @Success 200 {object} pkg.Response
 // @Failure 400 {object} pkg.Response
 // @Failure 500 {object} pkg.Response
@@ -218,7 +219,7 @@ func (h *handler) CreateAmbulanceServiceRequest(c *gin.Context) {
 	ctx := c.Request.Context()
 	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
 	var payload CreateAmbulanceServiceRequest
-	if err := c.ShouldBindJSON(&payload); err != nil {
+	if err := c.ShouldBind(&payload); err != nil {
 		c.JSON(400, pkg.NewResponse(400, "Invalid request body", nil, nil))
 		return
 	}

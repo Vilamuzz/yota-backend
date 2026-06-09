@@ -26,7 +26,7 @@ func NewRepository(conn *gorm.DB) Repository {
 }
 
 var allowedAmbulanceServiceRequestSortColumns = map[string]string{
-	"applicant_name": "applicant_name",
+	"submitter_name": "submitter_name",
 	"created_at":     "created_at",
 }
 
@@ -38,6 +38,8 @@ func (r *repository) FindByID(ctx context.Context, id string) (AmbulanceServiceR
 	var ambulanceServiceRequest AmbulanceServiceRequest
 	if err := r.Conn.WithContext(ctx).
 		Preload("Ambulance.Driver.UserProfile").
+		Preload("Account").
+		Preload("Account.UserProfile").
 		First(&ambulanceServiceRequest, "id = ?", id).Error; err != nil {
 		return AmbulanceServiceRequest{}, err
 	}
@@ -49,7 +51,7 @@ func (r *repository) Count(ctx context.Context, options map[string]interface{}) 
 	query := r.Conn.WithContext(ctx).Model(&AmbulanceServiceRequest{})
 
 	if accountID, ok := options["account_id"]; ok && accountID != "" {
-		query = query.Where("account_id = ?", accountID)
+		query = query.Where("submitted_by = ?", accountID)
 	}
 
 	if ambulanceID, ok := options["ambulance_id"]; ok && ambulanceID != "" {
@@ -67,9 +69,9 @@ func (r *repository) Count(ctx context.Context, options map[string]interface{}) 
 	if search, ok := options["search"]; ok && search != "" {
 		searchTerm := "%" + search.(string) + "%"
 		if onlyName, ok := options["search_only_name"]; ok && onlyName.(bool) {
-			query = query.Where("applicant_name ILIKE ?", searchTerm)
+			query = query.Where("submitter_name ILIKE ?", searchTerm)
 		} else {
-			query = query.Where("applicant_name ILIKE ? OR applicant_phone ILIKE ?", searchTerm, searchTerm)
+			query = query.Where("submitter_name ILIKE ? OR patient_name ILIKE ?", searchTerm, searchTerm)
 		}
 	}
 
@@ -84,7 +86,7 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 	query := r.Conn.WithContext(ctx)
 
 	if accountID, ok := options["account_id"]; ok && accountID != "" {
-		query = query.Where("account_id = ?", accountID)
+		query = query.Where("submitted_by = ?", accountID)
 	}
 
 	if ambulanceID, ok := options["ambulance_id"]; ok && ambulanceID != "" {
@@ -102,9 +104,9 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 	if search, ok := options["search"]; ok && search != "" {
 		searchTerm := "%" + search.(string) + "%"
 		if onlyName, ok := options["search_only_name"]; ok && onlyName.(bool) {
-			query = query.Where("applicant_name ILIKE ?", searchTerm)
+			query = query.Where("submitter_name ILIKE ?", searchTerm)
 		} else {
-			query = query.Where("applicant_name ILIKE ? OR applicant_phone ILIKE ?", searchTerm, searchTerm)
+			query = query.Where("submitter_name ILIKE ? OR patient_name ILIKE ?", searchTerm, searchTerm)
 		}
 	}
 
