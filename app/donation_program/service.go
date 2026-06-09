@@ -10,6 +10,7 @@ import (
 	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type Service interface {
@@ -283,7 +284,10 @@ func (s *service) UpdateDonationProgram(ctx context.Context, id string, payload 
 
 	donationProgram, err := s.repo.FindOneDonationProgram(ctx, map[string]interface{}{"id": id})
 	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Donasi tidak ditemukan", nil, nil)
+		if err == gorm.ErrRecordNotFound {
+			return pkg.NewResponse(http.StatusNotFound, "Donasi tidak ditemukan", nil, nil)
+		}
+		return pkg.NewResponse(http.StatusInternalServerError, "Terjadi kesalahan pada server", nil, nil)
 	}
 	if donationProgram.Status == StatusCompleted || donationProgram.Status == StatusExpired || donationProgram.Status == StatusArchived {
 		return pkg.NewResponse(http.StatusBadRequest, "Donasi sudah selesai, kedaluwarsa, atau diarsipkan dan tidak dapat diperbarui", nil, nil)
