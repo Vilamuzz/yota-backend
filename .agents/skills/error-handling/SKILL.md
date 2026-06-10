@@ -61,7 +61,7 @@ if err := s.repo.UpdateDonationProgram(ctx, id, updateData); err != nil {
 
 ---
 
-## 4. ❌ FORBIDDEN AI ANTI-PATTERNS (DO NOT GENERATE)
+## 4. FORBIDDEN AI ANTI-PATTERNS (DO NOT GENERATE)
 
 - **Naked Error Returns**: Do not return an unmapped Go error primitive directly from a service method to a handler. Every business service outcome must return a correctly populated `pkg.Response` object.
 - **Silent Database Failures**: Do not omit error checks on GORM transactions or updates. Every write execution (Create, Save, Update, Delete) must have an active conditional block ensuring failure capture.

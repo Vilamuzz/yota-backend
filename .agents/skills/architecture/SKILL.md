@@ -180,7 +180,7 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	// Register endpoints with appropriate middlewares
 	r.GET("/roles", h.GetRoleList)
-	
+
 	admin := r.Group("/admin/accounts")
 	admin.Use(h.middleware.RequireRoles(...))
 	{
@@ -192,16 +192,16 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 func (h *handler) GetAccountList(c *gin.Context) {
 	ctx := c.Request.Context()
 	var queryParam AccountQueryParam
-	
+
 	// 1. Parameter binding using Gin Context query/json binding
 	if err := c.ShouldBindQuery(&queryParam); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Permintaan tidak valid", nil, nil))
 		return
 	}
-	
+
 	// 2. Service execution
 	res := h.service.GetAccountList(ctx, queryParam, false)
-	
+
 	// 3. Serve standard json response
 	c.JSON(res.Status, res)
 }
@@ -261,7 +261,7 @@ func (a *Account) toAccountResponse() AccountResponse {
 
 ---
 
-## 4. ❌ FORBIDDEN AI ANTI-PATTERNS (DO NOT GENERATE)
+## 4. FORBIDDEN AI ANTI-PATTERNS (DO NOT GENERATE)
 
 - **Context Bleeding:** Do not use or parse `*gin.Context` inside any file matching `*_service.go` or `*_repository.go`
 - **Layer Bypass:** Never pass a `*gorm.DB` connection directly into a service or handler method. All persistence queries must reside inside `repository.go`
