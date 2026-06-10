@@ -12,6 +12,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/ambulance_history"
 	"github.com/Vilamuzz/yota-backend/app/ambulance_service_request"
 	"github.com/Vilamuzz/yota-backend/app/auth"
+	"github.com/Vilamuzz/yota-backend/app/backup"
 	"github.com/Vilamuzz/yota-backend/app/donation_program"
 	"github.com/Vilamuzz/yota-backend/app/donation_program_expense"
 	"github.com/Vilamuzz/yota-backend/app/donation_program_transaction"
@@ -40,6 +41,7 @@ import (
 	redis_pkg "github.com/Vilamuzz/yota-backend/pkg/redis"
 	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 	"github.com/gin-gonic/gin"
+	"github.com/minio/minio-go/v7"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -49,6 +51,7 @@ type Container struct {
 	DB             *gorm.DB
 	RedisClient    *redis_pkg.Client
 	S3Client       s3_pkg.Client
+	MinioClient    *minio.Client
 	MidtransClient payment_pkg.Client
 	Timeout        time.Duration
 
@@ -105,6 +108,7 @@ type Container struct {
 	SocialProgramSubscriptionService social_program_subscription.Service
 	SocialProgramTransactionService  social_program_transaction.Service
 	LogService                       app_log.Service
+	BackupService                    backup.Service
 
 	// Middleware
 	Middleware *middleware.AppMiddleware
@@ -167,8 +171,9 @@ func (c *Container) initInfrastructure() error {
 	}
 
 	// S3-compatible client (RustFS)
-	s3Client := config.ConnectS3()
-	c.S3Client = s3_pkg.NewClient(s3Client)
+	minioClient := config.ConnectS3()
+	c.MinioClient = minioClient
+	c.S3Client = s3_pkg.NewClient(minioClient)
 
 	// Timeout
 	timeoutStr := os.Getenv("TIMEOUT")
@@ -238,6 +243,7 @@ func (c *Container) initServices() {
 	c.SocialProgramInvoiceService = social_program_invoice.NewService(c.SocialProgramInvoiceRepo, c.SocialProgramSubscriptionRepo, c.Timeout)
 	c.SocialProgramSubscriptionService = social_program_subscription.NewService(c.SocialProgramSubscriptionRepo, c.SocialProgramRepo, c.Timeout)
 	c.SocialProgramTransactionService = social_program_transaction.NewService(c.SocialProgramTransactionRepo, c.AccountRepo, c.SocialProgramSubscriptionRepo, c.SocialProgramInvoiceRepo, c.FinanceRecordRepo, c.MidtransClient, c.LogService, c.Timeout)
+	c.BackupService = backup.NewService(c.DB, c.MinioClient)
 }
 
 func (c *Container) initMiddleware() {
@@ -271,6 +277,21 @@ func (c *Container) initScheduler() {
 			_ = err
 		}
 	})
+
+	// Create database backup daily at 2 AM
+	c.Scheduler.Add("0 2 * * *", "database-backup", func() {
+		if _, err := c.BackupService.CreateBackup(context.Background()); err != nil {
+			_ = err
+		}
+	})
+
+	// Cleanup old backups daily at 3 AM (keep backups for last 7 days)
+	c.Scheduler.Add("0 3 * * *", "backup-cleanup", func() {
+		retentionDays := 7
+		if _, err := c.BackupService.CleanupOldBackups(context.Background(), retentionDays); err != nil {
+			_ = err
+		}
+	})
 }
 
 // RegisterHandlers registers all handlers with their routes
@@ -299,6 +320,7 @@ func (c *Container) RegisterHandlers(router *gin.RouterGroup) {
 	social_program_subscription.NewHandler(router, c.SocialProgramSubscriptionService, *c.Middleware)
 	social_program_transaction.NewHandler(router, c.SocialProgramTransactionService, *c.Middleware)
 	app_log.NewHandler(router, c.LogService, *c.Middleware)
+	backup.NewHandler(router, c.BackupService, *c.Middleware)
 
 	// Payment Webhooks
 	paymentGroup := router.Group("/webhooks")
