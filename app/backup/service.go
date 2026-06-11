@@ -3,59 +3,71 @@ package backup
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
 
+	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
-type Service interface {
-	CreateBackup(ctx context.Context) (*BackupMetadata, error)
-	ListBackups(ctx context.Context) ([]BackupMetadata, error)
-	GetBackupURL(ctx context.Context, backupID string) (string, error)
-	DeleteBackup(ctx context.Context, backupID string) error
-	CleanupOldBackups(ctx context.Context, retentionDays int) (int, error)
-}
-
 type service struct {
-	db          *gorm.DB
+	repo        Repository
 	minioClient *minio.Client
 	bucketName  string
 	timeout     time.Duration
 }
 
-func NewService(db *gorm.DB, minioClient *minio.Client) Service {
+type Service interface {
+	CreateBackup(ctx context.Context) pkg.Response
+	ListBackups(ctx context.Context) pkg.Response
+	GetBackupURL(ctx context.Context, backupID string) pkg.Response
+	DeleteBackup(ctx context.Context, backupID string) pkg.Response
+	CleanupOldBackups(ctx context.Context, retentionDays int) pkg.Response
+}
+
+func NewService(repo Repository, minioClient *minio.Client, timeout time.Duration) Service {
 	bucketName := os.Getenv("RUSTFS_BUCKET_NAME")
 	if bucketName == "" {
 		bucketName = "default-bucket"
 	}
 
 	return &service{
-		db:          db,
+		repo:        repo,
 		minioClient: minioClient,
 		bucketName:  bucketName,
-		timeout:     30 * time.Second,
+		timeout:     timeout,
 	}
 }
 
-func (s *service) CreateBackup(ctx context.Context) (*BackupMetadata, error) {
+func (s *service) CreateBackup(ctx context.Context) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	startTime := time.Now()
-	backupID := uuid.New().String()
+	backupID := uuid.New()
 	filename := fmt.Sprintf("backup_%s_%d.sql", time.Now().Format("20060102_150405"), time.Now().Unix())
 	tempFile := filepath.Join(os.TempDir(), filename)
 
-	logrus.Infof("Backup: starting backup [%s] -> %s", backupID, filename)
+	logrus.WithFields(logrus.Fields{
+		"component": "backup.service",
+		"backup_id": backupID,
+		"filename":  filename,
+	}).Info("starting backup execution")
 
 	connStr := s.extractConnectionString()
 	if connStr == "" {
-		logrus.Errorf("Backup: failed to extract connection string")
-		return nil, fmt.Errorf("failed to extract database connection string")
+		logrus.WithFields(logrus.Fields{
+			"component": "backup.service",
+		}).Error("failed to extract connection string")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengekstrak string koneksi database", nil, nil)
 	}
 
 	// Execute pg_dump
@@ -66,28 +78,40 @@ func (s *service) CreateBackup(ctx context.Context) (*BackupMetadata, error) {
 	cmd.Stderr = &errOut
 
 	if err := cmd.Run(); err != nil {
-		logrus.Errorf("Backup: pg_dump failed: %v, stderr: %s", err, errOut.String())
-		return nil, fmt.Errorf("pg_dump failed: %w", err)
+		logrus.WithFields(logrus.Fields{
+			"component": "backup.service",
+			"stderr":    errOut.String(),
+		}).WithError(err).Error("pg_dump command execution failed")
+		return pkg.NewResponse(http.StatusInternalServerError, "Eksekusi pg_dump gagal", nil, nil)
 	}
 
 	// Write to temp file
 	if err := os.WriteFile(tempFile, out.Bytes(), 0600); err != nil {
-		logrus.Errorf("Backup: failed to write temp file: %v", err)
-		return nil, fmt.Errorf("failed to write backup file: %w", err)
+		logrus.WithFields(logrus.Fields{
+			"component": "backup.service",
+			"temp_file": tempFile,
+		}).WithError(err).Error("failed to write temp backup file")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menulis file backup sementara", nil, nil)
 	}
 	defer os.Remove(tempFile)
 
 	// Upload to S3
 	fileInfo, err := os.Stat(tempFile)
 	if err != nil {
-		logrus.Errorf("Backup: failed to stat file: %v", err)
-		return nil, fmt.Errorf("failed to stat backup file: %w", err)
+		logrus.WithFields(logrus.Fields{
+			"component": "backup.service",
+			"temp_file": tempFile,
+		}).WithError(err).Error("failed to stat temp backup file")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membaca detail file backup", nil, nil)
 	}
 
 	file, err := os.Open(tempFile)
 	if err != nil {
-		logrus.Errorf("Backup: failed to open file for upload: %v", err)
-		return nil, fmt.Errorf("failed to open backup file: %w", err)
+		logrus.WithFields(logrus.Fields{
+			"component": "backup.service",
+			"temp_file": tempFile,
+		}).WithError(err).Error("failed to open temp backup file for upload")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuka file backup untuk diunggah", nil, nil)
 	}
 	defer file.Close()
 
@@ -96,94 +120,196 @@ func (s *service) CreateBackup(ctx context.Context) (*BackupMetadata, error) {
 		ContentType: "application/sql",
 	})
 	if err != nil {
-		logrus.Errorf("Backup: failed to upload to S3: %v", err)
-		return nil, fmt.Errorf("failed to upload backup to S3: %w", err)
+		logrus.WithFields(logrus.Fields{
+			"component": "backup.service",
+			"s3_path":   backupPath,
+		}).WithError(err).Error("failed to upload backup file to S3")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah file backup ke S3", nil, nil)
 	}
 
-	duration := time.Since(startTime).Seconds()
-	metadata := &BackupMetadata{
+	duration := int64(time.Since(startTime).Seconds())
+	backupRecord := &Backup{
 		ID:        backupID,
 		Filename:  filename,
 		Size:      fileInfo.Size(),
+		Duration:  duration,
 		CreatedAt: time.Now(),
-		Duration:  int64(duration),
+		UpdatedAt: time.Now(),
 	}
 
-	logrus.Infof("Backup: successfully created backup [%s] (size: %d bytes, duration: %.2fs)", backupID, fileInfo.Size(), duration)
-	return metadata, nil
+	if err := s.repo.CreateBackup(ctx, backupRecord); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "backup.service",
+			"backup_id": backupID,
+		}).WithError(err).Error("failed to save backup metadata to database")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menyimpan metadata backup ke database", nil, nil)
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"component": "backup.service",
+		"backup_id": backupID,
+		"size":      fileInfo.Size(),
+		"duration":  duration,
+	}).Info("backup successfully created and metadata stored")
+
+	return pkg.NewResponse(http.StatusCreated, "Backup berhasil dibuat", nil, backupRecord.toBackupResponse())
 }
 
-func (s *service) ListBackups(ctx context.Context) ([]BackupMetadata, error) {
-	listChan := s.minioClient.ListObjects(ctx, s.bucketName, minio.ListObjectsOptions{
-		Prefix:    "backups/",
-		Recursive: true,
+func (s *service) ListBackups(ctx context.Context) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	backups, err := s.repo.FindAllBackups(ctx)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "backup.service",
+		}).WithError(err).Error("failed to retrieve backups from database")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data backup", nil, nil)
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Berhasil mengambil daftar backup", nil, toBackupListResponse(backups))
+}
+
+func (s *service) GetBackupURL(ctx context.Context, backupID string) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	if _, err := uuid.Parse(backupID); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Format ID tidak valid", map[string]string{"id": "Format ID backup tidak valid"}, nil)
+	}
+
+	backup, err := s.repo.FindOneBackup(ctx, backupID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return pkg.NewResponse(http.StatusNotFound, "Backup tidak ditemukan", nil, nil)
+		}
+		logrus.WithFields(logrus.Fields{
+			"component": "backup.service",
+			"backup_id": backupID,
+		}).WithError(err).Error("failed to find backup record")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menemukan data backup", nil, nil)
+	}
+
+	backupPath := fmt.Sprintf("backups/%s", backup.Filename)
+	presignedURL, err := s.minioClient.PresignedGetObject(ctx, s.bucketName, backupPath, 1*time.Hour, nil)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "backup.service",
+			"s3_path":   backupPath,
+		}).WithError(err).Error("failed to generate presigned S3 url")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat tautan unduhan backup", nil, nil)
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Berhasil menghasilkan tautan unduhan backup", nil, BackupURLResponse{
+		URL: presignedURL.String(),
 	})
+}
 
-	backups := make([]BackupMetadata, 0)
-	for obj := range listChan {
-		if obj.Err != nil {
-			logrus.Errorf("Backup: error listing objects: %v", obj.Err)
-			return nil, fmt.Errorf("failed to list backups: %w", obj.Err)
-		}
+func (s *service) DeleteBackup(ctx context.Context, backupID string) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
 
-		backup := BackupMetadata{
-			ID:        uuid.New().String(),
-			Filename:  filepath.Base(obj.Key),
-			Size:      obj.Size,
-			CreatedAt: obj.LastModified,
-		}
-		backups = append(backups, backup)
+	if _, err := uuid.Parse(backupID); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Format ID tidak valid", map[string]string{"id": "Format ID backup tidak valid"}, nil)
 	}
 
-	logrus.Infof("Backup: listed %d backups", len(backups))
-	return backups, nil
+	backup, err := s.repo.FindOneBackup(ctx, backupID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return pkg.NewResponse(http.StatusNotFound, "Backup tidak ditemukan", nil, nil)
+		}
+		logrus.WithFields(logrus.Fields{
+			"component": "backup.service",
+			"backup_id": backupID,
+		}).WithError(err).Error("failed to find backup record for deletion")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menemukan data backup", nil, nil)
+	}
+
+	backupPath := fmt.Sprintf("backups/%s", backup.Filename)
+	err = s.minioClient.RemoveObject(ctx, s.bucketName, backupPath, minio.RemoveObjectOptions{})
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "backup.service",
+			"s3_path":   backupPath,
+		}).WithError(err).Error("failed to delete backup from S3")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menghapus file backup dari S3", nil, nil)
+	}
+
+	if err := s.repo.DeleteBackup(ctx, backupID); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "backup.service",
+			"backup_id": backupID,
+		}).WithError(err).Error("failed to soft delete backup record in database")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menghapus metadata backup dari database", nil, nil)
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"component": "backup.service",
+		"backup_id": backupID,
+	}).Info("backup successfully deleted from S3 and database")
+
+	return pkg.NewResponse(http.StatusOK, "Backup berhasil dihapus", nil, nil)
 }
 
-func (s *service) GetBackupURL(ctx context.Context, backupID string) (string, error) {
-	logrus.Infof("Backup: getting URL for backup [%s]", backupID)
-	return "", fmt.Errorf("backup URL retrieval not fully implemented - requires DB mapping")
-}
+func (s *service) CleanupOldBackups(ctx context.Context, retentionDays int) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 
-func (s *service) DeleteBackup(ctx context.Context, backupID string) error {
-	logrus.Infof("Backup: deleting backup [%s]", backupID)
-	return fmt.Errorf("backup deletion not fully implemented - requires DB mapping")
-}
-
-func (s *service) CleanupOldBackups(ctx context.Context, retentionDays int) (int, error) {
 	if retentionDays <= 0 {
 		retentionDays = 7
 	}
 
-	logrus.Infof("Backup: cleanup started - removing backups older than %d days", retentionDays)
-	
+	logrus.WithFields(logrus.Fields{
+		"component":      "backup.service",
+		"retention_days": retentionDays,
+	}).Info("starting manual backup cleanup")
+
 	cutoffTime := time.Now().AddDate(0, 0, -retentionDays)
+	backups, err := s.repo.GetOldBackups(ctx, cutoffTime)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "backup.service",
+		}).WithError(err).Error("failed to query old backups for cleanup")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mencari file backup lama", nil, nil)
+	}
+
 	deletedCount := 0
-
-	listChan := s.minioClient.ListObjects(ctx, s.bucketName, minio.ListObjectsOptions{
-		Prefix:    "backups/",
-		Recursive: true,
-	})
-
-	for obj := range listChan {
-		if obj.Err != nil {
-			logrus.Errorf("Backup: error listing objects during cleanup: %v", obj.Err)
+	for _, b := range backups {
+		backupPath := fmt.Sprintf("backups/%s", b.Filename)
+		err := s.minioClient.RemoveObject(ctx, s.bucketName, backupPath, minio.RemoveObjectOptions{})
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"component": "backup.service",
+				"s3_path":   backupPath,
+			}).WithError(err).Warn("failed to delete old backup from S3 during cleanup")
 			continue
 		}
 
-		if obj.LastModified.Before(cutoffTime) {
-			err := s.minioClient.RemoveObject(ctx, s.bucketName, obj.Key, minio.RemoveObjectOptions{})
-			if err != nil {
-				logrus.Errorf("Backup: failed to delete old backup [%s]: %v", obj.Key, err)
-				continue
-			}
-
-			logrus.Infof("Backup: deleted old backup [%s] (created: %s)", obj.Key, obj.LastModified.Format(time.RFC3339))
-			deletedCount++
+		if err := s.repo.DeleteBackup(ctx, b.ID.String()); err != nil {
+			logrus.WithFields(logrus.Fields{
+				"component": "backup.service",
+				"backup_id": b.ID,
+			}).WithError(err).Warn("failed to soft delete old backup metadata from database during cleanup")
+			continue
 		}
+
+		logrus.WithFields(logrus.Fields{
+			"component": "backup.service",
+			"backup_id": b.ID,
+			"filename":  b.Filename,
+		}).Info("cleaned up old backup file")
+		deletedCount++
 	}
 
-	logrus.Infof("Backup: cleanup completed - deleted %d old backups", deletedCount)
-	return deletedCount, nil
+	logrus.WithFields(logrus.Fields{
+		"component":     "backup.service",
+		"deleted_count": deletedCount,
+	}).Info("cleanup completed")
+
+	return pkg.NewResponse(http.StatusOK, "Pembersihan backup lama berhasil diselesaikan", nil, BackupCleanupResponse{
+		DeletedCount:  deletedCount,
+		RetentionDays: retentionDays,
+	})
 }
 
 func (s *service) extractConnectionString() string {

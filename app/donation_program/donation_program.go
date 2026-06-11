@@ -9,12 +9,12 @@ import (
 type DonationProgram struct {
 	ID          uuid.UUID  `json:"id" gorm:"primaryKey"`
 	Title       string     `json:"title" gorm:"not null"`
-	Slug        string     `json:"slug" gorm:"not null"`
+	Slug        string     `json:"slug" gorm:"not null;index:idx_slug,type:btree"`
 	CoverImage  string     `json:"coverImage"`
 	Category    Category   `json:"category"`
 	Description string     `json:"description"`
 	FundTarget  float64    `json:"fundTarget"`
-	Status      Status     `json:"status" gorm:"type:varchar(20);index;not null;default:'draft'"`
+	Status      Status     `json:"status" gorm:"type:varchar(20);index:idx_status,type:btree;not null;default:'draft'"`
 	StartDate   time.Time  `json:"startDate"`
 	EndDate     time.Time  `json:"endDate"`
 	CreatedAt   time.Time  `json:"createdAt"`

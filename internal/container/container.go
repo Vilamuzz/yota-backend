@@ -109,6 +109,7 @@ type Container struct {
 	SocialProgramTransactionService  social_program_transaction.Service
 	LogService                       app_log.Service
 	BackupService                    backup.Service
+	BackupRepo                       backup.Repository
 
 	// Middleware
 	Middleware *middleware.AppMiddleware
@@ -215,6 +216,7 @@ func (c *Container) initRepositories() {
 	c.SocialProgramSubscriptionRepo = social_program_subscription.NewRepository(c.DB)
 	c.SocialProgramTransactionRepo = social_program_transaction.NewRepository(c.DB)
 	c.LogRepo = app_log.NewRepository(c.DB)
+	c.BackupRepo = backup.NewRepository(c.DB)
 }
 
 func (c *Container) initServices() {
@@ -243,7 +245,7 @@ func (c *Container) initServices() {
 	c.SocialProgramInvoiceService = social_program_invoice.NewService(c.SocialProgramInvoiceRepo, c.SocialProgramSubscriptionRepo, c.Timeout)
 	c.SocialProgramSubscriptionService = social_program_subscription.NewService(c.SocialProgramSubscriptionRepo, c.SocialProgramRepo, c.Timeout)
 	c.SocialProgramTransactionService = social_program_transaction.NewService(c.SocialProgramTransactionRepo, c.AccountRepo, c.SocialProgramSubscriptionRepo, c.SocialProgramInvoiceRepo, c.FinanceRecordRepo, c.MidtransClient, c.LogService, c.Timeout)
-	c.BackupService = backup.NewService(c.DB, c.MinioClient)
+	c.BackupService = backup.NewService(c.BackupRepo, c.MinioClient, c.Timeout)
 }
 
 func (c *Container) initMiddleware() {
@@ -280,17 +282,13 @@ func (c *Container) initScheduler() {
 
 	// Create database backup daily at 2 AM
 	c.Scheduler.Add("0 2 * * *", "database-backup", func() {
-		if _, err := c.BackupService.CreateBackup(context.Background()); err != nil {
-			_ = err
-		}
+		_ = c.BackupService.CreateBackup(context.Background())
 	})
 
 	// Cleanup old backups daily at 3 AM (keep backups for last 7 days)
 	c.Scheduler.Add("0 3 * * *", "backup-cleanup", func() {
 		retentionDays := 7
-		if _, err := c.BackupService.CleanupOldBackups(context.Background(), retentionDays); err != nil {
-			_ = err
-		}
+		_ = c.BackupService.CleanupOldBackups(context.Background(), retentionDays)
 	})
 }
 

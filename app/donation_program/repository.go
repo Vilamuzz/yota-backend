@@ -42,18 +42,13 @@ var allowedSortColumns = map[string]string{
 }
 
 func buildDonationProgramBaseQuery(conn *gorm.DB, ctx context.Context, options map[string]interface{}) *gorm.DB {
-	collectedFundSubquery := conn.Table("donation_program_transactions").
-		Select("COALESCE(SUM(gross_amount), 0)").
-		Where("donation_program_id = donation_programs.id AND transaction_status = 'settlement'")
-
-	totalExpenseSubquery := conn.Table("donation_program_expenses").
-		Select("COALESCE(SUM(amount), 0)").
-		Where("donation_program_id = donation_programs.id AND deleted_at IS NULL")
-
 	query := conn.WithContext(ctx).
-		Table("donation_programs").
-		Where("deleted_at IS NULL").
-		Select("donation_programs.*, (?) as collected_fund, (?) as total_expense", collectedFundSubquery, totalExpenseSubquery)
+		Table("donation_programs dp").
+		Joins("LEFT JOIN donation_program_transactions dpt ON dpt.donation_program_id = dp.id AND dpt.transaction_status = 'settlement'").
+		Joins("LEFT JOIN donation_program_expenses dpe ON dpe.donation_program_id = dp.id AND dpe.deleted_at IS NULL").
+		Where("dp.deleted_at IS NULL").
+		Group("dp.id").
+		Select("dp.*, COALESCE(SUM(dpt.gross_amount), 0) as collected_fund, COALESCE(SUM(dpe.amount), 0) as total_expense")
 
 	if search, ok := options["search"]; ok && search != "" {
 		query = query.Where("title ILIKE ?", "%"+search.(string)+"%")
@@ -88,7 +83,6 @@ func (r *repository) FindAllDonationPrograms(ctx context.Context, options map[st
 	var donationPrograms []DonationProgram
 	query := buildDonationProgramBaseQuery(r.Conn, ctx, options)
 
-	// Build ORDER BY clause from "sort" option, e.g. "title asc" or "fund_target desc".
 	orderClause := "created_at DESC"
 	if sortBy, ok := options["sort_by"]; ok && sortBy != "" {
 		parts := strings.Fields(strings.ToLower(sortBy.(string)))
@@ -155,17 +149,14 @@ func (r *repository) CountDonationPrograms(ctx context.Context, options map[stri
 
 func (r *repository) FindOneDonationProgram(ctx context.Context, options map[string]interface{}) (*DonationProgram, error) {
 	var donationProgram DonationProgram
-	collectedFundSubquery := r.Conn.Table("donation_program_transactions").
-		Select("COALESCE(SUM(gross_amount), 0)").
-		Where("donation_program_id = donation_programs.id AND transaction_status = 'settlement'")
-
-	totalExpenseSubquery := r.Conn.Table("donation_program_expenses").
-		Select("COALESCE(SUM(amount), 0)").
-		Where("donation_program_id = donation_programs.id AND deleted_at IS NULL")
-
 	query := r.Conn.WithContext(ctx).
-		Select("donation_programs.*, (?) as collected_fund, (?) as total_expense", collectedFundSubquery, totalExpenseSubquery).
-		Where("deleted_at IS NULL")
+		Table("donation_programs dp").
+		Joins("LEFT JOIN donation_program_transactions dpt ON dpt.donation_program_id = dp.id AND dpt.transaction_status = 'settlement'").
+		Joins("LEFT JOIN donation_program_expenses dpe ON dpe.donation_program_id = dp.id AND dpe.deleted_at IS NULL").
+		Where("dp.deleted_at IS NULL").
+		Group("dp.id").
+		Select("dp.*, COALESCE(SUM(dpt.gross_amount), 0) as collected_fund, COALESCE(SUM(dpe.amount), 0) as total_expense")
+
 	if id, ok := options["id"]; ok && id != "" {
 		query = query.Where("id = ?", id)
 	}

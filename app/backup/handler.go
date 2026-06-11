@@ -1,28 +1,35 @@
 package backup
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 
 	"github.com/Vilamuzz/yota-backend/app/middleware"
+	"github.com/Vilamuzz/yota-backend/pkg"
+	"github.com/Vilamuzz/yota-backend/pkg/enum"
 )
 
-type Handler struct {
-	service Service
+type handler struct {
+	service    Service
+	middleware middleware.AppMiddleware
 }
 
-func NewHandler(router *gin.RouterGroup, service Service, mw middleware.AppMiddleware) {
-	h := &Handler{service: service}
+func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
+	h := &handler{
+		service:    s,
+		middleware: m,
+	}
+	h.RegisterRoutes(r)
+}
 
-	backupGroup := router.Group("/backups")
-	backupGroup.Use(mw.AuthRequired())
+func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
+	backupGroup := r.Group("admin/backups")
+	backupGroup.Use(h.middleware.RequireRoles(enum.RoleSuperadmin))
 	{
-		backupGroup.POST("/create", h.CreateBackup)
-		backupGroup.GET("/list", h.ListBackups)
-		backupGroup.GET("/download/:id", h.GetBackupURL)
+		backupGroup.POST("", h.CreateBackup)
+		backupGroup.GET("", h.ListBackups)
+		backupGroup.GET("/:id/download", h.GetBackupURL)
 		backupGroup.DELETE("/:id", h.DeleteBackup)
 		backupGroup.POST("/cleanup", h.CleanupOldBackups)
 	}
@@ -30,150 +37,95 @@ func NewHandler(router *gin.RouterGroup, service Service, mw middleware.AppMiddl
 
 // CreateBackup handles on-demand backup creation
 // @Summary Create database backup
-// @Description Create an immediate backup of the database and store in S3
+// @Description Create an immediate backup of the database and store in S3 and register in metadata db
 // @Tags Backup
-// @Param backup body BackupRequest false "Backup request"
-// @Success 200 {object} BackupResponse
-// @Failure 400 {object} BackupResponse
-// @Failure 500 {object} BackupResponse
-// @Router /backups/create [post]
-func (h *Handler) CreateBackup(c *gin.Context) {
+// @Security BearerAuth
+// @Produce json
+// @Success 201 {object} pkg.Response
+// @Failure 500 {object} pkg.Response
+// @Router /api/admin/backups [post]
+func (h *handler) CreateBackup(c *gin.Context) {
 	ctx := c.Request.Context()
-
-	backup, err := h.service.CreateBackup(ctx)
-	if err != nil {
-		logrus.Errorf("Handler: failed to create backup: %v", err)
-		c.JSON(http.StatusInternalServerError, BackupResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, BackupResponse{
-		Success: true,
-		Message: "Backup created successfully",
-		Backup:  backup,
-	})
+	res := h.service.CreateBackup(ctx)
+	c.JSON(res.Status, res)
 }
 
 // ListBackups handles listing all backups
 // @Summary List all backups
-// @Description List all database backups stored in S3
+// @Description List all database backups stored in database metadata
 // @Tags Backup
-// @Success 200 {object} BackupListResponse
-// @Failure 500 {object} BackupListResponse
-// @Router /backups/list [get]
-func (h *Handler) ListBackups(c *gin.Context) {
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} pkg.Response
+// @Failure 500 {object} pkg.Response
+// @Router /api/admin/backups [get]
+func (h *handler) ListBackups(c *gin.Context) {
 	ctx := c.Request.Context()
-
-	backups, err := h.service.ListBackups(ctx)
-	if err != nil {
-		logrus.Errorf("Handler: failed to list backups: %v", err)
-		c.JSON(http.StatusInternalServerError, BackupListResponse{
-			Success: false,
-			Error:   err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, BackupListResponse{
-		Success: true,
-		Backups: backups,
-		Total:   len(backups),
-	})
+	res := h.service.ListBackups(ctx)
+	c.JSON(res.Status, res)
 }
 
 // GetBackupURL handles getting a presigned download URL
 // @Summary Get backup download URL
 // @Description Get presigned URL for downloading a backup
 // @Tags Backup
+// @Security BearerAuth
 // @Param id path string true "Backup ID"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /backups/download/{id} [get]
-func (h *Handler) GetBackupURL(c *gin.Context) {
-	backupID := c.Param("id")
+// @Produce json
+// @Success 200 {object} pkg.Response
+// @Failure 400 {object} pkg.Response
+// @Failure 404 {object} pkg.Response
+// @Failure 500 {object} pkg.Response
+// @Router /api/admin/backups/{id}/download [get]
+func (h *handler) GetBackupURL(c *gin.Context) {
 	ctx := c.Request.Context()
-
-	url, err := h.service.GetBackupURL(ctx, backupID)
-	if err != nil {
-		logrus.Errorf("Handler: failed to get backup URL: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"url":     url,
-	})
+	backupID := c.Param("id")
+	res := h.service.GetBackupURL(ctx, backupID)
+	c.JSON(res.Status, res)
 }
 
 // DeleteBackup handles deleting a backup
 // @Summary Delete backup
-// @Description Delete a backup from S3
+// @Description Delete a backup from S3 and metadata database
 // @Tags Backup
+// @Security BearerAuth
 // @Param id path string true "Backup ID"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /backups/{id} [delete]
-func (h *Handler) DeleteBackup(c *gin.Context) {
-	backupID := c.Param("id")
+// @Produce json
+// @Success 200 {object} pkg.Response
+// @Failure 400 {object} pkg.Response
+// @Failure 404 {object} pkg.Response
+// @Failure 500 {object} pkg.Response
+// @Router /api/admin/backups/{id} [delete]
+func (h *handler) DeleteBackup(c *gin.Context) {
 	ctx := c.Request.Context()
-
-	err := h.service.DeleteBackup(ctx, backupID)
-	if err != nil {
-		logrus.Errorf("Handler: failed to delete backup: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Backup deleted successfully",
-	})
+	backupID := c.Param("id")
+	res := h.service.DeleteBackup(ctx, backupID)
+	c.JSON(res.Status, res)
 }
 
 // CleanupOldBackups handles cleanup of backups older than retention period
 // @Summary Cleanup old backups
 // @Description Manually trigger cleanup of backups older than specified days
 // @Tags Backup
+// @Security BearerAuth
 // @Param retention query integer false "Retention days (default: 7)"
-// @Success 200 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /backups/cleanup [post]
-func (h *Handler) CleanupOldBackups(c *gin.Context) {
-	retentionDays := 7
-	if days := c.Query("retention"); days != "" {
-		if _, err := fmt.Sscanf(days, "%d", &retentionDays); err != nil {
-			logrus.Warnf("Handler: invalid retention days value, using default: %v", err)
-			retentionDays = 7
-		}
-	}
-
+// @Produce json
+// @Success 200 {object} pkg.Response
+// @Failure 500 {object} pkg.Response
+// @Router /api/admin/backups/cleanup [post]
+func (h *handler) CleanupOldBackups(c *gin.Context) {
 	ctx := c.Request.Context()
-	deletedCount, err := h.service.CleanupOldBackups(ctx, retentionDays)
-	if err != nil {
-		logrus.Errorf("Handler: failed to cleanup old backups: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
+	var queryParams CleanupQueryParams
+	if err := c.ShouldBindQuery(&queryParams); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success":       true,
-		"message":       "Cleanup completed successfully",
-		"deleted_count": deletedCount,
-		"retention_days": retentionDays,
-	})
+	retentionDays := 7
+	if queryParams.RetentionDays != nil {
+		retentionDays = *queryParams.RetentionDays
+	}
+
+	res := h.service.CleanupOldBackups(ctx, retentionDays)
+	c.JSON(res.Status, res)
 }
