@@ -183,13 +183,13 @@ func (s *service) CreateFosterChildren(ctx context.Context, req CreateFosterChil
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"birthDate": "Format tanggal tidak valid, diharapkan YYYY-MM-DD"}, nil)
 	}
 
-	// Upload profile picture
+	// Upload foto profil
 	profilePictureURL, err := s.s3Client.UploadFile(ctx, req.ProfilePicture, "foster-children")
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah foto profil", nil, nil)
 	}
 
-	// Upload family card
+	// Upload kartu keluarga
 	familyCardURL, err := s.s3Client.UploadFile(ctx, req.FamilyCard, "foster-children")
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah kartu keluarga", nil, nil)
@@ -224,7 +224,7 @@ func (s *service) CreateFosterChildren(ctx context.Context, req CreateFosterChil
 		UpdatedAt:      now,
 	}
 
-	// Upload achievements
+	// Upload piagam prestasi jika ada
 	if len(req.Achievements) > 0 {
 		var achievements []Achivement
 		for i, file := range req.Achievements {
@@ -328,7 +328,7 @@ func (s *service) UpdateFosterChildren(ctx context.Context, id string, req Updat
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
-	// Upload profile picture
+	// Upload foto profil
 	if req.ProfilePicture != nil {
 		existingImage := s3_pkg.ExtractObjectNameFromURL(existing.ProfilePicture)
 		if err := s.s3Client.DeleteFile(ctx, existingImage); err != nil {
@@ -341,7 +341,7 @@ func (s *service) UpdateFosterChildren(ctx context.Context, id string, req Updat
 		updateData["profile_picture"] = profilePictureURL
 	}
 
-	// Upload family card
+	// Upload kartu keluarga
 	if req.FamilyCard != nil {
 		existingImage := s3_pkg.ExtractObjectNameFromURL(existing.FamilyCard)
 		if err := s.s3Client.DeleteFile(ctx, existingImage); err != nil {
@@ -521,4 +521,3 @@ func (s *service) DeleteFosterChildren(ctx context.Context, id string) pkg.Respo
 	s.logService.CreateLog(ctx, nil, "DELETE", "foster_children", id, fosterChildren.ToAdminFosterChildrenDetailResponse(), nil)
 	return pkg.NewResponse(http.StatusOK, "Anak asuh berhasil dihapus", nil, nil)
 }
-
