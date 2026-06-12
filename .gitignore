@@ -48,4 +48,5 @@ Thumbs.db
 docker-compose.override.yml
 
 data/
-logs/
+logs/tmp_server
+tmp_server
