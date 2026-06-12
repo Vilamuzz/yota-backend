@@ -32,11 +32,11 @@ func (r *repository) FindAllSocialProgramInvoices(ctx context.Context, options m
 		Select("social_program_invoices.*, (SELECT snap_token FROM social_program_transactions WHERE social_program_invoice_id = social_program_invoices.id AND transaction_status = 'pending' LIMIT 1) as snap_token")
 
 	if subscriptionID, ok := options["subscription_id"]; ok && subscriptionID.(string) != "" {
-		query = query.Where("subscription_id = ?", subscriptionID.(string))
+		query = query.Where("social_program_invoices.subscription_id = ?", subscriptionID.(string))
 	}
 
 	if status, ok := options["status"]; ok && status.(string) != "" {
-		query = query.Where("status = ?", status.(string))
+		query = query.Where("social_program_invoices.status = ?", status.(string))
 	}
 
 	if accountID, ok := options["account_id"]; ok && accountID.(string) != "" {
@@ -47,17 +47,17 @@ func (r *repository) FindAllSocialProgramInvoices(ctx context.Context, options m
 	if nextCursor, ok := options["next_cursor"]; ok && nextCursor.(string) != "" {
 		cursorData, err := pkg.DecodeCursor(nextCursor.(string))
 		if err == nil {
-			query = query.Where("(created_at, id) < (?, ?)", cursorData.CreatedAt, cursorData.ID)
+			query = query.Where("(social_program_invoices.created_at, social_program_invoices.id) < (?, ?)", cursorData.CreatedAt, cursorData.ID)
 		}
 	} else if prevCursor, ok := options["prev_cursor"]; ok && prevCursor.(string) != "" {
 		cursorData, err := pkg.DecodeCursor(prevCursor.(string))
 		if err == nil {
-			query = query.Where("(created_at, id) > (?, ?)", cursorData.CreatedAt, cursorData.ID)
+			query = query.Where("(social_program_invoices.created_at, social_program_invoices.id) > (?, ?)", cursorData.CreatedAt, cursorData.ID)
 		}
 	}
 
 	if _, usingPrevCursor := options["prev_cursor"]; !usingPrevCursor {
-		query = query.Order("created_at DESC, id DESC")
+		query = query.Order("social_program_invoices.created_at DESC, social_program_invoices.id DESC")
 	}
 
 	limit := 10

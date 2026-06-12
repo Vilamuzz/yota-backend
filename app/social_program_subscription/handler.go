@@ -28,12 +28,6 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	r.POST("/social-programs/:id/subscribe", h.middleware.RequireRoles(enum.RoleOrangTuaAsuh), h.CreateSocialProgramSubscription)
 	r.PATCH("/social-programs/:id/unsubscribe", h.middleware.RequireRoles(enum.RoleOrangTuaAsuh), h.DeactivateMySocialProgramSubscription)
 
-	me := r.Group("/social-programs/subscriptions/me")
-	me.Use(h.middleware.RequireRoles(enum.RoleOrangTuaAsuh))
-	{
-		// me.GET("", h.GetMySocialProgramSubscriptionList)
-	}
-
 	// Admin routes
 	admin := r.Group("/admin/social-programs")
 	admin.Use(h.middleware.RequireRoles(enum.RoleSocialManager))
@@ -61,8 +55,8 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // @Param account_id query string false "Filter by account ID"
 // @Param status query string false "Filter by status"
 // @Param limit query int false "Pagination limit"
-// @Param next_cursor query string false "Pagination cursor (next page)"
-// @Param prev_cursor query string false "Pagination cursor (prev page)"
+// @Param page query int false "Pagination page"
+// @Param sortBy query string false "Sort by field"
 // @Success 200 {object} pkg.Response
 // @Router /api/admin/social-programs/{id}/subscriptions [get]
 func (h *handler) GetSocialProgramSubscriptionList(c *gin.Context) {
@@ -126,7 +120,6 @@ func (h *handler) GetSubscriberSubscriptionByID(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path string true "Social Program ID"
-// @Param payload body CreateSocialProgramSubscriptionRequest true "Subscription Data"
 // @Success 201 {object} pkg.Response
 // @Router /api/social-programs/{id}/subscribe [post]
 func (h *handler) CreateSocialProgramSubscription(c *gin.Context) {
@@ -147,9 +140,9 @@ func (h *handler) CreateSocialProgramSubscription(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path string true "Social Program ID"
-// @Param payload body CreateSocialProgramSubscriptionRequest true "Subscription Data"
+// @Param payload body CreateSocialProgramSubscriptionOfflineRequest true "Subscription Data"
 // @Success 201 {object} pkg.Response
-// @Router /api/admin/social-programs/{id}/subscribe [post]
+// @Router /api/admin/social-programs/{id}/subscriptions [post]
 func (h *handler) CreateOfflineSocialProgramSubscription(c *gin.Context) {
 	ctx := c.Request.Context()
 	socialProgramID := c.Param("id")
@@ -212,14 +205,15 @@ func (h *handler) DeactivateMySocialProgramSubscription(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param limit query int false "Pagination limit"
-// @Param next_cursor query string false "Pagination cursor (next page)"
-// @Param prev_cursor query string false "Pagination cursor (prev page)"
+// @Param page query int false "Pagination page"
+// @Param search query string false "Search subscriber by name or email"
+// @Param sortBy query string false "Sort by field"
 // @Success 200 {object} pkg.Response
 // @Router /api/admin/social-programs/subscribers [get]
 func (h *handler) GetSubscribers(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var params pkg.PaginationParams
+	var params SocialProgramSubscriptionQueryParams
 	if err := c.ShouldBindQuery(&params); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
 		return
@@ -259,8 +253,8 @@ func (h *handler) GetSubscriberByID(c *gin.Context) {
 // @Param account_id path string true "Account ID"
 // @Param status query string false "Filter by status"
 // @Param limit query int false "Pagination limit"
-// @Param next_cursor query string false "Pagination cursor (next page)"
-// @Param prev_cursor query string false "Pagination cursor (prev page)"
+// @Param page query int false "Pagination page"
+// @Param sortBy query string false "Sort by field"
 // @Success 200 {object} pkg.Response
 // @Router /api/admin/social-programs/accounts/{account_id}/subscriptions [get]
 func (h *handler) GetSocialProgramSubscriptionsByAccountID(c *gin.Context) {

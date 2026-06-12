@@ -12,11 +12,13 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/ambulance_history"
 	"github.com/Vilamuzz/yota-backend/app/ambulance_service_request"
 	"github.com/Vilamuzz/yota-backend/app/auth"
+	"github.com/Vilamuzz/yota-backend/app/backup"
 	"github.com/Vilamuzz/yota-backend/app/donation_program"
 	"github.com/Vilamuzz/yota-backend/app/donation_program_expense"
 	"github.com/Vilamuzz/yota-backend/app/donation_program_transaction"
 	"github.com/Vilamuzz/yota-backend/app/finance_record"
 	"github.com/Vilamuzz/yota-backend/app/foster_children"
+	"github.com/Vilamuzz/yota-backend/app/foster_children_candidate"
 	"github.com/Vilamuzz/yota-backend/app/foster_children_expense"
 	"github.com/Vilamuzz/yota-backend/app/foster_children_transaction"
 	"github.com/Vilamuzz/yota-backend/app/foundation_profile"
@@ -39,6 +41,7 @@ import (
 	redis_pkg "github.com/Vilamuzz/yota-backend/pkg/redis"
 	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 	"github.com/gin-gonic/gin"
+	"github.com/minio/minio-go/v7"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -48,6 +51,7 @@ type Container struct {
 	DB             *gorm.DB
 	RedisClient    *redis_pkg.Client
 	S3Client       s3_pkg.Client
+	MinioClient    *minio.Client
 	MidtransClient payment_pkg.Client
 	Timeout        time.Duration
 
@@ -68,6 +72,7 @@ type Container struct {
 	AmbulanceHistoryRepo          ambulance_history.Repository
 	AmbulanceServiceRequestRepo   ambulance_service_request.Repository
 	FosterChildrenRepo            foster_children.Repository
+	FosterChildrenCandidateRepo   foster_children_candidate.Repository
 	FosterChildrenExpenseRepo     foster_children_expense.Repository
 	FosterChildrenTransactionRepo foster_children_transaction.Repository
 	SocialProgramRepo             social_program.Repository
@@ -94,6 +99,7 @@ type Container struct {
 	AmbulanceHistoryService          ambulance_history.Service
 	AmbulanceServiceRequestService   ambulance_service_request.Service
 	FosterChildrenService            foster_children.Service
+	FosterChildrenCandidateService   foster_children_candidate.Service
 	FosterChildrenExpenseService     foster_children_expense.Service
 	FosterChildrenTransactionService foster_children_transaction.Service
 	SocialProgramService             social_program.Service
@@ -102,6 +108,8 @@ type Container struct {
 	SocialProgramSubscriptionService social_program_subscription.Service
 	SocialProgramTransactionService  social_program_transaction.Service
 	LogService                       app_log.Service
+	BackupService                    backup.Service
+	BackupRepo                       backup.Repository
 
 	// Middleware
 	Middleware *middleware.AppMiddleware
@@ -164,8 +172,9 @@ func (c *Container) initInfrastructure() error {
 	}
 
 	// S3-compatible client (RustFS)
-	s3Client := config.ConnectS3()
-	c.S3Client = s3_pkg.NewClient(s3Client)
+	minioClient := config.ConnectS3()
+	c.MinioClient = minioClient
+	c.S3Client = s3_pkg.NewClient(minioClient)
 
 	// Timeout
 	timeoutStr := os.Getenv("TIMEOUT")
@@ -198,6 +207,7 @@ func (c *Container) initRepositories() {
 	c.AmbulanceHistoryRepo = ambulance_history.NewRepository(c.DB)
 	c.AmbulanceServiceRequestRepo = ambulance_service_request.NewRepository(c.DB)
 	c.FosterChildrenRepo = foster_children.NewRepository(c.DB)
+	c.FosterChildrenCandidateRepo = foster_children_candidate.NewRepository(c.DB)
 	c.FosterChildrenExpenseRepo = foster_children_expense.NewRepository(c.DB)
 	c.FosterChildrenTransactionRepo = foster_children_transaction.NewRepository(c.DB)
 	c.SocialProgramRepo = social_program.NewRepository(c.DB)
@@ -206,6 +216,7 @@ func (c *Container) initRepositories() {
 	c.SocialProgramSubscriptionRepo = social_program_subscription.NewRepository(c.DB)
 	c.SocialProgramTransactionRepo = social_program_transaction.NewRepository(c.DB)
 	c.LogRepo = app_log.NewRepository(c.DB)
+	c.BackupRepo = backup.NewRepository(c.DB)
 }
 
 func (c *Container) initServices() {
@@ -224,8 +235,9 @@ func (c *Container) initServices() {
 	c.DonationExpenseService = donation_program_expense.NewService(c.DonationExpenseRepo, c.FinanceRecordRepo, c.DonationRepo, c.S3Client, c.LogService, c.Timeout)
 	c.AmbulanceService = ambulance.NewService(c.AmbulanceRepo, c.S3Client, c.Timeout)
 	c.AmbulanceHistoryService = ambulance_history.NewService(c.AmbulanceHistoryRepo, c.AmbulanceRepo, c.Timeout)
-	c.AmbulanceServiceRequestService = ambulance_service_request.NewService(c.AmbulanceServiceRequestRepo, c.AmbulanceRepo, c.AmbulanceHistoryRepo, c.Timeout)
+	c.AmbulanceServiceRequestService = ambulance_service_request.NewService(c.AmbulanceServiceRequestRepo, c.AmbulanceRepo, c.AmbulanceHistoryRepo, c.Timeout, c.S3Client)
 	c.FosterChildrenService = foster_children.NewService(c.FosterChildrenRepo, c.LogService, c.S3Client, c.Timeout)
+	c.FosterChildrenCandidateService = foster_children_candidate.NewService(c.FosterChildrenCandidateRepo, c.FosterChildrenRepo, c.LogService, c.S3Client, c.Timeout)
 	c.FosterChildrenExpenseService = foster_children_expense.NewService(c.FosterChildrenExpenseRepo, c.FinanceRecordRepo, c.FosterChildrenRepo, c.S3Client, c.LogService, c.Timeout)
 	c.FosterChildrenTransactionService = foster_children_transaction.NewService(c.FosterChildrenTransactionRepo, c.AccountRepo, c.FosterChildrenRepo, c.FinanceRecordRepo, c.MidtransClient, c.LogService, c.Timeout)
 	c.SocialProgramService = social_program.NewService(c.SocialProgramRepo, c.LogService, c.S3Client, c.Timeout)
@@ -233,6 +245,7 @@ func (c *Container) initServices() {
 	c.SocialProgramInvoiceService = social_program_invoice.NewService(c.SocialProgramInvoiceRepo, c.SocialProgramSubscriptionRepo, c.Timeout)
 	c.SocialProgramSubscriptionService = social_program_subscription.NewService(c.SocialProgramSubscriptionRepo, c.SocialProgramRepo, c.Timeout)
 	c.SocialProgramTransactionService = social_program_transaction.NewService(c.SocialProgramTransactionRepo, c.AccountRepo, c.SocialProgramSubscriptionRepo, c.SocialProgramInvoiceRepo, c.FinanceRecordRepo, c.MidtransClient, c.LogService, c.Timeout)
+	c.BackupService = backup.NewService(c.BackupRepo, c.MinioClient, c.Timeout)
 }
 
 func (c *Container) initMiddleware() {
@@ -272,6 +285,15 @@ func (c *Container) initScheduler() {
 		if err := c.SocialProgramInvoiceService.GenerateMonthlyInvoices(context.Background()); err != nil {
 			_ = err
 		}
+	// Create database backup daily at 2 AM
+	c.Scheduler.Add("0 2 * * *", "database-backup", func() {
+		_ = c.BackupService.CreateBackup(context.Background())
+	})
+
+	// Cleanup old backups daily at 3 AM (keep backups for last 7 days)
+	c.Scheduler.Add("0 3 * * *", "backup-cleanup", func() {
+		retentionDays := 7
+		_ = c.BackupService.CleanupOldBackups(context.Background(), retentionDays)
 	})
 }
 
@@ -292,6 +314,7 @@ func (c *Container) RegisterHandlers(router *gin.RouterGroup) {
 	ambulance_history.NewHandler(router, c.AmbulanceHistoryService, *c.Middleware)
 	ambulance_service_request.NewHandler(router, c.AmbulanceServiceRequestService, *c.Middleware)
 	foster_children.NewHandler(router, c.FosterChildrenService, *c.Middleware)
+	foster_children_candidate.NewHandler(router, c.FosterChildrenCandidateService, *c.Middleware)
 	foster_children_expense.NewHandler(router, c.FosterChildrenExpenseService, *c.Middleware)
 	foster_children_transaction.NewHandler(router, c.FosterChildrenTransactionService, *c.Middleware)
 	social_program.NewHandler(router, c.SocialProgramService, *c.Middleware)
@@ -300,6 +323,7 @@ func (c *Container) RegisterHandlers(router *gin.RouterGroup) {
 	social_program_subscription.NewHandler(router, c.SocialProgramSubscriptionService, *c.Middleware)
 	social_program_transaction.NewHandler(router, c.SocialProgramTransactionService, *c.Middleware)
 	app_log.NewHandler(router, c.LogService, *c.Middleware)
+	backup.NewHandler(router, c.BackupService, *c.Middleware)
 
 	// Payment Webhooks
 	paymentGroup := router.Group("/webhooks")

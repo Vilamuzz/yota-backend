@@ -2,8 +2,6 @@ package social_program
 
 import (
 	"mime/multipart"
-
-	"github.com/Vilamuzz/yota-backend/pkg"
 )
 
 type SocialProgramRequest struct {
@@ -22,5 +20,9 @@ type SocialProgramQueryParams struct {
 	Search       string `form:"search"`
 	Status       string `form:"status"`
 	IsSubscribed *bool  `form:"isSubscribed"`
-	pkg.PaginationParams
+	StartDate    string `form:"startDate"`
+	EndDate      string `form:"endDate"`
+	SortBy       string `form:"sortBy"` // e.g. "title asc", "minimum_amount desc", "billing_day asc", "total_subscribers desc", "created_at desc"
+	Page         int    `form:"page"`
+	Limit        int    `form:"limit"`
 }

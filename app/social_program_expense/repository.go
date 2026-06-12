@@ -2,6 +2,8 @@ package social_program_expense
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
@@ -23,12 +25,31 @@ func NewRepository(conn *gorm.DB) Repository {
 	return &repository{Conn: conn}
 }
 
+var allowedSocialProgramExpenseSortColumns = map[string]string{
+	"title":        "title",
+	"amount":       "amount",
+	"expense_date": "expense_date",
+	"created_at":   "created_at",
+}
+
 func (r *repository) FindAllSocialProgramExpenses(ctx context.Context, options map[string]interface{}) ([]SocialProgramExpense, error) {
 	var expenses []SocialProgramExpense
 	query := r.Conn.WithContext(ctx)
 
 	if socialProgramID, ok := options["social_program_id"]; ok && socialProgramID.(string) != "" {
 		query = query.Where("social_program_id = ?", socialProgramID.(string))
+	}
+
+	if search, ok := options["search"]; ok && search.(string) != "" {
+		query = query.Where("title ILIKE ?", "%"+search.(string)+"%")
+	}
+
+	if startDate, ok := options["start_date"]; ok && startDate.(string) != "" {
+		query = query.Where("expense_date >= ?", startDate.(string))
+	}
+
+	if endDate, ok := options["end_date"]; ok && endDate.(string) != "" {
+		query = query.Where("expense_date <= ?", endDate.(string))
 	}
 
 	if nextCursor, ok := options["next_cursor"]; ok && nextCursor.(string) != "" {
@@ -44,7 +65,20 @@ func (r *repository) FindAllSocialProgramExpenses(ctx context.Context, options m
 	}
 
 	if _, usingPrevCursor := options["prev_cursor"]; !usingPrevCursor {
-		query = query.Order("created_at DESC, id DESC")
+		orderClause := "created_at DESC, id DESC"
+		if sortBy, ok := options["sort_by"]; ok && sortBy.(string) != "" {
+			parts := strings.Fields(strings.ToLower(sortBy.(string)))
+			if len(parts) >= 1 {
+				if col, valid := allowedSocialProgramExpenseSortColumns[parts[0]]; valid {
+					dir := "ASC"
+					if len(parts) == 2 && parts[1] == "desc" {
+						dir = "DESC"
+					}
+					orderClause = fmt.Sprintf("%s %s, id DESC", col, dir)
+				}
+			}
+		}
+		query = query.Order(orderClause)
 	}
 
 	limit := 10

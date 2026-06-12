@@ -36,5 +36,4 @@ type PrayerAmen struct {
 type PrayerReport struct {
 	PrayerID  uuid.UUID `json:"prayerId" gorm:"primaryKey;not null"`
 	AccountID uuid.UUID `json:"accountId" gorm:"primaryKey;not null"`
-	Reason    string    `json:"reason" gorm:"not null"`
 }

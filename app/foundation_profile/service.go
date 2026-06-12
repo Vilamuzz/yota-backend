@@ -68,6 +68,10 @@ func (s *service) CreateFoundationProfile(ctx context.Context, payload Foundatio
 		errValidation["foundation_name"] = "Nama yayasan wajib diisi"
 	}
 
+	if payload.FoundationPhone != "" && !pkg.IsValidPhoneNumber(payload.FoundationPhone) {
+		errValidation["foundation_phone"] = "Format nomor telepon tidak valid"
+	}
+
 	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
@@ -275,6 +279,9 @@ func (s *service) UpdateFoundationProfile(ctx context.Context, id string, payloa
 	}
 
 	if payload.FoundationPhone != "" {
+		if !pkg.IsValidPhoneNumber(payload.FoundationPhone) {
+			return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"foundation_phone": "Format nomor telepon tidak valid"}, nil)
+		}
 		updateData["foundation_phone"] = payload.FoundationPhone
 	}
 

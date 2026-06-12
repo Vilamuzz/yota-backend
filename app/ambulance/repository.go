@@ -28,36 +28,39 @@ func NewRepository(conn *gorm.DB) Repository {
 
 func (r *repository) FindAllAmbulances(ctx context.Context, options map[string]interface{}) ([]Ambulance, error) {
 	var ambulances []Ambulance
-	query := r.Conn.WithContext(ctx).Preload("Driver.UserProfile").Where("deleted_at IS NULL")
+	query := r.Conn.WithContext(ctx).Model(&Ambulance{}).Preload("Driver.UserProfile").Where("ambulances.deleted_at IS NULL")
 
 	if search, ok := options["search"]; ok && search != "" {
-		query = query.Where("plate_number ILIKE ?", "%"+search.(string)+"%")
+		searchQuery := "%" + search.(string) + "%"
+		query = query.Joins("LEFT JOIN accounts ON accounts.id = ambulances.driver_id").
+			Joins("LEFT JOIN user_profiles ON user_profiles.account_id = accounts.id").
+			Where("ambulances.plate_number ILIKE ? OR user_profiles.username ILIKE ?", searchQuery, searchQuery)
 	}
 	if status, ok := options["status"]; ok && status != "" {
-		query = query.Where("status = ?", status)
+		query = query.Where("ambulances.status = ?", status)
 	}
 	if driverID, ok := options["driver_id"]; ok && driverID != "" {
-		query = query.Where("driver_id = ?", driverID)
+		query = query.Where("ambulances.driver_id = ?", driverID)
 	}
 
 	if nextCursor, ok := options["next_cursor"]; ok && nextCursor != "" {
 		cursorData, err := pkg.DecodeCursor(nextCursor.(string))
 		if err == nil {
-			query = query.Where("created_at < ? OR (created_at = ? AND id < ?)",
+			query = query.Where("ambulances.created_at < ? OR (ambulances.created_at = ? AND ambulances.id < ?)",
 				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
 		}
 	} else if prevCursor, ok := options["prev_cursor"]; ok && prevCursor != "" {
 		cursorData, err := pkg.DecodeCursor(prevCursor.(string))
 		if err == nil {
-			query = query.Where("created_at > ? OR (created_at = ? AND id > ?)",
+			query = query.Where("ambulances.created_at > ? OR (ambulances.created_at = ? AND ambulances.id > ?)",
 				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
 		}
 	}
 
 	if _, isPrev := options["prev_cursor"]; isPrev {
-		query = query.Order("created_at ASC, id ASC")
+		query = query.Order("ambulances.created_at ASC, ambulances.id ASC")
 	} else {
-		query = query.Order("created_at DESC, id DESC")
+		query = query.Order("ambulances.created_at DESC, ambulances.id DESC")
 	}
 
 	limit := 10

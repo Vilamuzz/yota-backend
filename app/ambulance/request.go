@@ -21,9 +21,9 @@ type UpdateAmbulanceRequest struct {
 }
 
 type AmbulanceQueryParams struct {
-	Search      string          `json:"search"`
-	Status      AmbulanceStatus `json:"status"`
-	DriverID    string          `json:"-"`
-	AmbulanceID string          `json:"-"`
+	Search      string          `json:"search" form:"search"`
+	Status      AmbulanceStatus `json:"status" form:"status"`
+	DriverID    string          `json:"-" form:"-"`
+	AmbulanceID string          `json:"-" form:"-"`
 	pkg.CursorPagination
 }

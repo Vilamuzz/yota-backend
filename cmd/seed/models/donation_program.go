@@ -2,24 +2,13 @@ package models
 
 import (
 	"fmt"
-	"regexp"
-	"strings"
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/app/donation_program"
+	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
-
-func makeSlug(title string) string {
-	slug := strings.ToLower(title)
-	// replace non-alphanumeric characters with hyphens
-	reg := regexp.MustCompile("[^a-z0-9]+")
-	slug = reg.ReplaceAllString(slug, "-")
-	// trim leading/trailing hyphens
-	slug = strings.Trim(slug, "-")
-	return slug
-}
 
 func SeedDonationPrograms(db *gorm.DB) error {
 	fmt.Println("Seeding donation programs...")
@@ -160,7 +149,7 @@ func SeedDonationPrograms(db *gorm.DB) error {
 	}
 
 	for i := range programs {
-		programs[i].Slug = makeSlug(programs[i].Title)
+		programs[i].Slug = pkg.Slugify(programs[i].Title)
 
 		var existing donation_program.DonationProgram
 		err := db.Where("slug = ?", programs[i].Slug).First(&existing).Error

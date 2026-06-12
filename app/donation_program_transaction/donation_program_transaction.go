@@ -10,24 +10,24 @@ import (
 
 type DonationProgramTransaction struct {
 	ID                uuid.UUID  `json:"id" gorm:"primaryKey"`
-	DonationProgramID uuid.UUID  `json:"donation_program_id" gorm:"index;not null"`
-	OrderID           string     `json:"order_id" gorm:"uniqueIndex"`
-	AccountID         *uuid.UUID `json:"account_id" gorm:"index"`
-	DonorName         string     `json:"donor_name"`
-	DonorEmail        string     `json:"donor_email"`
-	IsOnline          bool       `json:"is_online"`
-	GrossAmount       float64    `json:"gross_amount"`
-	FraudStatus       string     `json:"fraud_status"`
-	TransactionStatus string     `json:"transaction_status" gorm:"index"`
+	DonationProgramID uuid.UUID  `json:"donationProgramId" gorm:"index:idx_transaction_composite,priority:1;not null"`
+	OrderID           string     `json:"orderId" gorm:"uniqueIndex"`
+	AccountID         *uuid.UUID `json:"accountId" gorm:"index:idx_transaction_composite,priority:2"`
+	DonorName         string     `json:"donorName"`
+	DonorEmail        string     `json:"donorEmail"`
+	IsOnline          bool       `json:"isOnline"`
+	GrossAmount       float64    `json:"grossAmount"`
+	FraudStatus       string     `json:"fraudStatus"`
+	TransactionStatus string     `json:"transactionStatus" gorm:"index:idx_transaction_composite,priority:3"`
 	Provider          string     `json:"provider"`
-	TransactionID     string     `json:"transaction_id"`
-	SnapToken         string     `json:"snap_token"`
-	SnapRedirectURL   string     `json:"snap_redirect_url"`
-	PaidAt            *time.Time `json:"paid_at"`
-	CreatedAt         time.Time  `json:"created_at"`
-	UpdatedAt         time.Time  `json:"updated_at"`
+	TransactionID     string     `json:"transactionId"`
+	SnapToken         string     `json:"snapToken"`
+	SnapRedirectURL   string     `json:"snapRedirectUrl"`
+	PaidAt            *time.Time `json:"paidAt"`
+	CreatedAt         time.Time  `json:"createdAt"`
+	UpdatedAt         time.Time  `json:"updatedAt"`
 
-	Account *account.Account `json:"-" gorm:"foreignKey:AccountID;references:ID"`
+	Account         *account.Account                  `json:"-" gorm:"foreignKey:AccountID;references:ID"`
 	DonationProgram *donation_program.DonationProgram `json:"-" gorm:"foreignKey:DonationProgramID;references:ID"`
 }
 

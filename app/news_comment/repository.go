@@ -2,15 +2,17 @@ package news_comment
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
-	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
 )
 
 type Repository interface {
 	FindOneComment(ctx context.Context, options map[string]interface{}) (*NewsComment, error)
 	FindAllComments(ctx context.Context, options map[string]interface{}) ([]NewsComment, error)
+	CountComments(ctx context.Context, options map[string]interface{}) (int64, error)
 	CreateComment(ctx context.Context, comment *NewsComment) error
 	UpdateComment(ctx context.Context, comment *NewsComment) error
 	DeleteComment(ctx context.Context, commentID string) error
@@ -49,6 +51,13 @@ func (r *repository) FindOneComment(ctx context.Context, options map[string]inte
 	return &comment, nil
 }
 
+var allowedCommentSortColumns = map[string]string{
+	"created_at":   "created_at",
+	"createdat":    "created_at",
+	"report_count": "report_count",
+	"reportcount":  "report_count",
+}
+
 func (r *repository) FindAllComments(ctx context.Context, options map[string]interface{}) ([]NewsComment, error) {
 	var comments []NewsComment
 	query := r.Conn.WithContext(ctx).Where("deleted_at IS NULL").
@@ -71,36 +80,57 @@ func (r *repository) FindAllComments(ctx context.Context, options map[string]int
 		}
 	}
 
-	if nextCursor, ok := options["next_cursor"]; ok && nextCursor != "" {
-		cursorData, err := pkg.DecodeCursor(nextCursor.(string))
-		if err == nil {
-			query = query.Where("created_at < ? OR (created_at = ? AND id < ?)",
-				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
-		}
-	} else if prevCursor, ok := options["prev_cursor"]; ok && prevCursor != "" {
-		cursorData, err := pkg.DecodeCursor(prevCursor.(string))
-		if err == nil {
-			query = query.Where("created_at > ? OR (created_at = ? AND id > ?)",
-				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
+	sortCol := "created_at"
+	sortDir := "DESC"
+	if sortBy, ok := options["sort_by"]; ok && sortBy.(string) != "" {
+		parts := strings.Fields(strings.ToLower(sortBy.(string)))
+		if len(parts) >= 1 {
+			if col, valid := allowedCommentSortColumns[parts[0]]; valid {
+				sortCol = col
+				if len(parts) == 2 && (parts[1] == "asc" || parts[1] == "desc") {
+					sortDir = strings.ToUpper(parts[1])
+				}
+			}
 		}
 	}
 
-	if _, isPrev := options["prev_cursor"]; isPrev {
-		query = query.Order("created_at ASC, id ASC")
-	} else {
-		query = query.Order("created_at DESC, id DESC")
-	}
+	query = query.Order(fmt.Sprintf("%s %s, id DESC", sortCol, sortDir))
 
 	limit := 10
-	if l, ok := options["limit"]; ok {
+	if l, ok := options["limit"]; ok && l.(int) > 0 {
 		limit = l.(int)
 	}
 
-	query = query.Limit(limit + 1)
+	offset := 0
+	if page, ok := options["page"]; ok && page.(int) > 1 {
+		offset = (page.(int) - 1) * limit
+	}
+
+	query = query.Limit(limit).Offset(offset)
 	if err := query.Find(&comments).Error; err != nil {
 		return nil, err
 	}
 	return comments, nil
+}
+
+func (r *repository) CountComments(ctx context.Context, options map[string]interface{}) (int64, error) {
+	var total int64
+	query := r.Conn.WithContext(ctx).Model(&NewsComment{}).Where("deleted_at IS NULL")
+
+	if topLevelOnly, ok := options["top_level_only"]; ok && topLevelOnly.(bool) {
+		query = query.Where("parent_comment_id IS NULL")
+	}
+	if newsID, ok := options["news_id"]; ok {
+		query = query.Where("news_id = ?", newsID)
+	}
+	if reported, ok := options["reported"]; ok {
+		if reported.(bool) {
+			query = query.Where("reported = ?", true)
+		}
+	}
+
+	err := query.Count(&total).Error
+	return total, err
 }
 
 func (r *repository) CreateComment(ctx context.Context, comment *NewsComment) error {

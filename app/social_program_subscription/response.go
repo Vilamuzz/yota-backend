@@ -34,17 +34,17 @@ type SubscriberSubscriptionResponse struct {
 
 type SubscriberSubscriptionListResponse struct {
 	Subscriptions []SubscriberSubscriptionResponse `json:"subscriptions"`
-	Pagination    pkg.CursorPagination             `json:"pagination"`
+	Pagination    pkg.OffsetPagination             `json:"pagination"`
 }
 
 type SocialProgramSubscriptionListResponse struct {
 	Subscriptions []SocialProgramSubscriptionResponse `json:"subscriptions"`
-	Pagination    pkg.CursorPagination                `json:"pagination"`
+	Pagination    pkg.OffsetPagination                `json:"pagination"`
 }
 
 type SubscriptionsListResponse struct {
 	Subscribers []SubscribersResponse `json:"subscribers"`
-	Pagination  pkg.CursorPagination  `json:"pagination"`
+	Pagination  pkg.OffsetPagination  `json:"pagination"`
 }
 
 func (s *SocialProgramSubscription) toSocialProgramSubscriptionResponse() SocialProgramSubscriptionResponse {
@@ -79,7 +79,7 @@ func (s *SocialProgramSubscription) toSubscriberSubscriptionResponse(totalDonati
 	}
 }
 
-func toSubscriberSubscriptionListResponse(subscriptions []SocialProgramSubscription, pagination pkg.CursorPagination, donationMap map[string]float64) SubscriberSubscriptionListResponse {
+func toSubscriberSubscriptionListResponse(subscriptions []SocialProgramSubscription, pagination pkg.OffsetPagination, donationMap map[string]float64) SubscriberSubscriptionListResponse {
 	var responses []SubscriberSubscriptionResponse
 	for _, sub := range subscriptions {
 		donation := donationMap[sub.ID.String()]
@@ -94,7 +94,7 @@ func toSubscriberSubscriptionListResponse(subscriptions []SocialProgramSubscript
 	}
 }
 
-func toSocialProgramSubscriptionListResponse(subscriptions []SocialProgramSubscription, pagination pkg.CursorPagination) SocialProgramSubscriptionListResponse {
+func toSocialProgramSubscriptionListResponse(subscriptions []SocialProgramSubscription, pagination pkg.OffsetPagination) SocialProgramSubscriptionListResponse {
 	var responses []SocialProgramSubscriptionResponse
 	for _, sub := range subscriptions {
 		responses = append(responses, sub.toSocialProgramSubscriptionResponse())
@@ -124,7 +124,7 @@ func (s *SocialProgramSubscription) toSubscribersResponse(stats SubscriberStats)
 	}
 }
 
-func toSubscriptionsListResponse(subscriptions []SocialProgramSubscription, pagination pkg.CursorPagination, statsMap map[string]SubscriberStats) SubscriptionsListResponse {
+func toSubscriptionsListResponse(subscriptions []SocialProgramSubscription, pagination pkg.OffsetPagination, statsMap map[string]SubscriberStats) SubscriptionsListResponse {
 	var responses []SubscribersResponse
 	for _, sub := range subscriptions {
 		stats := statsMap[sub.AccountID.String()]

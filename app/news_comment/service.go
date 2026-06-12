@@ -13,7 +13,7 @@ import (
 )
 
 type Service interface {
-	GetNewsCommentList(ctx context.Context, newsID, accountID string, isAdmin bool, params NewsCommentQueryParams) pkg.Response
+	GetNewsCommentList(ctx context.Context, isAdmin bool, params NewsCommentQueryParams) pkg.Response
 	GetNewsCommentByID(ctx context.Context, newsCommentID, accountID string) pkg.Response
 	CreateNewsComment(ctx context.Context, newsSlug, accountID string, payload CreateNewsCommentRequest) pkg.Response
 	DeleteNewsComment(ctx context.Context, newsCommentID string) pkg.Response
@@ -53,12 +53,6 @@ func (s *service) CreateReportNewsComment(ctx context.Context, newsCommentID, ac
 		return pkg.NewResponse(http.StatusOK, "Komentar berhasil dilaporkan", nil, nil)
 	}
 
-	if payload.Reason == "" {
-		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan Validasi", map[string]string{
-			"reason": "Alasan wajib diisi",
-		}, nil)
-	}
-
 	_, err = s.repo.FindReport(ctx, map[string]interface{}{
 		"news_comment_id": newsCommentID,
 		"account_id":      accountID,
@@ -70,7 +64,6 @@ func (s *service) CreateReportNewsComment(ctx context.Context, newsCommentID, ac
 	report := &NewsCommentReport{
 		NewsCommentID: uuid.MustParse(newsCommentID),
 		AccountID:     uuid.MustParse(accountID),
-		Reason:        payload.Reason,
 	}
 	if err := s.repo.CreateReport(ctx, report); err != nil {
 		logrus.WithFields(logrus.Fields{
@@ -191,40 +184,55 @@ func (s *service) GetNewsCommentByID(ctx context.Context, newsCommentID, account
 	return pkg.NewResponse(http.StatusOK, "Berhasil menemukan komentar", nil, newsComment.toNewsCommentResponse())
 }
 
-func (s *service) GetNewsCommentList(ctx context.Context, accountID, newsSlug string, isAdmin bool, params NewsCommentQueryParams) pkg.Response {
+func (s *service) GetNewsCommentList(ctx context.Context, isAdmin bool, params NewsCommentQueryParams) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if params.Limit == 0 {
+	if params.Limit <= 0 {
 		params.Limit = 10
+	}
+	if params.Limit > 100 {
+		params.Limit = 100
+	}
+	if params.Page <= 0 {
+		params.Page = 1
 	}
 
 	options := map[string]interface{}{
 		"limit":          params.Limit,
-		"account_id":     accountID,
+		"page":           params.Page,
+		"account_id":     params.AccountID,
 		"top_level_only": true,
+	}
+
+	if params.SortBy != "" {
+		options["sort_by"] = params.SortBy
 	}
 
 	if isAdmin {
 		options["reported"] = true
 	}
 
-	pagination := pkg.CursorPagination{
-		Limit: params.Limit,
-	}
-
-	if newsSlug != "" {
-		news, err := s.newsRepo.FindOneNews(ctx, map[string]interface{}{"slug": newsSlug})
+	if params.NewsSlug != "" {
+		news, err := s.newsRepo.FindOneNews(ctx, map[string]interface{}{"slug": params.NewsSlug})
 		if err != nil {
-			return pkg.NewResponse(http.StatusOK, "Berhasil menemukan komentar", nil, toNewsCommentListResponse([]NewsComment{}, pagination))
+			emptyPagination := pkg.OffsetPagination{
+				Page:       params.Page,
+				Limit:      params.Limit,
+				Total:      0,
+				TotalPages: 0,
+			}
+			if isAdmin {
+				return pkg.NewResponse(http.StatusOK, "Berhasil menemukan komentar", nil, toAdminNewsCommentListResponse([]NewsComment{}, emptyPagination))
+			}
+			return pkg.NewResponse(http.StatusOK, "Berhasil menemukan komentar", nil, toNewsCommentListResponse([]NewsComment{}, emptyPagination))
 		}
 		options["news_id"] = news.ID.String()
 	}
-	if params.NextCursor != "" {
-		options["next_cursor"] = params.NextCursor
-	}
-	if params.PrevCursor != "" {
-		options["prev_cursor"] = params.PrevCursor
+
+	total, err := s.repo.CountComments(ctx, options)
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil jumlah data komentar", nil, nil)
 	}
 
 	newsComments, err := s.repo.FindAllComments(ctx, options)
@@ -232,40 +240,16 @@ func (s *service) GetNewsCommentList(ctx context.Context, accountID, newsSlug st
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menemukan komentar", nil, nil)
 	}
 
-	var hasNext, hasPrev bool
-	if params.PrevCursor != "" {
-		hasPrev = len(newsComments) > params.Limit
-		hasNext = true
-		if len(newsComments) > params.Limit {
-			newsComments = newsComments[:params.Limit]
-		}
-		for i, j := 0, len(newsComments)-1; i < j; i, j = i+1, j-1 {
-			newsComments[i], newsComments[j] = newsComments[j], newsComments[i]
-		}
-	} else {
-		hasNext = len(newsComments) > params.Limit
-		hasPrev = params.NextCursor != ""
-		if hasNext {
-			newsComments = newsComments[:params.Limit]
-		}
+	totalPages := int(total) / params.Limit
+	if int(total)%params.Limit != 0 {
+		totalPages++
 	}
 
-	var nextCursor, prevCursor string
-	if len(newsComments) > 0 {
-		first := newsComments[0]
-		last := newsComments[len(newsComments)-1]
-		if hasNext {
-			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID.String())
-		}
-		if hasPrev {
-			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID.String())
-		}
-	}
-
-	pagination = pkg.CursorPagination{
-		NextCursor: nextCursor,
-		PrevCursor: prevCursor,
+	pagination := pkg.OffsetPagination{
+		Page:       params.Page,
 		Limit:      params.Limit,
+		Total:      total,
+		TotalPages: totalPages,
 	}
 
 	if isAdmin {

@@ -36,19 +36,19 @@ type NewsListResponseItem struct {
 
 type NewsListResponse struct {
 	News       []NewsListResponseItem `json:"news"`
-	Pagination pkg.CursorPagination   `json:"pagination"`
+	Pagination pkg.OffsetPagination   `json:"pagination"`
 }
 
 func (n *News) toNewsResponse() NewsResponse {
 	mediaResponses := make([]media.MediaResponse, 0, len(n.Media))
 	for _, m := range n.Media {
 		mediaResponses = append(mediaResponses, media.MediaResponse{
-			ID:      m.ID.String(),
-			NewsID:  m.NewsID.String(),
-			Type:    string(m.Type),
-			URL:     m.URL,
-			Alt:     m.Alt,
-			Order:   m.Order,
+			ID:     m.ID.String(),
+			NewsID: m.NewsID.String(),
+			Type:   string(m.Type),
+			URL:    m.URL,
+			Alt:    m.Alt,
+			Order:  m.Order,
 		})
 	}
 
@@ -82,7 +82,7 @@ func (n *News) toNewsListResponseItem() NewsListResponseItem {
 	}
 }
 
-func toNewsListResponse(newsList []News, pagination pkg.CursorPagination) NewsListResponse {
+func toNewsListResponse(newsList []News, pagination pkg.OffsetPagination) NewsListResponse {
 	var newsResponses []NewsListResponseItem
 	for _, n := range newsList {
 		newsResponses = append(newsResponses, n.toNewsListResponseItem())

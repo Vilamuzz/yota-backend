@@ -69,6 +69,21 @@ func (s *service) GetSocialProgramExpenseList(ctx context.Context, socialProgram
 		params.Limit = 100
 	}
 
+	errValidation := make(map[string]string)
+	if params.StartDate != "" {
+		if _, err := time.Parse("2006-01-02", params.StartDate); err != nil {
+			errValidation["startDate"] = "Format tanggal tidak valid (gunakan YYYY-MM-DD)"
+		}
+	}
+	if params.EndDate != "" {
+		if _, err := time.Parse("2006-01-02", params.EndDate); err != nil {
+			errValidation["endDate"] = "Format tanggal tidak valid (gunakan YYYY-MM-DD)"
+		}
+	}
+	if len(errValidation) > 0 {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
+	}
+
 	usingPrevCursor := params.PrevCursor != ""
 
 	options := map[string]interface{}{
@@ -80,6 +95,18 @@ func (s *service) GetSocialProgramExpenseList(ctx context.Context, socialProgram
 	}
 	if usingPrevCursor {
 		options["prev_cursor"] = params.PrevCursor
+	}
+	if params.Search != "" {
+		options["search"] = params.Search
+	}
+	if params.SortBy != "" {
+		options["sort_by"] = params.SortBy
+	}
+	if params.StartDate != "" {
+		options["start_date"] = params.StartDate
+	}
+	if params.EndDate != "" {
+		options["end_date"] = params.EndDate
 	}
 
 	expenses, err := s.repo.FindAllSocialProgramExpenses(ctx, options)
@@ -275,12 +302,12 @@ func (s *service) ExportSocialProgramExpenseCSV(ctx context.Context, socialProgr
 
 	if params.StartDate != "" {
 		if _, err := time.Parse("2006-01-02", params.StartDate); err != nil {
-			return nil, "", fmt.Errorf("format start_date tidak valid (gunakan YYYY-MM-DD)")
+			return nil, "", fmt.Errorf("format startDate tidak valid (gunakan YYYY-MM-DD)")
 		}
 	}
 	if params.EndDate != "" {
 		if _, err := time.Parse("2006-01-02", params.EndDate); err != nil {
-			return nil, "", fmt.Errorf("format end_date tidak valid (gunakan YYYY-MM-DD)")
+			return nil, "", fmt.Errorf("format endDate tidak valid (gunakan YYYY-MM-DD)")
 		}
 	}
 

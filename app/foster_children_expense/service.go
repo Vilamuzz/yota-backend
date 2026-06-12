@@ -18,7 +18,8 @@ import (
 )
 
 type Service interface {
-	GetFosterChildrenExpenseList(ctx context.Context, fosterChildrenID string, params FosterChildrenExpenseQueryParams) pkg.Response
+	GetFosterChildrenExpenseList(ctx context.Context, fosterChildrenSlug string, params FosterChildrenExpenseQueryParams) pkg.Response
+	GetAdminFosterChildrenExpenseList(ctx context.Context, fosterChildrenID string, params FosterChildrenExpenseQueryParams) pkg.Response
 	GetFosterChildrenExpenseByID(ctx context.Context, fosterChildrenExpenseID string) pkg.Response
 	CreateFosterChildrenExpense(ctx context.Context, accountID, fosterChildrenID string, payload *FosterChildrenExpenseRequest) pkg.Response
 	DeleteFosterChildrenExpense(ctx context.Context, accountID, fosterChildrenExpenseID string) pkg.Response
@@ -45,7 +46,7 @@ func NewService(repo Repository, financeRepo finance_record.Repository, fosterCh
 	}
 }
 
-func (s *service) GetFosterChildrenExpenseList(ctx context.Context, fosterChildrenID string, params FosterChildrenExpenseQueryParams) pkg.Response {
+func (s *service) GetFosterChildrenExpenseList(ctx context.Context, fosterChildrenSlug string, params FosterChildrenExpenseQueryParams) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -54,6 +55,115 @@ func (s *service) GetFosterChildrenExpenseList(ctx context.Context, fosterChildr
 	}
 	if params.Limit > 100 {
 		params.Limit = 100
+	}
+
+	errValidation := make(map[string]string)
+	if params.StartDate != "" {
+		if _, err := time.Parse("2006-01-02", params.StartDate); err != nil {
+			errValidation["startDate"] = "Format tanggal tidak valid (gunakan YYYY-MM-DD)"
+		}
+	}
+	if params.EndDate != "" {
+		if _, err := time.Parse("2006-01-02", params.EndDate); err != nil {
+			errValidation["endDate"] = "Format tanggal tidak valid (gunakan YYYY-MM-DD)"
+		}
+	}
+	if len(errValidation) > 0 {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
+	}
+
+	usingPrevCursor := params.PrevCursor != ""
+
+	options := map[string]interface{}{
+		"limit": params.Limit,
+	}
+	if fosterChildrenSlug != "" {
+		options["foster_children_slug"] = fosterChildrenSlug
+	}
+	if params.NextCursor != "" {
+		options["next_cursor"] = params.NextCursor
+	}
+	if usingPrevCursor {
+		options["prev_cursor"] = params.PrevCursor
+	}
+	if params.Search != "" {
+		options["search"] = params.Search
+	}
+	if params.SortBy != "" {
+		options["sort_by"] = params.SortBy
+	}
+	if params.StartDate != "" {
+		options["start_date"] = params.StartDate
+	}
+	if params.EndDate != "" {
+		options["end_date"] = params.EndDate
+	}
+
+	expenses, err := s.repo.FindAllFosterChildrenExpenses(ctx, options)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "foster_children_expense.service",
+		}).WithError(err).Error("failed to fetch expenses")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data pengeluaran", nil, nil)
+	}
+
+	hasMore := len(expenses) > params.Limit
+	if hasMore {
+		expenses = expenses[:params.Limit]
+	}
+
+	if usingPrevCursor {
+		for i, j := 0, len(expenses)-1; i < j; i, j = i+1, j-1 {
+			expenses[i], expenses[j] = expenses[j], expenses[i]
+		}
+	}
+
+	var nextCursor, prevCursor string
+	hasNext := (!usingPrevCursor && hasMore) || (usingPrevCursor && params.NextCursor == "")
+	hasPrev := (usingPrevCursor && hasMore) || (!usingPrevCursor && params.NextCursor != "")
+
+	if len(expenses) > 0 {
+		first := expenses[0]
+		last := expenses[len(expenses)-1]
+		if hasNext {
+			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID.String())
+		}
+		if hasPrev {
+			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID.String())
+		}
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, toFosterChildrenExpenseListResponse(expenses, pkg.CursorPagination{
+		NextCursor: nextCursor,
+		PrevCursor: prevCursor,
+		Limit:      params.Limit,
+	}))
+}
+
+func (s *service) GetAdminFosterChildrenExpenseList(ctx context.Context, fosterChildrenID string, params FosterChildrenExpenseQueryParams) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	if params.Limit <= 0 {
+		params.Limit = 10
+	}
+	if params.Limit > 100 {
+		params.Limit = 100
+	}
+
+	errValidation := make(map[string]string)
+	if params.StartDate != "" {
+		if _, err := time.Parse("2006-01-02", params.StartDate); err != nil {
+			errValidation["startDate"] = "Format tanggal tidak valid (gunakan YYYY-MM-DD)"
+		}
+	}
+	if params.EndDate != "" {
+		if _, err := time.Parse("2006-01-02", params.EndDate); err != nil {
+			errValidation["endDate"] = "Format tanggal tidak valid (gunakan YYYY-MM-DD)"
+		}
+	}
+	if len(errValidation) > 0 {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
 	usingPrevCursor := params.PrevCursor != ""
@@ -69,6 +179,18 @@ func (s *service) GetFosterChildrenExpenseList(ctx context.Context, fosterChildr
 	}
 	if usingPrevCursor {
 		options["prev_cursor"] = params.PrevCursor
+	}
+	if params.Search != "" {
+		options["search"] = params.Search
+	}
+	if params.SortBy != "" {
+		options["sort_by"] = params.SortBy
+	}
+	if params.StartDate != "" {
+		options["start_date"] = params.StartDate
+	}
+	if params.EndDate != "" {
+		options["end_date"] = params.EndDate
 	}
 
 	expenses, err := s.repo.FindAllFosterChildrenExpenses(ctx, options)
@@ -252,30 +374,26 @@ func (s *service) DeleteFosterChildrenExpense(ctx context.Context, accountID, fo
 	return pkg.NewResponse(http.StatusOK, "Pengeluaran berhasil dihapus", nil, nil)
 }
 
-func (s *service) ExportFosterChildrenExpenseCSV(ctx context.Context, fosterChildrenID string, params FosterChildrenExpenseExportParams) ([]byte, string, error) {
+func (s *service) ExportFosterChildrenExpenseCSV(ctx context.Context, fosterChildrenSlug string, params FosterChildrenExpenseExportParams) ([]byte, string, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if err := uuid.Validate(fosterChildrenID); err != nil {
-		return nil, "", fmt.Errorf("format ID anak asuh tidak valid")
-	}
-
 	if params.StartDate != "" {
 		if _, err := time.Parse("2006-01-02", params.StartDate); err != nil {
-			return nil, "", fmt.Errorf("format start_date tidak valid (gunakan YYYY-MM-DD)")
+			return nil, "", fmt.Errorf("format startDate tidak valid (gunakan YYYY-MM-DD)")
 		}
 	}
 	if params.EndDate != "" {
 		if _, err := time.Parse("2006-01-02", params.EndDate); err != nil {
-			return nil, "", fmt.Errorf("format end_date tidak valid (gunakan YYYY-MM-DD)")
+			return nil, "", fmt.Errorf("format endDate tidak valid (gunakan YYYY-MM-DD)")
 		}
 	}
 
-	expenses, err := s.repo.FindAllFosterChildrenExpensesForExport(ctx, fosterChildrenID, params)
+	expenses, err := s.repo.FindAllFosterChildrenExpensesForExport(ctx, fosterChildrenSlug, params)
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
-			"component":          "foster_children_expense.service",
-			"foster_children_id": fosterChildrenID,
+			"component":            "foster_children_expense.service",
+			"foster_children_slug": fosterChildrenSlug,
 		}).WithError(err).Error("failed to fetch expenses for export")
 		return nil, "", fmt.Errorf("gagal mengambil data pengeluaran")
 	}
@@ -315,6 +433,6 @@ func (s *service) ExportFosterChildrenExpenseCSV(ctx context.Context, fosterChil
 	} else if params.EndDate != "" {
 		periodPart = "until_" + params.EndDate
 	}
-	filename := fmt.Sprintf("foster_children_expenses_%s_%s_%s.csv", fosterChildrenID, periodPart, time.Now().Format("20060102_150405"))
+	filename := fmt.Sprintf("foster_children_expenses_%s_%s_%s.csv", fosterChildrenSlug, periodPart, time.Now().Format("20060102_150405"))
 	return buf.Bytes(), filename, nil
 }

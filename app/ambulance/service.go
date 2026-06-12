@@ -117,25 +117,46 @@ func (s *service) ListAmbulance(ctx context.Context, queryParams AmbulanceQueryP
 	if queryParams.DriverID != "" {
 		options["driver_id"] = queryParams.DriverID
 	}
+	if queryParams.Status != "" {
+		options["status"] = queryParams.Status
+	}
+	if queryParams.Search != "" {
+		options["search"] = queryParams.Search
+	}
 
 	ambulances, err := s.repo.FindAllAmbulances(ctx, options)
 	if err != nil {
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data ambulans", nil, nil)
 	}
-	hasNext := len(ambulances) > queryParams.Limit
-	if hasNext {
-		ambulances = ambulances[:queryParams.Limit]
+	var hasNext, hasPrev bool
+	if queryParams.PrevCursor != "" {
+		hasPrev = len(ambulances) > queryParams.Limit
+		hasNext = true
+		if len(ambulances) > queryParams.Limit {
+			ambulances = ambulances[:queryParams.Limit]
+		}
+		// Reverse the slice because the repository returns ASC order for PrevCursor
+		for i, j := 0, len(ambulances)-1; i < j; i, j = i+1, j-1 {
+			ambulances[i], ambulances[j] = ambulances[j], ambulances[i]
+		}
+	} else {
+		hasNext = len(ambulances) > queryParams.Limit
+		hasPrev = queryParams.NextCursor != ""
+		if hasNext {
+			ambulances = ambulances[:queryParams.Limit]
+		}
 	}
 
 	var nextCursor, prevCursor string
-	hasPrev := queryParams.PrevCursor != ""
-	if hasNext && len(ambulances) > 0 {
-		lastAmbulance := ambulances[len(ambulances)-1]
-		nextCursor = pkg.EncodeCursor(lastAmbulance.CreatedAt, lastAmbulance.ID.String())
-	}
-	if hasPrev && len(ambulances) > 0 {
+	if len(ambulances) > 0 {
 		firstAmbulance := ambulances[0]
-		prevCursor = pkg.EncodeCursor(firstAmbulance.CreatedAt, firstAmbulance.ID.String())
+		lastAmbulance := ambulances[len(ambulances)-1]
+		if hasNext {
+			nextCursor = pkg.EncodeCursor(lastAmbulance.CreatedAt, lastAmbulance.ID.String())
+		}
+		if hasPrev {
+			prevCursor = pkg.EncodeCursor(firstAmbulance.CreatedAt, firstAmbulance.ID.String())
+		}
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, toAmbulanceListResponse(ambulances, pkg.CursorPagination{

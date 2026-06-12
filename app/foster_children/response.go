@@ -13,6 +13,7 @@ type AchievementResponse struct {
 
 type FosterChildrenDetailResponse struct {
 	ID             string                `json:"id"`
+	Slug           string                `json:"slug"`
 	Name           string                `json:"name"`
 	ProfilePicture string                `json:"profilePicture"`
 	Gender         Gender                `json:"gender"`
@@ -30,6 +31,7 @@ type FosterChildrenDetailResponse struct {
 
 type FosterChildrenListItemResponse struct {
 	ID             string   `json:"id"`
+	Slug           string   `json:"slug"`
 	Name           string   `json:"name"`
 	ProfilePicture string   `json:"profilePicture"`
 	BirthDate      string   `json:"birthDate"`
@@ -41,7 +43,7 @@ type FosterChildrenListItemResponse struct {
 
 type FosterChildrenListResponse struct {
 	FosterChildren []FosterChildrenListItemResponse `json:"fosterChildren"`
-	Pagination     pkg.CursorPagination             `json:"pagination"`
+	Pagination     pkg.OffsetPagination             `json:"pagination"`
 }
 
 func (f *FosterChildren) ToFosterChildrenDetailResponse() FosterChildrenDetailResponse {
@@ -58,6 +60,7 @@ func (f *FosterChildren) ToFosterChildrenDetailResponse() FosterChildrenDetailRe
 
 	return FosterChildrenDetailResponse{
 		ID:             f.ID.String(),
+		Slug:           f.Slug,
 		Name:           f.Name,
 		ProfilePicture: f.ProfilePicture,
 		Gender:         f.Gender,
@@ -77,6 +80,7 @@ func (f *FosterChildren) ToFosterChildrenDetailResponse() FosterChildrenDetailRe
 func (f *FosterChildren) ToFosterChildrenListItemResponse() FosterChildrenListItemResponse {
 	return FosterChildrenListItemResponse{
 		ID:             f.ID.String(),
+		Slug:           f.Slug,
 		Name:           f.Name,
 		ProfilePicture: f.ProfilePicture,
 		BirthDate:      f.BirthDate.Format("2006-01-02"),
@@ -87,7 +91,7 @@ func (f *FosterChildren) ToFosterChildrenListItemResponse() FosterChildrenListIt
 	}
 }
 
-func ToFosterChildrenListResponse(fosterChildren []FosterChildren, pagination pkg.CursorPagination) FosterChildrenListResponse {
+func ToFosterChildrenListResponse(fosterChildren []FosterChildren, pagination pkg.OffsetPagination) FosterChildrenListResponse {
 	var responses []FosterChildrenListItemResponse
 	for _, f := range fosterChildren {
 		responses = append(responses, f.ToFosterChildrenListItemResponse())
@@ -122,7 +126,7 @@ type AdminFosterChildrenListItemResponse struct {
 
 type AdminFosterChildrenListResponse struct {
 	AdminFosterChildren []AdminFosterChildrenListItemResponse `json:"fosterChildren"`
-	Pagination          pkg.CursorPagination                  `json:"pagination"`
+	Pagination          pkg.OffsetPagination                  `json:"pagination"`
 }
 
 func (a *FosterChildren) ToAdminFosterChildrenDetailResponse() AdminFosterChildrenDetailResponse {
@@ -148,7 +152,7 @@ func (a *FosterChildren) ToAdminFosterChildrenListItemResponse() AdminFosterChil
 	}
 }
 
-func ToAdminFosterChildrenListResponse(fosterChildren []FosterChildren, pagination pkg.CursorPagination) AdminFosterChildrenListResponse {
+func ToAdminFosterChildrenListResponse(fosterChildren []FosterChildren, pagination pkg.OffsetPagination) AdminFosterChildrenListResponse {
 	var responses []AdminFosterChildrenListItemResponse
 	for _, a := range fosterChildren {
 		responses = append(responses, a.ToAdminFosterChildrenListItemResponse())
@@ -162,78 +166,3 @@ func ToAdminFosterChildrenListResponse(fosterChildren []FosterChildren, paginati
 	}
 }
 
-type FosterChildrenCandidateResponse struct {
-	ID               string    `json:"id"`
-	Name             string    `json:"name"`
-	ProfilePicture   string    `json:"profilePicture"`
-	Gender           string    `json:"gender"`
-	Category         string    `json:"category"`
-	BirthDate        string    `json:"birthDate"`
-	BirthPlace       string    `json:"birthPlace"`
-	SchoolName       string    `json:"schoolName"`
-	EducationLevel   int       `json:"educationLevel"`
-	Address          string    `json:"address"`
-	FamilyCard       string    `json:"familyCard"`
-	SKTM             string    `json:"sktm"`
-	SubmitterName    string    `json:"submitterName"`
-	SubmitterPhone   string    `json:"submitterPhone"`
-	SubmitterAddress string    `json:"submitterAddress"`
-	SubmitterIDCard  string    `json:"submitterIdCard"`
-	SubmittedBy      string    `json:"submittedBy"`
-	Status           string    `json:"status"`
-	RejectionReason  string    `json:"rejectionReason"`
-	CreatedAt        time.Time `json:"createdAt"`
-	UpdatedAt        time.Time `json:"updatedAt"`
-	AccountUsername  string    `json:"accountUsername,omitempty"`
-}
-
-type FosterChildrenCandidateListResponse struct {
-	FosterChildrenCandidates []FosterChildrenCandidateResponse `json:"fosterChildrenCandidates"`
-	Pagination               pkg.CursorPagination              `json:"pagination"`
-}
-
-func (c *FosterChildrenCandidate) ToFosterChildrenCandidateResponse() FosterChildrenCandidateResponse {
-	accountUsername := ""
-	if c.Account.UserProfile.Username != "" {
-		accountUsername = c.Account.UserProfile.Username
-	}
-
-	return FosterChildrenCandidateResponse{
-		ID:               c.ID.String(),
-		Name:             c.Name,
-		ProfilePicture:   c.ProfilePicture,
-		Gender:           string(c.Gender),
-		Category:         string(c.Category),
-		BirthDate:        c.BirthDate.Format("2006-01-02"),
-		BirthPlace:       c.BirthPlace,
-		Address:          c.Address,
-		SchoolName:       c.SchoolName,
-		EducationLevel:   c.EducationLevel,
-		FamilyCard:       c.FamilyCard,
-		SKTM:             c.SKTM,
-		SubmitterName:    c.SubmitterName,
-		SubmitterPhone:   c.SubmitterPhone,
-		SubmitterAddress: c.SubmitterAddress,
-		SubmitterIDCard:  c.SubmitterIDCard,
-		SubmittedBy:      c.SubmittedBy.String(),
-		Status:           string(c.Status),
-		RejectionReason:  c.RejectionReason,
-		CreatedAt:        c.CreatedAt,
-		UpdatedAt:        c.UpdatedAt,
-		AccountUsername:  accountUsername,
-	}
-}
-
-func ToFosterChildrenCandidateListResponse(candidates []FosterChildrenCandidate, pagination pkg.CursorPagination) FosterChildrenCandidateListResponse {
-	var responses []FosterChildrenCandidateResponse
-	for _, c := range candidates {
-		responses = append(responses, c.ToFosterChildrenCandidateResponse())
-	}
-	if responses == nil {
-		responses = []FosterChildrenCandidateResponse{}
-	}
-	return FosterChildrenCandidateListResponse{
-		FosterChildrenCandidates: responses,
-		Pagination:               pagination,
-	}
-}

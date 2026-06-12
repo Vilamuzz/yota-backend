@@ -15,6 +15,197 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/admin/ambulances/requests/assigned": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a list of ambulance requests assigned to the authenticated ambulance driver",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulance Service Requests"
+                ],
+                "summary": "List assigned ambulance requests (driver)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by applicant name",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by (e.g. applicant_name asc, created_at desc)",
+                        "name": "sortBy",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of items to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for next page",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for previous page",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/ambulances/requests/assigned/{ambulanceId}/detail/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the details of an ambulance request assigned to the authenticated driver",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulance Service Requests"
+                ],
+                "summary": "Get assigned ambulance request by ID (driver)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ambulance Request ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/ambulances/requests/{id}/accept": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Accept an ambulance service request and assign it to an ambulance",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulance Service Requests"
+                ],
+                "summary": "Accept Ambulance Service Request",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ambulance Request ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Ambulance ID to assign",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/app_ambulance_service_request.AcceptAmbulanceServiceRequestPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/ambulance-history": {
             "get": {
                 "description": "Get a list of ambulance history records with pagination",
@@ -105,7 +296,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/ambulance_history.CreateAmbulanceHistoryRequest"
+                            "$ref": "#/definitions/app_ambulance_history.CreateAmbulanceHistoryRequest"
                         }
                     }
                 ],
@@ -163,7 +354,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/ambulance_history.UpdateAmbulanceHistoryRequest"
+                            "$ref": "#/definitions/app_ambulance_history.UpdateAmbulanceHistoryRequest"
                         }
                     }
                 ],
@@ -236,126 +427,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/ambulance-service-requests": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get a list of ambulance requests with pagination",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Ambulance Service Requests"
-                ],
-                "summary": "List ambulance requests",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Number of items to return",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Cursor for next page",
-                        "name": "next_cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Cursor for previous page",
-                        "name": "prev_cursor",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/ambulance-service-requests/me": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get a list of ambulance requests created by the authenticated user with pagination",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Ambulance Service Requests"
-                ],
-                "summary": "List my ambulance requests",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Number of items to return",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Cursor for next page",
-                        "name": "next_cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Cursor for previous page",
-                        "name": "prev_cursor",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
         "/ambulance-service-requests/{id}": {
             "get": {
                 "security": [
@@ -381,68 +452,6 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update the details of an ambulance request by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Ambulance Service Requests"
-                ],
-                "summary": "Update ambulance request",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Ambulance Request ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Ambulance request details to update",
-                        "name": "ambulance_service_request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/ambulance_service_request.UpdateAmbulanceServiceRequest"
-                        }
                     }
                 ],
                 "responses": {
@@ -526,6 +535,84 @@ const docTemplate = `{
                         }
                     }
                 }
+            }
+        },
+        "/ambulances/requests": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a list of ambulance requests with pagination",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulance Service Requests"
+                ],
+                "summary": "List ambulance requests",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by account id",
+                        "name": "account_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by (e.g. applicant_name asc, created_at desc)",
+                        "name": "sortBy",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by applicant name",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
             },
             "post": {
                 "security": [
@@ -533,33 +620,26 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Create a new ambulance with the provided details",
+                "description": "Create a new ambulance service request with the provided details",
                 "consumes": [
-                    "multipart/form-data"
+                    "application/json"
                 ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Ambulances"
+                    "Ambulance Service Requests"
                 ],
-                "summary": "Create a new ambulance",
+                "summary": "Create a new ambulance service request",
                 "parameters": [
                     {
-                        "type": "string",
-                        "name": "phone",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "name": "plateNumber",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "file",
-                        "description": "Ambulance Image",
-                        "name": "image",
-                        "in": "formData"
+                        "description": "Ambulance service request details",
+                        "name": "ambulance_service_request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/app_ambulance_service_request.CreateAmbulanceServiceRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -584,47 +664,60 @@ const docTemplate = `{
                 }
             }
         },
-        "/ambulances/{id}": {
-            "put": {
+        "/ambulances/requests/me": {
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update the details of an existing ambulance by ID",
+                "description": "Get a list of ambulance requests created by the authenticated user with pagination",
                 "consumes": [
-                    "multipart/form-data"
+                    "application/json"
                 ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Ambulances"
+                    "Ambulance Service Requests"
                 ],
-                "summary": "Update an existing ambulance",
+                "summary": "List my ambulance requests",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Ambulance ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
                     },
                     {
                         "type": "string",
-                        "name": "phone",
-                        "in": "formData"
+                        "description": "Search by applicant name",
+                        "name": "search",
+                        "in": "query"
                     },
                     {
                         "type": "string",
-                        "name": "plateNumber",
-                        "in": "formData"
+                        "description": "Sort by (e.g. applicant_name asc, created_at desc)",
+                        "name": "sortBy",
+                        "in": "query"
                     },
                     {
-                        "type": "file",
-                        "description": "Ambulance Image",
-                        "name": "image",
-                        "in": "formData"
+                        "type": "integer",
+                        "description": "Number of items to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for next page",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for previous page",
+                        "name": "prev_cursor",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -647,7 +740,89 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
+            }
+        },
+        "/ambulances/requests/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a specific ambulance service request submitted by the user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulance Service Requests"
+                ],
+                "summary": "Get My Ambulance Service Request By ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Candidate ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/ambulances/requests/{id}/reject": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Reject a pending foster children candidate with a reason",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children Candidates"
+                ],
+                "summary": "Reject Foster Children Candidate",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Candidate ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Rejection Reason Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/app_ambulance_service_request.RejectAmbulanceServiceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/ambulances/{id}": {
             "delete": {
                 "security": [
                     {
@@ -672,6 +847,62 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/ambulances/{id}/history/summary": {
+            "get": {
+                "description": "Returns total service counts grouped by category for an ambulance.\nUse the ` + "`" + `period` + "`" + ` query param to filter by time window.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulance History"
+                ],
+                "summary": "Get ambulance history summary",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ambulance ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start date (YYYY-MM-DD)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (YYYY-MM-DD)",
+                        "name": "endDate",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -778,7 +1009,256 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/account.AccountResponse"
+                                                "$ref": "#/definitions/app_account.AccountResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/accounts/active": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a list of active accounts excluding superadmins. Forced filter: is_banned=false, exclude_superadmin=true.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Account"
+                ],
+                "summary": "Get Active Accounts List (Excludes Superadmin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Role ID filter",
+                        "name": "role_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort order",
+                        "name": "sort_order",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/app_account.AccountResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/accounts/drivers": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a list of active accounts with Driver role.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Account"
+                ],
+                "summary": "Get Driver Accounts List",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort order",
+                        "name": "sort_order",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/app_account.AccountResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/accounts/foster-parents": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a list of active accounts with Orang Tua Asuh role.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Account"
+                ],
+                "summary": "Get Foster Parent Accounts List",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort order",
+                        "name": "sort_order",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/app_account.AccountResponse"
                                             }
                                         }
                                     }
@@ -819,7 +1299,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/account.RolesResponse"
+                                            "$ref": "#/definitions/app_account.RolesResponse"
                                         }
                                     }
                                 }
@@ -868,7 +1348,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/account.AccountResponse"
+                                            "$ref": "#/definitions/app_account.AccountResponse"
                                         }
                                     }
                                 }
@@ -910,7 +1390,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/account.SetAccountBanStatusRequest"
+                            "$ref": "#/definitions/app_account.SetAccountBanStatusRequest"
                         }
                     }
                 ],
@@ -1005,13 +1485,143 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/account.UpdateAccountRoleRequest"
+                            "$ref": "#/definitions/app_account.UpdateAccountRoleRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/ambulances": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new ambulance with the provided details",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulances"
+                ],
+                "summary": "Create a new ambulance",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Ambulance image",
+                        "name": "image",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Plate number",
+                        "name": "plateNumber",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Phone number",
+                        "name": "phone",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/ambulances/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update the details of an existing ambulance by ID",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulances"
+                ],
+                "summary": "Update an existing ambulance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ambulance ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Ambulance image",
+                        "name": "image",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Plate number",
+                        "name": "plateNumber",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Phone number",
+                        "name": "phone",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/pkg.Response"
                         }
@@ -1026,7 +1636,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve a list of all donation programs with cursor-based pagination and optional filters",
+                "description": "Retrieve a paginated list of all donation programs with offset-based pagination, optional filters, and dynamic sorting",
                 "consumes": [
                     "application/json"
                 ],
@@ -1036,11 +1646,11 @@ const docTemplate = `{
                 "tags": [
                     "Donation Programs"
                 ],
-                "summary": "Get All Donation Programs",
+                "summary": "Get All Donation Programs (Admin)",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Search query",
+                        "description": "Search by title",
                         "name": "search",
                         "in": "query"
                     },
@@ -1052,26 +1662,26 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Status filter",
+                        "description": "Status filter (draft, active, completed, expired, archived)",
                         "name": "status",
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "description": "Sort field and direction, e.g. 'title asc', 'fund_target desc', 'end_date asc', 'created_at desc'",
+                        "name": "sortBy",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
-                        "description": "Pagination limit",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default: 10, max: 100)",
                         "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (next page)",
-                        "name": "nextCursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (prev page)",
-                        "name": "prevCursor",
                         "in": "query"
                     }
                 ],
@@ -1103,76 +1713,57 @@ const docTemplate = `{
                 "summary": "Create Donation Program",
                 "parameters": [
                     {
-                        "enum": [
-                            "pendidikan",
-                            "kesehatan",
-                            "lingkungan",
-                            "sosial",
-                            "bencana",
-                            "kemanusiaan",
-                            "lainnya"
-                        ],
                         "type": "string",
-                        "x-enum-varnames": [
-                            "CategoryEducation",
-                            "CategoryHealth",
-                            "CategoryEnvironment",
-                            "CategorySocial",
-                            "CategoryDisaster",
-                            "CategoryHumanity",
-                            "CategoryOther"
-                        ],
+                        "description": "Donation Program Title",
+                        "name": "title",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Cover Image",
+                        "name": "coverImage",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category",
                         "name": "category",
-                        "in": "formData"
+                        "in": "formData",
+                        "required": true
                     },
                     {
                         "type": "string",
+                        "description": "Description",
                         "name": "description",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "name": "endDate",
-                        "in": "formData"
+                        "in": "formData",
+                        "required": true
                     },
                     {
                         "type": "number",
+                        "description": "Fund Target",
                         "name": "fundTarget",
-                        "in": "formData"
+                        "in": "formData",
+                        "required": true
                     },
                     {
                         "type": "string",
-                        "name": "startDate",
-                        "in": "formData"
-                    },
-                    {
-                        "enum": [
-                            "draft",
-                            "active",
-                            "completed",
-                            "expired",
-                            "archived"
-                        ],
-                        "type": "string",
-                        "x-enum-varnames": [
-                            "StatusDraft",
-                            "StatusActive",
-                            "StatusCompleted",
-                            "StatusExpired",
-                            "StatusArchived"
-                        ],
+                        "description": "Status",
                         "name": "status",
                         "in": "formData"
                     },
                     {
                         "type": "string",
-                        "name": "title",
-                        "in": "formData"
+                        "description": "Start Date (YYYY-MM-DD)",
+                        "name": "startDate",
+                        "in": "formData",
+                        "required": true
                     },
                     {
-                        "type": "file",
-                        "description": "Donation Program Cover Image",
-                        "name": "coverImage",
+                        "type": "string",
+                        "description": "End Date (YYYY-MM-DD)",
+                        "name": "endDate",
                         "in": "formData",
                         "required": true
                     }
@@ -1355,76 +1946,51 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "enum": [
-                            "pendidikan",
-                            "kesehatan",
-                            "lingkungan",
-                            "sosial",
-                            "bencana",
-                            "kemanusiaan",
-                            "lainnya"
-                        ],
                         "type": "string",
-                        "x-enum-varnames": [
-                            "CategoryEducation",
-                            "CategoryHealth",
-                            "CategoryEnvironment",
-                            "CategorySocial",
-                            "CategoryDisaster",
-                            "CategoryHumanity",
-                            "CategoryOther"
-                        ],
-                        "name": "category",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "name": "description",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "name": "endDate",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "number",
-                        "name": "fundTarget",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "name": "startDate",
-                        "in": "formData"
-                    },
-                    {
-                        "enum": [
-                            "draft",
-                            "active",
-                            "completed",
-                            "expired",
-                            "archived"
-                        ],
-                        "type": "string",
-                        "x-enum-varnames": [
-                            "StatusDraft",
-                            "StatusActive",
-                            "StatusCompleted",
-                            "StatusExpired",
-                            "StatusArchived"
-                        ],
-                        "name": "status",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
+                        "description": "Donation Program Title",
                         "name": "title",
                         "in": "formData"
                     },
                     {
                         "type": "file",
-                        "description": "Donation Program Cover Image",
+                        "description": "Cover Image",
                         "name": "coverImage",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category",
+                        "name": "category",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Description",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Fund Target",
+                        "name": "fundTarget",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Status",
+                        "name": "status",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start Date (YYYY-MM-DD)",
+                        "name": "startDate",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End Date (YYYY-MM-DD)",
+                        "name": "endDate",
                         "in": "formData"
                     }
                 ],
@@ -1575,6 +2141,18 @@ const docTemplate = `{
                         "description": "Items per page",
                         "name": "limit",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter start date (YYYY-MM-DD, inclusive)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date (YYYY-MM-DD, inclusive)",
+                        "name": "endDate",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -1612,29 +2190,36 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "type": "number",
-                        "name": "amount",
-                        "in": "formData"
-                    },
-                    {
                         "type": "string",
-                        "name": "expenseDate",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "name": "note",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
+                        "description": "Expense Title",
                         "name": "title",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Expense Amount",
+                        "name": "amount",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Expense Date (YYYY-MM-DD)",
+                        "name": "expenseDate",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Expense Note",
+                        "name": "note",
                         "in": "formData"
                     },
                     {
                         "type": "file",
                         "description": "Proof File",
-                        "name": "proof_file",
+                        "name": "proofFile",
                         "in": "formData"
                     }
                 ],
@@ -1708,7 +2293,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/donation_program_transaction.DonationProgramTransactionListResponse"
+                                            "$ref": "#/definitions/app_donation_program_transaction.DonationProgramTransactionListResponse"
                                         }
                                     }
                                 }
@@ -1748,7 +2333,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/donation_program_transaction.CreateDonationProgramTransactionRequest"
+                            "$ref": "#/definitions/app_donation_program_transaction.CreateDonationProgramTransactionRequest"
                         }
                     }
                 ],
@@ -1782,6 +2367,15 @@ const docTemplate = `{
                 "summary": "Create Foster Children",
                 "parameters": [
                     {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "name": "achivementNotes",
+                        "in": "formData"
+                    },
+                    {
                         "type": "string",
                         "name": "address",
                         "in": "formData"
@@ -1812,9 +2406,14 @@ const docTemplate = `{
                         "in": "formData"
                     },
                     {
+                        "type": "integer",
+                        "name": "educationLevel",
+                        "in": "formData"
+                    },
+                    {
                         "enum": [
-                            "male",
-                            "female"
+                            "laki-laki",
+                            "perempuan"
                         ],
                         "type": "string",
                         "x-enum-varnames": [
@@ -1832,6 +2431,11 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "name": "name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "schoolName",
                         "in": "formData"
                     },
                     {
@@ -1901,21 +2505,49 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
+                        "enum": [
+                            "yatim",
+                            "piatu",
+                            "yatim piatu",
+                            "dhuafa"
+                        ],
+                        "type": "string",
+                        "description": "Filter by category",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "Laki-laki",
+                            "Perempuan"
+                        ],
+                        "type": "string",
+                        "description": "Filter by gender",
+                        "name": "gender",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by (e.g. name asc, created_at desc)",
+                        "name": "sortBy",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by name or submitter name",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "description": "Pagination limit",
                         "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (next page)",
-                        "name": "next_cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (prev page)",
-                        "name": "prev_cursor",
                         "in": "query"
                     }
                 ],
@@ -1961,14 +2593,50 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
+            }
+        },
+        "/api/admin/foster-children/candidates/{id}/accept": {
             "patch": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Accept or reject a foster children candidate",
+                "description": "Accept a foster children candidate. This is a two-step process: first by Social Manager (Koordinator Sosial) and then by Chairman (Ketua Yayasan).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children Candidates"
+                ],
+                "summary": "Accept Foster Children Candidate",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Candidate ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/foster-children/candidates/{id}/reject": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Reject a pending foster children candidate with a reason",
                 "consumes": [
                     "application/json"
                 ],
@@ -1978,7 +2646,7 @@ const docTemplate = `{
                 "tags": [
                     "Foster Children Candidates"
                 ],
-                "summary": "Update Foster Children Candidate Status",
+                "summary": "Reject Foster Children Candidate",
                 "parameters": [
                     {
                         "type": "string",
@@ -1988,12 +2656,12 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Status Update Request",
+                        "description": "Rejection Reason Request",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/foster_children.UpdateFosterChildrenCandidateStatusRequest"
+                            "$ref": "#/definitions/app_foster_children_candidate.RejectFosterChildrenCandidateRequest"
                         }
                     }
                 ],
@@ -2008,41 +2676,6 @@ const docTemplate = `{
             }
         },
         "/api/admin/foster-children/expenses/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get detailed information of a specific foster children expense entry (requires authentication and proper role)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Foster Children"
-                ],
-                "summary": "Get Foster Children Expense by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Expense ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            },
             "delete": {
                 "security": [
                     {
@@ -2140,6 +2773,24 @@ const docTemplate = `{
                         "required": true
                     },
                     {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "name": "achivementIDs",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "name": "achivementNotes",
+                        "in": "formData"
+                    },
+                    {
                         "type": "string",
                         "name": "address",
                         "in": "formData"
@@ -2170,9 +2821,14 @@ const docTemplate = `{
                         "in": "formData"
                     },
                     {
+                        "type": "integer",
+                        "name": "educationLevel",
+                        "in": "formData"
+                    },
+                    {
                         "enum": [
-                            "male",
-                            "female"
+                            "laki-laki",
+                            "perempuan"
                         ],
                         "type": "string",
                         "x-enum-varnames": [
@@ -2190,6 +2846,20 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "name": "name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "schoolName",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "name": "updateAchivementNotes",
                         "in": "formData"
                     },
                     {
@@ -2279,7 +2949,7 @@ const docTemplate = `{
                 "tags": [
                     "Foster Children"
                 ],
-                "summary": "Get Foster Children Expense List",
+                "summary": "Get Foster Children Expense List for Admin",
                 "parameters": [
                     {
                         "type": "string",
@@ -2298,6 +2968,18 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Items per page",
                         "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter start date (YYYY-MM-DD, inclusive)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date (YYYY-MM-DD, inclusive)",
+                        "name": "endDate",
                         "in": "query"
                     }
                 ],
@@ -2432,7 +3114,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/foster_children_transaction.FosterChildrenTransactionListResponse"
+                                            "$ref": "#/definitions/app_foster_children_transaction.FosterChildrenTransactionListResponse"
                                         }
                                     }
                                 }
@@ -2472,7 +3154,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/foster_children_transaction.CreateFosterChildrenTransactionRequest"
+                            "$ref": "#/definitions/app_foster_children_transaction.CreateFosterChildrenTransactionRequest"
                         }
                     }
                 ],
@@ -2486,207 +3168,278 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/admin/galleries": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve a list of all gallery items (requires publication manager or superadmin role)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Gallery"
-                ],
-                "summary": "List All Galleries (Protected)",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by category",
-                        "name": "category",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by status",
-                        "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Cursor for next page",
-                        "name": "nextCursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Cursor for previous page",
-                        "name": "prevCursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Items per page (default: 10, max: 100)",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            },
+        "/api/admin/foundation-profile": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Create a new gallery item (requires publication manager or superadmin role)",
+                "description": "Create the foundation profile (requires chairman or superadmin role)",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Gallery"
+                    "Foundation Profile"
                 ],
-                "summary": "Create Gallery",
+                "summary": "Create Foundation Profile",
                 "parameters": [
                     {
-                        "description": "Gallery Data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/gallery.GalleryRequest"
-                        }
+                        "type": "string",
+                        "description": "Foundation Name",
+                        "name": "foundationName",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Founder Name",
+                        "name": "founderName",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Founder Picture",
+                        "name": "founderPicture",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Foundation Address",
+                        "name": "foundationAddress",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Foundation Phone",
+                        "name": "foundationPhone",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Foundation Email",
+                        "name": "foundationEmail",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Foundation Instagram",
+                        "name": "foundationInstagram",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Foundation Facebook",
+                        "name": "foundationFacebook",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Foundation Twitter",
+                        "name": "foundationTwitter",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Embedded Address",
+                        "name": "embeddedAddress",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Foundation Logo",
+                        "name": "logo",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Foundation Icon",
+                        "name": "icon",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Organization Structure Image",
+                        "name": "organization_structure",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Hero Image 1",
+                        "name": "hero_image_one",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Hero Image 2",
+                        "name": "hero_image_two",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Hero Image 3",
+                        "name": "hero_image_three",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Hero Image 4",
+                        "name": "hero_image_four",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/pkg.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_foundation_profile.FoundationProfileResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
             }
         },
-        "/api/admin/galleries/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get detailed information of a specific gallery item (requires publication manager or superadmin role)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Gallery"
-                ],
-                "summary": "Get Gallery (Protected)",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Gallery ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            },
+        "/api/admin/foundation-profile/{id}": {
             "put": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update an existing gallery item (requires publication manager or superadmin role)",
+                "description": "Update the foundation profile (requires chairman or superadmin role)",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Gallery"
+                    "Foundation Profile"
                 ],
-                "summary": "Update Gallery",
+                "summary": "Update Foundation Profile",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Gallery ID",
+                        "description": "Foundation Profile ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Gallery Data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/gallery.GalleryRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Delete a gallery item (requires publication manager or superadmin role)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Gallery"
-                ],
-                "summary": "Delete Gallery",
-                "parameters": [
+                        "type": "string",
+                        "description": "Foundation Name",
+                        "name": "foundationName",
+                        "in": "formData"
+                    },
                     {
                         "type": "string",
-                        "description": "Gallery ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
+                        "description": "Founder Name",
+                        "name": "founderName",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Founder Picture",
+                        "name": "founderPicture",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Foundation Address",
+                        "name": "foundationAddress",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Foundation Phone",
+                        "name": "foundationPhone",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Foundation Email",
+                        "name": "foundationEmail",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Foundation Instagram",
+                        "name": "foundationInstagram",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Foundation Facebook",
+                        "name": "foundationFacebook",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Foundation Twitter",
+                        "name": "foundationTwitter",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Embedded Address",
+                        "name": "embeddedAddress",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Foundation Logo",
+                        "name": "logo",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Foundation Icon",
+                        "name": "icon",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Organization Structure Image",
+                        "name": "organization_structure",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Hero Image 1",
+                        "name": "hero_image_one",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Hero Image 2",
+                        "name": "hero_image_two",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Hero Image 3",
+                        "name": "hero_image_three",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Hero Image 4",
+                        "name": "hero_image_four",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -2699,14 +3452,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/admin/galleries/{id}/archived": {
+        "/api/admin/galleries/{id}/archive": {
             "patch": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update an existing gallery item to archived (requires publication manager or superadmin role)",
+                "description": "Update an existing gallery to archived (requires publication manager or superadmin role)",
                 "consumes": [
                     "application/json"
                 ],
@@ -2716,7 +3469,7 @@ const docTemplate = `{
                 "tags": [
                     "Gallery"
                 ],
-                "summary": "Update Archived Gallery",
+                "summary": "Update Archive Gallery",
                 "parameters": [
                     {
                         "type": "string",
@@ -2736,14 +3489,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/admin/galleries/{id}/published": {
+        "/api/admin/galleries/{id}/publish": {
             "patch": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update an existing gallery item to published (requires publication manager or superadmin role)",
+                "description": "Update an existing gallery to publish (requires publication manager or superadmin role)",
                 "consumes": [
                     "application/json"
                 ],
@@ -2753,7 +3506,7 @@ const docTemplate = `{
                 "tags": [
                     "Gallery"
                 ],
-                "summary": "Update Published Gallery",
+                "summary": "Update Publish Gallery",
                 "parameters": [
                     {
                         "type": "string",
@@ -2773,66 +3526,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/admin/news/": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve a list of all news (requires publication manager or superadmin role)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "News"
-                ],
-                "summary": "List All News (Protected)",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by category",
-                        "name": "category",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by status",
-                        "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Cursor for pagination (encoded string)",
-                        "name": "cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Items per page (default: 10, max: 100)",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            },
+        "/api/admin/news": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Create a new news article (requires publication manager or superadmin role)",
+                "description": "Create a new news item (requires publication manager or superadmin role)",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -2867,26 +3568,220 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "News Status",
+                        "description": "News Status (draft, published, archived)",
                         "name": "status",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "News Cover Image",
+                        "name": "coverImage",
                         "in": "formData"
                     },
                     {
                         "type": "file",
-                        "description": "News Image File",
-                        "name": "image",
+                        "description": "News Media Files",
+                        "name": "mediaFiles[]",
                         "in": "formData"
                     },
                     {
                         "type": "string",
-                        "description": "News Image URL (if not uploading file)",
-                        "name": "image_url",
+                        "description": "Media Alt Texts",
+                        "name": "mediaAlt[]",
                         "in": "formData"
                     }
                 ],
                 "responses": {
                     "201": {
                         "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_news.NewsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/news/": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a list of all news items (requires publication manager or superadmin role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News"
+                ],
+                "summary": "List All News (Protected)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search news by title",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by category",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by field (e.g. 'created_at desc', 'views desc', 'published_at desc', 'title asc')",
+                        "name": "sortBy",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default: 10, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_news.NewsListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/news/comments": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a list of reported news comments",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News Comments"
+                ],
+                "summary": "List Reported News Comments",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_news_comment.AdminNewsCommentListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/news/comments/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a news comment by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News Comments"
+                ],
+                "summary": "Delete News Comment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/pkg.Response"
                         }
@@ -2925,7 +3820,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/pkg.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_news.NewsResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -2936,7 +3843,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update an existing news article (requires publication manager or superadmin role)",
+                "description": "Update an existing news item (requires publication manager or superadmin role)",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -2981,14 +3888,20 @@ const docTemplate = `{
                     },
                     {
                         "type": "file",
-                        "description": "News Image File",
-                        "name": "image",
+                        "description": "News Cover Image",
+                        "name": "coverImage",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "News Media Files",
+                        "name": "mediaFiles[]",
                         "in": "formData"
                     },
                     {
                         "type": "string",
-                        "description": "News Image URL (if not uploading file)",
-                        "name": "image_url",
+                        "description": "Media Alt Texts",
+                        "name": "mediaAlt[]",
                         "in": "formData"
                     }
                 ],
@@ -3018,6 +3931,80 @@ const docTemplate = `{
                     "News"
                 ],
                 "summary": "Delete News",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "News ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/news/{id}/archive": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing news to archived (requires publication manager or superadmin role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News"
+                ],
+                "summary": "Update Archive News",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "News ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/news/{id}/publish": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing news to publish (requires publication manager or superadmin role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News"
+                ],
+                "summary": "Update Publish News",
                 "parameters": [
                     {
                         "type": "string",
@@ -3087,7 +4074,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/prayer.PrayerListResponse"
+                                            "$ref": "#/definitions/app_prayer.PrayerListResponse"
                                         }
                                     }
                                 }
@@ -3141,7 +4128,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve a list of social programs for admin",
+                "description": "Retrieve a paginated list of social programs for admin with offset-based pagination, optional filters, and dynamic sorting",
                 "consumes": [
                     "application/json"
                 ],
@@ -3155,32 +4142,44 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Search query",
+                        "description": "Search by title",
                         "name": "search",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Status filter",
+                        "description": "Status filter (pending, active, completed, rejected)",
                         "name": "status",
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "description": "Filter start date for billing_day (YYYY-MM-DD)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date for billing_day (YYYY-MM-DD)",
+                        "name": "endDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort field and direction, e.g. 'title asc', 'minimum_amount desc', 'billing_day asc', 'created_at desc'",
+                        "name": "sortBy",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
-                        "description": "Pagination limit",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default: 10, max: 100)",
                         "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (next page)",
-                        "name": "next_cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (prev page)",
-                        "name": "prev_cursor",
                         "in": "query"
                     }
                 ],
@@ -3227,23 +4226,6 @@ const docTemplate = `{
                         "in": "formData"
                     },
                     {
-                        "enum": [
-                            "active",
-                            "completed",
-                            "stopped",
-                            "draft"
-                        ],
-                        "type": "string",
-                        "x-enum-varnames": [
-                            "StatusActive",
-                            "StatusCompleted",
-                            "StatusStopped",
-                            "StatusDraft"
-                        ],
-                        "name": "status",
-                        "in": "formData"
-                    },
-                    {
                         "type": "string",
                         "name": "title",
                         "in": "formData"
@@ -3259,6 +4241,67 @@ const docTemplate = `{
                 "responses": {
                     "201": {
                         "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/social-programs/accounts/{account_id}/subscriptions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a list of social program subscriptions for a specific account (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "List Social Program Subscriptions by Account ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Account ID",
+                        "name": "account_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by field",
+                        "name": "sortBy",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/pkg.Response"
                         }
@@ -3303,14 +4346,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/admin/social-programs/subscriptions": {
+        "/api/admin/social-programs/subscribers": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve a list of all social program subscriptions (admin only)",
+                "description": "Retrieve a unique list of accounts that have at least one social program subscription (admin only)",
                 "consumes": [
                     "application/json"
                 ],
@@ -3320,19 +4363,142 @@ const docTemplate = `{
                 "tags": [
                     "Social Programs"
                 ],
-                "summary": "List All Social Program Subscriptions",
+                "summary": "List All Subscribers",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Filter by social program ID",
-                        "name": "social_program_id",
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination page",
+                        "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Filter by account ID",
-                        "name": "account_id",
+                        "description": "Search subscriber by name or email",
+                        "name": "search",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by field",
+                        "name": "sortBy",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/social-programs/subscribers/subscription/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a specific subscriber subscription by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "Get Subscriber Subscription By ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Subscription ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/social-programs/subscribers/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a subscriber's profile and stats by their Account ID (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "Get Subscriber By ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Account ID (Subscriber ID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/social-programs/subscriptions/invoices/subscription/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a paginated list of social program invoices for a specific subscription",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "List Social Program Invoices by Subscription ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Subscription ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -3406,6 +4572,43 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/social-programs/subscriptions/{id}/deactivate": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deactivate a social program subscription (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "Deactivate Social Program Subscription",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Subscription ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/social-programs/transactions": {
             "get": {
                 "security": [
@@ -3457,6 +4660,52 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/social-programs/transactions/pay-offline/{id}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Manually record an offline payment for a social program invoice (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "Record Offline Social Program Transaction",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Invoice ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Offline transaction request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/app_social_program_transaction.CreateOfflineTransactionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/social-programs/transactions/{id}": {
             "get": {
                 "security": [
@@ -3492,6 +4741,41 @@ const docTemplate = `{
             }
         },
         "/api/admin/social-programs/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information of a specific social program for admin",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "Get Admin Social Program by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Social Program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
             "put": {
                 "security": [
                     {
@@ -3533,23 +4817,6 @@ const docTemplate = `{
                         "in": "formData"
                     },
                     {
-                        "enum": [
-                            "active",
-                            "completed",
-                            "stopped",
-                            "draft"
-                        ],
-                        "type": "string",
-                        "x-enum-varnames": [
-                            "StatusActive",
-                            "StatusCompleted",
-                            "StatusStopped",
-                            "StatusDraft"
-                        ],
-                        "name": "status",
-                        "in": "formData"
-                    },
-                    {
                         "type": "string",
                         "name": "title",
                         "in": "formData"
@@ -3587,6 +4854,80 @@ const docTemplate = `{
                     "Social Programs"
                 ],
                 "summary": "Delete Social Program",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Social Program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/social-programs/{id}/activate": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Approve a pending social program",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "Approve Social Program",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Social Program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/social-programs/{id}/complete": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Complete an active social program",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "Complete Social Program",
                 "parameters": [
                     {
                         "type": "string",
@@ -3669,14 +5010,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/admin/upload/presign": {
-            "post": {
+        "/api/admin/social-programs/{id}/reject": {
+            "patch": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Generate a presigned URL for direct file upload to object storage",
+                "description": "Reject a pending social program with reason",
                 "consumes": [
                     "application/json"
                 ],
@@ -3684,17 +5025,24 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Upload"
+                    "Social Programs"
                 ],
-                "summary": "Generate Presigned URL",
+                "summary": "Reject Social Program",
                 "parameters": [
                     {
-                        "description": "Presign Request",
-                        "name": "request",
+                        "type": "string",
+                        "description": "Social Program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Rejection Reason",
+                        "name": "payload",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/upload.PresignRequest"
+                            "$ref": "#/definitions/app_social_program.RejectSocialProgramRequest"
                         }
                     }
                 ],
@@ -3702,19 +5050,117 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/pkg.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/upload.PresignResponse"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/social-programs/{id}/subscriptions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a list of all social program subscriptions (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "List All Social Program Subscriptions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by social program ID",
+                        "name": "social_program_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by account ID",
+                        "name": "account_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by field",
+                        "name": "sortBy",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Subscribe to a social program",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "Create Social Program Subscription",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Social Program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Subscription Data",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/app_social_program_subscription.CreateSocialProgramSubscriptionOfflineRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
                         }
                     }
                 }
@@ -3740,7 +5186,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.ForgetPasswordRequest"
+                            "$ref": "#/definitions/app_auth.ForgetPasswordRequest"
                         }
                     }
                 ],
@@ -3774,7 +5220,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.LoginRequest"
+                            "$ref": "#/definitions/app_auth.LoginRequest"
                         }
                     }
                 ],
@@ -3865,7 +5311,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.RegisterRequest"
+                            "$ref": "#/definitions/app_auth.RegisterRequest"
                         }
                     }
                 ],
@@ -3899,7 +5345,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.ResendVerificationRequest"
+                            "$ref": "#/definitions/app_auth.ResendVerificationRequest"
                         }
                     }
                 ],
@@ -3933,7 +5379,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.ResetPasswordRequest"
+                            "$ref": "#/definitions/app_auth.ResetPasswordRequest"
                         }
                     }
                 ],
@@ -3972,7 +5418,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.SwitchRoleRequest"
+                            "$ref": "#/definitions/app_auth.SwitchRoleRequest"
                         }
                     }
                 ],
@@ -4006,7 +5452,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.VerifyEmailRequest"
+                            "$ref": "#/definitions/app_auth.VerifyEmailRequest"
                         }
                     }
                 ],
@@ -4022,7 +5468,7 @@ const docTemplate = `{
         },
         "/api/donation-programs": {
             "get": {
-                "description": "Retrieve a list of donation programs",
+                "description": "Retrieve a paginated list of donation programs with optional filters and sorting",
                 "consumes": [
                     "application/json"
                 ],
@@ -4036,26 +5482,38 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Search by title",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
                         "description": "Filter by category",
                         "name": "category",
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "description": "Status filter (admin only)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort field and direction, e.g. 'title asc', 'fund_target desc', 'end_date asc', 'created_at desc'",
+                        "name": "sortBy",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
-                        "description": "Pagination limit",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default: 10, max: 100)",
                         "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (next page)",
-                        "name": "nextCursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (prev page)",
-                        "name": "prevCursor",
                         "in": "query"
                     }
                 ],
@@ -4096,6 +5554,103 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/donation-programs/{slug}/expenses": {
+            "get": {
+                "description": "Get paginated list of expenses for a specific donation program (publicly accessible)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Get Public Donation Program Expense List",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Donation Program Slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for pagination",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter start date (YYYY-MM-DD, inclusive)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date (YYYY-MM-DD, inclusive)",
+                        "name": "endDate",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/donation-programs/{slug}/expenses/export": {
+            "get": {
+                "description": "Export all expenses for a specific donation program as a CSV file (publicly accessible)",
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Export Donation Program Expense as CSV",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Donation Program Slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter start date (YYYY-MM-DD, inclusive)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date (YYYY-MM-DD, inclusive)",
+                        "name": "endDate",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CSV file",
+                        "schema": {
+                            "type": "file"
                         }
                     }
                 }
@@ -4153,7 +5708,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/prayer.PrayerListResponse"
+                                            "$ref": "#/definitions/app_prayer.PrayerListResponse"
                                         }
                                     }
                                 }
@@ -4190,7 +5745,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/donation_program_transaction.CreateDonationProgramTransactionRequest"
+                            "$ref": "#/definitions/app_donation_program_transaction.CreateDonationProgramTransactionRequest"
                         }
                     }
                 ],
@@ -4206,7 +5761,7 @@ const docTemplate = `{
         },
         "/api/foster-children": {
             "get": {
-                "description": "Retrieve a list of foster children with cursor-based pagination and optional filters",
+                "description": "Retrieve a paginated list of foster children with optional filters and sorting",
                 "consumes": [
                     "application/json"
                 ],
@@ -4228,6 +5783,75 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Filter by category",
                         "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by gender (male, female)",
+                        "name": "gender",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter by graduation status",
+                        "name": "isGraduated",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by education level (1-12)",
+                        "name": "educationLevel",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort field and direction, e.g. 'name asc', 'education_level desc', 'birth_date asc', 'created_at desc'",
+                        "name": "sortBy",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default: 10, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/foster-children/candidates": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a list of the authenticated user's foster children candidates",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children Candidates"
+                ],
+                "summary": "List My Foster Children Candidates",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
                         "in": "query"
                     },
                     {
@@ -4257,9 +5881,7 @@ const docTemplate = `{
                         }
                     }
                 }
-            }
-        },
-        "/api/foster-children/candidates/submit": {
+            },
             "post": {
                 "security": [
                     {
@@ -4309,9 +5931,14 @@ const docTemplate = `{
                         "in": "formData"
                     },
                     {
+                        "type": "integer",
+                        "name": "educationLevel",
+                        "in": "formData"
+                    },
+                    {
                         "enum": [
-                            "male",
-                            "female"
+                            "laki-laki",
+                            "perempuan"
                         ],
                         "type": "string",
                         "x-enum-varnames": [
@@ -4324,6 +5951,11 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "name": "name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "schoolName",
                         "in": "formData"
                     },
                     {
@@ -4380,7 +6012,110 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/foster-children/{id}": {
+        "/api/foster-children/candidates/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a specific foster children candidate submitted by the user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children Candidates"
+                ],
+                "summary": "Get My Foster Children Candidate By ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Candidate ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cancel a pending foster children candidate",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children Candidates"
+                ],
+                "summary": "Cancel Foster Children Candidate",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Candidate ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/foster-children/expenses/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information of a specific foster children expense entry (requires authentication and proper role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children"
+                ],
+                "summary": "Get Foster Children Expense by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Expense ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/foster-children/{slug}": {
             "get": {
                 "description": "Get detailed information of a specific foster child",
                 "consumes": [
@@ -4396,8 +6131,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Foster Children ID",
-                        "name": "id",
+                        "description": "Foster Children Slug",
+                        "name": "slug",
                         "in": "path",
                         "required": true
                     }
@@ -4412,7 +6147,109 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/foster-children/{id}/transactions": {
+        "/api/foster-children/{slug}/expenses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information of all expenses for a foster child (requires authentication and proper role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foster Children"
+                ],
+                "summary": "Get Foster Children Expense List",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Foster Children Slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for pagination",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter start date (YYYY-MM-DD, inclusive)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date (YYYY-MM-DD, inclusive)",
+                        "name": "endDate",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/foster-children/{slug}/expenses/export": {
+            "get": {
+                "description": "Export all expenses for a specific foster child as a CSV file (publicly accessible)",
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "Foster Children"
+                ],
+                "summary": "Export Foster Children Expense as CSV",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Foster Children Slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter start date (YYYY-MM-DD, inclusive)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date (YYYY-MM-DD, inclusive)",
+                        "name": "endDate",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CSV file",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/foster-children/{slug}/transactions": {
             "post": {
                 "description": "Initiate a Midtrans Snap payment for a foster children donation",
                 "consumes": [
@@ -4428,8 +6265,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Foster Children ID",
-                        "name": "id",
+                        "description": "Foster Children Slug",
+                        "name": "slug",
                         "in": "path",
                         "required": true
                     },
@@ -4439,7 +6276,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/foster_children_transaction.CreateFosterChildrenTransactionRequest"
+                            "$ref": "#/definitions/app_foster_children_transaction.CreateFosterChildrenTransactionRequest"
                         }
                     }
                 ],
@@ -4453,9 +6290,49 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/galleries": {
+        "/api/foundation-profile": {
             "get": {
-                "description": "Retrieve a list of published gallery items with cursor-based pagination and optional filters",
+                "description": "Retrieve the foundation profile information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Foundation Profile"
+                ],
+                "summary": "Get Foundation Profile",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_foundation_profile.FoundationProfileResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/galleries/": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a list of all gallery items (requires publication manager or superadmin role)",
                 "consumes": [
                     "application/json"
                 ],
@@ -4465,8 +6342,14 @@ const docTemplate = `{
                 "tags": [
                     "Gallery"
                 ],
-                "summary": "List Published Galleries",
+                "summary": "List All Galleries (Protected)",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search gallery by title",
+                        "name": "search",
+                        "in": "query"
+                    },
                     {
                         "type": "string",
                         "description": "Filter by category",
@@ -4475,14 +6358,20 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Cursor for next page",
-                        "name": "nextCursor",
+                        "description": "Filter by status",
+                        "name": "status",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Cursor for previous page",
-                        "name": "prevCursor",
+                        "description": "Sort by field (e.g. 'created_at desc', 'views desc', 'title asc')",
+                        "name": "sortBy",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
                         "in": "query"
                     },
                     {
@@ -4496,15 +6385,118 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/pkg.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_gallery.GalleryListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new gallery item (requires publication manager or superadmin role)",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gallery"
+                ],
+                "summary": "Create Gallery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gallery Title",
+                        "name": "title",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Gallery Category",
+                        "name": "category",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Gallery Description",
+                        "name": "description",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Gallery Status (draft, published, archived)",
+                        "name": "status",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Gallery Cover Image",
+                        "name": "coverImage",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Gallery Media Files",
+                        "name": "mediaFiles[]",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Media Alt Texts",
+                        "name": "mediaAlt[]",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_gallery.GalleryResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
             }
         },
-        "/api/galleries/{slug}": {
+        "/api/galleries/{id}": {
             "get": {
-                "description": "Get detailed information of a specific published gallery item",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get detailed information of a specific gallery item (requires publication manager or superadmin role)",
                 "consumes": [
                     "application/json"
                 ],
@@ -4514,12 +6506,136 @@ const docTemplate = `{
                 "tags": [
                     "Gallery"
                 ],
-                "summary": "Get Published Gallery",
+                "summary": "Get Gallery (Protected)",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Gallery Slug",
-                        "name": "slug",
+                        "description": "Gallery ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_gallery.GalleryResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update an existing gallery item (requires publication manager or superadmin role)",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gallery"
+                ],
+                "summary": "Update Gallery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gallery ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Gallery Title",
+                        "name": "title",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Gallery Category",
+                        "name": "category",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Gallery Description",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Gallery Status",
+                        "name": "status",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Gallery Cover Image",
+                        "name": "coverImage",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Gallery Media Files",
+                        "name": "mediaFiles[]",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Media Alt Texts",
+                        "name": "mediaAlt[]",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a gallery item (requires publication manager or superadmin role)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gallery"
+                ],
+                "summary": "Delete Gallery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gallery ID",
+                        "name": "id",
                         "in": "path",
                         "required": true
                     }
@@ -4627,7 +6743,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/account.UserProfileResponse"
+                                            "$ref": "#/definitions/app_account.UserProfileResponse"
                                         }
                                     }
                                 }
@@ -4690,7 +6806,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/donation_program_transaction.DonationProgramTransactionListResponse"
+                                            "$ref": "#/definitions/app_donation_program_transaction.DonationProgramTransactionListResponse"
                                         }
                                     }
                                 }
@@ -4719,91 +6835,6 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Transaction ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/me/foster-children/candidates": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get a list of the authenticated user's foster children candidates",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Foster Children Candidates"
-                ],
-                "summary": "List My Foster Children Candidates",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by status",
-                        "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Pagination limit",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (next page)",
-                        "name": "next_cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (prev page)",
-                        "name": "prev_cursor",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/me/foster-children/candidates/{id}": {
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Cancel a pending foster children candidate",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Foster Children Candidates"
-                ],
-                "summary": "Cancel Foster Children Candidate",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Candidate ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -4872,7 +6903,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/foster_children_transaction.FosterChildrenTransactionListResponse"
+                                            "$ref": "#/definitions/app_foster_children_transaction.FosterChildrenTransactionListResponse"
                                         }
                                     }
                                 }
@@ -4941,7 +6972,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/account.UpdatePasswordRequest"
+                            "$ref": "#/definitions/app_account.UpdatePasswordRequest"
                         }
                     }
                 ],
@@ -4976,33 +7007,38 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "name": "address",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "integer",
-                        "name": "defaultAccountRoleId",
+                        "description": "Username",
+                        "name": "username",
                         "in": "formData"
                     },
                     {
                         "type": "string",
+                        "description": "Email",
                         "name": "email",
                         "in": "formData"
                     },
                     {
                         "type": "string",
+                        "description": "Phone",
                         "name": "phone",
                         "in": "formData"
                     },
                     {
                         "type": "string",
-                        "name": "username",
+                        "description": "Address",
+                        "name": "address",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Default Role ID",
+                        "name": "defaultAccountRoleId",
                         "in": "formData"
                     },
                     {
                         "type": "file",
                         "description": "Profile Picture",
-                        "name": "profile_picture",
+                        "name": "profilePicture",
                         "in": "formData"
                     }
                 ],
@@ -5101,66 +7137,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/me/subscriptions": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve a list of the authenticated user's social program subscriptions",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Social Programs"
-                ],
-                "summary": "List My Social Program Subscriptions",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Filter by social program ID",
-                        "name": "social_program_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by status",
-                        "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Pagination limit",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (next page)",
-                        "name": "next_cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (prev page)",
-                        "name": "prev_cursor",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
         "/api/me/subscriptions/invoices/{id}": {
             "get": {
                 "security": [
@@ -5198,14 +7174,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/me/subscriptions/{id}/invoices": {
-            "get": {
+        "/api/me/subscriptions/{id}/deactivate": {
+            "patch": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieve a paginated list of social program invoices",
+                "description": "Deactivate own social program subscription",
                 "consumes": [
                     "application/json"
                 ],
@@ -5215,37 +7191,14 @@ const docTemplate = `{
                 "tags": [
                     "Social Programs"
                 ],
-                "summary": "List Social Program Invoices",
+                "summary": "Deactivate My Social Program Subscription",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Filter by subscription ID",
-                        "name": "subscription_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Filter by status",
-                        "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Pagination limit",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (next page)",
-                        "name": "next_cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (prev page)",
-                        "name": "prev_cursor",
-                        "in": "query"
+                        "description": "Subscription ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -5260,7 +7213,7 @@ const docTemplate = `{
         },
         "/api/news/": {
             "get": {
-                "description": "Retrieve a list of published news with cursor-based pagination and optional filters",
+                "description": "Retrieve a list of published news items with offset-based pagination and optional filters",
                 "consumes": [
                     "application/json"
                 ],
@@ -5274,14 +7227,26 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Search news by title",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
                         "description": "Filter by category",
                         "name": "category",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Cursor for pagination (encoded string)",
-                        "name": "cursor",
+                        "description": "Sort by field (e.g. 'created_at desc', 'views desc', 'published_at desc', 'title asc')",
+                        "name": "sortBy",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
                         "in": "query"
                     },
                     {
@@ -5289,6 +7254,108 @@ const docTemplate = `{
                         "description": "Items per page (default: 10, max: 100)",
                         "name": "limit",
                         "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_news.NewsListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/news/comments/{id}": {
+            "get": {
+                "description": "Get a news comment by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News Comments"
+                ],
+                "summary": "Get News Comment by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_news_comment.NewsCommentResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/news/comments/{id}/report": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Report a news comment",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News Comments"
+                ],
+                "summary": "Report News Comment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Report News Comment Payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/app_news_comment.ReportNewsCommentRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -5327,7 +7394,81 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/pkg.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_news.NewsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/news/{slug}/comments": {
+            "get": {
+                "description": "Get a list of news comments",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News Comments"
+                ],
+                "summary": "List News Comments",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "News Slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_news_comment.NewsCommentListResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -5367,7 +7508,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/prayer.PrayerResponse"
+                                            "$ref": "#/definitions/app_prayer.PrayerResponse"
                                         }
                                     }
                                 }
@@ -5446,7 +7587,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/prayer.ReportPrayerRequest"
+                            "$ref": "#/definitions/app_prayer.ReportPrayerRequest"
                         }
                     }
                 ],
@@ -5460,9 +7601,120 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/public/galleries/": {
+            "get": {
+                "description": "Retrieve a list of published gallery items with offset-based pagination and optional filters",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gallery"
+                ],
+                "summary": "List Published Galleries",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search gallery by title",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by category",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by field (e.g. 'created_at desc', 'views desc', 'title asc')",
+                        "name": "sortBy",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default: 10, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_gallery.GalleryListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/public/galleries/{id}": {
+            "get": {
+                "description": "Get detailed information of a specific published gallery item",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gallery"
+                ],
+                "summary": "Get Published Gallery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gallery ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_gallery.GalleryResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/api/social-programs": {
             "get": {
-                "description": "Retrieve a list of social programs",
+                "description": "Retrieve a paginated list of social programs with optional filters and sorting",
                 "consumes": [
                     "application/json"
                 ],
@@ -5476,7 +7728,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Search query",
+                        "description": "Search by title",
                         "name": "search",
                         "in": "query"
                     },
@@ -5487,21 +7739,33 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "description": "Filter start date for billing_day (YYYY-MM-DD)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date for billing_day (YYYY-MM-DD)",
+                        "name": "endDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort field and direction, e.g. 'title asc', 'minimum_amount desc', 'billing_day asc', 'created_at desc'",
+                        "name": "sortBy",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
-                        "description": "Pagination limit",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default: 10, max: 100)",
                         "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (next page)",
-                        "name": "next_cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (prev page)",
-                        "name": "prev_cursor",
                         "in": "query"
                     }
                 ],
@@ -5549,96 +7813,11 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/social_program_expense.SocialProgramExpenseDetailResponse"
+                                            "$ref": "#/definitions/app_social_program_expense.SocialProgramExpenseDetailResponse"
                                         }
                                     }
                                 }
                             ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/social-programs/subscriptions": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Subscribe to a social program",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Social Programs"
-                ],
-                "summary": "Create Social Program Subscription",
-                "parameters": [
-                    {
-                        "description": "Subscription Data",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/social_program_subscription.CreateSocialProgramSubscriptionRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/social-programs/subscriptions/{id}": {
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update the status of a social program subscription",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Social Programs"
-                ],
-                "summary": "Update Social Program Subscription",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Subscription ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Subscription Update Data",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/social_program_subscription.UpdateSocialProgramSubscriptionRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/pkg.Response"
                         }
                     }
                 }
@@ -5664,7 +7843,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/social_program_transaction.CreateTransactionRequest"
+                            "$ref": "#/definitions/app_social_program_transaction.CreateTransactionRequest"
                         }
                     }
                 ],
@@ -5716,6 +7895,18 @@ const docTemplate = `{
                         "description": "Pagination cursor (prev page)",
                         "name": "prev_cursor",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter start date (YYYY-MM-DD, inclusive)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date (YYYY-MM-DD, inclusive)",
+                        "name": "endDate",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -5730,11 +7921,48 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/social_program_expense.SocialProgramExpenseListResponse"
+                                            "$ref": "#/definitions/app_social_program_expense.SocialProgramExpenseListResponse"
                                         }
                                     }
                                 }
                             ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/social-programs/{id}/subscribe": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Subscribe to a social program",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "Create Social Program Subscription",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Social Program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
                         }
                     }
                 }
@@ -5771,10 +7999,167 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/social-programs/{slug}/expenses": {
+            "get": {
+                "description": "Get paginated list of expenses for a specific social program (publicly accessible)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "Get Public Social Program Expense List",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Social Program Slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for pagination",
+                        "name": "cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter start date (YYYY-MM-DD, inclusive)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date (YYYY-MM-DD, inclusive)",
+                        "name": "endDate",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/social-programs/{slug}/expenses/export": {
+            "get": {
+                "description": "Export all expenses for a specific social program as a CSV file (publicly accessible)",
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "Export Social Program Expense as CSV",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Social Program Slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter start date (YYYY-MM-DD, inclusive)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date (YYYY-MM-DD, inclusive)",
+                        "name": "endDate",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CSV file",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/subscriptions/invoices/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a paginated list of social program invoices",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Social Programs"
+                ],
+                "summary": "List Social Program Invoices",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by subscription ID",
+                        "name": "subscription_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (next page)",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Pagination cursor (prev page)",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
-        "account.AccountResponse": {
+        "app_account.AccountResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -5792,7 +8177,7 @@ const docTemplate = `{
                 "roles": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/account.AccountRolesResponse"
+                        "$ref": "#/definitions/app_account.AccountRolesResponse"
                     }
                 },
                 "username": {
@@ -5800,7 +8185,7 @@ const docTemplate = `{
                 }
             }
         },
-        "account.AccountRolesResponse": {
+        "app_account.AccountRolesResponse": {
             "type": "object",
             "properties": {
                 "isActive": {
@@ -5817,7 +8202,7 @@ const docTemplate = `{
                 }
             }
         },
-        "account.RoleResponse": {
+        "app_account.RoleResponse": {
             "type": "object",
             "properties": {
                 "id": {
@@ -5828,18 +8213,18 @@ const docTemplate = `{
                 }
             }
         },
-        "account.RolesResponse": {
+        "app_account.RolesResponse": {
             "type": "object",
             "properties": {
                 "roles": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/account.RoleResponse"
+                        "$ref": "#/definitions/app_account.RoleResponse"
                     }
                 }
             }
         },
-        "account.SetAccountBanStatusRequest": {
+        "app_account.SetAccountBanStatusRequest": {
             "type": "object",
             "properties": {
                 "banStatus": {
@@ -5847,7 +8232,7 @@ const docTemplate = `{
                 }
             }
         },
-        "account.UpdateAccountRoleRequest": {
+        "app_account.UpdateAccountRoleRequest": {
             "type": "object",
             "properties": {
                 "isActive": {
@@ -5855,7 +8240,7 @@ const docTemplate = `{
                 }
             }
         },
-        "account.UpdatePasswordRequest": {
+        "app_account.UpdatePasswordRequest": {
             "type": "object",
             "properties": {
                 "currentPassword": {
@@ -5866,7 +8251,7 @@ const docTemplate = `{
                 }
             }
         },
-        "account.UserProfileResponse": {
+        "app_account.UserProfileResponse": {
             "type": "object",
             "properties": {
                 "address": {
@@ -5887,7 +8272,7 @@ const docTemplate = `{
                 "roles": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/account.AccountRolesResponse"
+                        "$ref": "#/definitions/app_account.AccountRolesResponse"
                     }
                 },
                 "username": {
@@ -5895,7 +8280,7 @@ const docTemplate = `{
                 }
             }
         },
-        "ambulance_history.CreateAmbulanceHistoryRequest": {
+        "app_ambulance_history.CreateAmbulanceHistoryRequest": {
             "type": "object",
             "properties": {
                 "ambulanceId": {
@@ -5908,11 +8293,11 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "serviceCategory": {
-                    "$ref": "#/definitions/ambulance_history.ServiceCategory"
+                    "$ref": "#/definitions/app_ambulance_history.ServiceCategory"
                 }
             }
         },
-        "ambulance_history.ServiceCategory": {
+        "app_ambulance_history.ServiceCategory": {
             "type": "string",
             "enum": [
                 "social_service",
@@ -5929,26 +8314,57 @@ const docTemplate = `{
                 "OtherService"
             ]
         },
-        "ambulance_history.UpdateAmbulanceHistoryRequest": {
+        "app_ambulance_history.UpdateAmbulanceHistoryRequest": {
             "type": "object",
             "properties": {
                 "serviceCategory": {
-                    "$ref": "#/definitions/ambulance_history.ServiceCategory"
+                    "$ref": "#/definitions/app_ambulance_history.ServiceCategory"
                 }
             }
         },
-        "ambulance_service_request.UpdateAmbulanceServiceRequest": {
+        "app_ambulance_service_request.AcceptAmbulanceServiceRequestPayload": {
+            "type": "object",
+            "properties": {
+                "ambulanceId": {
+                    "type": "string"
+                }
+            }
+        },
+        "app_ambulance_service_request.CreateAmbulanceServiceRequest": {
+            "type": "object",
+            "properties": {
+                "accountId": {
+                    "type": "string"
+                },
+                "applicantAddress": {
+                    "type": "string"
+                },
+                "applicantName": {
+                    "type": "string"
+                },
+                "applicantPhone": {
+                    "type": "string"
+                },
+                "requestDate": {
+                    "type": "string"
+                },
+                "requestReason": {
+                    "type": "string"
+                },
+                "serviceCategory": {
+                    "type": "string"
+                }
+            }
+        },
+        "app_ambulance_service_request.RejectAmbulanceServiceRequest": {
             "type": "object",
             "properties": {
                 "rejectionReason": {
                     "type": "string"
-                },
-                "status": {
-                    "type": "string"
                 }
             }
         },
-        "auth.ForgetPasswordRequest": {
+        "app_auth.ForgetPasswordRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -5956,7 +8372,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.LoginRequest": {
+        "app_auth.LoginRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -5967,7 +8383,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.RegisterRequest": {
+        "app_auth.RegisterRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -5981,7 +8397,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.ResendVerificationRequest": {
+        "app_auth.ResendVerificationRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -5989,7 +8405,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.ResetPasswordRequest": {
+        "app_auth.ResetPasswordRequest": {
             "type": "object",
             "properties": {
                 "newPassword": {
@@ -6000,7 +8416,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.SwitchRoleRequest": {
+        "app_auth.SwitchRoleRequest": {
             "type": "object",
             "properties": {
                 "role": {
@@ -6008,7 +8424,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.VerifyEmailRequest": {
+        "app_auth.VerifyEmailRequest": {
             "type": "object",
             "properties": {
                 "token": {
@@ -6016,45 +8432,7 @@ const docTemplate = `{
                 }
             }
         },
-        "donation_program.Category": {
-            "type": "string",
-            "enum": [
-                "pendidikan",
-                "kesehatan",
-                "lingkungan",
-                "sosial",
-                "bencana",
-                "kemanusiaan",
-                "lainnya"
-            ],
-            "x-enum-varnames": [
-                "CategoryEducation",
-                "CategoryHealth",
-                "CategoryEnvironment",
-                "CategorySocial",
-                "CategoryDisaster",
-                "CategoryHumanity",
-                "CategoryOther"
-            ]
-        },
-        "donation_program.Status": {
-            "type": "string",
-            "enum": [
-                "draft",
-                "active",
-                "completed",
-                "expired",
-                "archived"
-            ],
-            "x-enum-varnames": [
-                "StatusDraft",
-                "StatusActive",
-                "StatusCompleted",
-                "StatusExpired",
-                "StatusArchived"
-            ]
-        },
-        "donation_program_transaction.CreateDonationProgramTransactionRequest": {
+        "app_donation_program_transaction.CreateDonationProgramTransactionRequest": {
             "type": "object",
             "properties": {
                 "donorEmail": {
@@ -6071,36 +8449,33 @@ const docTemplate = `{
                 }
             }
         },
-        "donation_program_transaction.DonationProgramTransactionListResponse": {
+        "app_donation_program_transaction.DonationProgramTransactionListResponse": {
             "type": "object",
             "properties": {
-                "donationProgramTransactions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/donation_program_transaction.DonationProgramTransactionResponse"
-                    }
-                },
                 "pagination": {
                     "$ref": "#/definitions/pkg.CursorPagination"
+                },
+                "transactions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/app_donation_program_transaction.DonationProgramTransactionResponse"
+                    }
                 }
             }
         },
-        "donation_program_transaction.DonationProgramTransactionResponse": {
+        "app_donation_program_transaction.DonationProgramTransactionResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
                     "type": "string"
                 },
-                "donationProgramId": {
+                "donationProgramTitle": {
                     "type": "string"
                 },
                 "donorEmail": {
                     "type": "string"
                 },
                 "donorName": {
-                    "type": "string"
-                },
-                "fraudStatus": {
                     "type": "string"
                 },
                 "grossAmount": {
@@ -6118,16 +8493,7 @@ const docTemplate = `{
                 "paidAt": {
                     "type": "string"
                 },
-                "provider": {
-                    "type": "string"
-                },
-                "snapRedirectUrl": {
-                    "type": "string"
-                },
                 "snapToken": {
-                    "type": "string"
-                },
-                "transactionId": {
                     "type": "string"
                 },
                 "transactionStatus": {
@@ -6135,7 +8501,7 @@ const docTemplate = `{
                 }
             }
         },
-        "foster_children.Category": {
+        "app_foster_children.Category": {
             "type": "string",
             "enum": [
                 "yatim",
@@ -6148,44 +8514,50 @@ const docTemplate = `{
                 "CategoryOrphan"
             ]
         },
-        "foster_children.Gender": {
+        "app_foster_children.Gender": {
             "type": "string",
             "enum": [
-                "male",
-                "female"
+                "laki-laki",
+                "perempuan"
             ],
             "x-enum-varnames": [
                 "Male",
                 "Female"
             ]
         },
-        "foster_children.Status": {
+        "app_foster_children_candidate.Category": {
             "type": "string",
             "enum": [
-                "pending",
-                "accepted",
-                "rejected",
-                "canceled"
+                "yatim",
+                "piatu",
+                "yatim piatu"
             ],
             "x-enum-varnames": [
-                "StatusPending",
-                "StatusAccepted",
-                "StatusRejected",
-                "StatusCanceled"
+                "CategoryFatherless",
+                "CategoryMotherless",
+                "CategoryOrphan"
             ]
         },
-        "foster_children.UpdateFosterChildrenCandidateStatusRequest": {
+        "app_foster_children_candidate.Gender": {
+            "type": "string",
+            "enum": [
+                "laki-laki",
+                "perempuan"
+            ],
+            "x-enum-varnames": [
+                "Male",
+                "Female"
+            ]
+        },
+        "app_foster_children_candidate.RejectFosterChildrenCandidateRequest": {
             "type": "object",
             "properties": {
                 "rejectionReason": {
                     "type": "string"
-                },
-                "status": {
-                    "$ref": "#/definitions/foster_children.Status"
                 }
             }
         },
-        "foster_children_transaction.CreateFosterChildrenTransactionRequest": {
+        "app_foster_children_transaction.CreateFosterChildrenTransactionRequest": {
             "type": "object",
             "properties": {
                 "donorEmail": {
@@ -6199,21 +8571,21 @@ const docTemplate = `{
                 }
             }
         },
-        "foster_children_transaction.FosterChildrenTransactionListResponse": {
+        "app_foster_children_transaction.FosterChildrenTransactionListResponse": {
             "type": "object",
             "properties": {
-                "fosterChildrenTransactions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/foster_children_transaction.FosterChildrenTransactionResponse"
-                    }
-                },
                 "pagination": {
                     "$ref": "#/definitions/pkg.CursorPagination"
+                },
+                "transactions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/app_foster_children_transaction.FosterChildrenTransactionResponse"
+                    }
                 }
             }
         },
-        "foster_children_transaction.FosterChildrenTransactionResponse": {
+        "app_foster_children_transaction.FosterChildrenTransactionResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -6225,10 +8597,7 @@ const docTemplate = `{
                 "donorName": {
                     "type": "string"
                 },
-                "fosterChildrenId": {
-                    "type": "string"
-                },
-                "fraudStatus": {
+                "fosterChildrenName": {
                     "type": "string"
                 },
                 "grossAmount": {
@@ -6246,12 +8615,6 @@ const docTemplate = `{
                 "paidAt": {
                     "type": "string"
                 },
-                "provider": {
-                    "type": "string"
-                },
-                "snapRedirectUrl": {
-                    "type": "string"
-                },
                 "snapToken": {
                     "type": "string"
                 },
@@ -6263,47 +8626,465 @@ const docTemplate = `{
                 }
             }
         },
-        "gallery.GalleryMediaRequest": {
+        "app_foundation_profile.FoundationProfileResponse": {
             "type": "object",
             "properties": {
-                "alt_text": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "embeddedAddress": {
+                    "type": "string"
+                },
+                "foundationAddress": {
+                    "type": "string"
+                },
+                "foundationEmail": {
+                    "type": "string"
+                },
+                "foundationFacebook": {
+                    "type": "string"
+                },
+                "foundationInstagram": {
+                    "type": "string"
+                },
+                "foundationName": {
+                    "type": "string"
+                },
+                "foundationPhone": {
+                    "type": "string"
+                },
+                "foundationTwitter": {
+                    "type": "string"
+                },
+                "founderName": {
+                    "type": "string"
+                },
+                "founderPicture": {
+                    "type": "string"
+                },
+                "heroImageFour": {
+                    "type": "string"
+                },
+                "heroImageOne": {
+                    "type": "string"
+                },
+                "heroImageThree": {
+                    "type": "string"
+                },
+                "heroImageTwo": {
+                    "type": "string"
+                },
+                "icon": {
                     "type": "string"
                 },
                 "id": {
                     "type": "string"
                 },
-                "object_key": {
+                "logo": {
                     "type": "string"
                 },
-                "order": {
+                "organizationStructure": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "app_gallery.GalleryListResponse": {
+            "type": "object",
+            "properties": {
+                "galleries": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/app_gallery.GalleryListResponseItem"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/pkg.OffsetPagination"
+                }
+            }
+        },
+        "app_gallery.GalleryListResponseItem": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "$ref": "#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaCategory"
+                },
+                "coverImage": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaStatus"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "views": {
                     "type": "integer"
                 }
             }
         },
-        "gallery.GalleryRequest": {
+        "app_gallery.GalleryResponse": {
             "type": "object",
             "properties": {
                 "category": {
-                    "$ref": "#/definitions/media.MediaCategory"
+                    "$ref": "#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaCategory"
+                },
+                "coverImage": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
                 },
                 "description": {
+                    "type": "string"
+                },
+                "id": {
                     "type": "string"
                 },
                 "media": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/gallery.GalleryMediaRequest"
+                        "$ref": "#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaResponse"
                     }
                 },
+                "slug": {
+                    "type": "string"
+                },
                 "status": {
-                    "$ref": "#/definitions/media.MediaStatus"
+                    "$ref": "#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaStatus"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "views": {
+                    "type": "integer"
+                }
+            }
+        },
+        "app_news.NewsListResponse": {
+            "type": "object",
+            "properties": {
+                "news": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/app_news.NewsListResponseItem"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/pkg.OffsetPagination"
+                }
+            }
+        },
+        "app_news.NewsListResponseItem": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "$ref": "#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaCategory"
+                },
+                "coverImage": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "publishedAt": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaStatus"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "views": {
+                    "type": "integer"
+                }
+            }
+        },
+        "app_news.NewsResponse": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "$ref": "#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaCategory"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "coverImage": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "media": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaResponse"
+                    }
+                },
+                "publishedAt": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaStatus"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "views": {
+                    "type": "integer"
+                }
+            }
+        },
+        "app_news_comment.AdminNewsCommentListResponse": {
+            "type": "object",
+            "properties": {
+                "comments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/app_news_comment.AdminNewsCommentResponse"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/pkg.CursorPagination"
+                }
+            }
+        },
+        "app_news_comment.AdminNewsCommentResponse": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "reportCount": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "app_news_comment.NewsCommentListResponse": {
+            "type": "object",
+            "properties": {
+                "comments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/app_news_comment.NewsCommentResponse"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/pkg.CursorPagination"
+                }
+            }
+        },
+        "app_news_comment.NewsCommentResponse": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "replies": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/app_news_comment.NewsCommentResponse"
+                    }
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "app_news_comment.ReportNewsCommentRequest": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "app_prayer.PrayerListResponse": {
+            "type": "object",
+            "properties": {
+                "pagination": {
+                    "$ref": "#/definitions/pkg.CursorPagination"
+                },
+                "prayers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/app_prayer.PrayerResponse"
+                    }
+                }
+            }
+        },
+        "app_prayer.PrayerResponse": {
+            "type": "object",
+            "properties": {
+                "amenCount": {
+                    "type": "integer"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isAmen": {
+                    "type": "boolean"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "app_prayer.ReportPrayerRequest": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "app_social_program.RejectSocialProgramRequest": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "app_social_program_expense.SocialProgramExpenseDetailResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "expenseDate": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "note": {
+                    "type": "string"
                 },
                 "title": {
                     "type": "string"
                 }
             }
         },
-        "media.MediaCategory": {
+        "app_social_program_expense.SocialProgramExpenseListResponse": {
+            "type": "object",
+            "properties": {
+                "expenses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/app_social_program_expense.SocialProgramExpenseResponse"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/pkg.CursorPagination"
+                }
+            }
+        },
+        "app_social_program_expense.SocialProgramExpenseResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "expenseDate": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "proofFile": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "app_social_program_subscription.CreateSocialProgramSubscriptionOfflineRequest": {
+            "type": "object",
+            "properties": {
+                "accountId": {
+                    "type": "string"
+                }
+            }
+        },
+        "app_social_program_transaction.CreateOfflineTransactionRequest": {
+            "type": "object",
+            "required": [
+                "grossAmount"
+            ],
+            "properties": {
+                "grossAmount": {
+                    "type": "number"
+                }
+            }
+        },
+        "app_social_program_transaction.CreateTransactionRequest": {
+            "type": "object",
+            "properties": {
+                "grossAmount": {
+                    "type": "number"
+                }
+            }
+        },
+        "github_com_Vilamuzz_yota-backend_app_media.MediaCategory": {
             "type": "string",
             "enum": [
                 "kegiatan sosial",
@@ -6320,7 +9101,33 @@ const docTemplate = `{
                 "Others"
             ]
         },
-        "media.MediaStatus": {
+        "github_com_Vilamuzz_yota-backend_app_media.MediaResponse": {
+            "type": "object",
+            "properties": {
+                "alt": {
+                    "type": "string"
+                },
+                "galleryId": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "newsId": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_Vilamuzz_yota-backend_app_media.MediaStatus": {
             "type": "string",
             "enum": [
                 "draft",
@@ -6347,6 +9154,23 @@ const docTemplate = `{
                 }
             }
         },
+        "pkg.OffsetPagination": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "totalPages": {
+                    "type": "integer"
+                }
+            }
+        },
         "pkg.Response": {
             "type": "object",
             "properties": {
@@ -6362,211 +9186,6 @@ const docTemplate = `{
                     "additionalProperties": {
                         "type": "string"
                     }
-                }
-            }
-        },
-        "prayer.PrayerListResponse": {
-            "type": "object",
-            "properties": {
-                "pagination": {
-                    "$ref": "#/definitions/pkg.CursorPagination"
-                },
-                "prayers": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/prayer.PrayerResponse"
-                    }
-                }
-            }
-        },
-        "prayer.PrayerResponse": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "prayer.ReportPrayerRequest": {
-            "type": "object",
-            "properties": {
-                "reason": {
-                    "type": "string"
-                }
-            }
-        },
-        "social_program.Status": {
-            "type": "string",
-            "enum": [
-                "active",
-                "completed",
-                "stopped",
-                "draft"
-            ],
-            "x-enum-varnames": [
-                "StatusActive",
-                "StatusCompleted",
-                "StatusStopped",
-                "StatusDraft"
-            ]
-        },
-        "social_program_expense.SocialProgramExpenseDetailResponse": {
-            "type": "object",
-            "properties": {
-                "amount": {
-                    "type": "number"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "createdBy": {
-                    "type": "string"
-                },
-                "expenseDate": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "note": {
-                    "type": "string"
-                },
-                "proofFile": {
-                    "type": "string"
-                },
-                "socialProgramId": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "social_program_expense.SocialProgramExpenseListResponse": {
-            "type": "object",
-            "properties": {
-                "pagination": {
-                    "$ref": "#/definitions/pkg.CursorPagination"
-                },
-                "socialProgramExpenses": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/social_program_expense.SocialProgramExpenseResponse"
-                    }
-                }
-            }
-        },
-        "social_program_expense.SocialProgramExpenseResponse": {
-            "type": "object",
-            "properties": {
-                "amount": {
-                    "type": "number"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "expenseDate": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "note": {
-                    "type": "string"
-                },
-                "proofFile": {
-                    "type": "string"
-                },
-                "socialProgramId": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "social_program_subscription.CreateSocialProgramSubscriptionRequest": {
-            "type": "object",
-            "properties": {
-                "amount": {
-                    "type": "number"
-                },
-                "socialProgramId": {
-                    "type": "string"
-                }
-            }
-        },
-        "social_program_subscription.Status": {
-            "type": "string",
-            "enum": [
-                "active",
-                "paused",
-                "stopped"
-            ],
-            "x-enum-varnames": [
-                "StatusActive",
-                "StatusPaused",
-                "StatusStopped"
-            ]
-        },
-        "social_program_subscription.UpdateSocialProgramSubscriptionRequest": {
-            "type": "object",
-            "properties": {
-                "status": {
-                    "$ref": "#/definitions/social_program_subscription.Status"
-                }
-            }
-        },
-        "social_program_transaction.CreateTransactionRequest": {
-            "type": "object",
-            "properties": {
-                "grossAmount": {
-                    "type": "number"
-                },
-                "socialProgramInvoiceId": {
-                    "type": "string"
-                }
-            }
-        },
-        "upload.PresignRequest": {
-            "type": "object",
-            "required": [
-                "content_type",
-                "filename",
-                "module"
-            ],
-            "properties": {
-                "content_type": {
-                    "type": "string"
-                },
-                "filename": {
-                    "type": "string"
-                },
-                "module": {
-                    "type": "string"
-                }
-            }
-        },
-        "upload.PresignResponse": {
-            "type": "object",
-            "properties": {
-                "expires_at": {
-                    "type": "string"
-                },
-                "object_key": {
-                    "type": "string"
-                },
-                "presigned_url": {
-                    "type": "string"
                 }
             }
         }

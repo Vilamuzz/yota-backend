@@ -2,15 +2,17 @@ package gallery
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/app/media"
-	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
 )
 
 type Repository interface {
 	FindAllGalleries(ctx context.Context, options map[string]interface{}) ([]Gallery, error)
+	CountGalleries(ctx context.Context, options map[string]interface{}) (int64, error)
 	FindOneGallery(ctx context.Context, options map[string]interface{}) (*Gallery, error)
 	CreateGallery(ctx context.Context, gallery *Gallery) error
 	UpdateGallery(ctx context.Context, id string, updateData map[string]interface{}) error
@@ -28,48 +30,80 @@ func NewRepository(conn *gorm.DB) Repository {
 	}
 }
 
+var allowedGallerySortColumns = map[string]string{
+	"title":      "title",
+	"views":      "views",
+	"created_at": "created_at",
+}
+
 func (r *repository) FindAllGalleries(ctx context.Context, options map[string]interface{}) ([]Gallery, error) {
 	var galleries []Gallery
 	query := r.Conn.WithContext(ctx).Preload("Media").Where("deleted_at IS NULL")
 
-	if categoryID, ok := options["category_id"]; ok && categoryID != 0 {
-		query = query.Where("category_id = ?", categoryID)
+	if category, ok := options["category"]; ok && category != "" {
+		query = query.Where("category = ?", category)
 	}
 
 	if status, ok := options["status"]; ok && status != "" {
 		query = query.Where("status = ?", status)
 	}
 
-	if nextCursor, ok := options["next_cursor"]; ok && nextCursor != "" {
-		cursorData, err := pkg.DecodeCursor(nextCursor.(string))
-		if err == nil {
-			query = query.Where("created_at < ? OR (created_at = ? AND id < ?)",
-				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
-		}
-	} else if prevCursor, ok := options["prev_cursor"]; ok && prevCursor != "" {
-		cursorData, err := pkg.DecodeCursor(prevCursor.(string))
-		if err == nil {
-			query = query.Where("created_at > ? OR (created_at = ? AND id > ?)",
-				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
+	if search, ok := options["search"]; ok && search != "" {
+		query = query.Where("title ILIKE ?", "%"+search.(string)+"%")
+	}
+
+	// Determine sorting column and direction
+	sortCol := "created_at"
+	sortDir := "DESC"
+	if sortBy, ok := options["sort_by"]; ok && sortBy.(string) != "" {
+		parts := strings.Fields(strings.ToLower(sortBy.(string)))
+		if len(parts) >= 1 {
+			if col, valid := allowedGallerySortColumns[parts[0]]; valid {
+				sortCol = col
+				if len(parts) == 2 && (parts[1] == "asc" || parts[1] == "desc") {
+					sortDir = strings.ToUpper(parts[1])
+				}
+			}
 		}
 	}
 
-	if _, isPrev := options["prev_cursor"]; isPrev {
-		query = query.Order("created_at ASC, id ASC")
-	} else {
-		query = query.Order("created_at DESC, id DESC")
-	}
+	query = query.Order(fmt.Sprintf("%s %s", sortCol, sortDir))
 
 	limit := 10
-	if l, ok := options["limit"]; ok {
+	if l, ok := options["limit"]; ok && l.(int) > 0 {
 		limit = l.(int)
 	}
 
-	query = query.Limit(limit + 1)
+	offset := 0
+	if page, ok := options["page"]; ok && page.(int) > 1 {
+		offset = (page.(int) - 1) * limit
+	}
+
+	query = query.Limit(limit).Offset(offset)
 	if err := query.Find(&galleries).Error; err != nil {
 		return nil, err
 	}
 	return galleries, nil
+}
+
+func (r *repository) CountGalleries(ctx context.Context, options map[string]interface{}) (int64, error) {
+	var total int64
+	query := r.Conn.WithContext(ctx).Model(&Gallery{}).Where("deleted_at IS NULL")
+
+	if category, ok := options["category"]; ok && category != "" {
+		query = query.Where("category = ?", category)
+	}
+
+	if status, ok := options["status"]; ok && status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	if search, ok := options["search"]; ok && search != "" {
+		query = query.Where("title ILIKE ?", "%"+search.(string)+"%")
+	}
+
+	err := query.Count(&total).Error
+	return total, err
 }
 
 func (r *repository) FindOneGallery(ctx context.Context, options map[string]interface{}) (*Gallery, error) {

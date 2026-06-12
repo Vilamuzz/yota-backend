@@ -2,6 +2,8 @@ package ambulance_service_request
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
@@ -11,6 +13,7 @@ type Repository interface {
 	Create(ctx context.Context, ambulanceServiceRequest AmbulanceServiceRequest) error
 	FindByID(ctx context.Context, id string) (AmbulanceServiceRequest, error)
 	FindAll(ctx context.Context, options map[string]interface{}) ([]AmbulanceServiceRequest, error)
+	Count(ctx context.Context, options map[string]interface{}) (int64, error)
 	Update(ctx context.Context, id string, updateData map[string]interface{}) error
 }
 
@@ -22,6 +25,11 @@ func NewRepository(conn *gorm.DB) Repository {
 	return &repository{Conn: conn}
 }
 
+var allowedAmbulanceServiceRequestSortColumns = map[string]string{
+	"submitter_name": "submitter_name",
+	"created_at":     "created_at",
+}
+
 func (r *repository) Create(ctx context.Context, ambulanceServiceRequest AmbulanceServiceRequest) error {
 	return r.Conn.Create(&ambulanceServiceRequest).Error
 }
@@ -30,10 +38,47 @@ func (r *repository) FindByID(ctx context.Context, id string) (AmbulanceServiceR
 	var ambulanceServiceRequest AmbulanceServiceRequest
 	if err := r.Conn.WithContext(ctx).
 		Preload("Ambulance.Driver.UserProfile").
+		Preload("Account").
+		Preload("Account.UserProfile").
 		First(&ambulanceServiceRequest, "id = ?", id).Error; err != nil {
 		return AmbulanceServiceRequest{}, err
 	}
 	return ambulanceServiceRequest, nil
+}
+
+func (r *repository) Count(ctx context.Context, options map[string]interface{}) (int64, error) {
+	var count int64
+	query := r.Conn.WithContext(ctx).Model(&AmbulanceServiceRequest{})
+
+	if accountID, ok := options["account_id"]; ok && accountID != "" {
+		query = query.Where("submitted_by = ?", accountID)
+	}
+
+	if ambulanceID, ok := options["ambulance_id"]; ok && ambulanceID != "" {
+		query = query.Where("ambulance_id = ?", ambulanceID)
+	}
+
+	if status, ok := options["status"]; ok && status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	if serviceCategory, ok := options["service_category"]; ok && serviceCategory != "" {
+		query = query.Where("service_category = ?", serviceCategory)
+	}
+
+	if search, ok := options["search"]; ok && search != "" {
+		searchTerm := "%" + search.(string) + "%"
+		if onlyName, ok := options["search_only_name"]; ok && onlyName.(bool) {
+			query = query.Where("submitter_name ILIKE ?", searchTerm)
+		} else {
+			query = query.Where("submitter_name ILIKE ? OR patient_name ILIKE ?", searchTerm, searchTerm)
+		}
+	}
+
+	if err := query.Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 func (r *repository) FindAll(ctx context.Context, options map[string]interface{}) ([]AmbulanceServiceRequest, error) {
@@ -41,11 +86,28 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 	query := r.Conn.WithContext(ctx)
 
 	if accountID, ok := options["account_id"]; ok && accountID != "" {
-		query = query.Where("account_id = ?", accountID)
+		query = query.Where("submitted_by = ?", accountID)
 	}
 
 	if ambulanceID, ok := options["ambulance_id"]; ok && ambulanceID != "" {
 		query = query.Where("ambulance_id = ?", ambulanceID)
+	}
+
+	if status, ok := options["status"]; ok && status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	if serviceCategory, ok := options["service_category"]; ok && serviceCategory != "" {
+		query = query.Where("service_category = ?", serviceCategory)
+	}
+
+	if search, ok := options["search"]; ok && search != "" {
+		searchTerm := "%" + search.(string) + "%"
+		if onlyName, ok := options["search_only_name"]; ok && onlyName.(bool) {
+			query = query.Where("submitter_name ILIKE ?", searchTerm)
+		} else {
+			query = query.Where("submitter_name ILIKE ? OR patient_name ILIKE ?", searchTerm, searchTerm)
+		}
 	}
 
 	if nextCursor, ok := options["next_cursor"]; ok && nextCursor != "" {
@@ -64,7 +126,20 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 	}
 
 	if _, usingPrevCursor := options["prev_cursor"]; !usingPrevCursor {
-		query = query.Order("created_at DESC, id DESC")
+		orderClause := "created_at DESC, id DESC"
+		if sortBy, ok := options["sort_by"]; ok && sortBy.(string) != "" {
+			parts := strings.Fields(strings.ToLower(sortBy.(string)))
+			if len(parts) >= 1 {
+				if col, valid := allowedAmbulanceServiceRequestSortColumns[parts[0]]; valid {
+					dir := "ASC"
+					if len(parts) == 2 && parts[1] == "desc" {
+						dir = "DESC"
+					}
+					orderClause = fmt.Sprintf("%s %s", col, dir)
+				}
+			}
+		}
+		query = query.Order(orderClause)
 	}
 
 	limit := 10
@@ -72,7 +147,17 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 		limit = l.(int)
 	}
 
-	query = query.Limit(limit + 1)
+	if page, ok := options["page"]; ok {
+		p := page.(int)
+		if p <= 0 {
+			p = 1
+		}
+		offset := (p - 1) * limit
+		query = query.Limit(limit).Offset(offset)
+	} else {
+		query = query.Limit(limit + 1)
+	}
+
 	if err := query.Find(&ambulanceServiceRequests).Error; err != nil {
 		return nil, err
 	}
@@ -82,3 +167,4 @@ func (r *repository) FindAll(ctx context.Context, options map[string]interface{}
 func (r *repository) Update(ctx context.Context, id string, updateData map[string]interface{}) error {
 	return r.Conn.Model(&AmbulanceServiceRequest{}).Where("id = ?", id).Updates(updateData).Error
 }
+

@@ -2,14 +2,16 @@ package prayer
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
-	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
 )
 
 type Repository interface {
 	FindOnePrayer(ctx context.Context, options map[string]interface{}) (*Prayer, error)
 	FindAllPrayers(ctx context.Context, options map[string]interface{}) ([]Prayer, error)
+	CountPrayers(ctx context.Context, options map[string]interface{}) (int64, error)
 	CreatePrayer(ctx context.Context, prayer *Prayer) error
 	UpdatePrayer(ctx context.Context, prayer *Prayer) error
 	DeletePrayer(ctx context.Context, prayerID string) error
@@ -45,6 +47,15 @@ func (r *repository) FindOnePrayer(ctx context.Context, options map[string]inter
 	return &prayer, nil
 }
 
+var allowedPrayerSortColumns = map[string]string{
+	"created_at":   "created_at",
+	"createdat":    "created_at",
+	"report_count": "report_count",
+	"reportcount":  "report_count",
+	"amen_count":   "amen_count",
+	"amencount":    "amen_count",
+}
+
 func (r *repository) FindAllPrayers(ctx context.Context, options map[string]interface{}) ([]Prayer, error) {
 	var prayers []Prayer
 	query := r.Conn.WithContext(ctx).Preload("DonationProgramTransaction")
@@ -59,7 +70,6 @@ func (r *repository) FindAllPrayers(ctx context.Context, options map[string]inte
 			Select("COUNT(*) > 0").
 			Where("prayer_id = prayers.id AND account_id = ?", accountID.(string))
 		query = query.Select("prayers.*, (?) as is_amen", isAmenSubquery)
-		delete(options, "account_id")
 	}
 	if donationID, ok := options["donation_id"]; ok {
 		query = query.Where("donation_program_transaction_id = ?", donationID)
@@ -70,36 +80,58 @@ func (r *repository) FindAllPrayers(ctx context.Context, options map[string]inte
 		}
 	}
 
-	if nextCursor, ok := options["next_cursor"]; ok && nextCursor != "" {
-		cursorData, err := pkg.DecodeCursor(nextCursor.(string))
-		if err == nil {
-			query = query.Where("created_at < ? OR (created_at = ? AND id < ?)",
-				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
-		}
-	} else if prevCursor, ok := options["prev_cursor"]; ok && prevCursor != "" {
-		cursorData, err := pkg.DecodeCursor(prevCursor.(string))
-		if err == nil {
-			query = query.Where("created_at > ? OR (created_at = ? AND id > ?)",
-				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
+	sortCol := "created_at"
+	sortDir := "DESC"
+	if sortBy, ok := options["sort_by"]; ok && sortBy.(string) != "" {
+		parts := strings.Fields(strings.ToLower(sortBy.(string)))
+		if len(parts) >= 1 {
+			if col, valid := allowedPrayerSortColumns[parts[0]]; valid {
+				sortCol = col
+				if len(parts) == 2 && (parts[1] == "asc" || parts[1] == "desc") {
+					sortDir = strings.ToUpper(parts[1])
+				}
+			}
 		}
 	}
 
-	if _, isPrev := options["prev_cursor"]; isPrev {
-		query = query.Order("created_at ASC, id ASC")
-	} else {
-		query = query.Order("created_at DESC, id DESC")
-	}
+	query = query.Order(fmt.Sprintf("%s %s, id DESC", sortCol, sortDir))
 
 	limit := 10
-	if l, ok := options["limit"]; ok {
+	if l, ok := options["limit"]; ok && l.(int) > 0 {
 		limit = l.(int)
 	}
 
-	query = query.Limit(limit + 1)
+	offset := 0
+	if page, ok := options["page"]; ok && page.(int) > 1 {
+		offset = (page.(int) - 1) * limit
+	}
+
+	query = query.Limit(limit).Offset(offset)
 	if err := query.Find(&prayers).Error; err != nil {
 		return nil, err
 	}
 	return prayers, nil
+}
+
+func (r *repository) CountPrayers(ctx context.Context, options map[string]interface{}) (int64, error) {
+	var total int64
+	query := r.Conn.WithContext(ctx).Model(&Prayer{})
+
+	if donationProgramID, ok := options["donation_program_id"]; ok {
+		query = query.Joins("JOIN donation_program_transactions ON donation_program_transactions.id = prayers.donation_program_transaction_id").
+			Where("donation_program_transactions.donation_program_id = ?", donationProgramID)
+	}
+	if donationID, ok := options["donation_id"]; ok {
+		query = query.Where("donation_program_transaction_id = ?", donationID)
+	}
+	if reported, ok := options["reported"]; ok {
+		if reported.(bool) {
+			query = query.Where("reported = ?", true)
+		}
+	}
+
+	err := query.Count(&total).Error
+	return total, err
 }
 
 func (r *repository) CreatePrayer(ctx context.Context, prayer *Prayer) error {

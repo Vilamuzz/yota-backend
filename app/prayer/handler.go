@@ -27,11 +27,11 @@ func (h *handler) RegisterRoutes(router *gin.RouterGroup) {
 	router.GET("/donation-programs/:slug/prayers", h.middleware.AuthOptional(), h.GetPrayerList)
 	router.GET("/donation-programs/prayers/:id", h.middleware.AuthOptional(), h.GetPrayerByID)
 
-	publicProtected := router.Group("/donation-programs/prayers")
-	publicProtected.Use(h.middleware.AuthRequired())
+	fosterParent := router.Group("/donation-programs/prayers")
+	fosterParent.Use(h.middleware.RequireRoles(enum.RoleOrangTuaAsuh))
 	{
-		publicProtected.POST("/:id/amen", h.CreateAmenPrayer)
-		publicProtected.POST("/:id/report", h.CreateReportPrayer)
+		fosterParent.POST("/:id/amen", h.CreateAmenPrayer)
+		fosterParent.POST("/:id/report", h.CreateReportPrayer)
 	}
 
 	admin := router.Group("/admin/donation-programs/prayers")
@@ -140,7 +140,10 @@ func (h *handler) GetPrayerList(c *gin.Context) {
 		}
 	}
 
-	res := h.service.GetPrayerList(ctx, accountID, donationSlug, false, params)
+	params.AccountID = accountID
+	params.DonationSlug = donationSlug
+
+	res := h.service.GetPrayerList(ctx, false, params)
 	c.JSON(res.Status, res)
 }
 
@@ -162,7 +165,7 @@ func (h *handler) GetReportedPrayerList(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
 		return
 	}
-	res := h.service.GetPrayerList(ctx, "", "", true, params)
+	res := h.service.GetPrayerList(ctx, true, params)
 	c.JSON(res.Status, res)
 }
 

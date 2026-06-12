@@ -11,6 +11,8 @@ type UpdateSocialProgramSubscriptionRequest struct {
 }
 
 type SocialProgramSubscriptionQueryParams struct {
+	Search string `form:"search"`
 	Status string `form:"status"`
-	pkg.PaginationParams
+	SortBy string `form:"sortBy"` // e.g. "total_donation desc", "total_paid_periods desc"
+	pkg.OffsetPagination
 }

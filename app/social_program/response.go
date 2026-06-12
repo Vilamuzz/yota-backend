@@ -34,7 +34,7 @@ type SocialProgramListItemResponse struct {
 
 type SocialProgramListResponse struct {
 	SocialPrograms []SocialProgramListItemResponse `json:"socialPrograms"`
-	Pagination     pkg.CursorPagination            `json:"pagination"`
+	Pagination     pkg.OffsetPagination            `json:"pagination"`
 }
 
 func (r *SocialProgram) ToSocialProgramDetailResponse() SocialProgramDetailResponse {
@@ -71,7 +71,7 @@ func (r *SocialProgram) ToSocialProgramListItemResponse() SocialProgramListItemR
 	}
 }
 
-func ToSocialProgramListResponse(programs []SocialProgram, pagination pkg.CursorPagination) SocialProgramListResponse {
+func ToSocialProgramListResponse(programs []SocialProgram, pagination pkg.OffsetPagination) SocialProgramListResponse {
 	var responses []SocialProgramListItemResponse
 	for _, program := range programs {
 		responses = append(responses, program.ToSocialProgramListItemResponse())
@@ -92,6 +92,7 @@ type AdminSocialProgramDetailResponse struct {
 
 type AdminSocialProgramListItemResponse struct {
 	ID               string  `json:"id"`
+	Slug             string  `json:"slug"`
 	Title            string  `json:"title"`
 	Status           Status  `json:"status"`
 	TotalSubscribers int64   `json:"totalSubscribers"`
@@ -103,7 +104,7 @@ type AdminSocialProgramListItemResponse struct {
 
 type AdminSocialProgramListResponse struct {
 	AdminSocialPrograms []AdminSocialProgramListItemResponse `json:"socialPrograms"`
-	Pagination          pkg.CursorPagination                 `json:"pagination"`
+	Pagination          pkg.OffsetPagination                 `json:"pagination"`
 }
 
 func (a *SocialProgram) ToAdminSocialProgramDetailResponse() AdminSocialProgramDetailResponse {
@@ -116,6 +117,7 @@ func (a *SocialProgram) ToAdminSocialProgramDetailResponse() AdminSocialProgramD
 func (a *SocialProgram) ToAdminSocialProgramListItemResponse() AdminSocialProgramListItemResponse {
 	return AdminSocialProgramListItemResponse{
 		ID:               a.ID.String(),
+		Slug:             a.Slug,
 		Title:            a.Title,
 		Status:           a.Status,
 		TotalSubscribers: a.TotalSubscribers,
@@ -126,7 +128,7 @@ func (a *SocialProgram) ToAdminSocialProgramListItemResponse() AdminSocialProgra
 	}
 }
 
-func ToAdminSocialProgramListResponse(programs []SocialProgram, pagination pkg.CursorPagination) AdminSocialProgramListResponse {
+func ToAdminSocialProgramListResponse(programs []SocialProgram, pagination pkg.OffsetPagination) AdminSocialProgramListResponse {
 	var responses []AdminSocialProgramListItemResponse
 	for _, a := range programs {
 		responses = append(responses, a.ToAdminSocialProgramListItemResponse())

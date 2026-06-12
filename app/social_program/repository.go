@@ -2,14 +2,16 @@ package social_program
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
-	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
 )
 
 type Repository interface {
 	FindAllSocialPrograms(ctx context.Context, options map[string]interface{}) ([]SocialProgram, error)
+	CountSocialPrograms(ctx context.Context, options map[string]interface{}) (int64, error)
 	FindOneSocialProgram(ctx context.Context, options map[string]interface{}) (*SocialProgram, error)
 	CreateSocialProgram(ctx context.Context, socialProgram *SocialProgram) error
 	UpdateSocialProgram(ctx context.Context, socialProgramID string, updates map[string]interface{}) error
@@ -22,6 +24,16 @@ type repository struct {
 
 func NewRepository(conn *gorm.DB) Repository {
 	return &repository{Conn: conn}
+}
+
+// allowedSocialProgramSortColumns whitelists sortable columns to prevent SQL injection.
+var allowedSocialProgramSortColumns = map[string]string{
+	"title":             "title",
+	"minimum_amount":    "minimum_amount",
+	"billing_day":       "billing_day",
+	"status":            "status",
+	"created_at":        "created_at",
+	"total_subscribers": "total_subscribers",
 }
 
 func (r *repository) FindAllSocialPrograms(ctx context.Context, options map[string]interface{}) ([]SocialProgram, error) {
@@ -55,44 +67,100 @@ func (r *repository) FindAllSocialPrograms(ctx context.Context, options map[stri
 		query = query.Select("social_programs.*, (?) as total_subscribers, (?) as collected_fund, (?) as total_expense, (?) as is_subscribed, (?) as subscription_id", subscribersSubquery, collectedFundSubquery, totalExpenseSubquery, isSubscribedSubquery, subscriptionIDSubquery)
 	}
 
-	if status, ok := options["status"]; ok && status.(string) != "" {
-		query = query.Where("status = ?", status.(string))
+	if status, ok := options["status"]; ok {
+		switch v := status.(type) {
+		case string:
+			if v != "" {
+				query = query.Where("status = ?", v)
+			}
+		case []string:
+			if len(v) > 0 {
+				query = query.Where("status IN ?", v)
+			}
+		}
 	}
-
 	if search, ok := options["search"]; ok && search.(string) != "" {
 		query = query.Where("title ILIKE ?", "%"+search.(string)+"%")
 	}
-
-	if nextCursor, ok := options["next_cursor"]; ok && nextCursor.(string) != "" {
-		cursorData, err := pkg.DecodeCursor(nextCursor.(string))
-		if err == nil {
-			query = query.Where("created_at < ? OR (created_at = ? AND id < ?)",
-				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
-		}
-	} else if prevCursor, ok := options["prev_cursor"]; ok && prevCursor.(string) != "" {
-		cursorData, err := pkg.DecodeCursor(prevCursor.(string))
-		if err == nil {
-			query = query.Where("created_at > ? OR (created_at = ? AND id > ?)",
-				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
+	if startDay, ok := options["start_day"]; ok {
+		if endDay, ok := options["end_day"]; ok {
+			sDay := startDay.(int)
+			eDay := endDay.(int)
+			if sDay <= eDay {
+				query = query.Where("billing_day >= ? AND billing_day <= ?", sDay, eDay)
+			} else {
+				query = query.Where("billing_day >= ? OR billing_day <= ?", sDay, eDay)
+			}
 		}
 	}
 
-	if _, isPrev := options["prev_cursor"]; isPrev {
-		query = query.Order("created_at ASC, id ASC")
-	} else {
-		query = query.Order("created_at DESC, id DESC")
+	// Build ORDER BY from "sort_by" option, e.g. "title asc" or "minimum_amount desc".
+	orderClause := "social_programs.created_at DESC"
+	if sortBy, ok := options["sort_by"]; ok && sortBy.(string) != "" {
+		parts := strings.Fields(strings.ToLower(sortBy.(string)))
+		if len(parts) >= 1 {
+			if col, valid := allowedSocialProgramSortColumns[parts[0]]; valid {
+				dir := "ASC"
+				if len(parts) == 2 && parts[1] == "desc" {
+					dir = "DESC"
+				}
+				if col == "total_subscribers" {
+					orderClause = fmt.Sprintf("(SELECT COUNT(*) FROM social_program_subscriptions WHERE social_program_id = social_programs.id AND status = 'active') %s", dir)
+				} else {
+					orderClause = fmt.Sprintf("social_programs.%s %s", col, dir)
+				}
+			}
+		}
 	}
+	query = query.Order(orderClause)
 
 	limit := 10
-	if l, ok := options["limit"]; ok {
+	if l, ok := options["limit"]; ok && l.(int) > 0 {
 		limit = l.(int)
 	}
+	offset := 0
+	if page, ok := options["page"]; ok && page.(int) > 1 {
+		offset = (page.(int) - 1) * limit
+	}
 
-	query = query.Limit(limit + 1)
+	query = query.Limit(limit).Offset(offset)
 	if err := query.Find(&socialPrograms).Error; err != nil {
 		return nil, err
 	}
 	return socialPrograms, nil
+}
+
+func (r *repository) CountSocialPrograms(ctx context.Context, options map[string]interface{}) (int64, error) {
+	var total int64
+	query := r.Conn.WithContext(ctx).Model(&SocialProgram{}).Where("deleted_at IS NULL")
+	if status, ok := options["status"]; ok {
+		switch v := status.(type) {
+		case string:
+			if v != "" {
+				query = query.Where("status = ?", v)
+			}
+		case []string:
+			if len(v) > 0 {
+				query = query.Where("status IN ?", v)
+			}
+		}
+	}
+	if search, ok := options["search"]; ok && search.(string) != "" {
+		query = query.Where("title ILIKE ?", "%"+search.(string)+"%")
+	}
+	if startDay, ok := options["start_day"]; ok {
+		if endDay, ok := options["end_day"]; ok {
+			sDay := startDay.(int)
+			eDay := endDay.(int)
+			if sDay <= eDay {
+				query = query.Where("billing_day >= ? AND billing_day <= ?", sDay, eDay)
+			} else {
+				query = query.Where("billing_day >= ? OR billing_day <= ?", sDay, eDay)
+			}
+		}
+	}
+	err := query.Count(&total).Error
+	return total, err
 }
 
 func (r *repository) FindOneSocialProgram(ctx context.Context, options map[string]interface{}) (*SocialProgram, error) {
@@ -153,5 +221,5 @@ func (r *repository) UpdateSocialProgram(ctx context.Context, socialProgramID st
 }
 
 func (r *repository) DeleteSocialProgram(ctx context.Context, socialProgramID string) error {
-	return r.Conn.WithContext(ctx).Where("id = ?", socialProgramID).Update("deleted_at", time.Now()).Error
+	return r.Conn.WithContext(ctx).Model(&SocialProgram{}).Where("id = ?", socialProgramID).Update("deleted_at", time.Now()).Error
 }
