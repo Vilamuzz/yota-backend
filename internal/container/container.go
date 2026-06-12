@@ -269,7 +269,7 @@ func (c *Container) initScheduler() {
 
 	// Generate social program invoices every day at midnight
 	c.Scheduler.Add("0 0 * * *", "generate-social-program-invoices", func() {
-		if err := c.SocialProgramInvoiceService.GenerateSocialProgramInvoices(context.Background()); err != nil {
+		if err := c.SocialProgramInvoiceService.GenerateMonthlyInvoices(context.Background()); err != nil {
 			_ = err
 		}
 	})
