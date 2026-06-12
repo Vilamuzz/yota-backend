@@ -150,6 +150,7 @@ func (s *service) GetFosterChildrenTransactionByID(ctx context.Context, fosterCh
 	return pkg.NewResponse(http.StatusOK, "Sukses", nil, transaction.toFosterChildrenTransactionResponse())
 }
 
+// Tambah donasi offline untuk koordinator sosial
 func (s *service) CreateOfflineFosterChildrenTransaction(ctx context.Context, accountID, fosterChildrenID string, payload CreateFosterChildrenTransactionRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
