@@ -21,15 +21,23 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 }
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
-	public := r.Group("/ambulance-history")
-	public.GET("/", h.ListAmbulanceHistory)
+	r.GET("/ambulances/:id/history", h.ListAmbulanceHistory)
+	r.GET("/ambulances/:id/history/summary", h.AmbulanceHistorySummary)
 
-	protected := r.Group("/ambulance-history")
-	protected.Use(h.middleware.RequireRoles(enum.RoleAmbulanceDriver, enum.RoleAmbulanceManager))
+	ambulanceManager := r.Group("/admin/ambulances/history")
+	ambulanceManager.Use(h.middleware.RequireRoles(enum.RoleAmbulanceManager))
 	{
-		protected.POST("/", h.CreateAmbulanceHistory)
-		protected.PUT("/:id", h.UpdateAmbulanceHistory)
-		protected.DELETE("/:id", h.DeleteAmbulanceHistory)
+		ambulanceManager.POST("", h.CreateAmbulanceHistory)
+		ambulanceManager.PUT("/:id", h.UpdateAmbulanceHistory)
+		ambulanceManager.DELETE("/:id", h.DeleteAmbulanceHistory)
+	}
+
+	ambulanceDriver := r.Group("/admin/ambulances/history/driver")
+	ambulanceDriver.Use(h.middleware.RequireRoles(enum.RoleAmbulanceDriver))
+	{
+		ambulanceDriver.GET("", h.CreateAmbulanceHistory)
+		ambulanceDriver.PUT("/:id", h.UpdateAmbulanceHistory)
+		ambulanceDriver.DELETE("/:id", h.DeleteAmbulanceHistory)
 	}
 }
 
@@ -55,7 +63,39 @@ func (h *handler) ListAmbulanceHistory(c *gin.Context) {
 		c.JSON(400, pkg.NewResponse(400, "Invalid query parameters", nil, nil))
 		return
 	}
+	
+	queryParams.AmbulanceID = c.Param("id")
+	
 	res := h.service.ListAmbulanceHistory(ctx, queryParams)
+	c.JSON(res.Status, res)
+}
+
+// AmbulanceHistorySummary godoc
+// @Summary Get ambulance history summary
+// @Description Returns total service counts grouped by category for an ambulance.
+// @Description Use the `period` query param to filter by time window.
+// @Tags Ambulance History
+// @Accept json
+// @Produce json
+// @Param id path string true "Ambulance ID"
+// @Param period query string false "Time period: all_time | this_week | this_month | this_year | custom (default: all_time)"
+// @Param start_date query string false "Start date (YYYY-MM-DD), required when period=custom"
+// @Param end_date query string false "End date (YYYY-MM-DD), required when period=custom"
+// @Success 200 {object} pkg.Response
+// @Failure 400 {object} pkg.Response
+// @Failure 500 {object} pkg.Response
+// @Router /ambulances/{id}/history/summary [get]
+func (h *handler) AmbulanceHistorySummary(c *gin.Context) {
+	ctx := c.Request.Context()
+	ambulanceID := c.Param("id")
+
+	var params AmbulanceSummaryQueryParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.JSON(400, pkg.NewResponse(400, "Invalid query parameters", nil, nil))
+		return
+	}
+
+	res := h.service.AmbulanceHistorySummary(ctx, ambulanceID, params)
 	c.JSON(res.Status, res)
 }
 

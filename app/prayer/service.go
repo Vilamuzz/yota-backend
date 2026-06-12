@@ -13,12 +13,12 @@ import (
 )
 
 type Service interface {
-	GetPrayerList(ctx context.Context, accountID, donationSlug string, params PrayerQueryParams) pkg.Response
+	GetPrayerList(ctx context.Context, accountID, donationSlug string, isAdmin bool, params PrayerQueryParams) pkg.Response
 	GetPrayerByID(ctx context.Context, prayerID, accountID string) pkg.Response
 	DeletePrayer(ctx context.Context, prayerID string) pkg.Response
 	CreatePrayerAmen(ctx context.Context, prayerID, accountID string) pkg.Response
-	GetReportedPrayerList(ctx context.Context, params PrayerQueryParams) pkg.Response
 	CreateReportPrayer(ctx context.Context, prayerID, accountID string, payload ReportPrayerRequest) pkg.Response
+	AllowPrayer(ctx context.Context, prayerID string) pkg.Response
 }
 
 type service struct {
@@ -35,12 +35,19 @@ func (s *service) CreatePrayerAmen(ctx context.Context, prayerID, accountID stri
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	if err := uuid.Validate(prayerID); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID doa tidak valid"}, nil)
+	}
+	if err := uuid.Validate(accountID); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"account_id": "Format ID akun tidak valid"}, nil)
+	}
+
 	_, err := s.repo.FindOnePrayer(ctx, map[string]interface{}{"id": prayerID})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return pkg.NewResponse(http.StatusNotFound, "Prayer not found", nil, nil)
+			return pkg.NewResponse(http.StatusNotFound, "Doa tidak ditemukan", nil, nil)
 		}
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to find prayer", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menemukan doa", nil, nil)
 	}
 
 	rowsAffected, err := s.repo.DeleteAmen(ctx, prayerID, accountID)
@@ -53,14 +60,12 @@ func (s *service) CreatePrayerAmen(ctx context.Context, prayerID, accountID stri
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to delete amen", nil, nil)
 	}
 
-	// If deletion was successful, return success
 	if rowsAffected > 0 {
-		return pkg.NewResponse(http.StatusOK, "Amen deleted successfully", nil, map[string]interface{}{
-			"is_amen": false,
+		return pkg.NewResponse(http.StatusOK, "Aamiin berhasil dihapus", nil, map[string]interface{}{
+			"isAmen": false,
 		})
 	}
 
-	// If no amen was deleted, create a new one
 	amen := &PrayerAmen{
 		PrayerID:  uuid.MustParse(prayerID),
 		AccountID: uuid.MustParse(accountID),
@@ -71,27 +76,38 @@ func (s *service) CreatePrayerAmen(ctx context.Context, prayerID, accountID stri
 			"prayer_id":  prayerID,
 			"account_id": accountID,
 		}).WithError(err).Error("failed to create amen")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create amen", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menambahkan Aamiin", nil, nil)
 	}
-	return pkg.NewResponse(http.StatusOK, "Amen created successfully", nil, map[string]interface{}{
-		"is_amen": true,
+	return pkg.NewResponse(http.StatusOK, "Aamiin berhasil ditambahkan", nil, map[string]interface{}{
+		"isAmen": true,
 	})
 }
 
 func (s *service) CreateReportPrayer(ctx context.Context, prayerID, accountID string, payload ReportPrayerRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
-	_, err := s.repo.FindOnePrayer(ctx, map[string]interface{}{"id": prayerID})
+
+	if err := uuid.Validate(prayerID); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID doa tidak valid"}, nil)
+	}
+	if err := uuid.Validate(accountID); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"account_id": "Format ID akun tidak valid"}, nil)
+	}
+	prayer, err := s.repo.FindOnePrayer(ctx, map[string]interface{}{"id": prayerID})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return pkg.NewResponse(http.StatusNotFound, "Prayer not found", nil, nil)
+			return pkg.NewResponse(http.StatusNotFound, "Doa tidak ditemukan", nil, nil)
 		}
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to find prayer", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menemukan doa", nil, nil)
+	}
+
+	if prayer.Reported != nil && !*prayer.Reported {
+		return pkg.NewResponse(http.StatusOK, "Doa berhasil dilaporkan", nil, nil)
 	}
 
 	if payload.Reason == "" {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation Error", map[string]string{
-			"reason": "Reason is required",
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan Validasi", map[string]string{
+			"reason": "Alasan wajib diisi",
 		}, nil)
 	}
 
@@ -100,7 +116,7 @@ func (s *service) CreateReportPrayer(ctx context.Context, prayerID, accountID st
 		"account_id": accountID,
 	})
 	if err == nil {
-		return pkg.NewResponse(http.StatusOK, "Prayer reported successfully", nil, nil)
+		return pkg.NewResponse(http.StatusOK, "Doa berhasil dilaporkan", nil, nil)
 	}
 
 	report := &PrayerReport{
@@ -114,26 +130,56 @@ func (s *service) CreateReportPrayer(ctx context.Context, prayerID, accountID st
 			"prayer_id":  prayerID,
 			"account_id": accountID,
 		}).WithError(err).Error("failed to create prayer report")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create report", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal melaporkan doa", nil, nil)
 	}
-	return pkg.NewResponse(http.StatusOK, "Prayer reported successfully", nil, nil)
+	return pkg.NewResponse(http.StatusOK, "Doa berhasil dilaporkan", nil, nil)
+}
+
+func (s *service) AllowPrayer(ctx context.Context, prayerID string) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+	if err := uuid.Validate(prayerID); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID doa tidak valid"}, nil)
+	}
+
+	prayer, err := s.repo.FindOnePrayer(ctx, map[string]interface{}{"id": prayerID})
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return pkg.NewResponse(http.StatusNotFound, "Doa tidak ditemukan", nil, nil)
+		}
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menemukan doa", nil, nil)
+	}
+	reported := false
+	prayer.Reported = &reported
+	if err := s.repo.UpdatePrayer(ctx, prayer); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "prayer.service",
+			"prayer_id": prayerID,
+		}).WithError(err).Error("failed to update prayer")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui doa", nil, nil)
+	}
+	return pkg.NewResponse(http.StatusOK, "Doa berhasil diizinkan", nil, nil)
 }
 
 func (s *service) GetPrayerByID(ctx context.Context, prayerID, accountID string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
-	prayer, err := s.repo.FindOnePrayer(ctx, map[string]interface{}{"id": prayerID})
+
+	if err := uuid.Validate(prayerID); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID doa tidak valid"}, nil)
+	}
+	prayer, err := s.repo.FindOnePrayer(ctx, map[string]interface{}{"id": prayerID, "account_id": accountID})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return pkg.NewResponse(http.StatusNotFound, "Prayer not found", nil, nil)
+			return pkg.NewResponse(http.StatusNotFound, "Doa tidak ditemukan", nil, nil)
 		}
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to find prayer", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menemukan doa", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Prayer found successfully", nil, prayer.toPrayerResponse())
+	return pkg.NewResponse(http.StatusOK, "Berhasil menemukan doa", nil, prayer.toPrayerResponse())
 }
 
-func (s *service) GetPrayerList(ctx context.Context, accountID, donationSlug string, params PrayerQueryParams) pkg.Response {
+func (s *service) GetPrayerList(ctx context.Context, accountID, donationSlug string, isAdmin bool, params PrayerQueryParams) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -141,12 +187,15 @@ func (s *service) GetPrayerList(ctx context.Context, accountID, donationSlug str
 		params.Limit = 10
 	}
 
-	usingPrevCursor := params.PrevCursor != ""
-
 	options := map[string]interface{}{
-		"limit": params.Limit,
+		"limit":      params.Limit,
+		"account_id": accountID,
 	}
-	
+
+	if isAdmin {
+		options["reported"] = true
+	}
+
 	pagination := pkg.CursorPagination{
 		Limit: params.Limit,
 	}
@@ -154,7 +203,7 @@ func (s *service) GetPrayerList(ctx context.Context, accountID, donationSlug str
 	if donationSlug != "" {
 		program, err := s.donationRepo.FindOneDonationProgram(ctx, map[string]interface{}{"slug": donationSlug})
 		if err != nil {
-			return pkg.NewResponse(http.StatusOK, "Prayers found successfully", nil, toPrayerListResponse([]Prayer{}, pagination))
+			return pkg.NewResponse(http.StatusOK, "Berhasil menemukan doa", nil, toPrayerListResponse([]Prayer{}, pagination))
 		}
 		options["donation_program_id"] = program.ID.String()
 	}
@@ -167,23 +216,28 @@ func (s *service) GetPrayerList(ctx context.Context, accountID, donationSlug str
 
 	prayers, err := s.repo.FindAllPrayers(ctx, options)
 	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to find prayers", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menemukan doa", nil, nil)
 	}
 
-	hasMore := len(prayers) > params.Limit
-	if hasMore {
-		prayers = prayers[:params.Limit]
-	}
-	if usingPrevCursor {
+	var hasNext, hasPrev bool
+	if params.PrevCursor != "" {
+		hasPrev = len(prayers) > params.Limit
+		hasNext = true
+		if len(prayers) > params.Limit {
+			prayers = prayers[:params.Limit]
+		}
 		for i, j := 0, len(prayers)-1; i < j; i, j = i+1, j-1 {
 			prayers[i], prayers[j] = prayers[j], prayers[i]
+		}
+	} else {
+		hasNext = len(prayers) > params.Limit
+		hasPrev = params.NextCursor != ""
+		if hasNext {
+			prayers = prayers[:params.Limit]
 		}
 	}
 
 	var nextCursor, prevCursor string
-	hasNext := (!usingPrevCursor && hasMore) || (usingPrevCursor && params.NextCursor == "")
-	hasPrev := (usingPrevCursor && hasMore) || (!usingPrevCursor && params.NextCursor != "")
-
 	if len(prayers) > 0 {
 		first := prayers[0]
 		last := prayers[len(prayers)-1]
@@ -201,83 +255,30 @@ func (s *service) GetPrayerList(ctx context.Context, accountID, donationSlug str
 		Limit:      params.Limit,
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Prayers found successfully", nil, toPrayerListResponse(prayers, pagination))
-}
-
-func (s *service) GetReportedPrayerList(ctx context.Context, params PrayerQueryParams) pkg.Response {
-	ctx, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	if params.Limit == 0 {
-		params.Limit = 10
+	if isAdmin {
+		return pkg.NewResponse(http.StatusOK, "Berhasil menemukan doa", nil, toAdminPrayerListResponse(prayers, pagination))
 	}
-
-	usingPrevCursor := params.PrevCursor != ""
-
-	options := map[string]interface{}{
-		"limit":    params.Limit,
-		"reported": true,
-	}
-	if params.NextCursor != "" {
-		options["next_cursor"] = params.NextCursor
-	}
-	if params.PrevCursor != "" {
-		options["prev_cursor"] = params.PrevCursor
-	}
-
-	prayers, err := s.repo.FindAllPrayers(ctx, options)
-	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to find prayers", nil, nil)
-	}
-
-	hasMore := len(prayers) > params.Limit
-	if hasMore {
-		prayers = prayers[:params.Limit]
-	}
-	if usingPrevCursor {
-		for i, j := 0, len(prayers)-1; i < j; i, j = i+1, j-1 {
-			prayers[i], prayers[j] = prayers[j], prayers[i]
-		}
-	}
-
-	var nextCursor, prevCursor string
-	hasNext := (!usingPrevCursor && hasMore) || (usingPrevCursor && params.NextCursor == "")
-	hasPrev := (usingPrevCursor && hasMore) || (!usingPrevCursor && params.NextCursor != "")
-
-	if len(prayers) > 0 {
-		first := prayers[0]
-		last := prayers[len(prayers)-1]
-		if hasNext {
-			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID.String())
-		}
-		if hasPrev {
-			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID.String())
-		}
-	}
-
-	pagination := pkg.CursorPagination{
-		NextCursor: nextCursor,
-		PrevCursor: prevCursor,
-		Limit:      params.Limit,
-	}
-
-	return pkg.NewResponse(http.StatusOK, "Prayers found successfully", nil, toPrayerReportedListResponse(prayers, pagination))
+	return pkg.NewResponse(http.StatusOK, "Berhasil menemukan doa", nil, toPrayerListResponse(prayers, pagination))
 }
 
 func (s *service) DeletePrayer(ctx context.Context, prayerID string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	if err := uuid.Validate(prayerID); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID doa tidak valid"}, nil)
+	}
+
 	_, err := s.repo.FindOnePrayer(ctx, map[string]interface{}{"id": prayerID})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return pkg.NewResponse(http.StatusNotFound, "Prayer not found", nil, nil)
+			return pkg.NewResponse(http.StatusNotFound, "Doa tidak ditemukan", nil, nil)
 		}
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to find prayer", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menemukan doa", nil, nil)
 	}
 
 	if err := s.repo.DeletePrayer(ctx, prayerID); err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to delete prayer", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menghapus doa", nil, nil)
 	}
-	return pkg.NewResponse(http.StatusOK, "Prayer deleted successfully", nil, nil)
+	return pkg.NewResponse(http.StatusOK, "Doa berhasil dihapus", nil, nil)
 }

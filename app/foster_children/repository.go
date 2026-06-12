@@ -14,6 +14,8 @@ type Repository interface {
 	UpdateFosterChildren(ctx context.Context, fosterChildrenID string, updateData map[string]interface{}) error
 	DeleteFosterChildren(ctx context.Context, fosterChildrenID string) error
 	DeleteAchievementsByFosterChildrenID(ctx context.Context, fosterChildrenID string) error
+	DeleteAchievementByID(ctx context.Context, id string) error
+	UpdateAchievement(ctx context.Context, id string, updateData map[string]interface{}) error
 	CreateAchievements(ctx context.Context, achievements []Achivement) error
 
 	FindAllFosterChildrenCandidates(ctx context.Context, options map[string]interface{}) ([]FosterChildrenCandidate, error)
@@ -32,8 +34,19 @@ func NewRepository(conn *gorm.DB) Repository {
 
 func (r *repository) FindAllFosterChildren(ctx context.Context, options map[string]interface{}) ([]FosterChildren, error) {
 	var fosterChildren []FosterChildren
-	query := r.Conn.WithContext(ctx).
-		Preload("Achivements")
+	query := r.Conn.WithContext(ctx)
+	totalExpenseSubquery := r.Conn.Table("foster_children_expenses").
+		Select("COALESCE(SUM(amount), 0)").
+		Where("foster_children_id = foster_childrens.id")
+	query = query.Select("foster_childrens.*, (?) as total_expense", totalExpenseSubquery)
+
+	if isAdmin, ok := options["is_admin"].(bool); ok && isAdmin {
+		collectedFundSubquery := r.Conn.Table("foster_children_transactions").
+			Select("COALESCE(SUM(gross_amount), 0)").
+			Where("foster_children_id = foster_childrens.id AND transaction_status = 'settlement'")
+
+		query = query.Select("foster_childrens.*, (?) as collected_fund", collectedFundSubquery)
+	}
 
 	if search, ok := options["search"]; ok && search != "" {
 		query = query.Where("name ILIKE ?", "%"+search.(string)+"%")
@@ -81,7 +94,17 @@ func (r *repository) FindAllFosterChildren(ctx context.Context, options map[stri
 
 func (r *repository) FindOneFosterChildren(ctx context.Context, options map[string]interface{}) (*FosterChildren, error) {
 	var fosterChildren FosterChildren
+
+	collectedFundSubquery := r.Conn.Table("foster_children_transactions").
+		Select("COALESCE(SUM(gross_amount), 0)").
+		Where("foster_children_id = foster_childrens.id AND transaction_status = 'settlement'")
+
+	totalExpenseSubquery := r.Conn.Table("foster_children_expenses").
+		Select("COALESCE(SUM(amount), 0)").
+		Where("foster_children_id = foster_childrens.id")
+
 	query := r.Conn.WithContext(ctx).
+		Select("foster_childrens.*, (?) as collected_fund, (?) as total_expense", collectedFundSubquery, totalExpenseSubquery).
 		Preload("Achivements")
 
 	if id, ok := options["id"]; ok && id != "" {
@@ -108,6 +131,14 @@ func (r *repository) DeleteFosterChildren(ctx context.Context, fosterChildrenID 
 
 func (r *repository) DeleteAchievementsByFosterChildrenID(ctx context.Context, fosterChildrenID string) error {
 	return r.Conn.WithContext(ctx).Where("foster_children_id = ?", fosterChildrenID).Delete(&Achivement{}).Error
+}
+
+func (r *repository) DeleteAchievementByID(ctx context.Context, id string) error {
+	return r.Conn.WithContext(ctx).Where("id = ?", id).Delete(&Achivement{}).Error
+}
+
+func (r *repository) UpdateAchievement(ctx context.Context, id string, updateData map[string]interface{}) error {
+	return r.Conn.WithContext(ctx).Model(&Achivement{}).Where("id = ?", id).Updates(updateData).Error
 }
 
 func (r *repository) CreateAchievements(ctx context.Context, achievements []Achivement) error {

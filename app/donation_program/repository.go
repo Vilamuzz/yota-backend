@@ -29,12 +29,17 @@ func NewRepository(conn *gorm.DB) Repository {
 
 func (r *repository) FindAllDonationPrograms(ctx context.Context, options map[string]interface{}) ([]DonationProgram, error) {
 	var donationPrograms []DonationProgram
+	query := r.Conn.WithContext(ctx).Where("deleted_at IS NULL")
+
 	collectedFundSubquery := r.Conn.Table("donation_program_transactions").
 		Select("COALESCE(SUM(gross_amount), 0)").
 		Where("donation_program_id = donation_programs.id AND transaction_status = 'settlement'")
-	query := r.Conn.WithContext(ctx).
-		Select("donation_programs.*, (?) as collected_fund", collectedFundSubquery).
-		Where("deleted_at IS NULL")
+
+	totalExpenseSubquery := r.Conn.Table("donation_program_expenses").
+		Select("COALESCE(SUM(amount), 0)").
+		Where("donation_program_id = donation_programs.id AND deleted_at IS NULL")
+
+	query = query.Select("donation_programs.*, (?) as collected_fund, (?) as total_expense", collectedFundSubquery, totalExpenseSubquery)
 
 	if search, ok := options["search"]; ok && search != "" {
 		query = query.Where("title ILIKE ?", "%"+search.(string)+"%")
@@ -42,8 +47,8 @@ func (r *repository) FindAllDonationPrograms(ctx context.Context, options map[st
 	if category, ok := options["category"]; ok && category != "" {
 		query = query.Where("category = ?", category)
 	}
-	if published, ok := options["published"]; ok && published == true {
-		query = query.Where("status != ?", StatusDraft)
+	if status, ok := options["status"]; ok && status != "" {
+		query = query.Where("status = ?", status)
 	}
 
 	if nextCursor, ok := options["next_cursor"]; ok && nextCursor != "" {
@@ -56,12 +61,13 @@ func (r *repository) FindAllDonationPrograms(ctx context.Context, options map[st
 		cursorData, err := pkg.DecodeCursor(prevCursor.(string))
 		if err == nil {
 			query = query.Where("created_at > ? OR (created_at = ? AND id > ?)",
-				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID).
-				Order("created_at ASC, id ASC")
+				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
 		}
 	}
 
-	if _, usingPrevCursor := options["prev_cursor"]; !usingPrevCursor {
+	if _, isPrev := options["prev_cursor"]; isPrev {
+		query = query.Order("created_at ASC, id ASC")
+	} else {
 		query = query.Order("created_at DESC, id DESC")
 	}
 
@@ -82,17 +88,25 @@ func (r *repository) FindOneDonationProgram(ctx context.Context, options map[str
 	collectedFundSubquery := r.Conn.Table("donation_program_transactions").
 		Select("COALESCE(SUM(gross_amount), 0)").
 		Where("donation_program_id = donation_programs.id AND transaction_status = 'settlement'")
+
+	totalExpenseSubquery := r.Conn.Table("donation_program_expenses").
+		Select("COALESCE(SUM(amount), 0)").
+		Where("donation_program_id = donation_programs.id AND deleted_at IS NULL")
+
 	query := r.Conn.WithContext(ctx).
-		Select("donation_programs.*, (?) as collected_fund", collectedFundSubquery).
+		Select("donation_programs.*, (?) as collected_fund, (?) as total_expense", collectedFundSubquery, totalExpenseSubquery).
 		Where("deleted_at IS NULL")
 	if id, ok := options["id"]; ok && id != "" {
 		query = query.Where("id = ?", id)
 	}
+	if title, ok := options["title"]; ok && title != "" {
+		query = query.Where("title = ?", title)
+	}
 	if slug, ok := options["slug"]; ok && slug != "" {
 		query = query.Where("slug = ?", slug)
 	}
-	if published, ok := options["published"]; ok && published == true {
-		query = query.Where("status != ?", StatusDraft)
+	if active, ok := options["active"]; ok && active == true {
+		query = query.Where("status = ?", StatusActive)
 	}
 	if status, ok := options["status"]; ok && status != "" {
 		query = query.Where("status = ?", status)
@@ -118,7 +132,7 @@ func (r *repository) DeleteDonationProgram(ctx context.Context, donationProgramI
 func (r *repository) UpdateExpiredDonationProgram(ctx context.Context) error {
 	collectedFundSubquery := r.Conn.Table("donation_program_transactions").
 		Select("COALESCE(SUM(gross_amount), 0)").
-		Where("donation_id = donation_programs.id AND transaction_status = 'settlement'")
+		Where("donation_program_id = donation_programs.id AND transaction_status = 'settlement'")
 
 	return r.Conn.WithContext(ctx).
 		Model(&DonationProgram{}).

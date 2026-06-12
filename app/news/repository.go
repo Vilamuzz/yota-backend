@@ -2,6 +2,7 @@ package news
 
 import (
 	"context"
+	"time"
 
 	"github.com/Vilamuzz/yota-backend/app/media"
 	"github.com/Vilamuzz/yota-backend/pkg"
@@ -9,11 +10,10 @@ import (
 )
 
 type Repository interface {
-	FetchAllNews(ctx context.Context, options map[string]interface{}) ([]News, error)
-	FetchNewsByID(ctx context.Context, id string) (*News, error)
-	CreateOneNews(ctx context.Context, news *News) error
+	FindAllNews(ctx context.Context, options map[string]interface{}) ([]News, error)
+	FindOneNews(ctx context.Context, options map[string]interface{}) (*News, error)
+	CreateNews(ctx context.Context, news *News) error
 	UpdateNews(ctx context.Context, id string, updateData map[string]interface{}) error
-	UpdateNewsMedia(ctx context.Context, news *News, media []media.Media) error
 	DeleteNews(ctx context.Context, id string) error
 	IncrementViews(ctx context.Context, id string) error
 }
@@ -28,11 +28,10 @@ func NewRepository(conn *gorm.DB) Repository {
 	}
 }
 
-func (r *repository) FetchAllNews(ctx context.Context, options map[string]interface{}) ([]News, error) {
+func (r *repository) FindAllNews(ctx context.Context, options map[string]interface{}) ([]News, error) {
 	var newsList []News
-	query := r.Conn.WithContext(ctx)
+	query := r.Conn.WithContext(ctx).Preload("Media").Where("deleted_at IS NULL")
 
-	// Apply filters
 	if category, ok := options["category"]; ok && category != "" {
 		query = query.Where("category = ?", category)
 	}
@@ -40,43 +39,60 @@ func (r *repository) FetchAllNews(ctx context.Context, options map[string]interf
 		query = query.Where("status = ?", status)
 	}
 
-	// Apply cursor-based pagination
-	if cursor, ok := options["cursor"]; ok && cursor != "" {
-		cursorStr := cursor.(string)
-		cursorData, err := pkg.DecodeCursor(cursorStr)
+	if nextCursor, ok := options["next_cursor"]; ok && nextCursor != "" {
+		cursorData, err := pkg.DecodeCursor(nextCursor.(string))
 		if err == nil {
-			// Cursor format: created_at|id
 			query = query.Where("created_at < ? OR (created_at = ? AND id < ?)",
+				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
+		}
+	} else if prevCursor, ok := options["prev_cursor"]; ok && prevCursor != "" {
+		cursorData, err := pkg.DecodeCursor(prevCursor.(string))
+		if err == nil {
+			query = query.Where("created_at > ? OR (created_at = ? AND id > ?)",
 				cursorData.CreatedAt, cursorData.CreatedAt, cursorData.ID)
 		}
 	}
 
-	// Apply limit (fetch one extra to check if there's a next page)
+	if _, isPrev := options["prev_cursor"]; isPrev {
+		query = query.Order("created_at ASC, id ASC")
+	} else {
+		query = query.Order("created_at DESC, id DESC")
+	}
+
 	limit := 10
 	if l, ok := options["limit"]; ok {
 		limit = l.(int)
 	}
+
 	query = query.Limit(limit + 1)
-
-	// Order by created date (newest first) and ID for consistent ordering
-	query = query.Order("created_at DESC, id DESC")
-
 	if err := query.Find(&newsList).Error; err != nil {
 		return nil, err
 	}
-
 	return newsList, nil
 }
 
-func (r *repository) FetchNewsByID(ctx context.Context, id string) (*News, error) {
+func (r *repository) FindOneNews(ctx context.Context, options map[string]interface{}) (*News, error) {
 	var news News
-	if err := r.Conn.WithContext(ctx).Preload("Media").Where("id = ?", id).First(&news).Error; err != nil {
+	query := r.Conn.WithContext(ctx).Preload("Media").Where("deleted_at IS NULL")
+	if id, ok := options["id"]; ok && id != "" {
+		query = query.Where("id = ?", id)
+	}
+	if slug, ok := options["slug"]; ok && slug != "" {
+		query = query.Where("slug = ?", slug)
+	}
+	if title, ok := options["title"]; ok && title != "" {
+		query = query.Where("title = ?", title)
+	}
+	if published, ok := options["published"]; ok && published.(bool) {
+		query = query.Where("status = ?", media.MediaStatusPublished)
+	}
+	if err := query.First(&news).Error; err != nil {
 		return nil, err
 	}
 	return &news, nil
 }
 
-func (r *repository) CreateOneNews(ctx context.Context, news *News) error {
+func (r *repository) CreateNews(ctx context.Context, news *News) error {
 	return r.Conn.WithContext(ctx).Create(news).Error
 }
 
@@ -84,12 +100,8 @@ func (r *repository) UpdateNews(ctx context.Context, id string, updateData map[s
 	return r.Conn.WithContext(ctx).Model(&News{}).Where("id = ?", id).Updates(updateData).Error
 }
 
-func (r *repository) UpdateNewsMedia(ctx context.Context, news *News, media []media.Media) error {
-	return r.Conn.WithContext(ctx).Model(news).Association("Media").Replace(media)
-}
-
 func (r *repository) DeleteNews(ctx context.Context, id string) error {
-	return r.Conn.WithContext(ctx).Where("id = ?", id).Delete(&News{}).Error
+	return r.Conn.WithContext(ctx).Model(&News{}).Where("id = ?", id).Update("deleted_at", time.Now()).Error
 }
 
 func (r *repository) IncrementViews(ctx context.Context, id string) error {

@@ -2,6 +2,7 @@ package ambulance_history
 
 import (
 	"context"
+	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
@@ -11,6 +12,7 @@ type Repository interface {
 	Create(ctx context.Context, ambulance AmbulanceHistory) error
 	FindByID(ctx context.Context, id string) (AmbulanceHistory, error)
 	FindAll(ctx context.Context, options map[string]interface{}) ([]AmbulanceHistory, error)
+	GetSummary(ctx context.Context, ambulanceID string, startDate, endDate *time.Time) ([]CategoryCount, error)
 	Update(ctx context.Context, ambulance AmbulanceHistory) error
 	Delete(ctx context.Context, id string) error
 }
@@ -29,7 +31,9 @@ func (r *repository) Create(ctx context.Context, ambulance AmbulanceHistory) err
 
 func (r *repository) FindByID(ctx context.Context, id string) (AmbulanceHistory, error) {
 	var ambulance AmbulanceHistory
-	if err := r.Conn.First(&ambulance, id).Error; err != nil {
+	if err := r.Conn.WithContext(ctx).
+		Preload("Driver.UserProfile").
+		First(&ambulance, "id = ?", id).Error; err != nil {
 		return AmbulanceHistory{}, err
 	}
 	return ambulance, nil
@@ -37,7 +41,8 @@ func (r *repository) FindByID(ctx context.Context, id string) (AmbulanceHistory,
 
 func (r *repository) FindAll(ctx context.Context, options map[string]interface{}) ([]AmbulanceHistory, error) {
 	var ambulanceHistories []AmbulanceHistory
-	query := r.Conn.WithContext(ctx)
+	query := r.Conn.WithContext(ctx).
+		Preload("Driver.UserProfile")
 
 	if ambulanceID, ok := options["ambulance_id"]; ok {
 		query = query.Where("ambulance_id = ?", ambulanceID)
@@ -84,4 +89,37 @@ func (r *repository) Update(ctx context.Context, ambulance AmbulanceHistory) err
 
 func (r *repository) Delete(ctx context.Context, id string) error {
 	return r.Conn.Delete(&AmbulanceHistory{}, id).Error
+}
+
+func (r *repository) GetSummary(ctx context.Context, ambulanceID string, startDate, endDate *time.Time) ([]CategoryCount, error) {
+	type result struct {
+		ServiceCategory ServiceCategory
+		Count           int64
+	}
+
+	var rows []result
+	query := r.Conn.WithContext(ctx).
+		Model(&AmbulanceHistory{}).
+		Select("service_category, COUNT(*) as count").
+		Where("ambulance_id = ?", ambulanceID)
+
+	if startDate != nil {
+		query = query.Where("created_at >= ?", *startDate)
+	}
+	if endDate != nil {
+		query = query.Where("created_at <= ?", *endDate)
+	}
+
+	if err := query.Group("service_category").Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	counts := make([]CategoryCount, 0, len(rows))
+	for _, row := range rows {
+		counts = append(counts, CategoryCount{
+			Category: row.ServiceCategory,
+			Count:    row.Count,
+		})
+	}
+	return counts, nil
 }

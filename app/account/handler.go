@@ -25,24 +25,33 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 }
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
+	r.GET("/roles", h.GetRoleList)
+
 	me := r.Group("/me")
 	me.Use(h.middleware.AuthRequired())
 	{
 		me.GET("", h.GetMe)
 		me.PATCH("/profile", h.UpdateUserProfile)
 		me.PATCH("/password", h.UpdatePassword)
-		me.PATCH("/roles/default")
 	}
 
 	admin := r.Group("/admin/accounts")
-	admin.Use(h.middleware.RequireRoles(enum.RoleSuperadmin))
+	admin.Use(h.middleware.RequireRoles(enum.RoleSocialManager, enum.RoleAmbulanceManager))
 	{
-		admin.GET("/roles", h.GetRoleList)
-		admin.GET("", h.GetAccountList)
+		admin.GET("", h.GetActiveAccountList)
+		admin.GET("/drivers", h.GetDriverAccountList)
+		admin.GET("/foster-parents", h.GetFosterParentAccountList)
 		admin.GET("/:accountId", h.GetAccountByID)
-		admin.PATCH("/:accountId/ban", h.BanAccount)
-		admin.POST("/:accountId/roles/:roleId", h.AddAccountRole)
-		admin.PATCH("/:accountId/roles/:roleId", h.UpdateAccountRole)
+	}
+
+	superadmin := r.Group("/superadmin/accounts")
+	superadmin.Use(h.middleware.RequireRoles(enum.RoleSuperadmin))
+	{
+		superadmin.GET("", h.GetAccountList)
+		superadmin.GET("/:accountId", h.GetAccountByID)
+		superadmin.PATCH("/:accountId/ban", h.BanAccount)
+		superadmin.POST("/:accountId/roles/:roleId", h.AddAccountRole)
+		superadmin.PATCH("/:accountId/roles/:roleId", h.UpdateAccountRole)
 	}
 }
 
@@ -68,10 +77,107 @@ func (h *handler) GetAccountList(c *gin.Context) {
 	ctx := c.Request.Context()
 	var queryParam AccountQueryParam
 	if err := c.ShouldBindQuery(&queryParam); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Permintaan tidak valid", nil, nil))
 		return
 	}
-	res := h.service.GetAccountList(ctx, queryParam)
+	res := h.service.GetAccountList(ctx, queryParam, false)
+	c.JSON(res.Status, res)
+}
+
+// GetActiveAccountList
+//
+// @Summary Get Active Accounts List (Excludes Superadmin)
+// @Description Get a list of active accounts excluding superadmins. Forced filter: is_banned=false, exclude_superadmin=true.
+// @Tags Account
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param search query string false "Search query"
+// @Param role_id query int false "Role ID filter"
+// @Param sort_by query string false "Sort by"
+// @Param sort_order query string false "Sort order"
+// @Param limit query int false "Pagination limit"
+// @Param next_cursor query string false "Pagination cursor (next page)"
+// @Param prev_cursor query string false "Pagination cursor (prev page)"
+// @Success 200 {object} pkg.Response{data=[]AccountResponse}
+// @Router /api/admin/accounts/active [get]
+func (h *handler) GetActiveAccountList(c *gin.Context) {
+	ctx := c.Request.Context()
+	var queryParam AccountQueryParam
+	if err := c.ShouldBindQuery(&queryParam); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Permintaan tidak valid", nil, nil))
+		return
+	}
+
+	// Force active only and exclude superadmin
+	isBanned := false
+	queryParam.IsBanned = &isBanned
+
+	res := h.service.GetAccountList(ctx, queryParam, true)
+	c.JSON(res.Status, res)
+}
+
+// GetDriverAccountList
+//
+// @Summary Get Driver Accounts List
+// @Description Get a list of active accounts with Driver role.
+// @Tags Account
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param search query string false "Search query"
+// @Param sort_by query string false "Sort by"
+// @Param sort_order query string false "Sort order"
+// @Param limit query int false "Pagination limit"
+// @Param next_cursor query string false "Pagination cursor (next page)"
+// @Param prev_cursor query string false "Pagination cursor (prev page)"
+// @Success 200 {object} pkg.Response{data=[]AccountResponse}
+// @Router /api/admin/accounts/drivers [get]
+func (h *handler) GetDriverAccountList(c *gin.Context) {
+	ctx := c.Request.Context()
+	var queryParam AccountQueryParam
+	if err := c.ShouldBindQuery(&queryParam); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Permintaan tidak valid", nil, nil))
+		return
+	}
+
+	isBanned := false
+	queryParam.IsBanned = &isBanned
+	queryParam.RoleID = AmbulanceDriverRoleID
+
+	res := h.service.GetAccountList(ctx, queryParam, true)
+	c.JSON(res.Status, res)
+}
+
+// GetFosterParentAccountList
+//
+// @Summary Get Foster Parent Accounts List
+// @Description Get a list of active accounts with Orang Tua Asuh role.
+// @Tags Account
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param search query string false "Search query"
+// @Param sort_by query string false "Sort by"
+// @Param sort_order query string false "Sort order"
+// @Param limit query int false "Pagination limit"
+// @Param next_cursor query string false "Pagination cursor (next page)"
+// @Param prev_cursor query string false "Pagination cursor (prev page)"
+// @Success 200 {object} pkg.Response{data=[]AccountResponse}
+// @Router /api/admin/accounts/foster-parents [get]
+func (h *handler) GetFosterParentAccountList(c *gin.Context) {
+	ctx := c.Request.Context()
+	var queryParam AccountQueryParam
+	if err := c.ShouldBindQuery(&queryParam); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Permintaan tidak valid", nil, nil))
+		return
+	}
+
+	isBanned := false
+	queryParam.IsBanned = &isBanned
+	queryParam.RoleID = OrangTuaAsuhRoleID
+
+	res := h.service.GetAccountList(ctx, queryParam, true)
 	c.JSON(res.Status, res)
 }
 
@@ -110,7 +216,7 @@ func (h *handler) BanAccount(c *gin.Context) {
 	accountID := c.Param("accountId")
 	var req SetAccountBanStatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Permintaan tidak valid", nil, nil))
 		return
 	}
 	res := h.service.SetAccountBanStatus(ctx, accountID, req)
@@ -156,7 +262,7 @@ func (h *handler) UpdateAccountRole(c *gin.Context) {
 	roleID, _ := strconv.Atoi(c.Param("roleId"))
 	req := UpdateAccountRoleRequest{}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Permintaan tidak valid", nil, nil))
 		return
 	}
 	res := h.service.UpdateAccountRole(ctx, accountID, roleID, req)
@@ -178,13 +284,13 @@ func (h *handler) GetMe(c *gin.Context) {
 
 	userData, exists := c.Get("user_data")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "User not authenticated", nil, nil))
+		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "Pengguna tidak terautentikasi", nil, nil))
 		return
 	}
 
 	claims, ok := userData.(jwt_pkg.UserJWTClaims)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Invalid user data", nil, nil))
+		c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Data pengguna tidak valid", nil, nil))
 		return
 	}
 
@@ -200,8 +306,12 @@ func (h *handler) GetMe(c *gin.Context) {
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json
-// @Param payload formData UpdateUserProfileRequest true "Update Profile"
-// @Param profile_picture formData file false "Profile Picture"
+// @Param username formData string false "Username"
+// @Param email formData string false "Email"
+// @Param phone formData string false "Phone"
+// @Param address formData string false "Address"
+// @Param defaultAccountRoleId formData int false "Default Role ID"
+// @Param profilePicture formData file false "Profile Picture"
 // @Success 200 {object} pkg.Response
 // @Router /api/me/profile [patch]
 func (h *handler) UpdateUserProfile(c *gin.Context) {
@@ -209,17 +319,17 @@ func (h *handler) UpdateUserProfile(c *gin.Context) {
 
 	userData, exists := c.Get("user_data")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "User not authenticated", nil, nil))
+		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "Pengguna tidak terautentikasi", nil, nil))
 		return
 	}
 	claims, ok := userData.(jwt_pkg.UserJWTClaims)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Invalid user data", nil, nil))
+		c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Data pengguna tidak valid", nil, nil))
 		return
 	}
 	var req UpdateUserProfileRequest
 	if err := c.ShouldBind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Permintaan tidak valid: "+err.Error(), nil, nil))
 		return
 	}
 	res := h.service.UpdateUserProfile(ctx, claims.AccountID, req)
@@ -241,17 +351,17 @@ func (h *handler) UpdatePassword(c *gin.Context) {
 	ctx := c.Request.Context()
 	userData, exists := c.Get("user_data")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "User not authenticated", nil, nil))
+		c.JSON(http.StatusUnauthorized, pkg.NewResponse(http.StatusUnauthorized, "Pengguna tidak terautentikasi", nil, nil))
 		return
 	}
 	claims, ok := userData.(jwt_pkg.UserJWTClaims)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Invalid user data", nil, nil))
+		c.JSON(http.StatusInternalServerError, pkg.NewResponse(http.StatusInternalServerError, "Data pengguna tidak valid", nil, nil))
 		return
 	}
 	var req UpdatePasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request", nil, nil))
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Permintaan tidak valid", nil, nil))
 		return
 	}
 	res := h.service.UpdatePassword(ctx, claims.AccountID, req)

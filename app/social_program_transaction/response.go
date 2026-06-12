@@ -13,12 +13,10 @@ type SocialProgramTransactionResponse struct {
 	AccountID              string     `json:"accountId"`
 	IsOnline               bool       `json:"isOnline"`
 	GrossAmount            float64    `json:"grossAmount"`
-	FraudStatus            string     `json:"fraudStatus"`
 	TransactionStatus      string     `json:"transactionStatus"`
 	Provider               string     `json:"provider"`
 	TransactionID          string     `json:"transactionId"`
 	SnapToken              string     `json:"snapToken"`
-	SnapRedirectURL        string     `json:"snapRedirectUrl"`
 	PaidAt                 *time.Time `json:"paidAt"`
 	CreatedAt              time.Time  `json:"createdAt"`
 }
@@ -36,12 +34,10 @@ func (tx *SocialProgramTransaction) toSocialProgramTransactionResponse() SocialP
 		AccountID:              tx.AccountID.String(),
 		IsOnline:               tx.IsOnline,
 		GrossAmount:            tx.GrossAmount,
-		FraudStatus:            tx.FraudStatus,
 		TransactionStatus:      tx.TransactionStatus,
 		Provider:               tx.Provider,
 		TransactionID:          tx.TransactionID,
 		SnapToken:              tx.SnapToken,
-		SnapRedirectURL:        tx.SnapRedirectURL,
 		PaidAt:                 tx.PaidAt,
 		CreatedAt:              tx.CreatedAt,
 	}

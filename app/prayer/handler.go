@@ -24,20 +24,21 @@ func NewHandler(r *gin.RouterGroup, service Service, m middleware.AppMiddleware)
 }
 
 func (h *handler) RegisterRoutes(router *gin.RouterGroup) {
-	router.GET("/donation-programs/:slug/prayers", h.GetPrayerList, h.middleware.AuthOptional())
-	router.GET("/prayers/:id", h.GetPrayerByID, h.middleware.AuthOptional())
+	router.GET("/donation-programs/:slug/prayers", h.middleware.AuthOptional(), h.GetPrayerList)
+	router.GET("/donation-programs/prayers/:id", h.middleware.AuthOptional(), h.GetPrayerByID)
 
-	publicProtected := router.Group("/prayers")
+	publicProtected := router.Group("/donation-programs/prayers")
 	publicProtected.Use(h.middleware.AuthRequired())
 	{
 		publicProtected.POST("/:id/amen", h.CreateAmenPrayer)
 		publicProtected.POST("/:id/report", h.CreateReportPrayer)
 	}
 
-	admin := router.Group("/admin/prayers")
-	admin.Use(h.middleware.RequireRoles(enum.RoleFinance))
+	admin := router.Group("/admin/donation-programs/prayers")
+	admin.Use(h.middleware.RequireRoles(enum.RolePublicationManager))
 	{
-		admin.GET("/", h.GetReportedPrayerList)
+		admin.GET("", h.GetReportedPrayerList)
+		admin.PATCH("/:id/allow", h.AllowPrayer)
 		admin.DELETE("/:id", h.DeletePrayer)
 	}
 }
@@ -82,6 +83,13 @@ func (h *handler) CreateReportPrayer(c *gin.Context) {
 	}
 	prayerID := c.Param("id")
 	res := h.service.CreateReportPrayer(ctx, prayerID, accountID, payload)
+	c.JSON(res.Status, res)
+}
+
+func (h *handler) AllowPrayer(c *gin.Context) {
+	ctx := c.Request.Context()
+	prayerID := c.Param("id")
+	res := h.service.AllowPrayer(ctx, prayerID)
 	c.JSON(res.Status, res)
 }
 
@@ -131,7 +139,8 @@ func (h *handler) GetPrayerList(c *gin.Context) {
 			accountID = claims.AccountID
 		}
 	}
-	res := h.service.GetPrayerList(ctx, accountID, donationSlug, params)
+
+	res := h.service.GetPrayerList(ctx, accountID, donationSlug, false, params)
 	c.JSON(res.Status, res)
 }
 
@@ -153,7 +162,7 @@ func (h *handler) GetReportedPrayerList(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
 		return
 	}
-	res := h.service.GetReportedPrayerList(ctx, params)
+	res := h.service.GetPrayerList(ctx, "", "", true, params)
 	c.JSON(res.Status, res)
 }
 

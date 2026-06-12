@@ -25,6 +25,12 @@ type AccountResponse struct {
 	CreatedAt time.Time              `json:"createdAt"`
 }
 
+type DriverResponse struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Phone    string `json:"phone"`
+}
+
 type AccountListResponse struct {
 	Accounts   []AccountResponse    `json:"accounts"`
 	Pagination pkg.CursorPagination `json:"pagination"`

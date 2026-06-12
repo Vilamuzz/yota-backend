@@ -25,9 +25,9 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	public := r.Group("/foster-children")
-	public.POST("/:id/transactions", h.CreateFosterChildrenTransaction).Use(h.middleware.AuthOptional())
+	public.POST("/:id/transactions", h.middleware.AuthOptional(), h.CreateFosterChildrenTransaction)
 
-	me := r.Group("/me/foster-children/transactions")
+	me := r.Group("/foster-children/transactions/me")
 	me.Use(h.middleware.AuthRequired())
 	{
 		me.GET("", h.GetMyFosterChildrenTransactionList)
@@ -35,7 +35,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	}
 
 	admin := r.Group("/admin/foster-children")
-	admin.Use(h.middleware.RequireRoles(enum.RoleFinance))
+	admin.Use(h.middleware.RequireRoles(enum.RoleSocialManager))
 	{
 		admin.GET("/:id/transactions", h.GetFosterChildrenTransactionList)
 		admin.GET("/transactions/:id", h.GetFosterChildrenTransactionByID)

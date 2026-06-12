@@ -10,40 +10,23 @@ type DonationProgramExpenseResponse struct {
 	ID          string    `json:"id"`
 	Title       string    `json:"title"`
 	Amount      float64   `json:"amount"`
-	ExpenseDate time.Time `json:"expense_date"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ExpenseDate time.Time `json:"expenseDate"`
+	ProofFile   string    `json:"proofFile"`
+	CreatedAt   time.Time `json:"createdAt"`
 }
 
 type DonationProgramExpenseDetailResponse struct {
-	ID                string    `json:"id"`
-	DonationProgramID string    `json:"donation_program_id"`
-	Title             string    `json:"title"`
-	Amount            float64   `json:"amount"`
-	ExpenseDate       time.Time `json:"expense_date"`
-	Note              string    `json:"note"`
-	ProofFile         string    `json:"proof_file"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	ID          string    `json:"id"`
+	Title       string    `json:"title"`
+	Amount      float64   `json:"amount"`
+	ExpenseDate time.Time `json:"expenseDate"`
+	Note        string    `json:"note"`
+	CreatedAt   time.Time `json:"createdAt"`
 }
 
 type DonationProgramExpenseListResponse struct {
 	Expenses   []DonationProgramExpenseResponse `json:"expenses"`
 	Pagination pkg.CursorPagination             `json:"pagination"`
-}
-
-func (r *DonationProgramExpense) toDonationProgramExpenseDetailResponse() DonationProgramExpenseDetailResponse {
-	return DonationProgramExpenseDetailResponse{
-		ID:                r.ID.String(),
-		DonationProgramID: r.DonationProgramID.String(),
-		Title:             r.Title,
-		Amount:            r.Amount,
-		ExpenseDate:       r.ExpenseDate,
-		Note:              r.Note,
-		ProofFile:         r.ProofFile,
-		CreatedAt:         r.CreatedAt,
-		UpdatedAt:         r.UpdatedAt,
-	}
 }
 
 func (r *DonationProgramExpense) toDonationProgramExpenseResponse() DonationProgramExpenseResponse {
@@ -52,8 +35,19 @@ func (r *DonationProgramExpense) toDonationProgramExpenseResponse() DonationProg
 		Title:       r.Title,
 		Amount:      r.Amount,
 		ExpenseDate: r.ExpenseDate,
+		ProofFile:   r.ProofFile,
 		CreatedAt:   r.CreatedAt,
-		UpdatedAt:   r.UpdatedAt,
+	}
+}
+
+func (r *DonationProgramExpense) toDonationProgramExpenseDetailResponse() DonationProgramExpenseDetailResponse {
+	return DonationProgramExpenseDetailResponse{
+		ID:          r.ID.String(),
+		Title:       r.Title,
+		Amount:      r.Amount,
+		ExpenseDate: r.ExpenseDate,
+		Note:        r.Note,
+		CreatedAt:   r.CreatedAt,
 	}
 }
 

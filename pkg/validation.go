@@ -23,6 +23,6 @@ func IsStrongPassword(password string) bool {
 }
 
 func IsValidPhoneNumber(phone string) bool {
-	re := regexp.MustCompile(`^\[0-9]{9,12}$`)
+	re := regexp.MustCompile(`^[0-9]{9,15}$`)
 	return re.MatchString(phone)
 }

@@ -2,6 +2,7 @@ package donation_program_transaction
 
 import (
 	"context"
+	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
@@ -12,6 +13,7 @@ type Repository interface {
 	FindOneDonationProgramTransaction(ctx context.Context, options map[string]interface{}) (*DonationProgramTransaction, error)
 	CreateDonationProgramTransaction(ctx context.Context, tx *DonationProgramTransaction) error
 	UpdateDonationProgramTransaction(ctx context.Context, orderID string, updates map[string]interface{}) error
+	CancelDonationProgramTransaction(ctx context.Context, orderID string) error
 }
 
 type repository struct {
@@ -24,7 +26,7 @@ func NewRepository(conn *gorm.DB) Repository {
 
 func (r *repository) FindAllDonationProgramTransactions(ctx context.Context, options map[string]interface{}) ([]DonationProgramTransaction, error) {
 	var transactions []DonationProgramTransaction
-	query := r.Conn.WithContext(ctx)
+	query := r.Conn.WithContext(ctx).Preload("DonationProgram")
 
 	if status, ok := options["status"]; ok && status.(string) != "" {
 		query = query.Where("transaction_status = ?", status.(string))
@@ -48,7 +50,9 @@ func (r *repository) FindAllDonationProgramTransactions(ctx context.Context, opt
 		}
 	}
 
-	if _, usingPrevCursor := options["prev_cursor"]; !usingPrevCursor {
+	if _, isPrev := options["prev_cursor"]; isPrev {
+		query = query.Order("created_at ASC, id ASC")
+	} else {
 		query = query.Order("created_at DESC, id DESC")
 	}
 
@@ -66,20 +70,21 @@ func (r *repository) FindAllDonationProgramTransactions(ctx context.Context, opt
 
 func (r *repository) FindOneDonationProgramTransaction(ctx context.Context, options map[string]interface{}) (*DonationProgramTransaction, error) {
 	var tx DonationProgramTransaction
+	query := r.Conn.WithContext(ctx).Preload("DonationProgram")
 	if id, ok := options["id"]; ok && id.(string) != "" {
-		err := r.Conn.WithContext(ctx).Where("id = ?", id.(string)).First(&tx).Error
+		err := query.Where("id = ?", id.(string)).First(&tx).Error
 		return &tx, err
 	}
 	if orderID, ok := options["order_id"]; ok && orderID.(string) != "" {
-		err := r.Conn.WithContext(ctx).Where("order_id = ?", orderID.(string)).First(&tx).Error
+		err := query.Where("order_id = ?", orderID.(string)).First(&tx).Error
 		return &tx, err
 	}
 	if accountID, ok := options["account_id"]; ok && accountID.(string) != "" {
-		err := r.Conn.WithContext(ctx).Where("account_id = ?", accountID.(string)).First(&tx).Error
+		err := query.Where("account_id = ?", accountID.(string)).First(&tx).Error
 		return &tx, err
 	}
 	if donationProgramID, ok := options["donation_program_id"]; ok && donationProgramID.(string) != "" {
-		err := r.Conn.WithContext(ctx).Where("donation_program_id = ?", donationProgramID.(string)).First(&tx).Error
+		err := query.Where("donation_program_id = ?", donationProgramID.(string)).First(&tx).Error
 		return &tx, err
 	}
 	return nil, gorm.ErrRecordNotFound
@@ -93,4 +98,18 @@ func (r *repository) UpdateDonationProgramTransaction(ctx context.Context, order
 	return r.Conn.WithContext(ctx).Model(&DonationProgramTransaction{}).
 		Where("order_id = ?", orderID).
 		Updates(updates).Error
+}
+
+func (r *repository) CancelDonationProgramTransaction(ctx context.Context, id string) error {
+	return r.Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&DonationProgramTransaction{}).Where("id = ?", id).Update("transaction_status", "cancel").Error; err != nil {
+			return err
+		}
+
+		if err := tx.Table("finance_records").Where("source_id = ? AND source_type = ?", id, "transaction").Update("deleted_at", time.Now()).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }

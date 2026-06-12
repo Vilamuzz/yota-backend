@@ -32,7 +32,7 @@ func (r *repository) FetchEntityMedia(ctx context.Context, entityID, entityType 
 	switch entityType {
 	case "news":
 		query = query.Where("news_id = ?", entityID)
-	case "gallery":
+	case "gallery", "galleries":
 		query = query.Where("gallery_id = ?", entityID)
 	default:
 		return nil, nil
@@ -54,11 +54,12 @@ func (r *repository) FetchMediaByID(ctx context.Context, mediaID string) (*Media
 
 func (r *repository) CreateEntityMedia(ctx context.Context, entityID, entityType string, media []Media) error {
 	for i := range media {
+		id := uuid.MustParse(entityID)
 		switch entityType {
 		case "news":
-			media[i].NewsID = uuid.MustParse(entityID)
-		case "gallery":
-			media[i].GalleryID = uuid.MustParse(entityID)
+			media[i].NewsID = &id
+		case "gallery", "galleries":
+			media[i].GalleryID = &id
 		}
 	}
 	return r.Conn.WithContext(ctx).Create(&media).Error
@@ -73,7 +74,7 @@ func (r *repository) DeleteEntityMedia(ctx context.Context, entityID, entityType
 	switch entityType {
 	case "news":
 		query = query.Where("news_id = ?", entityID)
-	case "gallery":
+	case "gallery", "galleries":
 		query = query.Where("gallery_id = ?", entityID)
 	default:
 		return nil

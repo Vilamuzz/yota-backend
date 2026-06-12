@@ -9,14 +9,15 @@ import (
 )
 
 type SocialProgramSubscription struct {
-	ID              uuid.UUID `json:"id" gorm:"primaryKey"`
-	SocialProgramID uuid.UUID `json:"socialProgramId" gorm:"not null"`
-	AccountID       uuid.UUID `json:"accountId" gorm:"not null"`
-	Status          Status    `json:"status" gorm:"type:varchar(20);not null;default:'belum_donasi'"`
-	Amount          float64   `json:"amount" gorm:"not null"`
-	CreatedAt       time.Time `json:"createdAt"`
-	UpdatedAt       time.Time `json:"updatedAt"`
+	ID               uuid.UUID `json:"id" gorm:"primaryKey"`
+	SocialProgramID  uuid.UUID `json:"socialProgramId" gorm:"not null"`
+	AccountID        uuid.UUID `json:"accountId" gorm:"not null"`
+	Status           Status    `json:"status" gorm:"type:varchar(20);not null;default:'active'"`
+	TotalPaidPeriods int       `json:"totalPaidPeriods" gorm:"not null;default:0"`
+	CreatedAt        time.Time `json:"createdAt"`
+	UpdatedAt        time.Time `json:"updatedAt"`
 
+	TotalDonation float64                       `json:"totalDonation" gorm:"->"`
 	SocialProgram *social_program.SocialProgram `gorm:"foreignKey:SocialProgramID;references:ID"`
 	Account       *account.Account              `gorm:"foreignKey:AccountID;references:ID"`
 }
@@ -24,7 +25,6 @@ type SocialProgramSubscription struct {
 type Status string
 
 const (
-	StatusSudahDonasi Status = "sudah_donasi"
-	StatusBelumDonasi Status = "belum_donasi"
-	StatusTidakAktif  Status = "tidak_aktif"
+	StatusActive   Status = "active"
+	StatusInactive Status = "inactive"
 )

@@ -47,6 +47,15 @@ func main() {
 		if err := models.SeedMockUsers(db); err != nil {
 			log.Fatalf("Failed to seed mock users: %v", err)
 		}
+		if err := models.SeedDonationPrograms(db); err != nil {
+			log.Fatalf("Failed to seed donation programs: %v", err)
+		}
+		if err := models.SeedNews(db); err != nil {
+			log.Fatalf("Failed to seed news: %v", err)
+		}
+		if err := models.SeedGallery(db); err != nil {
+			log.Fatalf("Failed to seed gallery: %v", err)
+		}
 	}
 
 	fmt.Println("Seeding completed successfully!")

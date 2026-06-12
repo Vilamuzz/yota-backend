@@ -26,7 +26,10 @@ type Service interface {
 	GetDonationProgramTransactionByID(ctx context.Context, donationProgramTransactionID string) pkg.Response
 	CreateOfflineDonationProgramTransaction(ctx context.Context, accountID, donationProgramID string, payload CreateDonationProgramTransactionRequest) pkg.Response
 	CreateDonationProgramTransaction(ctx context.Context, accountID, donationSlug string, payload CreateDonationProgramTransactionRequest) pkg.Response
+	CancelOfflineDonationProgramTransaction(ctx context.Context, transactionID string) pkg.Response
+
 	HandleNotification(ctx context.Context, payload payment_pkg.MidtransNotificationRequest) pkg.Response
+
 	GetMyDonationProgramTransactionList(ctx context.Context, accountID string, params DonationProgramTransactionQueryParams) pkg.Response
 	GetMyDonationProgramTransactionByID(ctx context.Context, donationProgramTransactionID, accountID string) pkg.Response
 }
@@ -66,8 +69,6 @@ func (s *service) GetDonationProgramTransactionList(ctx context.Context, account
 		params.Limit = 100
 	}
 
-	usingPrevCursor := params.PrevCursor != ""
-
 	options := map[string]interface{}{
 		"limit": params.Limit,
 	}
@@ -93,22 +94,26 @@ func (s *service) GetDonationProgramTransactionList(ctx context.Context, account
 			"component": "donation_program_transaction.service",
 		}).WithError(err).Error("failed to fetch transactions")
 
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch transactions", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data transaksi", nil, nil)
 	}
 
-	hasMore := len(transactions) > params.Limit
-	if hasMore {
-		transactions = transactions[:params.Limit]
-	}
-
-	if usingPrevCursor {
+	var hasNext, hasPrev bool
+	if params.PrevCursor != "" {
+		hasPrev = len(transactions) > params.Limit
+		hasNext = true
+		if len(transactions) > params.Limit {
+			transactions = transactions[:params.Limit]
+		}
 		for i, j := 0, len(transactions)-1; i < j; i, j = i+1, j-1 {
 			transactions[i], transactions[j] = transactions[j], transactions[i]
 		}
+	} else {
+		hasNext = len(transactions) > params.Limit
+		hasPrev = params.NextCursor != ""
+		if hasNext {
+			transactions = transactions[:params.Limit]
+		}
 	}
-
-	hasNext := (!usingPrevCursor && hasMore) || (usingPrevCursor && params.NextCursor == "")
-	hasPrev := (usingPrevCursor && hasMore) || (!usingPrevCursor && params.NextCursor != "")
 
 	var nextCursor, prevCursor string
 	if len(transactions) > 0 {
@@ -122,7 +127,7 @@ func (s *service) GetDonationProgramTransactionList(ctx context.Context, account
 		}
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, toDonationTransactionListResponse(transactions, pkg.CursorPagination{
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, toDonationTransactionListResponse(transactions, pkg.CursorPagination{
 		NextCursor: nextCursor,
 		PrevCursor: prevCursor,
 		Limit:      params.Limit,
@@ -133,24 +138,24 @@ func (s *service) GetDonationProgramTransactionByID(ctx context.Context, donatio
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(donationProgramTransactionID); err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid transaction ID format"}, nil)
+	if err := uuid.Validate(donationProgramTransactionID); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID transaksi tidak valid"}, nil)
 	}
 
 	transaction, err := s.repo.FindOneDonationProgramTransaction(ctx, map[string]interface{}{"id": donationProgramTransactionID})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return pkg.NewResponse(http.StatusNotFound, "Transaction not found", nil, nil)
+			return pkg.NewResponse(http.StatusNotFound, "Transaksi tidak ditemukan", nil, nil)
 		}
 		logrus.WithFields(logrus.Fields{
 			"component":      "donation_program_transaction.service",
 			"transaction_id": donationProgramTransactionID,
 		}).WithError(err).Error("failed to fetch transaction")
 
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch transaction", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data transaksi", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, transaction.toDonationProgramTransactionResponse())
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, transaction.toDonationProgramTransactionResponse())
 }
 
 func (s *service) CreateOfflineDonationProgramTransaction(ctx context.Context, accountID, donationProgramID string, payload CreateDonationProgramTransactionRequest) pkg.Response {
@@ -158,20 +163,27 @@ func (s *service) CreateOfflineDonationProgramTransaction(ctx context.Context, a
 	defer cancel()
 	errValidation := make(map[string]string)
 
+	var donationProg *donation_program.DonationProgram
 	if donationProgramID == "" {
-		errValidation["donation_program_id"] = "Donation Program ID is required"
+		errValidation["donationProgramId"] = "ID Program Donasi wajib diisi"
 	} else {
-		_, err := s.donationRepo.FindOneDonationProgram(ctx, map[string]interface{}{"id": donationProgramID, "status": donation_program.StatusActive})
+		prog, err := s.donationRepo.FindOneDonationProgram(ctx, map[string]interface{}{"id": donationProgramID})
 		if err != nil {
-			errValidation["donation_program_id"] = "Donation Program not found"
+			errValidation["donationProgramId"] = "Program Donasi tidak ditemukan"
+		} else if prog.Status == donation_program.StatusExpired || prog.Status == donation_program.StatusCompleted {
+			errValidation["donationProgramId"] = "Program donasi sudah kedaluwarsa atau selesai"
+		} else if prog.Status != donation_program.StatusActive {
+			errValidation["donationProgramId"] = "Program Donasi tidak aktif"
+		} else {
+			donationProg = prog
 		}
 	}
 
 	if payload.GrossAmount <= 0 {
-		errValidation["gross_amount"] = "Gross amount must be greater than 0"
+		errValidation["grossAmount"] = "Jumlah kotor harus lebih besar dari 0"
 	}
 	if len(errValidation) > 0 {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
 	donorName := "anonymous"
@@ -205,7 +217,7 @@ func (s *service) CreateOfflineDonationProgramTransaction(ctx context.Context, a
 			"component":           "donation_program_transaction.service",
 			"donation_program_id": donationProgramID,
 		}).WithError(err).Error("failed to save offline transaction")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to save offline transaction", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menyimpan transaksi offline", nil, nil)
 	}
 
 	// Auto-create finance record (income)
@@ -225,9 +237,10 @@ func (s *service) CreateOfflineDonationProgramTransaction(ctx context.Context, a
 		}).WithError(err).Warn("failed to create finance record for offline transaction")
 	}
 
+	transaction.DonationProgram = donationProg
 	s.logService.CreateLog(ctx, &accountID, "CREATE", "donation_program_transaction", transaction.ID.String(), nil, transaction.toDonationProgramTransactionResponse())
 
-	return pkg.NewResponse(http.StatusCreated, "Offline transaction created successfully", nil, transaction.toDonationProgramTransactionResponse())
+	return pkg.NewResponse(http.StatusCreated, "Transaksi offline berhasil dibuat", nil, transaction.toDonationProgramTransactionResponse())
 }
 
 func (s *service) CreateDonationProgramTransaction(ctx context.Context, accountID string, donationSlug string, payload CreateDonationProgramTransactionRequest) pkg.Response {
@@ -237,30 +250,36 @@ func (s *service) CreateDonationProgramTransaction(ctx context.Context, accountI
 	errValidation := make(map[string]string)
 	var donationProgramID string
 
+	var donationProg *donation_program.DonationProgram
 	if donationSlug == "" {
-		errValidation["donation_program_slug"] = "Donation Program Slug is required"
+		errValidation["donationProgramSlug"] = "Slug Program Donasi wajib diisi"
 	} else {
-		program, err := s.donationRepo.FindOneDonationProgram(ctx, map[string]interface{}{"slug": donationSlug, "status": donation_program.StatusActive})
+		program, err := s.donationRepo.FindOneDonationProgram(ctx, map[string]interface{}{"slug": donationSlug})
 		if err != nil {
-			errValidation["donation_program_slug"] = "Donation Program not found"
+			errValidation["donationProgramSlug"] = "Program Donasi tidak ditemukan"
+		} else if program.Status == donation_program.StatusExpired || program.Status == donation_program.StatusCompleted {
+			errValidation["donationProgramSlug"] = "Program donasi sudah kedaluwarsa atau selesai"
+		} else if program.Status != donation_program.StatusActive {
+			errValidation["donationProgramSlug"] = "Program Donasi tidak aktif"
 		} else {
 			donationProgramID = program.ID.String()
+			donationProg = program
 		}
 	}
 
 	if accountID != "" {
 		_, err := s.accountRepo.FindOneAccount(ctx, map[string]interface{}{"id": accountID})
 		if err != nil {
-			errValidation["account_id"] = "Account not found"
+			errValidation["accountId"] = "Akun tidak ditemukan"
 		}
 	}
 
 	if payload.GrossAmount <= 0 {
-		errValidation["gross_amount"] = "Gross amount must be greater than 0"
+		errValidation["grossAmount"] = "Jumlah kotor harus lebih besar dari 0"
 	}
 
 	if len(errValidation) > 0 {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
 	donorName := "anonymous"
@@ -296,14 +315,20 @@ func (s *service) CreateDonationProgramTransaction(ctx context.Context, accountI
 
 	snapResp, err := s.midtransClient.CreateSnapTransaction(snapReq)
 	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create Midtrans transaction: "+err.Error(), nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat transaksi Midtrans: "+err.Error(), nil, nil)
+	}
+
+	var accountIDPtr *uuid.UUID
+	if accountID != "" {
+		id := uuid.MustParse(accountID)
+		accountIDPtr = &id
 	}
 
 	now := time.Now()
 	transaction := &DonationProgramTransaction{
 		ID:                uuid.New(),
 		DonationProgramID: uuid.MustParse(donationProgramID),
-		AccountID:         uuid.MustParse(accountID),
+		AccountID:         accountIDPtr,
 		OrderID:           orderID,
 		DonorName:         donorName,
 		DonorEmail:        donorEmail,
@@ -324,7 +349,7 @@ func (s *service) CreateDonationProgramTransaction(ctx context.Context, accountI
 			"donation_program_id": donationProgramID,
 			"order_id":            orderID,
 		}).WithError(err).Error("failed to save online transaction")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to save transaction", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menyimpan transaksi", nil, nil)
 	}
 
 	if payload.PrayerContent != "" {
@@ -344,28 +369,47 @@ func (s *service) CreateDonationProgramTransaction(ctx context.Context, accountI
 		}
 	}
 
-	return pkg.NewResponse(http.StatusCreated, "Transaction created successfully", nil, transaction.toDonationProgramTransactionResponse())
+	transaction.DonationProgram = donationProg
+	return pkg.NewResponse(http.StatusCreated, "Transaksi berhasil dibuat", nil, transaction.toDonationProgramTransactionResponse())
+}
+
+func (s *service) CancelOfflineDonationProgramTransaction(ctx context.Context, transactionID string) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	transaction, err := s.repo.FindOneDonationProgramTransaction(ctx, map[string]interface{}{"id": transactionID})
+	if err != nil {
+		return pkg.NewResponse(http.StatusNotFound, "Transaksi tidak ditemukan", nil, nil)
+	}
+	if transaction.IsOnline {
+		return pkg.NewResponse(http.StatusBadRequest, "Transaksi online tidak dapat dibatalkan", nil, nil)
+	}
+
+	if err := s.repo.CancelDonationProgramTransaction(ctx, transactionID); err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membatalkan transaksi", nil, nil)
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Transaksi berhasil dibatalkan", nil, nil)
 }
 
 func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.MidtransNotificationRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	// Verify signature key: SHA512(order_id + status_code + gross_amount + server_key)
 	raw := payload.OrderID + payload.StatusCode + payload.GrossAmount + s.midtransClient.GetServerKey()
 	hash := sha512.Sum512([]byte(raw))
 	expectedSig := fmt.Sprintf("%x", hash)
 	if expectedSig != payload.SignatureKey {
-		return pkg.NewResponse(http.StatusUnauthorized, "Invalid signature", nil, nil)
+		return pkg.NewResponse(http.StatusUnauthorized, "Tanda tangan tidak valid", nil, nil)
 	}
 
 	transaction, err := s.repo.FindOneDonationProgramTransaction(ctx, map[string]interface{}{"order_id": payload.OrderID})
 	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Transaction not found", nil, nil)
+		return pkg.NewResponse(http.StatusNotFound, "Transaksi tidak ditemukan", nil, nil)
 	}
 
 	if payload.TransactionStatus == transaction.TransactionStatus {
-		return pkg.NewResponse(http.StatusOK, "No status change", nil, nil)
+		return pkg.NewResponse(http.StatusOK, "Tidak ada perubahan status", nil, nil)
 	}
 
 	updates := map[string]interface{}{
@@ -388,16 +432,15 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 			"transaction_id": transaction.ID,
 			"order_id":       payload.OrderID,
 		}).WithError(err).Error("failed to update transaction")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update transaction", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui transaksi", nil, nil)
 	}
 
 	if isSettled {
-		// Find and publish the prayer that was created during transaction creation
 		prayers, err := s.prayerRepo.FindOnePrayer(ctx, map[string]interface{}{
 			"donation_program_transaction_id": transaction.ID,
 		})
 		if err == nil {
-			prayers.IsPublished = true // published
+			prayers.IsPublished = true
 			if err := s.prayerRepo.UpdatePrayer(ctx, prayers); err != nil {
 				logrus.WithFields(logrus.Fields{
 					"component":      "donation_program_transaction.service",
@@ -436,7 +479,7 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 		}).Info("transaction settled")
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Notification handled", nil, nil)
+	return pkg.NewResponse(http.StatusOK, "Notifikasi berhasil ditangani", nil, nil)
 }
 
 func (s *service) GetMyDonationProgramTransactionList(ctx context.Context, accountID string, params DonationProgramTransactionQueryParams) pkg.Response {
@@ -447,26 +490,26 @@ func (s *service) GetMyDonationProgramTransactionByID(ctx context.Context, donat
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if _, err := uuid.Parse(donationProgramTransactionID); err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid transaction ID format"}, nil)
+	if err := uuid.Validate(donationProgramTransactionID); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID transaksi tidak valid"}, nil)
 	}
 
 	transaction, err := s.repo.FindOneDonationProgramTransaction(ctx, map[string]interface{}{"id": donationProgramTransactionID, "account_id": accountID})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return pkg.NewResponse(http.StatusNotFound, "Transaction not found", nil, nil)
+			return pkg.NewResponse(http.StatusNotFound, "Transaksi tidak ditemukan", nil, nil)
 		}
 		logrus.WithFields(logrus.Fields{
 			"component":      "donation_program_transaction.service",
 			"transaction_id": donationProgramTransactionID,
 			"account_id":     accountID,
 		}).WithError(err).Error("failed to fetch transaction")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch transaction", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data transaksi", nil, nil)
 	}
 
-	if transaction.AccountID.String() != accountID {
-		return pkg.NewResponse(http.StatusForbidden, "Forbidden", nil, nil)
+	if transaction.AccountID == nil || transaction.AccountID.String() != accountID {
+		return pkg.NewResponse(http.StatusForbidden, "Akses ditolak", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, transaction.toDonationProgramTransactionResponse())
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, transaction.toDonationProgramTransactionResponse())
 }

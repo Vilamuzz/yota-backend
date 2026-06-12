@@ -88,7 +88,7 @@ func (m *JWTMiddleware) RequireRoles(allowedRoles ...enum.RoleName) gin.HandlerF
 		if !hasRole {
 			c.AbortWithStatusJSON(http.StatusForbidden, pkg.NewResponse(
 				http.StatusForbidden,
-				"Access denied: insufficient permissions",
+				"Akses ditolak: izin tidak memadai",
 				nil,
 				nil,
 			))
@@ -103,7 +103,7 @@ func (m *JWTMiddleware) RequireRoles(allowedRoles ...enum.RoleName) gin.HandlerF
 func (m *JWTMiddleware) extractAndValidateToken(c *gin.Context) (*jwt_pkg.UserJWTClaims, error) {
 	reqToken := c.GetHeader("Authorization")
 	if reqToken == "" {
-		return nil, errors.New("Unauthorized: Missing Authorization Header")
+		return nil, errors.New("Tidak terautorisasi: Header Otorisasi tidak ditemukan")
 	}
 
 	if !strings.HasPrefix(reqToken, "Bearer ") {
@@ -112,7 +112,7 @@ func (m *JWTMiddleware) extractAndValidateToken(c *gin.Context) (*jwt_pkg.UserJW
 
 	splitToken := strings.Split(reqToken, "Bearer ")
 	if len(splitToken) != 2 {
-		return nil, errors.New("Unauthorized: Invalid Token Format")
+		return nil, errors.New("Tidak terautorisasi: Format token tidak valid")
 	}
 
 	tokenString := strings.TrimSpace(splitToken[1])
@@ -120,23 +120,23 @@ func (m *JWTMiddleware) extractAndValidateToken(c *gin.Context) (*jwt_pkg.UserJW
 
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("Unauthorized: Invalid signing method")
+			return nil, errors.New("Tidak terautorisasi: Metode penandatanganan tidak valid")
 		}
 		return []byte(m.secretKey), nil
 	})
 
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
-			return nil, errors.New("Unauthorized: Token Expired")
+			return nil, errors.New("Tidak terautorisasi: Token kedaluwarsa")
 		}
 		if errors.Is(err, jwt.ErrTokenSignatureInvalid) {
-			return nil, errors.New("Unauthorized: Invalid Token Signature")
+			return nil, errors.New("Tidak terautorisasi: Tanda tangan token tidak valid")
 		}
-		return nil, errors.New("Unauthorized: " + err.Error())
+		return nil, errors.New("Tidak terautorisasi: " + err.Error())
 	}
 
 	if !token.Valid {
-		return nil, errors.New("Unauthorized: Invalid Token")
+		return nil, errors.New("Tidak terautorisasi: Token tidak valid")
 	}
 
 	return claims, nil

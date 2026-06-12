@@ -2,6 +2,7 @@ package donation_program_expense
 
 import (
 	"context"
+	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
@@ -9,6 +10,7 @@ import (
 
 type Repository interface {
 	FindAllDonationProgramExpenses(ctx context.Context, options map[string]interface{}) ([]DonationProgramExpense, error)
+	FindAllDonationProgramExpensesForExport(ctx context.Context, donationProgramID string, params DonationProgramExpenseExportParams) ([]DonationProgramExpense, error)
 	FindOneDonationProgramExpense(ctx context.Context, options map[string]interface{}) (*DonationProgramExpense, error)
 	GetTotalExpenseByDonationProgramID(ctx context.Context, donationProgramID string) (float64, error)
 	CreateDonationProgramExpense(ctx context.Context, donationProgramExpense *DonationProgramExpense) error
@@ -44,7 +46,9 @@ func (r *repo) FindAllDonationProgramExpenses(ctx context.Context, options map[s
 		}
 	}
 
-	if _, usingPrevCursor := options["prev_cursor"]; !usingPrevCursor {
+	if _, isPrev := options["prev_cursor"]; isPrev {
+		query = query.Order("created_at ASC, id ASC")
+	} else {
 		query = query.Order("created_at DESC, id DESC")
 	}
 
@@ -54,6 +58,22 @@ func (r *repo) FindAllDonationProgramExpenses(ctx context.Context, options map[s
 	}
 
 	query = query.Limit(limit + 1)
+	err := query.Find(&expenses).Error
+	return expenses, err
+}
+
+func (r *repo) FindAllDonationProgramExpensesForExport(ctx context.Context, donationProgramID string, params DonationProgramExpenseExportParams) ([]DonationProgramExpense, error) {
+	var expenses []DonationProgramExpense
+	query := r.Conn.WithContext(ctx).Order("expense_date ASC, created_at ASC")
+	if donationProgramID != "" {
+		query = query.Where("donation_program_id = ?", donationProgramID)
+	}
+	if params.StartDate != "" {
+		query = query.Where("expense_date >= ?", params.StartDate)
+	}
+	if params.EndDate != "" {
+		query = query.Where("expense_date <= ?", params.EndDate)
+	}
 	err := query.Find(&expenses).Error
 	return expenses, err
 }
@@ -76,7 +96,17 @@ func (r *repo) CreateDonationProgramExpense(ctx context.Context, expense *Donati
 }
 
 func (r *repo) DeleteDonationProgramExpense(ctx context.Context, donationProgramExpenseID string) error {
-	return r.Conn.WithContext(ctx).Where("id = ?", donationProgramExpenseID).Delete(&DonationProgramExpense{}).Error
+	return r.Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("id = ?", donationProgramExpenseID).Delete(&DonationProgramExpense{}).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Table("finance_records").Where("source_id = ? AND source_type = ?", donationProgramExpenseID, "expense").Update("deleted_at", time.Now()).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (r *repo) GetTotalExpenseByDonationProgramID(ctx context.Context, donationProgramID string) (float64, error) {

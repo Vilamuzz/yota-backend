@@ -12,6 +12,7 @@ type Repository interface {
 	FindOneSocialProgramTransaction(ctx context.Context, options map[string]interface{}) (*SocialProgramTransaction, error)
 	CreateSocialProgramTransaction(ctx context.Context, transaction *SocialProgramTransaction) error
 	UpdateSocialProgramTransaction(ctx context.Context, orderID string, updates map[string]interface{}) error
+	WithTransaction(ctx context.Context, fn func(repo Repository) error) error
 }
 
 type repository struct {
@@ -68,6 +69,9 @@ func (r *repository) FindOneSocialProgramTransaction(ctx context.Context, option
 	if id, ok := options["id"]; ok && id.(string) != "" {
 		query = query.Where("id = ?", id.(string))
 	}
+	if socialProgramInvoiceID, ok := options["social_program_invoice_id"]; ok && socialProgramInvoiceID.(string) != "" {
+		query = query.Where("social_program_invoice_id = ?", socialProgramInvoiceID.(string))
+	}
 	if orderID, ok := options["order_id"]; ok && orderID.(string) != "" {
 		query = query.Where("order_id = ?", orderID.(string))
 	}
@@ -87,4 +91,10 @@ func (r *repository) UpdateSocialProgramTransaction(ctx context.Context, orderID
 	return r.Conn.WithContext(ctx).Model(&SocialProgramTransaction{}).
 		Where("order_id = ?", orderID).
 		Updates(updates).Error
+}
+
+func (r *repository) WithTransaction(ctx context.Context, fn func(repo Repository) error) error {
+	return r.Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return fn(&repository{Conn: tx})
+	})
 }

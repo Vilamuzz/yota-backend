@@ -8,7 +8,23 @@ type PrayerResponse struct {
 	ID        string `json:"id"`
 	Username  string `json:"username"`
 	Content   string `json:"content"`
+	IsAmen    bool   `json:"isAmen"`
+	AmenCount int64  `json:"amenCount"`
 	CreatedAt string `json:"createdAt"`
+}
+
+type AdminPrayerResponse struct {
+	ID          string `json:"id"`
+	Username    string `json:"username"`
+	Content     string `json:"content"`
+	CreatedAt   string `json:"createdAt"`
+	AmenCount   int64  `json:"amenCount"`
+	ReportCount int64  `json:"reportCount"`
+}
+
+type AdminPrayerListResponse struct {
+	Prayers    []AdminPrayerResponse `json:"prayers"`
+	Pagination pkg.CursorPagination  `json:"pagination"`
 }
 
 type PrayerListResponse struct {
@@ -26,6 +42,8 @@ func (p *Prayer) toPrayerResponse() PrayerResponse {
 		ID:        p.ID.String(),
 		Username:  username,
 		Content:   p.Content,
+		IsAmen:    p.IsAmen,
+		AmenCount: p.AmenCount,
 		CreatedAt: p.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 }
@@ -39,6 +57,36 @@ func toPrayerListResponse(prayers []Prayer, pagination pkg.CursorPagination) Pra
 		responses = []PrayerResponse{}
 	}
 	return PrayerListResponse{
+		Prayers:    responses,
+		Pagination: pagination,
+	}
+}
+
+func (p *Prayer) toAdminPrayerResponse() AdminPrayerResponse {
+	username := p.DonationProgramTransaction.DonorName
+	if username == "" {
+		username = "Anonymous"
+	}
+
+	return AdminPrayerResponse{
+		ID:          p.ID.String(),
+		Username:    username,
+		Content:     p.Content,
+		CreatedAt:   p.CreatedAt.Format("2006-01-02 15:04:05"),
+		AmenCount:   p.AmenCount,
+		ReportCount: p.ReportCount,
+	}
+}
+
+func toAdminPrayerListResponse(prayers []Prayer, pagination pkg.CursorPagination) AdminPrayerListResponse {
+	var responses []AdminPrayerResponse
+	for _, prayer := range prayers {
+		responses = append(responses, prayer.toAdminPrayerResponse())
+	}
+	if responses == nil {
+		responses = []AdminPrayerResponse{}
+	}
+	return AdminPrayerListResponse{
 		Prayers:    responses,
 		Pagination: pagination,
 	}

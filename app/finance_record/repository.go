@@ -5,11 +5,16 @@ import (
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
+
+	"github.com/Vilamuzz/yota-backend/app/donation_program"
+	"github.com/Vilamuzz/yota-backend/app/foster_children"
+	"github.com/Vilamuzz/yota-backend/app/social_program"
 )
 
 type Repository interface {
 	Create(ctx context.Context, record *FinanceRecord) error
 	FindAll(ctx context.Context, options map[string]interface{}) ([]FinanceRecord, error)
+	Summary(ctx context.Context) (FinanceRecordSummary, error)
 	Delete(ctx context.Context, id string) error
 }
 
@@ -65,6 +70,55 @@ func (r *repo) FindAll(ctx context.Context, options map[string]interface{}) ([]F
 
 	err := query.Find(&records).Error
 	return records, err
+}
+
+func (r *repo) Summary(ctx context.Context) (FinanceRecordSummary, error) {
+	var results []struct {
+		FundType   string
+		SourceType string
+		Total      float64
+	}
+
+	err := r.Conn.WithContext(ctx).
+		Model(&FinanceRecord{}).
+		Select("fund_type, source_type, sum(amount) as total").
+		Group("fund_type, source_type").
+		Scan(&results).Error
+
+	var summary FinanceRecordSummary
+	if err != nil {
+		return summary, err
+	}
+
+	var countDonationProgram int64
+	r.Conn.WithContext(ctx).Model(&donation_program.DonationProgram{}).
+		Where("status NOT IN ?", []string{string(donation_program.StatusDraft), string(donation_program.StatusArchived)}).
+		Count(&countDonationProgram)
+	summary.TotalDonationProgram = int(countDonationProgram)
+
+	var countSocialProgram int64
+	r.Conn.WithContext(ctx).Model(&social_program.SocialProgram{}).
+		Where("status NOT IN ?", []string{string(social_program.StatusPending), string(social_program.StatusRejected)}).
+		Count(&countSocialProgram)
+	summary.TotalSocialProgram = int(countSocialProgram)
+
+	var countFosterChildren int64
+	r.Conn.WithContext(ctx).Model(&foster_children.FosterChildren{}).Count(&countFosterChildren)
+	summary.TotalFosterChildren = int(countFosterChildren)
+
+	for _, res := range results {
+		if res.SourceType == SourceTypeExpense {
+			switch res.FundType {
+			case FundTypeDonation:
+				summary.TotalDonationProgramExpense = res.Total
+			case FundTypeSocialProgram:
+				summary.TotalSocialProgramExpense = res.Total
+			case FundTypeFosterChildren:
+				summary.TotalFosterChildrenExpense = res.Total
+			}
+		}
+	}
+	return summary, nil
 }
 
 func (r *repo) Delete(ctx context.Context, id string) error {

@@ -11,6 +11,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/finance_record"
 	app_log "github.com/Vilamuzz/yota-backend/app/log"
 	"github.com/Vilamuzz/yota-backend/app/social_program_invoice"
+	"github.com/Vilamuzz/yota-backend/app/social_program_subscription"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	payment_pkg "github.com/Vilamuzz/yota-backend/pkg/payment"
 	"github.com/google/uuid"
@@ -23,31 +24,34 @@ import (
 type Service interface {
 	GetSocialProgramTransactionList(ctx context.Context, accountID string, params SocialProgramTransactionQueryParams) pkg.Response
 	GetSocialProgramTransactionByID(ctx context.Context, id string) pkg.Response
-	CreateSocialProgramTransaction(ctx context.Context, accountID string, payload CreateTransactionRequest) pkg.Response
+	CreateSocialProgramTransaction(ctx context.Context, accountID string, invoiceID string, payload CreateTransactionRequest) pkg.Response
 	HandleNotification(ctx context.Context, payload payment_pkg.MidtransNotificationRequest) pkg.Response
 	GetMySocialProgramTransactionList(ctx context.Context, accountID string, params SocialProgramTransactionQueryParams) pkg.Response
 	GetMySocialProgramTransactionByID(ctx context.Context, id string, accountID string) pkg.Response
+	CreateOfflineSocialProgramTransaction(ctx context.Context, invoiceID string, payload CreateOfflineTransactionRequest) pkg.Response
 }
 
 type service struct {
-	repo               Repository
-	accountRepo        account.Repository
-	invoiceRepo        social_program_invoice.Repository
-	financeRepo        finance_record.Repository
-	midtransClient     payment_pkg.Client
-	logService         app_log.Service
-	timeout            time.Duration
+	repo             Repository
+	accountRepo      account.Repository
+	subscriptionRepo social_program_subscription.Repository
+	invoiceRepo      social_program_invoice.Repository
+	financeRepo      finance_record.Repository
+	midtransClient   payment_pkg.Client
+	logService       app_log.Service
+	timeout          time.Duration
 }
 
-func NewService(repo Repository, accountRepo account.Repository, invoiceRepo social_program_invoice.Repository, financeRepo finance_record.Repository, midtransClient payment_pkg.Client, logService app_log.Service, timeout time.Duration) Service {
+func NewService(repo Repository, accountRepo account.Repository, subscriptionRepo social_program_subscription.Repository, invoiceRepo social_program_invoice.Repository, financeRepo finance_record.Repository, midtransClient payment_pkg.Client, logService app_log.Service, timeout time.Duration) Service {
 	return &service{
-		repo:               repo,
-		accountRepo:        accountRepo,
-		invoiceRepo:        invoiceRepo,
-		financeRepo:        financeRepo,
-		midtransClient:     midtransClient,
-		logService:         logService,
-		timeout:            timeout,
+		repo:             repo,
+		accountRepo:      accountRepo,
+		subscriptionRepo: subscriptionRepo,
+		invoiceRepo:      invoiceRepo,
+		financeRepo:      financeRepo,
+		midtransClient:   midtransClient,
+		logService:       logService,
+		timeout:          timeout,
 	}
 }
 
@@ -85,7 +89,7 @@ func (s *service) GetSocialProgramTransactionList(ctx context.Context, accountID
 		logrus.WithFields(logrus.Fields{
 			"component": "social_program_transaction.service",
 		}).WithError(err).Error("failed to fetch transactions")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch transactions", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data transaksi", nil, nil)
 	}
 
 	hasMore := len(transactions) > params.Limit
@@ -114,7 +118,7 @@ func (s *service) GetSocialProgramTransactionList(ctx context.Context, accountID
 		}
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, toSocialProgramTransactionListResponse(transactions, pkg.CursorPagination{
+	return pkg.NewResponse(http.StatusOK, "Data transaksi berhasil ditemukan", nil, toSocialProgramTransactionListResponse(transactions, pkg.CursorPagination{
 		NextCursor: nextCursor,
 		PrevCursor: prevCursor,
 		Limit:      params.Limit,
@@ -126,47 +130,58 @@ func (s *service) GetSocialProgramTransactionByID(ctx context.Context, id string
 	defer cancel()
 
 	if _, err := uuid.Parse(id); err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid transaction ID format"}, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID transaksi tidak valid"}, nil)
 	}
 
 	transaction, err := s.repo.FindOneSocialProgramTransaction(ctx, map[string]interface{}{"id": id})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return pkg.NewResponse(http.StatusNotFound, "Transaction not found", nil, nil)
+			return pkg.NewResponse(http.StatusNotFound, "Transaksi tidak ditemukan", nil, nil)
 		}
 		logrus.WithFields(logrus.Fields{
 			"component":      "social_program_transaction.service",
 			"transaction_id": id,
 		}).WithError(err).Error("failed to fetch transaction")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch transaction", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data transaksi", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, transaction.toSocialProgramTransactionResponse())
+	return pkg.NewResponse(http.StatusOK, "Data transaksi berhasil ditemukan", nil, transaction.toSocialProgramTransactionResponse())
 }
 
-func (s *service) CreateSocialProgramTransaction(ctx context.Context, accountID string, payload CreateTransactionRequest) pkg.Response {
+func (s *service) CreateSocialProgramTransaction(ctx context.Context, accountID string, invoiceID string, payload CreateTransactionRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	errValidation := make(map[string]string)
-	
-	if payload.SocialProgramInvoiceID == "" {
-		errValidation["social_program_invoice_id"] = "Invoice ID is required"
-	} else if _, err := s.invoiceRepo.FindOneSocialProgramInvoice(ctx, map[string]interface{}{"id": payload.SocialProgramInvoiceID}); err != nil {
-		errValidation["social_program_invoice_id"] = "Invoice not found"
+
+	invoice, err := s.invoiceRepo.FindOneSocialProgramInvoice(ctx, map[string]interface{}{"id": invoiceID})
+	if err != nil {
+		errValidation["social_program_invoice_id"] = "Tagihan tidak ditemukan"
+	} else if invoice.Status == social_program_invoice.InvoiceStatusPaid {
+		return pkg.NewResponse(http.StatusBadRequest, "Tagihan sudah dibayar", nil, nil)
+	}
+
+	existingTx, err := s.repo.FindOneSocialProgramTransaction(ctx, map[string]interface{}{"social_program_invoice_id": invoiceID})
+	if err == nil {
+		if existingTx.TransactionStatus == "pending" {
+			return pkg.NewResponse(http.StatusOK, "Menunggu pembayaran", nil, existingTx.toSocialProgramTransactionResponse())
+		}
+		if existingTx.TransactionStatus == "settlement" || existingTx.TransactionStatus == "capture" {
+			return pkg.NewResponse(http.StatusBadRequest, "Tagihan sudah dibayar", nil, nil)
+		}
 	}
 
 	account, err := s.accountRepo.FindOneAccount(ctx, map[string]interface{}{"id": accountID})
 	if err != nil {
-		errValidation["account_id"] = "Account not found"
+		errValidation["account_id"] = "Akun tidak ditemukan"
 	}
 
 	if payload.GrossAmount <= 0 {
-		errValidation["gross_amount"] = "Gross amount must be greater than 0"
+		errValidation["gross_amount"] = "Jumlah nominal harus lebih besar dari 0"
 	}
 
 	if len(errValidation) > 0 {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
 	donorName := "anonymous"
@@ -192,7 +207,7 @@ func (s *service) CreateSocialProgramTransaction(ctx context.Context, accountID 
 		},
 		Items: &[]midtrans.ItemDetails{
 			{
-				ID:    payload.SocialProgramInvoiceID,
+				ID:    invoiceID,
 				Price: grossAmountInt,
 				Qty:   1,
 				Name:  "Social Program Invoice Payment",
@@ -202,13 +217,13 @@ func (s *service) CreateSocialProgramTransaction(ctx context.Context, accountID 
 
 	snapResp, err := s.midtransClient.CreateSnapTransaction(snapReq)
 	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to create Midtrans transaction: "+err.Error(), nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat transaksi Midtrans: "+err.Error(), nil, nil)
 	}
 
 	now := time.Now()
 	transaction := &SocialProgramTransaction{
 		ID:                     uuid.New(),
-		SocialProgramInvoiceID: uuid.MustParse(payload.SocialProgramInvoiceID),
+		SocialProgramInvoiceID: uuid.MustParse(invoiceID),
 		AccountID:              uuid.MustParse(accountID),
 		OrderID:                orderID,
 		IsOnline:               true,
@@ -225,13 +240,13 @@ func (s *service) CreateSocialProgramTransaction(ctx context.Context, accountID 
 	if err := s.repo.CreateSocialProgramTransaction(ctx, transaction); err != nil {
 		logrus.WithFields(logrus.Fields{
 			"component":  "social_program_transaction.service",
-			"invoice_id": payload.SocialProgramInvoiceID,
+			"invoice_id": invoiceID,
 			"order_id":   orderID,
 		}).WithError(err).Error("failed to save transaction")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to save transaction", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menyimpan transaksi", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusCreated, "Transaction created successfully", nil, transaction.toSocialProgramTransactionResponse())
+	return pkg.NewResponse(http.StatusCreated, "Transaksi berhasil dibuat", nil, transaction.toSocialProgramTransactionResponse())
 }
 
 func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.MidtransNotificationRequest) pkg.Response {
@@ -242,16 +257,16 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 	hash := sha512.Sum512([]byte(raw))
 	expectedSig := fmt.Sprintf("%x", hash)
 	if expectedSig != payload.SignatureKey {
-		return pkg.NewResponse(http.StatusUnauthorized, "Invalid signature", nil, nil)
+		return pkg.NewResponse(http.StatusUnauthorized, "Tanda tangan tidak valid", nil, nil)
 	}
 
 	transaction, err := s.repo.FindOneSocialProgramTransaction(ctx, map[string]interface{}{"order_id": payload.OrderID})
 	if err != nil {
-		return pkg.NewResponse(http.StatusNotFound, "Transaction not found", nil, nil)
+		return pkg.NewResponse(http.StatusNotFound, "Transaksi tidak ditemukan", nil, nil)
 	}
 
 	if payload.TransactionStatus == transaction.TransactionStatus {
-		return pkg.NewResponse(http.StatusOK, "No status change", nil, nil)
+		return pkg.NewResponse(http.StatusOK, "Tidak ada perubahan status", nil, nil)
 	}
 
 	updates := map[string]interface{}{
@@ -267,12 +282,31 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 	if isSettled {
 		now := time.Now()
 		updates["paid_at"] = now
-		
-		// update invoice status to paid
+
 		_ = s.invoiceRepo.UpdateSocialProgramInvoice(ctx, transaction.SocialProgramInvoiceID.String(), map[string]interface{}{
-			"status": "paid",
+			"status":     "paid",
 			"updated_at": now,
 		})
+
+		invoice, err := s.invoiceRepo.FindOneSocialProgramInvoice(ctx, map[string]interface{}{
+			"id": transaction.SocialProgramInvoiceID.String(),
+		})
+		if err == nil {
+			if err := s.subscriptionRepo.UpdateSocialProgramSubscription(ctx, invoice.SubscriptionID.String(), map[string]interface{}{
+				"total_paid_periods": gorm.Expr("total_paid_periods + 1"),
+				"updated_at":         now,
+			}); err != nil {
+				logrus.WithFields(logrus.Fields{
+					"component":       "social_program_transaction.service",
+					"subscription_id": invoice.SubscriptionID,
+				}).WithError(err).Error("failed to update subscription paid periods")
+			}
+		} else {
+			logrus.WithFields(logrus.Fields{
+				"component":  "social_program_transaction.service",
+				"invoice_id": transaction.SocialProgramInvoiceID,
+			}).WithError(err).Error("failed to find invoice for subscription update")
+		}
 	}
 
 	if err := s.repo.UpdateSocialProgramTransaction(ctx, payload.OrderID, updates); err != nil {
@@ -281,7 +315,7 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 			"transaction_id": transaction.ID,
 			"order_id":       payload.OrderID,
 		}).WithError(err).Error("failed to update transaction")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to update transaction", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui transaksi", nil, nil)
 	}
 
 	if isSettled {
@@ -304,7 +338,7 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 		}
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Notification handled", nil, nil)
+	return pkg.NewResponse(http.StatusOK, "Notifikasi berhasil ditangani", nil, nil)
 }
 
 func (s *service) GetMySocialProgramTransactionList(ctx context.Context, accountID string, params SocialProgramTransactionQueryParams) pkg.Response {
@@ -316,20 +350,98 @@ func (s *service) GetMySocialProgramTransactionByID(ctx context.Context, id stri
 	defer cancel()
 
 	if _, err := uuid.Parse(id); err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"id": "Invalid transaction ID format"}, nil)
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID transaksi tidak valid"}, nil)
 	}
 
 	transaction, err := s.repo.FindOneSocialProgramTransaction(ctx, map[string]interface{}{"id": id, "account_id": accountID})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return pkg.NewResponse(http.StatusNotFound, "Transaction not found", nil, nil)
+			return pkg.NewResponse(http.StatusNotFound, "Transaksi tidak ditemukan", nil, nil)
 		}
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to fetch transaction", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data transaksi", nil, nil)
 	}
 
 	if transaction.AccountID.String() != accountID {
-		return pkg.NewResponse(http.StatusForbidden, "Forbidden", nil, nil)
+		return pkg.NewResponse(http.StatusForbidden, "Akses ditolak", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Success", nil, transaction.toSocialProgramTransactionResponse())
+	return pkg.NewResponse(http.StatusOK, "Data transaksi berhasil ditemukan", nil, transaction.toSocialProgramTransactionResponse())
+}
+
+func (s *service) CreateOfflineSocialProgramTransaction(ctx context.Context, invoiceID string, payload CreateOfflineTransactionRequest) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	invoice, err := s.invoiceRepo.FindOneSocialProgramInvoice(ctx, map[string]interface{}{"id": invoiceID})
+	if err != nil {
+		return pkg.NewResponse(http.StatusNotFound, "Tagihan tidak ditemukan", nil, nil)
+	}
+
+	if invoice.Status == social_program_invoice.InvoiceStatusPaid {
+		return pkg.NewResponse(http.StatusBadRequest, "Tagihan sudah dibayar", nil, nil)
+	}
+
+	now := time.Now()
+	orderID := fmt.Sprintf("SPI-OFF-%s", uuid.New().String())
+
+	transaction := &SocialProgramTransaction{
+		ID:                     uuid.New(),
+		SocialProgramInvoiceID: invoice.ID,
+		AccountID:              invoice.Subscription.AccountID, // Assuming preloaded or we can get it from invoice.Subscription
+		OrderID:                orderID,
+		IsOnline:               false,
+		GrossAmount:            payload.GrossAmount,
+		FraudStatus:            "accept",
+		TransactionStatus:      "settlement",
+		Provider:               "offline",
+		PaidAt:                 &now,
+		CreatedAt:              now,
+		UpdatedAt:              now,
+	}
+
+	// Start transaction for atomicity
+	err = s.repo.WithTransaction(ctx, func(txRepo Repository) error {
+		if err := txRepo.CreateSocialProgramTransaction(ctx, transaction); err != nil {
+			return err
+		}
+
+		if err := s.invoiceRepo.UpdateSocialProgramInvoice(ctx, invoiceID, map[string]interface{}{
+			"status":     social_program_invoice.InvoiceStatusPaid,
+			"updated_at": now,
+		}); err != nil {
+			return err
+		}
+
+		if err := s.subscriptionRepo.UpdateSocialProgramSubscription(ctx, invoice.SubscriptionID.String(), map[string]interface{}{
+			"total_paid_periods": gorm.Expr("total_paid_periods + 1"),
+			"updated_at":         now,
+		}); err != nil {
+			return err
+		}
+
+		if err := s.financeRepo.Create(ctx, &finance_record.FinanceRecord{
+			ID:              uuid.New().String(),
+			FundType:        finance_record.FundTypeSocialProgram,
+			FundID:          invoice.ID.String(),
+			SourceType:      finance_record.SourceTypeTransaction,
+			SourceID:        transaction.ID.String(),
+			Amount:          transaction.GrossAmount,
+			TransactionDate: now,
+			CreatedAt:       now,
+		}); err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":  "social_program_transaction.service",
+			"invoice_id": invoiceID,
+		}).WithError(err).Error("failed to create offline transaction")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memproses pembayaran offline", nil, nil)
+	}
+
+	return pkg.NewResponse(http.StatusCreated, "Pembayaran offline berhasil dicatat", nil, transaction.toSocialProgramTransactionResponse())
 }

@@ -9,6 +9,7 @@ import (
 
 type Repository interface {
 	FindAllSocialProgramExpenses(ctx context.Context, options map[string]interface{}) ([]SocialProgramExpense, error)
+	FindAllSocialProgramExpensesForExport(ctx context.Context, socialProgramID string, params SocialProgramExpenseExportParams) ([]SocialProgramExpense, error)
 	FindOneSocialProgramExpense(ctx context.Context, options map[string]interface{}) (*SocialProgramExpense, error)
 	CreateSocialProgramExpense(ctx context.Context, socialProgramExpense *SocialProgramExpense) error
 	DeleteSocialProgramExpense(ctx context.Context, socialProgramExpenseID string) error
@@ -56,6 +57,22 @@ func (r *repository) FindAllSocialProgramExpenses(ctx context.Context, options m
 		return nil, err
 	}
 	return expenses, nil
+}
+
+func (r *repository) FindAllSocialProgramExpensesForExport(ctx context.Context, socialProgramID string, params SocialProgramExpenseExportParams) ([]SocialProgramExpense, error) {
+	var expenses []SocialProgramExpense
+	query := r.Conn.WithContext(ctx).Order("expense_date ASC, created_at ASC")
+	if socialProgramID != "" {
+		query = query.Where("social_program_id = ?", socialProgramID)
+	}
+	if params.StartDate != "" {
+		query = query.Where("expense_date >= ?", params.StartDate)
+	}
+	if params.EndDate != "" {
+		query = query.Where("expense_date <= ?", params.EndDate)
+	}
+	err := query.Find(&expenses).Error
+	return expenses, err
 }
 
 func (r *repository) FindOneSocialProgramExpense(ctx context.Context, options map[string]interface{}) (*SocialProgramExpense, error) {

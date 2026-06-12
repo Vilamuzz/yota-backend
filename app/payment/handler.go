@@ -61,7 +61,7 @@ func (h *handler) HandleMidtransNotification(c *gin.Context) {
 	} else if strings.HasPrefix(notification.OrderID, "FC-") {
 		res = h.fosterChildrenService.HandleNotification(ctx, notification)
 	} else {
-		c.JSON(http.StatusNotFound, pkg.NewResponse(http.StatusNotFound, "Unknown order prefix", nil, nil))
+		c.JSON(http.StatusOK, pkg.NewResponse(http.StatusOK, "Unknown order prefix, notification ignored", nil, nil))
 		return
 	}
 

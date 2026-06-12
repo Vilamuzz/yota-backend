@@ -2,9 +2,8 @@ package social_program_subscription
 
 import "github.com/Vilamuzz/yota-backend/pkg"
 
-type CreateSocialProgramSubscriptionRequest struct {
-	SocialProgramID string  `json:"socialProgramId"`
-	Amount          float64 `json:"amount"`
+type CreateSocialProgramSubscriptionOfflineRequest struct {
+	AccountID string `json:"accountId"`
 }
 
 type UpdateSocialProgramSubscriptionRequest struct {
@@ -12,8 +11,6 @@ type UpdateSocialProgramSubscriptionRequest struct {
 }
 
 type SocialProgramSubscriptionQueryParams struct {
-	SocialProgramID string `form:"socialProgramId"`
-	AccountID       string `form:"accountId"`
-	Status          string `form:"status"`
+	Status string `form:"status"`
 	pkg.PaginationParams
 }

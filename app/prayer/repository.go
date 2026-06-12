@@ -2,7 +2,6 @@ package prayer
 
 import (
 	"context"
-	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
@@ -14,10 +13,8 @@ type Repository interface {
 	CreatePrayer(ctx context.Context, prayer *Prayer) error
 	UpdatePrayer(ctx context.Context, prayer *Prayer) error
 	DeletePrayer(ctx context.Context, prayerID string) error
-	FindAmenPrayerIDs(ctx context.Context, accountID string, prayerIDs []string) (map[string]bool, error)
 	CreateAmen(ctx context.Context, amen *PrayerAmen) error
 	DeleteAmen(ctx context.Context, prayerID, accountID string) (int64, error)
-	ExistsAmen(ctx context.Context, prayerID, accountID string) (bool, error)
 	FindReport(ctx context.Context, options map[string]interface{}) (*PrayerReport, error)
 	CreateReport(ctx context.Context, report *PrayerReport) error
 }
@@ -32,8 +29,17 @@ func NewRepository(conn *gorm.DB) Repository {
 
 func (r *repository) FindOnePrayer(ctx context.Context, options map[string]interface{}) (*Prayer, error) {
 	var prayer Prayer
-	query := r.Conn.WithContext(ctx).Preload("DonationProgramTransaction").Where(options)
-	if err := query.First(&prayer).Error; err != nil {
+	query := r.Conn.WithContext(ctx).Preload("DonationProgramTransaction")
+
+	if accountID, ok := options["account_id"]; ok && accountID.(string) != "" {
+		isAmenSubquery := r.Conn.Table("prayer_amens").
+			Select("COUNT(*) > 0").
+			Where("prayer_id = prayers.id AND account_id = ?", accountID.(string))
+		query = query.Select("prayers.*, (?) as is_amen", isAmenSubquery)
+		delete(options, "account_id")
+	}
+
+	if err := query.Where(options).First(&prayer).Error; err != nil {
 		return nil, err
 	}
 	return &prayer, nil
@@ -44,15 +50,23 @@ func (r *repository) FindAllPrayers(ctx context.Context, options map[string]inte
 	query := r.Conn.WithContext(ctx).Preload("DonationProgramTransaction")
 
 	if donationProgramID, ok := options["donation_program_id"]; ok {
-		query = query.Joins("JOIN donation_program_transactions ON donation_program_transactions.id = prayers.donation_transaction_id").
+		query = query.Joins("JOIN donation_program_transactions ON donation_program_transactions.id = prayers.donation_program_transaction_id").
 			Where("donation_program_transactions.donation_program_id = ?", donationProgramID)
 	}
+
+	if accountID, ok := options["account_id"]; ok && accountID.(string) != "" {
+		isAmenSubquery := r.Conn.Table("prayer_amens").
+			Select("COUNT(*) > 0").
+			Where("prayer_id = prayers.id AND account_id = ?", accountID.(string))
+		query = query.Select("prayers.*, (?) as is_amen", isAmenSubquery)
+		delete(options, "account_id")
+	}
 	if donationID, ok := options["donation_id"]; ok {
-		query = query.Where("donation_transaction_id = ?", donationID)
+		query = query.Where("donation_program_transaction_id = ?", donationID)
 	}
 	if reported, ok := options["reported"]; ok {
 		if reported.(bool) {
-			query = query.Where("report_count > ?", 0)
+			query = query.Where("reported = ?", true)
 		}
 	}
 
@@ -70,7 +84,9 @@ func (r *repository) FindAllPrayers(ctx context.Context, options map[string]inte
 		}
 	}
 
-	if _, usingPrevCursor := options["prev_cursor"]; !usingPrevCursor {
+	if _, isPrev := options["prev_cursor"]; isPrev {
+		query = query.Order("created_at ASC, id ASC")
+	} else {
 		query = query.Order("created_at DESC, id DESC")
 	}
 
@@ -91,30 +107,31 @@ func (r *repository) CreatePrayer(ctx context.Context, prayer *Prayer) error {
 }
 
 func (r *repository) UpdatePrayer(ctx context.Context, prayer *Prayer) error {
-	return r.Conn.WithContext(ctx).Save(prayer).Error
+	return r.Conn.WithContext(ctx).Omit("DonationProgramTransaction").Save(prayer).Error
 }
 
 func (r *repository) DeletePrayer(ctx context.Context, prayerID string) error {
-	return r.Conn.WithContext(ctx).Where("id = ?", prayerID).Update("deleted_at", time.Now()).Error
-}
-
-func (r *repository) FindAmenPrayerIDs(ctx context.Context, accountID string, prayerIDs []string) (map[string]bool, error) {
-	amenMap := make(map[string]bool)
-	if len(prayerIDs) == 0 {
-		return amenMap, nil
+	tx := r.Conn.WithContext(ctx).Begin()
+	if tx.Error != nil {
+		return tx.Error
 	}
 
-	var records []PrayerAmen
-	err := r.Conn.WithContext(ctx).
-		Model(&PrayerAmen{}).
-		Select("prayer_id").
-		Where("user_id = ? AND prayer_id IN ?", accountID, prayerIDs).
-		Find(&records).Error
-	if err != nil {
-		return nil, err
+	if err := tx.Where("prayer_id = ?", prayerID).Delete(&PrayerAmen{}).Error; err != nil {
+		tx.Rollback()
+		return err
 	}
 
-	return amenMap, nil
+	if err := tx.Where("prayer_id = ?", prayerID).Delete(&PrayerReport{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Where("id = ?", prayerID).Delete(&Prayer{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit().Error
 }
 
 func (r *repository) CreateAmen(ctx context.Context, amen *PrayerAmen) error {
@@ -126,7 +143,7 @@ func (r *repository) CreateAmen(ctx context.Context, amen *PrayerAmen) error {
 }
 
 func (r *repository) DeleteAmen(ctx context.Context, prayerID, accountID string) (int64, error) {
-	result := r.Conn.WithContext(ctx).Where("prayer_id = ? AND user_id = ?", prayerID, accountID).Delete(&PrayerAmen{})
+	result := r.Conn.WithContext(ctx).Where("prayer_id = ? AND account_id = ?", prayerID, accountID).Delete(&PrayerAmen{})
 	if result.Error != nil {
 		return 0, result.Error
 	}
@@ -136,18 +153,6 @@ func (r *repository) DeleteAmen(ctx context.Context, prayerID, accountID string)
 		return result.RowsAffected, err
 	}
 	return 0, nil
-}
-
-func (r *repository) ExistsAmen(ctx context.Context, prayerID, accountID string) (bool, error) {
-	var count int64
-	err := r.Conn.WithContext(ctx).
-		Model(&PrayerAmen{}).
-		Where("prayer_id = ? AND user_id = ?", prayerID, accountID).
-		Count(&count).Error
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
 }
 
 func (r *repository) FindReport(ctx context.Context, options map[string]interface{}) (*PrayerReport, error) {
@@ -163,6 +168,9 @@ func (r *repository) CreateReport(ctx context.Context, report *PrayerReport) err
 	if err := r.Conn.WithContext(ctx).Create(report).Error; err != nil {
 		return err
 	}
-	// Increment report count
-	return r.Conn.WithContext(ctx).Model(&Prayer{}).Where("id = ?", report.PrayerID).Update("report_count", gorm.Expr("report_count + ?", 1)).Error
+	// Increment report count and set reported to true
+	return r.Conn.WithContext(ctx).Model(&Prayer{}).Where("id = ?", report.PrayerID).Updates(map[string]interface{}{
+		"report_count": gorm.Expr("report_count + ?", 1),
+		"reported":     true,
+	}).Error
 }

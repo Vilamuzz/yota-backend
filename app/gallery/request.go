@@ -7,25 +7,32 @@ import (
 	"github.com/Vilamuzz/yota-backend/pkg"
 )
 
-type GalleryRequest struct {
+type GalleryCreateRequest struct {
 	Title       string                  `json:"title" form:"title"`
+	CoverImage  *multipart.FileHeader   `form:"coverImage" swaggerignore:"true"`
 	Category    media.MediaCategory     `json:"category" form:"category"`
 	Description string                  `json:"description" form:"description"`
-	Published   *bool                   `json:"published" form:"published"`
-	Metadata    []media.MediaMetadata   `form:"metadata"`
-	Files       []*multipart.FileHeader `form:"files" swaggerignore:"true"`
+	Status      media.MediaStatus       `json:"status" form:"status"`
+	MediaFiles  []*multipart.FileHeader `form:"mediaFiles[]"`
+	MediaAlts   []string                `form:"mediaAlts[]"`
 }
 
-type UpdateGalleryRequest struct {
-	Title       string                  `json:"title" form:"title"`
-	Category    media.MediaCategory     `json:"category" form:"category"`
-	Description string                  `json:"description" form:"description"`
-	Published   *bool                   `json:"published" form:"published"`
-	Metadata    []media.MediaMetadata   `form:"metadata"`
-	Files       []*multipart.FileHeader `form:"files" swaggerignore:"true"`
+type GalleryUpdateRequest struct {
+	Title             string                  `json:"title" form:"title"`
+	CoverImage        *multipart.FileHeader   `form:"coverImage" swaggerignore:"true"`
+	Category          media.MediaCategory     `json:"category" form:"category"`
+	Description       string                  `json:"description" form:"description"`
+	Status            media.MediaStatus       `json:"status" form:"status"`
+	MediaFiles        []*multipart.FileHeader `form:"mediaFiles[]"`
+	MediaAlts         []string                `form:"mediaAlts[]"`
+	MediaOrders       []int                   `form:"mediaOrders[]"`
+	MediaIDs          []string                `form:"mediaIds[]"`
+	UpdateMediaAlts   []string                `form:"updateMediaAlts[]"`
+	UpdateMediaOrders []int                   `form:"updateMediaOrders[]"`
 }
 
 type GalleryQueryParams struct {
 	Category media.MediaCategory `form:"category"`
-	pkg.CursorPagination
+	Status   media.MediaStatus   `form:"status"`
+	pkg.PaginationParams
 }

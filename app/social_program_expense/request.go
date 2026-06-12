@@ -18,3 +18,8 @@ type SocialProgramExpenseRequest struct {
 type SocialProgramExpenseQueryParams struct {
 	pkg.PaginationParams
 }
+
+type SocialProgramExpenseExportParams struct {
+	StartDate string `form:"start_date"` // optional, format: YYYY-MM-DD
+	EndDate   string `form:"end_date"`   // optional, format: YYYY-MM-DD
+}

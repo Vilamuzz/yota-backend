@@ -24,9 +24,9 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 }
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
-	r.POST("/subscriptions/invoices/:id/pay", h.CreateSocialProgramTransaction, h.middleware.RequireRoles(enum.RoleOrangTuaAsuh))
+	r.POST("social-programs/subscriptions/invoices/:id/pay", h.middleware.RequireRoles(enum.RoleOrangTuaAsuh), h.CreateSocialProgramTransaction)
 
-	// r.POST("/admin/subscriptions/invoices/:id/pay-offline", h.CreateOfflineSocialProgramTransaction, h.middleware.RequireRoles(enum.RoleSocialManager))
+	r.POST("/admin/social-programs/subscriptions/invoices/:id/pay-offline", h.middleware.RequireRoles(enum.RoleSocialManager), h.CreateOfflineSocialProgramTransaction)
 }
 
 // GetSocialProgramTransactionList
@@ -85,6 +85,7 @@ func (h *handler) GetSocialProgramTransactionByID(c *gin.Context) {
 // @Router /api/social-programs/transactions [post]
 func (h *handler) CreateSocialProgramTransaction(c *gin.Context) {
 	ctx := c.Request.Context()
+	id := c.Param("id")
 
 	accountID := ""
 	if userData, exists := c.Get("user_data"); exists {
@@ -99,7 +100,33 @@ func (h *handler) CreateSocialProgramTransaction(c *gin.Context) {
 		return
 	}
 
-	res := h.service.CreateSocialProgramTransaction(ctx, accountID, req)
+	res := h.service.CreateSocialProgramTransaction(ctx, accountID, id, req)
+	c.JSON(res.Status, res)
+}
+
+// CreateOfflineSocialProgramTransaction
+//
+// @Summary Record Offline Social Program Transaction
+// @Description Manually record an offline payment for a social program invoice (admin only)
+// @Tags Social Programs
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Invoice ID"
+// @Param body body CreateOfflineTransactionRequest true "Offline transaction request"
+// @Success 201 {object} pkg.Response
+// @Router /api/admin/social-programs/transactions/pay-offline/{id} [post]
+func (h *handler) CreateOfflineSocialProgramTransaction(c *gin.Context) {
+	ctx := c.Request.Context()
+	invoiceID := c.Param("id")
+
+	var req CreateOfflineTransactionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", nil, nil))
+		return
+	}
+
+	res := h.service.CreateOfflineSocialProgramTransaction(ctx, invoiceID, req)
 	c.JSON(res.Status, res)
 }
 

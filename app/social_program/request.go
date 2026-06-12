@@ -14,8 +14,8 @@ type SocialProgramRequest struct {
 	BillingDay    int                   `form:"billingDay"`
 }
 
-type SocialProgramRejectRequest struct {
-	RejectionReason string `json:"rejectionReason"`
+type RejectSocialProgramRequest struct {
+	Reason string `json:"reason"`
 }
 
 type SocialProgramQueryParams struct {

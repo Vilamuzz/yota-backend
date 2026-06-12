@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/app/account"
+	"github.com/Vilamuzz/yota-backend/app/donation_program"
 	"github.com/google/uuid"
 )
 
@@ -11,7 +12,7 @@ type DonationProgramTransaction struct {
 	ID                uuid.UUID  `json:"id" gorm:"primaryKey"`
 	DonationProgramID uuid.UUID  `json:"donation_program_id" gorm:"index;not null"`
 	OrderID           string     `json:"order_id" gorm:"uniqueIndex"`
-	AccountID         uuid.UUID  `json:"account_id" gorm:"index"`
+	AccountID         *uuid.UUID `json:"account_id" gorm:"index"`
 	DonorName         string     `json:"donor_name"`
 	DonorEmail        string     `json:"donor_email"`
 	IsOnline          bool       `json:"is_online"`
@@ -27,6 +28,7 @@ type DonationProgramTransaction struct {
 	UpdatedAt         time.Time  `json:"updated_at"`
 
 	Account *account.Account `json:"-" gorm:"foreignKey:AccountID;references:ID"`
+	DonationProgram *donation_program.DonationProgram `json:"-" gorm:"foreignKey:DonationProgramID;references:ID"`
 }
 
 type TransactionStatus string

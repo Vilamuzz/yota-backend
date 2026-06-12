@@ -24,15 +24,45 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 }
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
-	// Admin routes
+	public := r.Group("/social-programs")
+	public.GET("/:slug/expenses", h.GetPublicSocialProgramExpenseList)
+	public.GET("/expenses/:id", h.GetSocialProgramExpenseByID)
+	public.GET("/:slug/expenses/export", h.ExportSocialProgramExpenseCSV)
+
 	admin := r.Group("/admin/social-programs")
-	admin.Use(h.middleware.RequireRoles(enum.RoleSocialManager, enum.RoleFinance))
+	admin.Use(h.middleware.RequireRoles(enum.RoleFinance))
 	{
 		admin.GET("/:id/expenses", h.GetSocialProgramExpenseList)
 		admin.GET("/expenses/:id", h.GetSocialProgramExpenseByID)
 		admin.POST("/:id/expenses", h.CreateSocialProgramExpense)
 		admin.DELETE("/expenses/:id", h.DeleteSocialProgramExpense)
 	}
+}
+
+// GetPublicSocialProgramExpenseList
+//
+// @Summary Get Public Social Program Expense List
+// @Description Get paginated list of expenses for a specific social program (publicly accessible)
+// @Tags Social Programs
+// @Accept json
+// @Produce json
+// @Param slug path string true "Social Program Slug"
+// @Param cursor query string false "Cursor for pagination"
+// @Param limit query int false "Items per page"
+// @Success 200 {object} pkg.Response
+// @Router /api/social-programs/{slug}/expenses [get]
+func (h *handler) GetPublicSocialProgramExpenseList(c *gin.Context) {
+	ctx := c.Request.Context()
+	slug := c.Param("slug")
+
+	var queryParams SocialProgramExpenseQueryParams
+	if err := c.ShouldBindQuery(&queryParams); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
+		return
+	}
+
+	resp := h.service.GetPublicSocialProgramExpenseList(ctx, slug, queryParams)
+	c.JSON(resp.Status, resp)
 }
 
 // GetSocialProgramExpenseList
@@ -124,6 +154,40 @@ func (h *handler) DeleteSocialProgramExpense(c *gin.Context) {
 	ctx := c.Request.Context()
 	expenseID := c.Param("id")
 
-	res := h.service.DeleteSocialProgramExpense(ctx, expenseID)
+	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
+	res := h.service.DeleteSocialProgramExpense(ctx, claims.AccountID, expenseID)
 	c.JSON(res.Status, res)
+}
+
+// ExportSocialProgramExpenseCSV
+//
+// @Summary Export Social Program Expense as CSV
+// @Description Export all expenses for a specific social program as a CSV file (publicly accessible)
+// @Tags Social Programs
+// @Produce text/csv
+// @Param slug path string true "Social Program Slug"
+// @Param start_date query string false "Filter start date (YYYY-MM-DD, inclusive)"
+// @Param end_date query string false "Filter end date (YYYY-MM-DD, inclusive)"
+// @Success 200 {file} binary "CSV file"
+// @Router /api/social-programs/{slug}/expenses/export [get]
+func (h *handler) ExportSocialProgramExpenseCSV(c *gin.Context) {
+	ctx := c.Request.Context()
+	socialProgramSlug := c.Param("slug")
+
+	var params SocialProgramExpenseExportParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
+		return
+	}
+
+	csvBytes, filename, err := h.service.ExportSocialProgramExpenseCSV(ctx, socialProgramSlug, params)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
+		return
+	}
+
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Type", "text/csv; charset=utf-8")
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Data(http.StatusOK, "text/csv; charset=utf-8", csvBytes)
 }

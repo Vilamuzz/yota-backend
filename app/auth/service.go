@@ -429,11 +429,11 @@ func (s *service) ResetPassword(ctx context.Context, payload ResetPasswordReques
 
 	errValidation := make(map[string]string)
 	if payload.NewPassword == "" {
-		errValidation["new_password"] = "New password is required"
+		errValidation["newPassword"] = "New password is required"
 	} else if !pkg.IsValidLengthPassword(payload.NewPassword) {
-		errValidation["new_password"] = "Password must be at least 8 characters"
+		errValidation["newPassword"] = "Password must be at least 8 characters"
 	} else if !pkg.IsStrongPassword(payload.NewPassword) {
-		errValidation["new_password"] = "Password must contain uppercase, lowercase, and number"
+		errValidation["newPassword"] = "Password must contain uppercase, lowercase, and number"
 	}
 
 	resetToken, err := s.authRepo.FetchPasswordResetToken(ctx, payload.Token)
