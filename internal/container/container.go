@@ -280,11 +280,6 @@ func (c *Container) initScheduler() {
 		}
 	})
 
-	// Generate social program invoices every day at midnight
-	c.Scheduler.Add("0 0 * * *", "generate-social-program-invoices", func() {
-		if err := c.SocialProgramInvoiceService.GenerateMonthlyInvoices(context.Background()); err != nil {
-			_ = err
-		}
 	// Create database backup daily at 2 AM
 	c.Scheduler.Add("0 2 * * *", "database-backup", func() {
 		_ = c.BackupService.CreateBackup(context.Background())
