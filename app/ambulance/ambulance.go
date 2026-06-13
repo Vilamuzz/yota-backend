@@ -9,13 +9,13 @@ import (
 
 type Ambulance struct {
 	ID          uuid.UUID       `json:"id" gorm:"primaryKey"`
-	DriverID    uuid.UUID       `json:"driverId"`
+	DriverID    uuid.UUID       `json:"driverId" gorm:"index:idx_driver,type:btree;not null"`
 	Image       string          `json:"image"`
-	PlateNumber string          `json:"plateNumber"`
+	PlateNumber string          `json:"plateNumber" gorm:"not null"`
 	Status      AmbulanceStatus `json:"status"`
-	CreatedAt   time.Time       `json:"createdAt"`
+	CreatedAt   time.Time       `json:"createdAt" gorm:"index:idx_created,type:btree"`
 	UpdatedAt   time.Time       `json:"updatedAt"`
-	DeletedAt   *time.Time      `json:"deletedAt"`
+	DeletedAt   *time.Time      `json:"deletedAt" gorm:"index"`
 
 	Driver account.Account `json:"driver" gorm:"foreignKey:DriverID"`
 }
