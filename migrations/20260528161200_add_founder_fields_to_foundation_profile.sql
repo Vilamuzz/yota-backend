@@ -1,2 +1,0 @@
--- Modify "foundation_profiles" table
-ALTER TABLE "foundation_profiles" ADD COLUMN "founder_picture" text NULL, ADD COLUMN "founder_name" text NULL, ADD COLUMN "foundation_address" text NULL, ADD COLUMN "foundation_phone" text NULL, ADD COLUMN "foundation_email" text NULL, ADD COLUMN "foundation_instagram" text NULL, ADD COLUMN "foundation_facebook" text NULL, ADD COLUMN "foundation_twitter" text NULL;
