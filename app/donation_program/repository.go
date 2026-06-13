@@ -31,14 +31,14 @@ func NewRepository(conn *gorm.DB) Repository {
 
 // allowedSortColumns whitelists sortable columns to prevent SQL injection.
 var allowedSortColumns = map[string]string{
-	"title":          "title",
-	"fund_target":    "fund_target",
+	"title":          "dp.title",
+	"fund_target":    "dp.fund_target",
 	"collected_fund": "collected_fund",
 	"total_expense":  "total_expense",
-	"start_date":     "start_date",
-	"end_date":       "end_date",
-	"created_at":     "created_at",
-	"status":         "status",
+	"start_date":     "dp.start_date",
+	"end_date":       "dp.end_date",
+	"created_at":     "dp.created_at",
+	"status":         "dp.status",
 }
 
 func buildDonationProgramBaseQuery(conn *gorm.DB, ctx context.Context, options map[string]interface{}) *gorm.DB {
@@ -51,28 +51,28 @@ func buildDonationProgramBaseQuery(conn *gorm.DB, ctx context.Context, options m
 		Select("dp.*, COALESCE(SUM(dpt.gross_amount), 0) as collected_fund, COALESCE(SUM(dpe.amount), 0) as total_expense")
 
 	if search, ok := options["search"]; ok && search != "" {
-		query = query.Where("title ILIKE ?", "%"+search.(string)+"%")
+		query = query.Where("dp.title ILIKE ?", "%"+search.(string)+"%")
 	}
 	if category, ok := options["category"]; ok && category != "" {
-		query = query.Where("category = ?", category)
+		query = query.Where("dp.category = ?", category)
 	}
 	if status, ok := options["status"]; ok {
 		switch v := status.(type) {
 		case string:
 			if v != "" {
-				query = query.Where("status = ?", v)
+				query = query.Where("dp.status = ?", v)
 			}
 		case Status:
 			if v != "" {
-				query = query.Where("status = ?", string(v))
+				query = query.Where("dp.status = ?", string(v))
 			}
 		case []string:
 			if len(v) > 0 {
-				query = query.Where("status IN ?", v)
+				query = query.Where("dp.status IN ?", v)
 			}
 		case []Status:
 			if len(v) > 0 {
-				query = query.Where("status IN ?", v)
+				query = query.Where("dp.status IN ?", v)
 			}
 		}
 	}
@@ -83,7 +83,7 @@ func (r *repository) FindAllDonationPrograms(ctx context.Context, options map[st
 	var donationPrograms []DonationProgram
 	query := buildDonationProgramBaseQuery(r.Conn, ctx, options)
 
-	orderClause := "created_at DESC"
+	orderClause := "dp.created_at DESC"
 	if sortBy, ok := options["sort_by"]; ok && sortBy != "" {
 		parts := strings.Fields(strings.ToLower(sortBy.(string)))
 		if len(parts) >= 1 {
@@ -158,34 +158,34 @@ func (r *repository) FindOneDonationProgram(ctx context.Context, options map[str
 		Select("dp.*, COALESCE(SUM(dpt.gross_amount), 0) as collected_fund, COALESCE(SUM(dpe.amount), 0) as total_expense")
 
 	if id, ok := options["id"]; ok && id != "" {
-		query = query.Where("id = ?", id)
+		query = query.Where("dp.id = ?", id)
 	}
 	if title, ok := options["title"]; ok && title != "" {
-		query = query.Where("title = ?", title)
+		query = query.Where("dp.title = ?", title)
 	}
 	if slug, ok := options["slug"]; ok && slug != "" {
-		query = query.Where("slug = ?", slug)
+		query = query.Where("dp.slug = ?", slug)
 	}
 	if active, ok := options["active"]; ok && active == true {
-		query = query.Where("status = ?", StatusActive)
+		query = query.Where("dp.status = ?", StatusActive)
 	}
 	if status, ok := options["status"]; ok {
 		switch v := status.(type) {
 		case string:
 			if v != "" {
-				query = query.Where("status = ?", v)
+				query = query.Where("dp.status = ?", v)
 			}
 		case Status:
 			if v != "" {
-				query = query.Where("status = ?", string(v))
+				query = query.Where("dp.status = ?", string(v))
 			}
 		case []string:
 			if len(v) > 0 {
-				query = query.Where("status IN ?", v)
+				query = query.Where("dp.status IN ?", v)
 			}
 		case []Status:
 			if len(v) > 0 {
-				query = query.Where("status IN ?", v)
+				query = query.Where("dp.status IN ?", v)
 			}
 		}
 	}
