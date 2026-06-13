@@ -28,17 +28,22 @@ func NewRepository(conn *gorm.DB) Repository {
 
 func (r *repository) FindAllAmbulances(ctx context.Context, options map[string]interface{}) ([]Ambulance, error) {
 	var ambulances []Ambulance
-	query := r.Conn.WithContext(ctx).Model(&Ambulance{}).Preload("Driver.UserProfile").Where("ambulances.deleted_at IS NULL")
+	query := r.Conn.WithContext(ctx).
+		Joins("LEFT JOIN accounts ON accounts.id = ambulances.driver_id").
+		Joins("LEFT JOIN user_profiles ON user_profiles.account_id = accounts.id").
+		Preload("Driver.UserProfile").
+		Where("ambulances.deleted_at IS NULL").
+		Select("ambulances.*")
 
 	if search, ok := options["search"]; ok && search != "" {
 		searchQuery := "%" + search.(string) + "%"
-		query = query.Joins("LEFT JOIN accounts ON accounts.id = ambulances.driver_id").
-			Joins("LEFT JOIN user_profiles ON user_profiles.account_id = accounts.id").
-			Where("ambulances.plate_number ILIKE ? OR user_profiles.username ILIKE ?", searchQuery, searchQuery)
+		query = query.Where("ambulances.plate_number ILIKE ? OR user_profiles.username ILIKE ?", searchQuery, searchQuery)
 	}
+
 	if status, ok := options["status"]; ok && status != "" {
 		query = query.Where("ambulances.status = ?", status)
 	}
+
 	if driverID, ok := options["driver_id"]; ok && driverID != "" {
 		query = query.Where("ambulances.driver_id = ?", driverID)
 	}
@@ -72,6 +77,7 @@ func (r *repository) FindAllAmbulances(ctx context.Context, options map[string]i
 	if err := query.Find(&ambulances).Error; err != nil {
 		return nil, err
 	}
+
 	return ambulances, nil
 }
 

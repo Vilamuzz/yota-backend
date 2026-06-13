@@ -41,8 +41,7 @@ func (r *repository) FindByID(ctx context.Context, id string) (AmbulanceHistory,
 
 func (r *repository) FindAll(ctx context.Context, options map[string]interface{}) ([]AmbulanceHistory, error) {
 	var ambulanceHistories []AmbulanceHistory
-	query := r.Conn.WithContext(ctx).
-		Preload("Driver.UserProfile")
+	query := r.Conn.WithContext(ctx).Preload("Driver.UserProfile")
 
 	if ambulanceID, ok := options["ambulance_id"]; ok {
 		query = query.Where("ambulance_id = ?", ambulanceID)
@@ -106,6 +105,7 @@ func (r *repository) GetSummary(ctx context.Context, ambulanceID string, startDa
 	if startDate != nil {
 		query = query.Where("created_at >= ?", *startDate)
 	}
+
 	if endDate != nil {
 		query = query.Where("created_at <= ?", *endDate)
 	}

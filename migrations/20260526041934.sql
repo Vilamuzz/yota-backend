@@ -1,2 +1,0 @@
--- Modify "ambulance_service_requests" table
-ALTER TABLE "ambulance_service_requests" ALTER COLUMN "applicant_name" DROP NOT NULL, ALTER COLUMN "applicant_phone" DROP NOT NULL, ALTER COLUMN "applicant_address" DROP NOT NULL, ALTER COLUMN "description" DROP NOT NULL, ALTER COLUMN "request_date" DROP NOT NULL, ALTER COLUMN "request_reason" DROP NOT NULL, ALTER COLUMN "status" DROP NOT NULL, ADD COLUMN "ambulance_id" text NULL;
