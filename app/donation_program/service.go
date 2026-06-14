@@ -71,7 +71,7 @@ func (s *service) GetDonationProgramList(ctx context.Context, params DonationPro
 
 	if !isAdmin {
 		if params.Status != "" {
-			if params.Status.IsValid() {
+			if params.Status.IsValid() && params.Status != StatusDraft && params.Status != StatusArchived {
 				options["status"] = params.Status
 			} else {
 				return pkg.NewResponse(http.StatusBadRequest, "Status tidak valid", nil, nil)
