@@ -14,7 +14,7 @@ import (
 type Repository interface {
 	Create(ctx context.Context, record *FinanceRecord) error
 	FindAll(ctx context.Context, options map[string]interface{}) ([]FinanceRecord, error)
-	Summary(ctx context.Context) (FinanceRecordSummary, error)
+	Summary(ctx context.Context, isAdmin bool) (FinanceRecordSummary, error)
 	Delete(ctx context.Context, id string) error
 }
 
@@ -72,7 +72,7 @@ func (r *repo) FindAll(ctx context.Context, options map[string]interface{}) ([]F
 	return records, err
 }
 
-func (r *repo) Summary(ctx context.Context) (FinanceRecordSummary, error) {
+func (r *repo) Summary(ctx context.Context, isAdmin bool) (FinanceRecordSummary, error) {
 	var results []struct {
 		FundType   string
 		SourceType string
@@ -115,6 +115,15 @@ func (r *repo) Summary(ctx context.Context) (FinanceRecordSummary, error) {
 				summary.TotalSocialProgramExpense = res.Total
 			case FundTypeFosterChildren:
 				summary.TotalFosterChildrenExpense = res.Total
+			}
+		} else if isAdmin && res.SourceType == SourceTypeTransaction {
+			switch res.FundType {
+			case FundTypeDonation:
+				summary.TotalDonationProgramIncome = res.Total
+			case FundTypeSocialProgram:
+				summary.TotalSocialProgramIncome = res.Total
+			case FundTypeFosterChildren:
+				summary.TotalFosterChildrenIncome = res.Total
 			}
 		}
 	}
