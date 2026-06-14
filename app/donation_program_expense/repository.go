@@ -36,7 +36,7 @@ var allowedDonationProgramExpenseSortColumns = map[string]string{
 
 func (r *repo) FindAllDonationProgramExpenses(ctx context.Context, options map[string]interface{}) ([]DonationProgramExpense, error) {
 	var expenses []DonationProgramExpense
-	query := r.Conn.WithContext(ctx)
+	query := r.Conn.WithContext(ctx).Where("deleted_at IS NULL")
 
 	if donationProgramID, ok := options["donation_program_id"]; ok && donationProgramID.(string) != "" {
 		query = query.Where("donation_program_id = ?", donationProgramID.(string))

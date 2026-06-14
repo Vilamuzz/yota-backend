@@ -33,8 +33,8 @@ func NewRepository(conn *gorm.DB) Repository {
 var allowedSortColumns = map[string]string{
 	"title":          "dp.title",
 	"fund_target":    "dp.fund_target",
-	"collected_fund": "collected_fund",
-	"total_expense":  "total_expense",
+	"collected_fund": "COALESCE(dpt.collected_fund, 0)",
+	"total_expense":  "COALESCE(dpe.total_expense, 0)",
 	"start_date":     "dp.start_date",
 	"end_date":       "dp.end_date",
 	"created_at":     "dp.created_at",
