@@ -121,8 +121,7 @@ jobs:
         run: |
           atlas migrate apply \
             --dir "file://migrations" \
-            --url "${{ secrets.PROD_DATABASE_URL }}" \
-            --baseline "20260611232220"
+            --url "${{ secrets.PROD_DATABASE_URL }}"
 
   deploy:
     needs: build
