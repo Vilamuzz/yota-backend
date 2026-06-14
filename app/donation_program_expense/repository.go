@@ -130,7 +130,7 @@ func (r *repo) CreateDonationProgramExpense(ctx context.Context, expense *Donati
 
 func (r *repo) DeleteDonationProgramExpense(ctx context.Context, donationProgramExpenseID string) error {
 	return r.Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("id = ?", donationProgramExpenseID).Delete(&DonationProgramExpense{}).Error; err != nil {
+		if err := tx.Model(&DonationProgramExpense{}).Where("id = ?", donationProgramExpenseID).Update("deleted_at", time.Now()).Error; err != nil {
 			return err
 		}
 
