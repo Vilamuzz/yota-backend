@@ -42,13 +42,22 @@ var allowedSortColumns = map[string]string{
 }
 
 func buildDonationProgramBaseQuery(conn *gorm.DB, ctx context.Context, options map[string]interface{}) *gorm.DB {
+	dptSubquery := conn.Table("donation_program_transactions").
+		Select("donation_program_id, COALESCE(SUM(gross_amount), 0) as collected_fund").
+		Where("transaction_status = 'settlement'").
+		Group("donation_program_id")
+
+	dpeSubquery := conn.Table("donation_program_expenses").
+		Select("donation_program_id, COALESCE(SUM(amount), 0) as total_expense").
+		Where("deleted_at IS NULL").
+		Group("donation_program_id")
+
 	query := conn.WithContext(ctx).
 		Table("donation_programs dp").
-		Joins("LEFT JOIN donation_program_transactions dpt ON dpt.donation_program_id = dp.id AND dpt.transaction_status = 'settlement'").
-		Joins("LEFT JOIN donation_program_expenses dpe ON dpe.donation_program_id = dp.id AND dpe.deleted_at IS NULL").
+		Joins("LEFT JOIN (?) dpt ON dpt.donation_program_id = dp.id", dptSubquery).
+		Joins("LEFT JOIN (?) dpe ON dpe.donation_program_id = dp.id", dpeSubquery).
 		Where("dp.deleted_at IS NULL").
-		Group("dp.id").
-		Select("dp.*, COALESCE(SUM(dpt.gross_amount), 0) as collected_fund, COALESCE(SUM(dpe.amount), 0) as total_expense")
+		Select("dp.*, COALESCE(dpt.collected_fund, 0) as collected_fund, COALESCE(dpe.total_expense, 0) as total_expense")
 
 	if search, ok := options["search"]; ok && search != "" {
 		query = query.Where("dp.title ILIKE ?", "%"+search.(string)+"%")
@@ -58,17 +67,9 @@ func buildDonationProgramBaseQuery(conn *gorm.DB, ctx context.Context, options m
 	}
 	if status, ok := options["status"]; ok {
 		switch v := status.(type) {
-		case string:
-			if v != "" {
-				query = query.Where("dp.status = ?", v)
-			}
 		case Status:
 			if v != "" {
 				query = query.Where("dp.status = ?", string(v))
-			}
-		case []string:
-			if len(v) > 0 {
-				query = query.Where("dp.status IN ?", v)
 			}
 		case []Status:
 			if len(v) > 0 {
@@ -125,17 +126,9 @@ func (r *repository) CountDonationPrograms(ctx context.Context, options map[stri
 	}
 	if status, ok := options["status"]; ok {
 		switch v := status.(type) {
-		case string:
-			if v != "" {
-				query = query.Where("status = ?", v)
-			}
 		case Status:
 			if v != "" {
 				query = query.Where("status = ?", string(v))
-			}
-		case []string:
-			if len(v) > 0 {
-				query = query.Where("status IN ?", v)
 			}
 		case []Status:
 			if len(v) > 0 {
@@ -149,46 +142,35 @@ func (r *repository) CountDonationPrograms(ctx context.Context, options map[stri
 
 func (r *repository) FindOneDonationProgram(ctx context.Context, options map[string]interface{}) (*DonationProgram, error) {
 	var donationProgram DonationProgram
+	dptSubquery := r.Conn.Table("donation_program_transactions").
+		Select("donation_program_id, COALESCE(SUM(gross_amount), 0) as collected_fund").
+		Where("transaction_status = 'settlement'").
+		Group("donation_program_id")
+
+	dpeSubquery := r.Conn.Table("donation_program_expenses").
+		Select("donation_program_id, COALESCE(SUM(amount), 0) as total_expense").
+		Where("deleted_at IS NULL").
+		Group("donation_program_id")
+
 	query := r.Conn.WithContext(ctx).
 		Table("donation_programs dp").
-		Joins("LEFT JOIN donation_program_transactions dpt ON dpt.donation_program_id = dp.id AND dpt.transaction_status = 'settlement'").
-		Joins("LEFT JOIN donation_program_expenses dpe ON dpe.donation_program_id = dp.id AND dpe.deleted_at IS NULL").
+		Joins("LEFT JOIN (?) dpt ON dpt.donation_program_id = dp.id", dptSubquery).
+		Joins("LEFT JOIN (?) dpe ON dpe.donation_program_id = dp.id", dpeSubquery).
 		Where("dp.deleted_at IS NULL").
-		Group("dp.id").
-		Select("dp.*, COALESCE(SUM(dpt.gross_amount), 0) as collected_fund, COALESCE(SUM(dpe.amount), 0) as total_expense")
+		Select("dp.*, COALESCE(dpt.collected_fund, 0) as collected_fund, COALESCE(dpe.total_expense, 0) as total_expense")
 
 	if id, ok := options["id"]; ok && id != "" {
 		query = query.Where("dp.id = ?", id)
 	}
+
 	if title, ok := options["title"]; ok && title != "" {
 		query = query.Where("dp.title = ?", title)
 	}
+
 	if slug, ok := options["slug"]; ok && slug != "" {
 		query = query.Where("dp.slug = ?", slug)
 	}
-	if active, ok := options["active"]; ok && active == true {
-		query = query.Where("dp.status = ?", StatusActive)
-	}
-	if status, ok := options["status"]; ok {
-		switch v := status.(type) {
-		case string:
-			if v != "" {
-				query = query.Where("dp.status = ?", v)
-			}
-		case Status:
-			if v != "" {
-				query = query.Where("dp.status = ?", string(v))
-			}
-		case []string:
-			if len(v) > 0 {
-				query = query.Where("dp.status IN ?", v)
-			}
-		case []Status:
-			if len(v) > 0 {
-				query = query.Where("dp.status IN ?", v)
-			}
-		}
-	}
+
 	if err := query.First(&donationProgram).Error; err != nil {
 		return nil, err
 	}

@@ -18,7 +18,7 @@ type DonationProgramRequest struct {
 type DonationProgramQueryParams struct {
 	Search   string   `form:"search"`
 	Category Category `form:"category"`
-	Status   string   `form:"status"`
+	Status   Status   `form:"status"`
 	SortBy   string   `form:"sortBy"`
 	Page     int      `form:"page"`
 	Limit    int      `form:"limit"`
