@@ -38,7 +38,7 @@ type AdminDonationProgramResponse struct {
 
 type AdminDonationProgramListResponse struct {
 	DonationPrograms []AdminDonationProgramResponse `json:"donationPrograms"`
-	Pagination       pkg.OffsetPagination         `json:"pagination"`
+	Pagination       pkg.OffsetPagination           `json:"pagination"`
 }
 
 type DonationProgramListResponse struct {
@@ -101,9 +101,11 @@ func toDonationProgramListResponse(donations []DonationProgram, pagination pkg.O
 	for _, d := range donations {
 		responses = append(responses, d.toDonationProgramResponse())
 	}
+
 	if responses == nil {
 		responses = []DonationProgramResponse{}
 	}
+
 	return DonationProgramListResponse{
 		DonationPrograms: responses,
 		Pagination:       pagination,
