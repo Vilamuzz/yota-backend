@@ -2,6 +2,7 @@ package gallery
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
@@ -11,7 +12,17 @@ import (
 	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
+
+type uploadError struct {
+	msg string
+	err error
+}
+
+func (e uploadError) Error() string {
+	return e.msg
+}
 
 type Service interface {
 	GetGalleryList(ctx context.Context, params GalleryQueryParams, isAdmin bool) pkg.Response
@@ -194,52 +205,72 @@ func (s *service) CreateGallery(ctx context.Context, payload GalleryCreateReques
 	var mediaItems []media.Media
 	var coverImageURL string
 
+	g, gCtx := errgroup.WithContext(ctx)
+
 	if payload.CoverImage != nil {
-		uploadedURL, err := s.s3Client.UploadFile(ctx, payload.CoverImage, "galleries")
-		if err != nil {
-			logrus.WithFields(logrus.Fields{
-				"component": "gallery.service",
-				"title":     payload.Title,
-			}).WithError(err).Error("failed to upload cover image")
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah gambar sampul", nil, nil)
-		}
-		coverImageURL = uploadedURL
+		g.Go(func() error {
+			uploadedURL, err := s.s3Client.UploadFile(gCtx, payload.CoverImage, "galleries")
+			if err != nil {
+				logrus.WithFields(logrus.Fields{
+					"component": "gallery.service",
+					"title":     payload.Title,
+				}).WithError(err).Error("failed to upload cover image")
+				return uploadError{msg: "Gagal mengunggah gambar sampul", err: err}
+			}
+			coverImageURL = uploadedURL
+			return nil
+		})
 	}
 
+	tempMedia := make([]media.Media, len(payload.MediaFiles))
 	for i, file := range payload.MediaFiles {
-		var finalURL string
-		if file != nil {
-			url, err := s.s3Client.UploadFile(ctx, file, "galleries")
+		if file == nil {
+			continue
+		}
+		i := i
+		file := file
+		g.Go(func() error {
+			url, err := s.s3Client.UploadFile(gCtx, file, "galleries")
 			if err != nil {
 				logrus.WithFields(logrus.Fields{
 					"component": "gallery.service",
 					"title":     payload.Title,
 				}).WithError(err).Error("failed to upload media")
-				return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah file media", nil, nil)
+				return uploadError{msg: "Gagal mengunggah file media", err: err}
 			}
-			finalURL = url
-		}
 
-		if finalURL != "" {
 			alt := ""
 			if i < len(payload.MediaAlts) {
 				alt = payload.MediaAlts[i]
 			}
 
-			item := media.Media{
+			tempMedia[i] = media.Media{
 				ID:    uuid.New(),
 				Type:  media.MediaTypeImage, // Default to image
-				URL:   finalURL,
+				URL:   url,
 				Alt:   alt,
 				Order: i + 1,
 			}
+			return nil
+		})
+	}
 
-			if i == 0 && coverImageURL == "" {
-				coverImageURL = finalURL
-			}
+	if err := g.Wait(); err != nil {
+		var uErr uploadError
+		if errors.As(err, &uErr) {
+			return pkg.NewResponse(http.StatusInternalServerError, uErr.msg, nil, nil)
+		}
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah file", nil, nil)
+	}
 
+	for _, item := range tempMedia {
+		if item.URL != "" {
 			mediaItems = append(mediaItems, item)
 		}
+	}
+
+	if len(tempMedia) > 0 && tempMedia[0].URL != "" && coverImageURL == "" {
+		coverImageURL = tempMedia[0].URL
 	}
 
 	timeNow := time.Now()
@@ -415,15 +446,43 @@ func (s *service) UpdateGallery(ctx context.Context, id string, payload GalleryU
 	}
 
 	// 3. Add New Media Files
+	var (
+		coverImageURL string
+		newMediaList  []media.Media
+	)
+
+	g, gCtx := errgroup.WithContext(ctx)
+
+	if payload.CoverImage != nil {
+		g.Go(func() error {
+			uploadedURL, err := s.s3Client.UploadFile(gCtx, payload.CoverImage, "galleries")
+			if err != nil {
+				logrus.WithFields(logrus.Fields{
+					"component":  "gallery.service",
+					"gallery_id": id,
+				}).WithError(err).Error("failed to upload new cover image")
+				return uploadError{msg: "Gagal mengunggah gambar sampul baru", err: err}
+			}
+			coverImageURL = uploadedURL
+			return nil
+		})
+	}
+
+	tempNewMedia := make([]media.Media, len(payload.MediaFiles))
 	for i, file := range payload.MediaFiles {
-		if file != nil {
-			url, err := s.s3Client.UploadFile(ctx, file, "galleries")
+		if file == nil {
+			continue
+		}
+		i := i
+		file := file
+		g.Go(func() error {
+			url, err := s.s3Client.UploadFile(gCtx, file, "galleries")
 			if err != nil {
 				logrus.WithFields(logrus.Fields{
 					"component": "gallery.service",
 					"id":        id,
 				}).WithError(err).Error("failed to upload media")
-				return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah file media", nil, nil)
+				return uploadError{msg: "Gagal mengunggah file media", err: err}
 			}
 
 			alt := ""
@@ -436,42 +495,48 @@ func (s *service) UpdateGallery(ctx context.Context, id string, payload GalleryU
 				order = payload.MediaOrders[i]
 			}
 
-			newMedia := []media.Media{
-				{
-					ID:    uuid.New(),
-					URL:   url,
-					Type:  media.MediaTypeImage,
-					Alt:   alt,
-					Order: order,
-				},
+			tempNewMedia[i] = media.Media{
+				ID:    uuid.New(),
+				URL:   url,
+				Type:  media.MediaTypeImage,
+				Alt:   alt,
+				Order: order,
 			}
+			return nil
+		})
+	}
 
-			if err := s.mediaService.CreateEntityMedia(ctx, id, "galleries", newMedia); err != nil {
-				logrus.WithFields(logrus.Fields{
-					"component": "gallery.service",
-					"id":        id,
-				}).WithError(err).Error("failed to save new media data")
-				return pkg.NewResponse(http.StatusInternalServerError, "Gagal menyimpan data media baru", nil, nil)
-			}
+	if err := g.Wait(); err != nil {
+		var uErr uploadError
+		if errors.As(err, &uErr) {
+			return pkg.NewResponse(http.StatusInternalServerError, uErr.msg, nil, nil)
+		}
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah file", nil, nil)
+	}
+
+	for _, item := range tempNewMedia {
+		if item.URL != "" {
+			newMediaList = append(newMediaList, item)
 		}
 	}
 
-	if payload.CoverImage != nil {
-		uploadedURL, err := s.s3Client.UploadFile(ctx, payload.CoverImage, "galleries")
-		if err != nil {
+	if len(newMediaList) > 0 {
+		if err := s.mediaService.CreateEntityMedia(ctx, id, "galleries", newMediaList); err != nil {
 			logrus.WithFields(logrus.Fields{
-				"component":  "gallery.service",
-				"gallery_id": id,
-			}).WithError(err).Error("failed to upload new cover image")
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah gambar sampul baru", nil, nil)
+				"component": "gallery.service",
+				"id":        id,
+			}).WithError(err).Error("failed to save new media data")
+			return pkg.NewResponse(http.StatusInternalServerError, "Gagal menyimpan data media baru", nil, nil)
 		}
+	}
 
+	if coverImageURL != "" {
 		if existingGallery.CoverImage != "" {
 			existingCoverImage := s3_pkg.ExtractObjectNameFromURL(existingGallery.CoverImage)
 			_ = s.s3Client.DeleteFile(ctx, existingCoverImage)
 		}
 
-		updateData["cover_image"] = uploadedURL
+		updateData["cover_image"] = coverImageURL
 	}
 
 	if len(updateData) == 0 && len(payload.MediaFiles) == 0 && payload.CoverImage == nil {
