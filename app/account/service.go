@@ -3,7 +3,6 @@ package account
 import (
 	"context"
 	"errors"
-	"io"
 	"net/http"
 	"time"
 
@@ -30,16 +29,16 @@ type Service interface {
 }
 
 type service struct {
-	repo          Repository
-	timeout       time.Duration
-	s3Client      s3_pkg.Client
+	repo     Repository
+	timeout  time.Duration
+	s3Client s3_pkg.Client
 }
 
 func NewService(r Repository, timeout time.Duration, s3Client s3_pkg.Client) Service {
 	return &service{
-		repo:          r,
-		timeout:       timeout,
-		s3Client:      s3Client,
+		repo:     r,
+		timeout:  timeout,
+		s3Client: s3Client,
 	}
 }
 
@@ -398,9 +397,7 @@ func (s *service) UpdateUserProfile(ctx context.Context, accountID string, paylo
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
-	var fileContent []byte
-	var originalFilename string
-	var contentType string
+	var uploadedURL string
 	var oldProfilePicture string
 
 	if payload.ProfilePicture != nil {
@@ -411,20 +408,15 @@ func (s *service) UpdateUserProfile(ctx context.Context, accountID string, paylo
 
 		oldProfilePicture = s3_pkg.ExtractObjectNameFromURL(existing.UserProfile.ProfilePicture)
 
-		src, err := payload.ProfilePicture.Open()
+		uploadedURL, err = s.s3Client.UploadFile(ctx, payload.ProfilePicture, "accounts")
 		if err != nil {
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal memproses gambar profil", nil, nil)
+			logrus.WithFields(logrus.Fields{
+				"component":  "account.service",
+				"account_id": accountID,
+			}).WithError(err).Error("failed to upload profile picture")
+			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah gambar profil", nil, nil)
 		}
-		defer src.Close()
-
-		fileContent, err = io.ReadAll(src)
-		if err != nil {
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal membaca gambar profil", nil, nil)
-		}
-
-		originalFilename = payload.ProfilePicture.Filename
-		contentType = payload.ProfilePicture.Header.Get("Content-Type")
-		updateProfileMap["profile_picture"] = "pending_upload"
+		updateProfileMap["profile_picture"] = uploadedURL
 	}
 
 	if err := s.repo.UpdateFullProfile(ctx, accountID, updateAccountMap, updateProfileMap, payload.DefaultAccountRoleID); err != nil {
@@ -433,53 +425,26 @@ func (s *service) UpdateUserProfile(ctx context.Context, accountID string, paylo
 			"account_id": accountID,
 		}).WithError(err).Error("failed to update full profile")
 
+		// Clean up uploaded S3 file since DB update failed
+		if uploadedURL != "" {
+			if cleanupErr := s.s3Client.DeleteFile(ctx, uploadedURL); cleanupErr != nil {
+				logrus.WithError(cleanupErr).Error("failed to clean up uploaded S3 image after DB failure")
+			}
+		}
+
 		if err.Error() == "account not found" {
 			return pkg.NewResponse(http.StatusNotFound, "Akun tidak ditemukan", nil, nil)
 		}
 		return pkg.NewResponse(http.StatusInternalServerError, "Terjadi kesalahan pada server", nil, nil)
 	}
 
-	if payload.ProfilePicture != nil {
-		go s.uploadProfilePictureAsync(context.Background(), fileContent, originalFilename, contentType, accountID, oldProfilePicture)
+	if uploadedURL != "" && oldProfilePicture != "" {
+		if deleteErr := s.s3Client.DeleteFile(ctx, oldProfilePicture); deleteErr != nil {
+			logrus.WithError(deleteErr).Warnf("failed to delete orphaned S3 image: %s", oldProfilePicture)
+		}
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Profil berhasil diperbarui", nil, nil)
-}
-
-func (s *service) uploadProfilePictureAsync(ctx context.Context, fileContent []byte, originalFilename string, contentType string, accountID string, oldProfilePicture string) {
-	uploadedURL, err := s.s3Client.UploadFileFromBytes(ctx, fileContent, originalFilename, contentType, "accounts")
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"component":  "account.service",
-			"account_id": accountID,
-		}).WithError(err).Error("failed to upload profile picture asynchronously")
-		return
-	}
-
-	err = s.repo.UpdateFullProfile(ctx, accountID, nil, map[string]interface{}{"profile_picture": uploadedURL}, 0)
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"component":  "account.service",
-			"account_id": accountID,
-		}).WithError(err).Error("failed to update profile picture in database asynchronously")
-
-		// Clean up uploaded S3 file since DB update failed
-		go func(key string) {
-			if err := s.s3Client.DeleteFile(context.Background(), key); err != nil {
-				logrus.WithError(err).Error("failed to clean up asynchronously uploaded S3 image after DB failure")
-			}
-		}(uploadedURL)
-		return
-	}
-
-	// Delete old profile picture from S3 if it exists
-	if oldProfilePicture != "" && oldProfilePicture != "pending_upload" {
-		go func(key string) {
-			if err := s.s3Client.DeleteFile(context.Background(), key); err != nil {
-				logrus.WithError(err).Warnf("failed to delete orphaned S3 image: %s", key)
-			}
-		}(oldProfilePicture)
-	}
 }
 
 func (s *service) UpdatePassword(ctx context.Context, accountID string, payload UpdatePasswordRequest) pkg.Response {
