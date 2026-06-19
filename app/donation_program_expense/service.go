@@ -24,6 +24,7 @@ type Service interface {
 	CreateDonationProgramExpense(ctx context.Context, accountID, donationProgramID string, payload *DonationProgramExpenseRequest) pkg.Response
 	DeleteDonationProgramExpense(ctx context.Context, accountID, donationProgramExpenseID string) pkg.Response
 	ExportDonationProgramExpenseCSV(ctx context.Context, donationProgramSlug string, params DonationProgramExpenseExportParams) ([]byte, string, error)
+	GetDonationExpenseMonthlyExpense(ctx context.Context, donationProgramID string, params MonthlyExpenseQueryParams) pkg.Response
 }
 
 type service struct {
@@ -362,4 +363,33 @@ func (s *service) DeleteDonationProgramExpense(ctx context.Context, accountID, d
 	s.logService.CreateLog(ctx, &accountID, "DELETE", "donation_program_expense", donationProgramExpenseID, expense.toDonationProgramExpenseDetailResponse(), nil)
 
 	return pkg.NewResponse(http.StatusOK, "Pengeluaran berhasil dihapus", nil, nil)
+}
+
+func (s *service) GetDonationExpenseMonthlyExpense(ctx context.Context, donationProgramID string, params MonthlyExpenseQueryParams) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	if err := uuid.Validate(donationProgramID); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID program donasi tidak valid"}, nil)
+	}
+
+	yearVal := time.Now().Year()
+	if params.Year != "" {
+		var parseYear int
+		if _, err := fmt.Sscanf(params.Year, "%d", &parseYear); err == nil && parseYear > 0 {
+			yearVal = parseYear
+		}
+	}
+
+	expenseRecord, err := s.repo.GetMonthlyExpenseByProgram(ctx, donationProgramID, yearVal)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":           "donation_program_expense.service",
+			"donation_program_id": donationProgramID,
+		}).WithError(err).Error("failed to get monthly expense")
+
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data pengeluaran bulanan", nil, nil)
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, expenseRecord)
 }

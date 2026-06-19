@@ -14,11 +14,6 @@ type DonationProgramTransactionQueryParams struct {
 	pkg.PaginationParams
 }
 
-type PrayerQueryParams struct {
-	Reported bool `form:"reported"`
-	pkg.PaginationParams
-}
-
-type ReportPrayerRequest struct {
-	Reason string `json:"reason"`
+type MonthlyIncomeQueryParams struct {
+	Year string `form:"year"`
 }

@@ -585,7 +585,12 @@ func (s *service) OAuthLogin(ctx context.Context, provider string, gothUser goth
 		return pkg.NewResponse(http.StatusInternalServerError, "Failed to generate token", nil, nil)
 	}
 
-	return pkg.NewResponse(http.StatusOK, "OAuth login successful", nil, AuthResponse{Token: token})
+	requiresPasswordSetup := currentAccount.Password == ""
+
+	return pkg.NewResponse(http.StatusOK, "OAuth login successful", nil, AuthResponse{
+		Token:                 token,
+		RequiresPasswordSetup: requiresPasswordSetup,
+	})
 }
 
 func (s *service) SwitchRole(ctx context.Context, claims jwt_pkg.UserJWTClaims, payload SwitchRoleRequest) pkg.Response {

@@ -36,6 +36,10 @@ func (s *service) CreateAmbulance(ctx context.Context, payload CreateAmbulanceRe
 	errValidation := make(map[string]string)
 	if err := uuid.Validate(payload.DriverID); err != nil {
 		errValidation["driverId"] = "Format Driver tidak valid"
+	} else {
+		if err := s.repo.VerifyDriverForAssignment(ctx, payload.DriverID, ""); err != nil {
+			errValidation["driverId"] = err.Error()
+		}
 	}
 	if payload.Image == nil {
 		errValidation["image"] = "Gambar wajib diisi"
@@ -181,6 +185,9 @@ func (s *service) UpdateAmbulance(ctx context.Context, id string, payload Update
 	if payload.DriverID != "" {
 		if err := uuid.Validate(payload.DriverID); err != nil {
 			return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"driverId": "Format Driver tidak valid"}, nil)
+		}
+		if err := s.repo.VerifyDriverForAssignment(ctx, payload.DriverID, id); err != nil {
+			return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"driverId": err.Error()}, nil)
 		}
 		updateData["driver_id"] = uuid.MustParse(payload.DriverID)
 	}

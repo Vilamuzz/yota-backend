@@ -231,7 +231,11 @@ func (h *handler) OAuthCallback(c *gin.Context) {
 	if res.Status == http.StatusOK {
 		authRes := res.Data.(AuthResponse)
 		frontendURL := os.Getenv("FE_URL")
-		c.Redirect(http.StatusTemporaryRedirect, fmt.Sprintf("%s/auth/callback?token=%s", frontendURL, authRes.Token))
+		redirectURL := fmt.Sprintf("%s/auth/callback?token=%s", frontendURL, authRes.Token)
+		if authRes.RequiresPasswordSetup {
+			redirectURL = fmt.Sprintf("%s&setup_password=true", redirectURL)
+		}
+		c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 		return
 	}
 

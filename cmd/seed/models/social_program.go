@@ -85,7 +85,7 @@ func SeedSocialPrograms(db *gorm.DB) error {
 		{
 			ID:            uuid.New(),
 			Title:         "Orang Tua Asuh Difabel Berprestasi",
-			CoverImage:    "https://images.unsplash.com/photo-1531206715517-5c0ba140e2b8?auto=format&fit=crop&w=800&q=80",
+			CoverImage:    "https://images.unsplash.com/photo-1615506313305-e61daaa8cdcb?q=80&w=1470&auto=format&fit=crop&w=800&q=80",
 			Description:   "Dukungan rutin bagi anak-anak berkebutuhan khusus yang berprestasi dalam bidang akademik, seni, maupun olahraga untuk mengembangkan bakat mereka.",
 			Status:        social_program.StatusActive,
 			MinimumAmount: 120000,
@@ -96,7 +96,7 @@ func SeedSocialPrograms(db *gorm.DB) error {
 		{
 			ID:            uuid.New(),
 			Title:         "Dukungan Pendidikan Anak Pesisir",
-			CoverImage:    "https://images.unsplash.com/photo-1473116763269-255448993f66?auto=format&fit=crop&w=800&q=80",
+			CoverImage:    "https://plus.unsplash.com/premium_photo-1680807869780-e0876a6f3cd5?q=80&w=1471&auto=format&fit=crop&w=800&q=80",
 			Description:   "Program pembiayaan transportasi perahu sekolah dan buku bacaan untuk anak-anak nelayan di pulau terluar agar mudah menjangkau sekolah.",
 			Status:        social_program.StatusPending,
 			MinimumAmount: 50000,
@@ -107,7 +107,7 @@ func SeedSocialPrograms(db *gorm.DB) error {
 		{
 			ID:            uuid.New(),
 			Title:         "Beasiswa Kuliah Calon Pemimpin Bangsa",
-			CoverImage:    "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80",
+			CoverImage:    "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=1632&auto=format&fit=crop&w=800&q=80",
 			Description:   "Program pembiayaan uang kuliah tunggal (UKT) bulanan bagi mahasiswa berprestasi nasional yang berasal dari latar belakang keluarga miskin.",
 			Status:        social_program.StatusCompleted,
 			MinimumAmount: 250000,

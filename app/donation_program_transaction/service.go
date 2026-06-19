@@ -33,6 +33,7 @@ type Service interface {
 	GetMyDonationProgramTransactionList(ctx context.Context, accountID string, params DonationProgramTransactionQueryParams) pkg.Response
 	GetMyDonationProgramTransactionByID(ctx context.Context, donationProgramTransactionID, accountID string) pkg.Response
 	GetPublicDonationProgramTransactionList(ctx context.Context, slug string, params DonationProgramTransactionQueryParams) pkg.Response
+	GetDonationTransactionMonthlyIncome(ctx context.Context, donationProgramID string, params MonthlyIncomeQueryParams) pkg.Response
 }
 
 type service struct {
@@ -531,4 +532,33 @@ func (s *service) GetPublicDonationProgramTransactionList(ctx context.Context, s
 	params.Status = string(TransactionStatusSettlement)
 
 	return s.GetDonationProgramTransactionList(ctx, "", program.ID.String(), params)
+}
+
+func (s *service) GetDonationTransactionMonthlyIncome(ctx context.Context, donationProgramID string, params MonthlyIncomeQueryParams) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	if err := uuid.Validate(donationProgramID); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID program donasi tidak valid"}, nil)
+	}
+
+	yearVal := time.Now().Year()
+	if params.Year != "" {
+		var parseYear int
+		if _, err := fmt.Sscanf(params.Year, "%d", &parseYear); err == nil && parseYear > 0 {
+			yearVal = parseYear
+		}
+	}
+
+	incomeRecord, err := s.repo.GetMonthlyIncomeByProgram(ctx, donationProgramID, yearVal)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":           "donation_program_transaction.service",
+			"donation_program_id": donationProgramID,
+		}).WithError(err).Error("failed to get monthly income")
+
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data pendapatan bulanan", nil, nil)
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, incomeRecord)
 }

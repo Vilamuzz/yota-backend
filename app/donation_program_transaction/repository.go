@@ -2,6 +2,7 @@ package donation_program_transaction
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
@@ -14,6 +15,7 @@ type Repository interface {
 	CreateDonationProgramTransaction(ctx context.Context, tx *DonationProgramTransaction) error
 	UpdateDonationProgramTransaction(ctx context.Context, orderID string, updates map[string]interface{}) error
 	CancelDonationProgramTransaction(ctx context.Context, orderID string) error
+	GetMonthlyIncomeByProgram(ctx context.Context, donationProgramID string, year int) (*TransactionMonthlyIncomeRecord, error)
 }
 
 type repository struct {
@@ -112,4 +114,51 @@ func (r *repository) CancelDonationProgramTransaction(ctx context.Context, id st
 
 		return nil
 	})
+}
+
+func (r *repository) GetMonthlyIncomeByProgram(ctx context.Context, donationProgramID string, year int) (*TransactionMonthlyIncomeRecord, error) {
+	type dbMonthlyIncome struct {
+		MonthNum int     `gorm:"column:month_num"`
+		Income   float64 `gorm:"column:income"`
+	}
+
+	var dbResults []dbMonthlyIncome
+
+	err := r.Conn.WithContext(ctx).
+		Model(&DonationProgramTransaction{}).
+		Select("CAST(EXTRACT(MONTH FROM paid_at) AS INTEGER) as month_num, SUM(gross_amount) as income").
+		Where("donation_program_id = ?", donationProgramID).
+		Where("EXTRACT(YEAR FROM paid_at) = ?", year).
+		Where("transaction_status = ? OR (transaction_status = ? AND fraud_status != ?)", "settlement", "capture", "challenge").
+		Group("month_num").
+		Order("month_num ASC").
+		Scan(&dbResults).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	dbMap := make(map[int]float64)
+	for _, res := range dbResults {
+		dbMap[res.MonthNum] = res.Income
+	}
+
+	record := &TransactionMonthlyIncomeRecord{
+		DonationProgramID: donationProgramID,
+		Items:             make([]TransactionMonthlyIncomeItem, 12),
+	}
+
+	for i := 1; i <= 12; i++ {
+		monthStr := fmt.Sprintf("%d-%02d", year, i)
+		income := 0.0
+		if val, exists := dbMap[i]; exists {
+			income = val
+		}
+		record.Items[i-1] = TransactionMonthlyIncomeItem{
+			Month:  monthStr,
+			Income: income,
+		}
+	}
+
+	return record, nil
 }

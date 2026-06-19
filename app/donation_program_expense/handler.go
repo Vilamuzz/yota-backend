@@ -32,6 +32,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	admin := r.Group("/admin/donation-programs")
 	admin.Use(h.middleware.RequireRoles(enum.RoleFinance))
 	{
+		admin.GET("/:id/expenses/monthly-expense", h.GetDonationExpenseMonthlyExpense)
 		admin.GET("/:id/expenses", h.GetAdminDonationProgramExpenseList)
 		admin.GET("/expenses/:id", h.GetDonationProgramExpenseByID)
 		admin.POST("/:id/expenses", h.CreateDonationProgramExpense)
@@ -198,4 +199,29 @@ func (h *handler) ExportDonationProgramExpenseCSV(c *gin.Context) {
 	c.Header("Content-Type", "text/csv; charset=utf-8")
 	c.Header("Content-Transfer-Encoding", "binary")
 	c.Data(http.StatusOK, "text/csv; charset=utf-8", csvBytes)
+}
+
+// GetDonationExpenseMonthlyExpense
+//
+// @Summary Get Donation Program Monthly Expense
+// @Description Retrieve aggregated monthly expenses of a specific donation program for a given year (admin only)
+// @Tags Donation Programs
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Donation Program ID"
+// @Param year query string false "Filter by year"
+// @Success 200 {object} pkg.Response{data=MonthlyExpenseRecord}
+// @Router /api/admin/donation-programs/{id}/expenses/monthly-expense [get]
+func (h *handler) GetDonationExpenseMonthlyExpense(c *gin.Context) {
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	var params MonthlyExpenseQueryParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
+		return
+	}
+
+	res := h.service.GetDonationExpenseMonthlyExpense(ctx, id, params)
+	c.JSON(res.Status, res)
 }

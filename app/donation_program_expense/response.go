@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
+	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 )
 
 type DonationProgramExpenseResponse struct {
@@ -35,7 +36,7 @@ func (r *DonationProgramExpense) toDonationProgramExpenseResponse() DonationProg
 		Title:       r.Title,
 		Amount:      r.Amount,
 		ExpenseDate: r.ExpenseDate,
-		ProofFile:   r.ProofFile,
+		ProofFile:   s3_pkg.GetCDNURL(r.ProofFile),
 		CreatedAt:   r.CreatedAt,
 	}
 }
@@ -63,4 +64,14 @@ func toDonationProgramExpenseListResponse(expenses []DonationProgramExpense, pag
 		Expenses:   responses,
 		Pagination: pagination,
 	}
+}
+
+type MonthlyExpenseResponse struct {
+	Month string  `json:"month"`
+	Expense float64 `json:"expense"`
+}
+
+type MonthlyExpenseRecord struct {
+	DonationProgramID string                 `json:"donationProgramId"`
+	Items             []MonthlyExpenseResponse `json:"items"`
 }

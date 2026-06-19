@@ -166,9 +166,9 @@ CREATE TABLE "ambulance_histories" (
 -- Create "ambulances" table
 CREATE TABLE "ambulances" (
   "id" text NOT NULL,
-  "driver_id" text NULL,
+  "driver_id" text NOT NULL,
   "image" text NULL,
-  "plate_number" text NULL,
+  "plate_number" text NOT NULL,
   "status" text NULL,
   "created_at" timestamptz NULL,
   "updated_at" timestamptz NULL,
@@ -176,6 +176,12 @@ CREATE TABLE "ambulances" (
   PRIMARY KEY ("id"),
   CONSTRAINT "fk_ambulances_driver" FOREIGN KEY ("driver_id") REFERENCES "accounts" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION
 );
+-- Create index "idx_ambulances_deleted_at" to table: "ambulances"
+CREATE INDEX "idx_ambulances_deleted_at" ON "ambulances" ("deleted_at");
+-- Create index "idx_created" to table: "ambulances"
+CREATE INDEX "idx_created" ON "ambulances" ("created_at");
+-- Create index "idx_driver" to table: "ambulances"
+CREATE INDEX "idx_driver" ON "ambulances" ("driver_id");
 -- Create "ambulance_service_requests" table
 CREATE TABLE "ambulance_service_requests" (
   "id" text NOT NULL,
@@ -197,6 +203,7 @@ CREATE TABLE "ambulance_service_requests" (
   "status" text NULL,
   "service_category" text NULL,
   "rejection_reason" text NULL,
+  "cancelation_reason" text NULL,
   "created_at" timestamptz NULL,
   "updated_at" timestamptz NULL,
   PRIMARY KEY ("id"),
@@ -572,6 +579,5 @@ CREATE TABLE "user_profiles" (
   "updated_at" timestamptz NULL,
   PRIMARY KEY ("id"),
   CONSTRAINT "uni_user_profiles_account_id" UNIQUE ("account_id"),
-  CONSTRAINT "uni_user_profiles_phone" UNIQUE ("phone"),
   CONSTRAINT "fk_accounts_user_profile" FOREIGN KEY ("account_id") REFERENCES "accounts" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION
 );

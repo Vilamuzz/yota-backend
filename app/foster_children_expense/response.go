@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
+	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 )
 
 type FosterChildrenExpenseResponse struct {
@@ -46,7 +47,7 @@ func (e *FosterChildrenExpense) toFosterChildrenExpenseResponse() FosterChildren
 		Title:       e.Title,
 		Amount:      e.Amount,
 		ExpenseDate: e.ExpenseDate,
-		ProofFile:   e.ProofFile,
+		ProofFile:   s3_pkg.GetCDNURL(e.ProofFile),
 		CreatedAt:   e.CreatedAt,
 	}
 }

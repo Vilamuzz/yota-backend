@@ -1,6 +1,9 @@
 package social_program
 
-import "github.com/Vilamuzz/yota-backend/pkg"
+import (
+	"github.com/Vilamuzz/yota-backend/pkg"
+	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
+)
 
 type SocialProgramDetailResponse struct {
 	ID               string  `json:"id"`
@@ -43,7 +46,7 @@ func (r *SocialProgram) ToSocialProgramDetailResponse() SocialProgramDetailRespo
 		Slug:             r.Slug,
 		Title:            r.Title,
 		Description:      r.Description,
-		CoverImage:       r.CoverImage,
+		CoverImage:       s3_pkg.GetCDNURL(r.CoverImage),
 		Status:           r.Status,
 		TotalSubscribers: r.TotalSubscribers,
 		IsSubscribed:     r.IsSubscribed,
@@ -60,7 +63,7 @@ func (r *SocialProgram) ToSocialProgramListItemResponse() SocialProgramListItemR
 		ID:               r.ID.String(),
 		Slug:             r.Slug,
 		Title:            r.Title,
-		CoverImage:       r.CoverImage,
+		CoverImage:       s3_pkg.GetCDNURL(r.CoverImage),
 		Status:           r.Status,
 		TotalSubscribers: r.TotalSubscribers,
 		IsSubscribed:     r.IsSubscribed,

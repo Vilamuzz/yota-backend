@@ -83,7 +83,7 @@ func SeedNews(db *gorm.DB) error {
 		{
 			ID:         uuid.New(),
 			Title:      "Rencana Program Pembangunan Sumur Air Bersih Berikutnya",
-			CoverImage: "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?auto=format&fit=crop&w=800&q=80",
+			CoverImage: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=1632&auto=format&fit=crop&w=800&q=80",
 			Category:   media.Others,
 			Content:    "<p>Ini adalah draf rencana kegiatan pembangunan sumur air bersih berikutnya untuk daerah yang mengalami kekeringan ekstrem. Tim kami sedang melakukan survei lapangan untuk menentukan titik lokasi pengeboran terbaik.</p>",
 			Status:     media.MediaStatusDraft,

@@ -3,6 +3,10 @@ package s3_pkg
 import "strings"
 
 func ExtractObjectNameFromURL(fileURL string) string {
+	if !strings.HasPrefix(fileURL, "http://") && !strings.HasPrefix(fileURL, "https://") {
+		return fileURL
+	}
+
 	// URL format: http://minio:9000/bucket-name/galleries/images/uuid.jpg
 	parts := strings.Split(fileURL, "/")
 	if len(parts) < 2 {

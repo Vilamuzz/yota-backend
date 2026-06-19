@@ -11,3 +11,14 @@ type FinanceRecordSummary struct {
 	TotalSocialProgramIncome    float64 `json:"totalSocialProgramIncome"`
 	TotalFosterChildrenIncome   float64 `json:"totalFosterChildrenIncome"`
 }
+
+type FinanceMonthlyTrendItem struct {
+	Month   string  `json:"month"`
+	Income  float64 `json:"income"`
+	Expense float64 `json:"expense"`
+}
+
+type FinanceMonthlyTrendResponse struct {
+	Module string                    `json:"module"`
+	Items  []FinanceMonthlyTrendItem `json:"items"`
+}

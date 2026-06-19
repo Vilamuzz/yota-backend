@@ -171,7 +171,7 @@ func (c *Container) initInfrastructure() error {
 		c.RedisClient = redisClient
 	}
 
-	// S3-compatible client (RustFS)
+	// S3-compatible client
 	minioClient := config.ConnectS3()
 	c.MinioClient = minioClient
 	c.S3Client = s3_pkg.NewClient(minioClient)

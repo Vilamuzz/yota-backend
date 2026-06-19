@@ -17,6 +17,7 @@ type Repository interface {
 	GetTotalExpenseByDonationProgramID(ctx context.Context, donationProgramID string) (float64, error)
 	CreateDonationProgramExpense(ctx context.Context, donationProgramExpense *DonationProgramExpense) error
 	DeleteDonationProgramExpense(ctx context.Context, donationProgramExpenseID string) error
+	GetMonthlyExpenseByProgram(ctx context.Context, donationProgramID string, year int) (*MonthlyExpenseRecord, error)
 }
 
 type repo struct {
@@ -150,4 +151,51 @@ func (r *repo) GetTotalExpenseByDonationProgramID(ctx context.Context, donationP
 		Select("COALESCE(SUM(amount), 0)").
 		Scan(&total).Error
 	return total, err
+}
+
+func (r *repo) GetMonthlyExpenseByProgram(ctx context.Context, donationProgramID string, year int) (*MonthlyExpenseRecord, error) {
+	type dbMonthlyExpense struct {
+		MonthNum int     `gorm:"column:month_num"`
+		Expense  float64 `gorm:"column:expense"`
+	}
+
+	var dbResults []dbMonthlyExpense
+
+	err := r.Conn.WithContext(ctx).
+		Model(&DonationProgramExpense{}).
+		Select("CAST(EXTRACT(MONTH FROM expense_date) AS INTEGER) as month_num, SUM(amount) as expense").
+		Where("donation_program_id = ?", donationProgramID).
+		Where("EXTRACT(YEAR FROM expense_date) = ?", year).
+		Where("deleted_at IS NULL").
+		Group("month_num").
+		Order("month_num ASC").
+		Scan(&dbResults).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	dbMap := make(map[int]float64)
+	for _, res := range dbResults {
+		dbMap[res.MonthNum] = res.Expense
+	}
+
+	record := &MonthlyExpenseRecord{
+		DonationProgramID: donationProgramID,
+		Items:             make([]MonthlyExpenseResponse, 12),
+	}
+
+	for i := 1; i <= 12; i++ {
+		monthStr := fmt.Sprintf("%d-%02d", year, i)
+		expenseVal := 0.0
+		if val, exists := dbMap[i]; exists {
+			expenseVal = val
+		}
+		record.Items[i-1] = MonthlyExpenseResponse{
+			Month:   monthStr,
+			Expense: expenseVal,
+		}
+	}
+
+	return record, nil
 }

@@ -22,6 +22,7 @@ import (
 type Client interface {
 	UploadFile(ctx context.Context, file *multipart.FileHeader, folder string) (string, error)
 	UploadFileOriginal(ctx context.Context, file *multipart.FileHeader, folder string) (string, error)
+	UploadFileFromBytes(ctx context.Context, fileContent []byte, originalFilename string, contentType string, folder string) (string, error)
 	GetFileLink(ctx context.Context, objectName string) (string, error)
 	DeleteFile(ctx context.Context, objectName string) error
 }
@@ -33,13 +34,13 @@ type client struct {
 }
 
 func NewClient(minioClient *minio.Client) Client {
-	bucketName := os.Getenv("RUSTFS_BUCKET_NAME")
+	bucketName := os.Getenv("S3_BUCKET_NAME")
 	if bucketName == "" {
 		bucketName = "default-bucket"
 	}
 
-	endpoint := os.Getenv("RUSTFS_ENDPOINT")
-	useSSL := os.Getenv("RUSTFS_USE_SSL")
+	endpoint := os.Getenv("S3_ENDPOINT")
+	useSSL := os.Getenv("S3_USE_SSL")
 	protocol := "http"
 	if useSSL == "true" {
 		protocol = "https"
@@ -88,6 +89,10 @@ func (c *client) UploadFileOriginal(ctx context.Context, file *multipart.FileHea
 	return c.upload(ctx, file, folder, false)
 }
 
+func (c *client) UploadFileFromBytes(ctx context.Context, fileContent []byte, originalFilename string, contentType string, folder string) (string, error) {
+	return c.uploadBytes(ctx, fileContent, originalFilename, contentType, folder, true)
+}
+
 func (c *client) upload(ctx context.Context, file *multipart.FileHeader, folder string, compress bool) (string, error) {
 	// Open the file
 	src, err := file.Open()
@@ -102,11 +107,15 @@ func (c *client) upload(ctx context.Context, file *multipart.FileHeader, folder 
 		return "", err
 	}
 
+	contentType := file.Header.Get("Content-Type")
+	return c.uploadBytes(ctx, fileContent, file.Filename, contentType, folder, compress)
+}
+
+func (c *client) uploadBytes(ctx context.Context, fileContent []byte, originalFilename string, contentType string, folder string, compress bool) (string, error) {
 	// Generate a unique file name
-	ext := strings.ToLower(filepath.Ext(file.Filename))
+	ext := strings.ToLower(filepath.Ext(originalFilename))
 
 	// Prepare upload input
-	contentType := file.Header.Get("Content-Type")
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
@@ -129,23 +138,18 @@ func (c *client) upload(ctx context.Context, file *multipart.FileHeader, folder 
 	filename := fmt.Sprintf("%s/%s%s", folder, uuid.New().String(), ext)
 
 	// Upload the file using bytes.NewReader
-	_, err = c.minioClient.PutObject(ctx, c.bucketName, filename, bytes.NewReader(fileContent), int64(len(fileContent)), minio.PutObjectOptions{
+	_, err := c.minioClient.PutObject(ctx, c.bucketName, filename, bytes.NewReader(fileContent), int64(len(fileContent)), minio.PutObjectOptions{
 		ContentType: contentType,
 	})
 	if err != nil {
 		return "", err
 	}
 
-	// Construct the public URL
-	fileURL := fmt.Sprintf("%s/%s/%s", c.endpoint, c.bucketName, filename)
-
-	return fileURL, nil
+	return filename, nil
 }
 
 func (c *client) GetFileLink(ctx context.Context, objectName string) (string, error) {
-	// For now, return the direct URL since we're using public bucket
-	fileURL := fmt.Sprintf("%s/%s/%s", c.endpoint, c.bucketName, objectName)
-	return fileURL, nil
+	return GetCDNURL(objectName), nil
 }
 
 func (c *client) DeleteFile(ctx context.Context, objectName string) error {

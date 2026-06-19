@@ -5,6 +5,7 @@ import (
 
 	"github.com/Vilamuzz/yota-backend/app/media"
 	"github.com/Vilamuzz/yota-backend/pkg"
+	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 )
 
 type NewsResponse struct {
@@ -46,7 +47,7 @@ func (n *News) toNewsResponse() NewsResponse {
 			ID:     m.ID.String(),
 			NewsID: m.NewsID.String(),
 			Type:   string(m.Type),
-			URL:    m.URL,
+			URL:    s3_pkg.GetCDNURL(m.URL),
 			Alt:    m.Alt,
 			Order:  m.Order,
 		})
@@ -56,7 +57,7 @@ func (n *News) toNewsResponse() NewsResponse {
 		ID:          n.ID.String(),
 		Title:       n.Title,
 		Slug:        n.Slug,
-		CoverImage:  n.CoverImage,
+		CoverImage:  s3_pkg.GetCDNURL(n.CoverImage),
 		Category:    n.Category,
 		Content:     n.Content,
 		Media:       mediaResponses,
@@ -73,7 +74,7 @@ func (n *News) toNewsListResponseItem() NewsListResponseItem {
 		ID:          n.ID.String(),
 		Title:       n.Title,
 		Slug:        n.Slug,
-		CoverImage:  n.CoverImage,
+		CoverImage:  s3_pkg.GetCDNURL(n.CoverImage),
 		Category:    n.Category,
 		Views:       n.Views,
 		Status:      n.Status,

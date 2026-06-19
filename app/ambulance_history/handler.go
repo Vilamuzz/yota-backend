@@ -1,9 +1,12 @@
 package ambulance_history
 
 import (
+	"net/http"
+
 	"github.com/Vilamuzz/yota-backend/app/middleware"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"github.com/Vilamuzz/yota-backend/pkg/enum"
+	jwt_pkg "github.com/Vilamuzz/yota-backend/pkg/jwt"
 	"github.com/gin-gonic/gin"
 )
 
@@ -27,17 +30,23 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	ambulanceManager := r.Group("/admin/ambulances/history")
 	ambulanceManager.Use(h.middleware.RequireRoles(enum.RoleAmbulanceManager))
 	{
+		ambulanceManager.GET("/:id", h.AdminListAmbulanceHistory)
 		ambulanceManager.POST("", h.CreateAmbulanceHistory)
 		ambulanceManager.PUT("/:id", h.UpdateAmbulanceHistory)
 		ambulanceManager.DELETE("/:id", h.DeleteAmbulanceHistory)
+		ambulanceManager.GET("/summary", h.AllHistorySummary)
+		ambulanceManager.GET("/monthly-trend", h.HistoryMonthlyTrend)
 	}
 
 	ambulanceDriver := r.Group("/admin/ambulances/history/driver")
 	ambulanceDriver.Use(h.middleware.RequireRoles(enum.RoleAmbulanceDriver))
 	{
-		ambulanceDriver.GET("", h.CreateAmbulanceHistory)
+		ambulanceDriver.GET("", h.DriverListAmbulanceHistory)
+		ambulanceDriver.POST("", h.CreateAmbulanceHistory)
 		ambulanceDriver.PUT("/:id", h.UpdateAmbulanceHistory)
 		ambulanceDriver.DELETE("/:id", h.DeleteAmbulanceHistory)
+		ambulanceDriver.GET("/summary", h.DriverHistorySummary)
+		ambulanceDriver.GET("/monthly-trend", h.DriverHistoryMonthlyTrend)
 	}
 }
 
@@ -63,10 +72,121 @@ func (h *handler) ListAmbulanceHistory(c *gin.Context) {
 		c.JSON(400, pkg.NewResponse(400, "Invalid query parameters", nil, nil))
 		return
 	}
-	
+
 	queryParams.AmbulanceID = c.Param("id")
-	
+
 	res := h.service.ListAmbulanceHistory(ctx, queryParams)
+	c.JSON(res.Status, res)
+}
+
+// AdminListAmbulanceHistory godoc
+// @Summary List ambulance history for admin
+// @Description Get a list of ambulance history records with pagination for admin
+// @Tags Ambulance History
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Ambulance ID"
+// @Param service_category query string false "Filter by service category"
+// @Param limit query int false "Number of items to return"
+// @Param next_cursor query string false "Cursor for next page"
+// @Param prev_cursor query string false "Cursor for previous page"
+// @Success 200 {object} pkg.Response
+// @Failure 400 {object} pkg.Response
+// @Failure 500 {object} pkg.Response
+// @Router /admin/ambulances/history/{id} [get]
+func (h *handler) AdminListAmbulanceHistory(c *gin.Context) {
+	ctx := c.Request.Context()
+	var queryParams AmbulanceHistoryQueryParams
+	if err := c.ShouldBindQuery(&queryParams); err != nil {
+		c.JSON(400, pkg.NewResponse(400, "Invalid query parameters", nil, nil))
+		return
+	}
+
+	queryParams.AmbulanceID = c.Param("id")
+
+	res := h.service.AdminListAmbulanceHistory(ctx, queryParams)
+	c.JSON(res.Status, res)
+}
+
+// DriverListAmbulanceHistory godoc
+// @Summary List ambulance history for driver
+// @Description Get a list of ambulance history records with pagination for driver
+// @Tags Ambulance History
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param service_category query string false "Filter by service category"
+// @Param limit query int false "Number of items to return"
+// @Param next_cursor query string false "Cursor for next page"
+// @Param prev_cursor query string false "Cursor for previous page"
+// @Success 200 {object} pkg.Response
+// @Failure 400 {object} pkg.Response
+// @Failure 500 {object} pkg.Response
+// @Router /admin/ambulances/history/driver [get]
+func (h *handler) DriverListAmbulanceHistory(c *gin.Context) {
+	ctx := c.Request.Context()
+	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
+
+	var queryParams AmbulanceHistoryQueryParams
+	if err := c.ShouldBindQuery(&queryParams); err != nil {
+		c.JSON(400, pkg.NewResponse(400, "Invalid query parameters", nil, nil))
+		return
+	}
+
+	queryParams.DriverID = claims.AccountID
+
+	res := h.service.DriverListAmbulanceHistory(ctx, queryParams)
+	c.JSON(res.Status, res)
+}
+
+// HistoryMonthlyTrend godoc
+// @Summary Get ambulance history monthly trend
+// @Description Retrieve aggregated monthly trend of ambulance history (social_service, mortuary_service, patient_service, emergency_service, other_service) for a given year (admin only)
+// @Tags Ambulance History
+// @Security BearerAuth
+// @Produce json
+// @Param year query string false "Filter by year"
+// @Success 200 {object} pkg.Response{data=HistoryMonthlyTrendRecord}
+// @Failure 400 {object} pkg.Response
+// @Failure 500 {object} pkg.Response
+// @Router /admin/ambulances/history/monthly-trend [get]
+func (h *handler) HistoryMonthlyTrend(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var params MonthlyTrendQueryParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
+		return
+	}
+
+	res := h.service.HistoryMonthlyTrend(ctx, params)
+	c.JSON(res.Status, res)
+}
+
+// AllHistorySummary godoc
+// @Summary Get all ambulance history summary for admin
+// @Description Returns total service counts grouped by category for all ambulances.
+// @Tags Ambulance History
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param startDate query string false "Start date (YYYY-MM-DD)"
+// @Param endDate query string false "End date (YYYY-MM-DD)"
+// @Success 200 {object} pkg.Response{data=SummaryResponse}
+// @Failure 400 {object} pkg.Response
+// @Failure 500 {object} pkg.Response
+// @Router /admin/ambulances/history/summary [get]
+func (h *handler) AllHistorySummary(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var params AmbulanceSummaryQueryParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.JSON(400, pkg.NewResponse(400, "Invalid query parameters", nil, nil))
+		return
+	}
+
+	res := h.service.AllHistorySummary(ctx, params)
 	c.JSON(res.Status, res)
 }
 
@@ -162,5 +282,59 @@ func (h *handler) DeleteAmbulanceHistory(c *gin.Context) {
 	ctx := c.Request.Context()
 	ambulanceHistoryID := c.Param("id")
 	res := h.service.DeleteAmbulanceHistory(ctx, ambulanceHistoryID)
+	c.JSON(res.Status, res)
+}
+
+// DriverHistorySummary godoc
+// @Summary Get driver's own ambulance history summary
+// @Description Returns total service counts grouped by category for the authenticated driver.
+// @Tags Ambulance History
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param startDate query string false "Start date (YYYY-MM-DD)"
+// @Param endDate query string false "End date (YYYY-MM-DD)"
+// @Success 200 {object} pkg.Response{data=SummaryResponse}
+// @Failure 400 {object} pkg.Response
+// @Failure 401 {object} pkg.Response
+// @Failure 500 {object} pkg.Response
+// @Router /admin/ambulances/history/driver/summary [get]
+func (h *handler) DriverHistorySummary(c *gin.Context) {
+	ctx := c.Request.Context()
+	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
+
+	var params AmbulanceSummaryQueryParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.JSON(400, pkg.NewResponse(400, "Invalid query parameters", nil, nil))
+		return
+	}
+
+	res := h.service.DriverHistorySummary(ctx, claims.AccountID, params)
+	c.JSON(res.Status, res)
+}
+
+// DriverHistoryMonthlyTrend godoc
+// @Summary Get driver's own ambulance history monthly trend
+// @Description Retrieve aggregated monthly trend of ambulance history for a given year for the authenticated driver.
+// @Tags Ambulance History
+// @Security BearerAuth
+// @Produce json
+// @Param year query string false "Filter by year"
+// @Success 200 {object} pkg.Response{data=HistoryMonthlyTrendRecord}
+// @Failure 400 {object} pkg.Response
+// @Failure 401 {object} pkg.Response
+// @Failure 500 {object} pkg.Response
+// @Router /admin/ambulances/history/driver/monthly-trend [get]
+func (h *handler) DriverHistoryMonthlyTrend(c *gin.Context) {
+	ctx := c.Request.Context()
+	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
+
+	var params MonthlyTrendQueryParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
+		return
+	}
+
+	res := h.service.DriverHistoryMonthlyTrend(ctx, claims.AccountID, params)
 	c.JSON(res.Status, res)
 }

@@ -38,6 +38,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	admin := r.Group("/admin/donation-programs")
 	admin.Use(h.middleware.RequireRoles(enum.RoleFinance))
 	{
+		admin.GET("/:id/transactions/monthly-income", h.GetDonationTransactionMonthlyIncome)
 		admin.GET("/:id/transactions", h.GetDonationProgramTransactionList)
 		admin.GET("/transactions/:id", h.GetDonationProgramTransactionByID)
 		admin.POST("/:id/transactions", h.CreateOfflineDonationProgramTransaction)
@@ -226,5 +227,30 @@ func (h *handler) GetMyDonationProgramTransactionByID(c *gin.Context) {
 	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
 
 	res := h.service.GetMyDonationProgramTransactionByID(ctx, id, claims.AccountID)
+	c.JSON(res.Status, res)
+}
+
+// GetDonationTransactionMonthlyIncome
+//
+// @Summary Get Donation Program Monthly Income
+// @Description Retrieve aggregated monthly incomes of a specific donation program for a given year (admin only)
+// @Tags Donation Programs
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Donation Program ID"
+// @Param year query string false "Filter by year"
+// @Success 200 {object} pkg.Response{data=TransactionMonthlyIncomeRecord}
+// @Router /api/admin/donation-programs/{id}/transactions/monthly-income [get]
+func (h *handler) GetDonationTransactionMonthlyIncome(c *gin.Context) {
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	var params MonthlyIncomeQueryParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid query parameters", nil, nil))
+		return
+	}
+
+	res := h.service.GetDonationTransactionMonthlyIncome(ctx, id, params)
 	c.JSON(res.Status, res)
 }

@@ -12,6 +12,7 @@ import (
 type Service interface {
 	CreateRecord(ctx context.Context, record *FinanceRecord) error
 	GetSummary(ctx context.Context, isAdmin bool) pkg.Response
+	GetMonthlyTrend(ctx context.Context, params MonthlyTrendQueryParams) pkg.Response
 }
 
 type service struct {
@@ -49,4 +50,16 @@ func (s *service) GetSummary(ctx context.Context, isAdmin bool) pkg.Response {
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Berhasil mengambil data ringkasan keuangan", nil, summary)
+}
+
+func (s *service) GetMonthlyTrend(ctx context.Context, params MonthlyTrendQueryParams) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	trend, err := s.repo.MonthlyTrend(ctx, params)
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data tren bulanan", nil, err.Error())
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Berhasil mengambil data tren bulanan", nil, trend)
 }

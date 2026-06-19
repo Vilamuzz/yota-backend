@@ -97,8 +97,8 @@ services:
       - "9000:9000"
       - "9001:9001"
     environment:
-      RUSTFS_ROOT_USER: ${RUSTFS_ROOT_USER}
-      RUSTFS_ROOT_PASSWORD: ${RUSTFS_ROOT_PASSWORD}
+      S3_ROOT_USER: ${S3_ROOT_USER}
+      S3_ROOT_PASSWORD: ${S3_ROOT_PASSWORD}
     volumes:
       - rustfs_data:/data
     command: server /data --console-address ":9001"

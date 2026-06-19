@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
+	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 )
 
 type SocialProgramExpenseResponse struct {
@@ -46,7 +47,7 @@ func (r *SocialProgramExpense) toSocialProgramExpenseResponse() SocialProgramExp
 		Title:       r.Title,
 		Amount:      r.Amount,
 		ExpenseDate: r.ExpenseDate,
-		ProofFile:   r.ProofFile,
+		ProofFile:   s3_pkg.GetCDNURL(r.ProofFile),
 		CreatedAt:   r.CreatedAt,
 	}
 }

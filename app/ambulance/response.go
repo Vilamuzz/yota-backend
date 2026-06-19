@@ -3,6 +3,7 @@ package ambulance
 import (
 	"github.com/Vilamuzz/yota-backend/app/account"
 	"github.com/Vilamuzz/yota-backend/pkg"
+	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 	"github.com/google/uuid"
 )
 
@@ -39,7 +40,7 @@ func (a *Ambulance) toAmbulanceResponse() AmbulanceResponse {
 	return AmbulanceResponse{
 		ID:          a.ID.String(),
 		Driver:      driver,
-		Image:       a.Image,
+		Image:       s3_pkg.GetCDNURL(a.Image),
 		PlateNumber: a.PlateNumber,
 		Status:      a.Status,
 	}

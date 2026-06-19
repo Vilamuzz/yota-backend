@@ -45,10 +45,11 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	ambulanceDriver := r.Group("/admin/ambulances/requests/assigned")
 	ambulanceDriver.Use(h.middleware.RequireRoles(enum.RoleAmbulanceDriver))
 	{
-		ambulanceDriver.GET("/:ambulanceId", h.ListAssignedAmbulanceServiceRequests)
-		ambulanceDriver.GET("/:ambulanceId/detail/:id", h.GetAssignedAmbulanceServiceRequestByID)
-		ambulanceDriver.PATCH("/:ambulanceId/start/:id", h.StartAmbulanceServiceRequest)
-		ambulanceDriver.PATCH("/:ambulanceId/complete/:id", h.CompleteAmbulanceServiceRequest)
+		ambulanceDriver.GET("", h.ListAssignedAmbulanceServiceRequests)
+		ambulanceDriver.GET("/:id/detail", h.GetAssignedAmbulanceServiceRequestByID)
+		ambulanceDriver.PATCH("/:id/start", h.StartAmbulanceServiceRequest)
+		ambulanceDriver.PATCH("/:id/complete", h.CompleteAmbulanceServiceRequest)
+		ambulanceDriver.PATCH("/:id/cancel", h.DriverCancelAmbulanceServiceRequest)
 	}
 }
 
@@ -169,13 +170,12 @@ func (h *handler) GetAmbulanceServiceRequestByID(c *gin.Context) {
 func (h *handler) ListAssignedAmbulanceServiceRequests(c *gin.Context) {
 	ctx := c.Request.Context()
 	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
-	ambulanceID := c.Param("ambulanceId")
 	var queryParams AmbulanceServiceRequestQueryParams
 	if err := c.ShouldBindQuery(&queryParams); err != nil {
 		c.JSON(400, pkg.NewResponse(400, "Invalid query parameters", nil, nil))
 		return
 	}
-	res := h.service.ListAssignedAmbulanceServiceRequests(ctx, claims.AccountID, ambulanceID, queryParams)
+	res := h.service.ListAssignedAmbulanceServiceRequests(ctx, claims.AccountID, queryParams)
 	c.JSON(res.Status, res)
 }
 
@@ -192,13 +192,13 @@ func (h *handler) ListAssignedAmbulanceServiceRequests(c *gin.Context) {
 // @Failure 403 {object} pkg.Response
 // @Failure 404 {object} pkg.Response
 // @Failure 500 {object} pkg.Response
-// @Router /admin/ambulances/requests/assigned/{ambulanceId}/detail/{id} [get]
+// @Router /admin/ambulances/requests/assigned/detail/{id} [get]
 func (h *handler) GetAssignedAmbulanceServiceRequestByID(c *gin.Context) {
 	ctx := c.Request.Context()
-	ambulanceID := c.Param("ambulanceId")
+	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
 	id := c.Param("id")
 
-	res := h.service.GetAssignedAmbulanceServiceRequestByID(ctx, ambulanceID, id)
+	res := h.service.GetAssignedAmbulanceServiceRequestByID(ctx, claims.AccountID, id)
 	c.JSON(res.Status, res)
 }
 
@@ -300,22 +300,50 @@ func (h *handler) CancelAmbulanceServiceRequest(c *gin.Context) {
 	c.JSON(res.Status, res)
 }
 
+// DriverCancelAmbulanceServiceRequest godoc
+// @Summary Cancel assigned ambulance service request (driver)
+// @Description Cancel an ambulance service request assigned to the authenticated driver with a cancellation reason.
+// @Tags Ambulance Service Requests
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Ambulance Request ID"
+// @Param payload body CancelAmbulanceServiceRequestPayload true "Cancellation Reason"
+// @Success 200 {object} pkg.Response
+// @Failure 400 {object} pkg.Response
+// @Failure 403 {object} pkg.Response
+// @Failure 404 {object} pkg.Response
+// @Failure 500 {object} pkg.Response
+// @Router /admin/ambulances/requests/assigned/{id}/cancel [patch]
+func (h *handler) DriverCancelAmbulanceServiceRequest(c *gin.Context) {
+	ctx := c.Request.Context()
+	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
+	id := c.Param("id")
+
+	var payload CancelAmbulanceServiceRequestPayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Payload request tidak valid", nil, nil))
+		return
+	}
+
+	res := h.service.DriverCancelAmbulanceServiceRequest(ctx, claims.AccountID, id, payload)
+	c.JSON(res.Status, res)
+}
+
 func (h *handler) StartAmbulanceServiceRequest(c *gin.Context) {
 	ctx := c.Request.Context()
 	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
-	ambulanceID := c.Param("ambulanceId")
 	id := c.Param("id")
 
-	res := h.service.StartAmbulanceServiceRequest(ctx, claims.AccountID, ambulanceID, id)
+	res := h.service.StartAmbulanceServiceRequest(ctx, claims.AccountID, id)
 	c.JSON(res.Status, res)
 }
 
 func (h *handler) CompleteAmbulanceServiceRequest(c *gin.Context) {
 	ctx := c.Request.Context()
 	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
-	ambulanceID := c.Param("ambulanceId")
 	id := c.Param("id")
 
-	res := h.service.CompleteAmbulanceServiceRequest(ctx, claims.AccountID, ambulanceID, id)
+	res := h.service.CompleteAmbulanceServiceRequest(ctx, claims.AccountID, id)
 	c.JSON(res.Status, res)
 }

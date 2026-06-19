@@ -3,6 +3,7 @@ package account
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"time"
 
@@ -397,8 +398,11 @@ func (s *service) UpdateUserProfile(ctx context.Context, accountID string, paylo
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
+	var fileContent []byte
+	var originalFilename string
+	var contentType string
 	var oldProfilePicture string
-	var newProfilePicture string
+
 	if payload.ProfilePicture != nil {
 		existing, err := s.repo.FindOneAccount(ctx, map[string]interface{}{"id": accountID})
 		if err != nil {
@@ -407,12 +411,20 @@ func (s *service) UpdateUserProfile(ctx context.Context, accountID string, paylo
 
 		oldProfilePicture = s3_pkg.ExtractObjectNameFromURL(existing.UserProfile.ProfilePicture)
 
-		uploadedURL, err := s.s3Client.UploadFile(ctx, payload.ProfilePicture, "accounts")
+		src, err := payload.ProfilePicture.Open()
 		if err != nil {
-			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah gambar", nil, nil)
+			return pkg.NewResponse(http.StatusInternalServerError, "Gagal memproses gambar profil", nil, nil)
 		}
-		updateProfileMap["profile_picture"] = uploadedURL
-		newProfilePicture = s3_pkg.ExtractObjectNameFromURL(uploadedURL)
+		defer src.Close()
+
+		fileContent, err = io.ReadAll(src)
+		if err != nil {
+			return pkg.NewResponse(http.StatusInternalServerError, "Gagal membaca gambar profil", nil, nil)
+		}
+
+		originalFilename = payload.ProfilePicture.Filename
+		contentType = payload.ProfilePicture.Header.Get("Content-Type")
+		updateProfileMap["profile_picture"] = "pending_upload"
 	}
 
 	if err := s.repo.UpdateFullProfile(ctx, accountID, updateAccountMap, updateProfileMap, payload.DefaultAccountRoleID); err != nil {
@@ -421,51 +433,58 @@ func (s *service) UpdateUserProfile(ctx context.Context, accountID string, paylo
 			"account_id": accountID,
 		}).WithError(err).Error("failed to update full profile")
 
-		if newProfilePicture != "" {
-			go func(key string) {
-				if err := s.s3Client.DeleteFile(context.Background(), key); err != nil {
-					logrus.WithError(err).Error("failed to clean up newly uploaded s3 image after db failure")
-				}
-			}(newProfilePicture)
-		}
-
 		if err.Error() == "account not found" {
 			return pkg.NewResponse(http.StatusNotFound, "Akun tidak ditemukan", nil, nil)
 		}
 		return pkg.NewResponse(http.StatusInternalServerError, "Terjadi kesalahan pada server", nil, nil)
 	}
 
-	if payload.ProfilePicture != nil && oldProfilePicture != "" {
-		go func(key string) {
-			if err := s.s3Client.DeleteFile(context.Background(), key); err != nil {
-				logrus.WithError(err).Warnf("failed to delete orphaned s3 image: %s", key)
-			}
-		}(oldProfilePicture)
+	if payload.ProfilePicture != nil {
+		go s.uploadProfilePictureAsync(context.Background(), fileContent, originalFilename, contentType, accountID, oldProfilePicture)
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Profil berhasil diperbarui", nil, nil)
 }
 
+func (s *service) uploadProfilePictureAsync(ctx context.Context, fileContent []byte, originalFilename string, contentType string, accountID string, oldProfilePicture string) {
+	uploadedURL, err := s.s3Client.UploadFileFromBytes(ctx, fileContent, originalFilename, contentType, "accounts")
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":  "account.service",
+			"account_id": accountID,
+		}).WithError(err).Error("failed to upload profile picture asynchronously")
+		return
+	}
+
+	err = s.repo.UpdateFullProfile(ctx, accountID, nil, map[string]interface{}{"profile_picture": uploadedURL}, 0)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":  "account.service",
+			"account_id": accountID,
+		}).WithError(err).Error("failed to update profile picture in database asynchronously")
+
+		// Clean up uploaded S3 file since DB update failed
+		go func(key string) {
+			if err := s.s3Client.DeleteFile(context.Background(), key); err != nil {
+				logrus.WithError(err).Error("failed to clean up asynchronously uploaded S3 image after DB failure")
+			}
+		}(uploadedURL)
+		return
+	}
+
+	// Delete old profile picture from S3 if it exists
+	if oldProfilePicture != "" && oldProfilePicture != "pending_upload" {
+		go func(key string) {
+			if err := s.s3Client.DeleteFile(context.Background(), key); err != nil {
+				logrus.WithError(err).Warnf("failed to delete orphaned S3 image: %s", key)
+			}
+		}(oldProfilePicture)
+	}
+}
+
 func (s *service) UpdatePassword(ctx context.Context, accountID string, payload UpdatePasswordRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
-
-	errValidation := make(map[string]string)
-	if payload.CurrentPassword == "" {
-		errValidation["currentPassword"] = "Kata sandi saat ini wajib diisi"
-	}
-	if payload.NewPassword == "" {
-		errValidation["newPassword"] = "Kata sandi baru wajib diisi"
-	} else if payload.CurrentPassword == payload.NewPassword {
-		errValidation["newPassword"] = "Kata sandi baru tidak boleh sama dengan kata sandi saat ini"
-	} else if !pkg.IsValidLengthPassword(payload.NewPassword) {
-		errValidation["newPassword"] = "Kata sandi baru minimal 8 karakter"
-	} else if !pkg.IsStrongPassword(payload.NewPassword) {
-		errValidation["newPassword"] = "Kata sandi baru harus mengandung setidaknya satu huruf besar, satu huruf kecil, satu angka, dan satu karakter khusus"
-	}
-	if len(errValidation) > 0 {
-		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
-	}
 
 	account, err := s.repo.FindOneAccount(ctx, map[string]interface{}{"id": accountID})
 	if err != nil {
@@ -476,9 +495,34 @@ func (s *service) UpdatePassword(ctx context.Context, accountID string, payload 
 		return pkg.NewResponse(http.StatusNotFound, "Akun tidak ditemukan", nil, nil)
 	}
 
-	if err = bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(payload.CurrentPassword)); err != nil {
-		errValidation["currentPassword"] = "Kata sandi saat ini salah"
+	errValidation := make(map[string]string)
+	hasExistingPassword := account.Password != ""
+
+	if hasExistingPassword {
+		if payload.CurrentPassword == "" {
+			errValidation["currentPassword"] = "Kata sandi saat ini wajib diisi"
+		}
+	}
+
+	if payload.NewPassword == "" {
+		errValidation["newPassword"] = "Kata sandi baru wajib diisi"
+	} else if hasExistingPassword && payload.CurrentPassword == payload.NewPassword {
+		errValidation["newPassword"] = "Kata sandi baru tidak boleh sama dengan kata sandi saat ini"
+	} else if !pkg.IsValidLengthPassword(payload.NewPassword) {
+		errValidation["newPassword"] = "Kata sandi baru minimal 8 karakter"
+	} else if !pkg.IsStrongPassword(payload.NewPassword) {
+		errValidation["newPassword"] = "Kata sandi baru harus mengandung setidaknya satu huruf besar, satu huruf kecil, satu angka, dan satu karakter khusus"
+	}
+
+	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
+	}
+
+	if hasExistingPassword {
+		if err = bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(payload.CurrentPassword)); err != nil {
+			errValidation["currentPassword"] = "Kata sandi saat ini salah"
+			return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
+		}
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(payload.NewPassword), bcrypt.DefaultCost)
@@ -489,7 +533,14 @@ func (s *service) UpdatePassword(ctx context.Context, accountID string, payload 
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memproses kata sandi baru", nil, nil)
 	}
 
-	err = s.repo.UpdateAccount(ctx, account.ID.String(), map[string]interface{}{"password": string(hashedPassword)})
+	updateMap := map[string]interface{}{
+		"password": string(hashedPassword),
+	}
+	if !hasExistingPassword {
+		updateMap["email_verified"] = true
+	}
+
+	err = s.repo.UpdateAccount(ctx, account.ID.String(), updateMap)
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"component":  "account.service",
