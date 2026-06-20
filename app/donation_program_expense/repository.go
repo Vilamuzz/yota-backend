@@ -12,7 +12,7 @@ import (
 
 type Repository interface {
 	FindAllDonationProgramExpenses(ctx context.Context, options map[string]interface{}) ([]DonationProgramExpense, error)
-	FindAllDonationProgramExpensesForExport(ctx context.Context, donationProgramID string, params DonationProgramExpenseExportParams) ([]DonationProgramExpense, error)
+	FindAllDonationProgramExpensesForExport(ctx context.Context, donationProgramID string, params DonationProgramExpenseQueryParams) ([]DonationProgramExpense, error)
 	FindOneDonationProgramExpense(ctx context.Context, options map[string]interface{}) (*DonationProgramExpense, error)
 	GetTotalExpenseByDonationProgramID(ctx context.Context, donationProgramID string) (float64, error)
 	CreateDonationProgramExpense(ctx context.Context, donationProgramExpense *DonationProgramExpense) error
@@ -96,9 +96,9 @@ func (r *repo) FindAllDonationProgramExpenses(ctx context.Context, options map[s
 	return expenses, err
 }
 
-func (r *repo) FindAllDonationProgramExpensesForExport(ctx context.Context, donationProgramID string, params DonationProgramExpenseExportParams) ([]DonationProgramExpense, error) {
+func (r *repo) FindAllDonationProgramExpensesForExport(ctx context.Context, donationProgramID string, params DonationProgramExpenseQueryParams) ([]DonationProgramExpense, error) {
 	var expenses []DonationProgramExpense
-	query := r.Conn.WithContext(ctx).Order("expense_date ASC, created_at ASC")
+	query := r.Conn.WithContext(ctx)
 	if donationProgramID != "" {
 		query = query.Where("donation_program_id = ?", donationProgramID)
 	}
@@ -108,6 +108,22 @@ func (r *repo) FindAllDonationProgramExpensesForExport(ctx context.Context, dona
 	if params.EndDate != "" {
 		query = query.Where("expense_date <= ?", params.EndDate)
 	}
+
+	orderClause := "expense_date ASC, created_at ASC"
+	if params.SortBy != "" {
+		parts := strings.Fields(strings.ToLower(params.SortBy))
+		if len(parts) >= 1 {
+			if col, valid := allowedDonationProgramExpenseSortColumns[parts[0]]; valid {
+				dir := "ASC"
+				if len(parts) == 2 && parts[1] == "desc" {
+					dir = "DESC"
+				}
+				orderClause = fmt.Sprintf("%s %s, id DESC", col, dir)
+			}
+		}
+	}
+	query = query.Order(orderClause)
+
 	err := query.Find(&expenses).Error
 	return expenses, err
 }

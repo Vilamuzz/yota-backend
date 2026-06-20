@@ -10,7 +10,11 @@ type CreateDonationProgramTransactionRequest struct {
 }
 
 type DonationProgramTransactionQueryParams struct {
-	Status string `form:"status"`
+	Search    string `form:"search"`
+	Status    string `form:"status"`
+	SortBy    string `form:"sortBy"`    // sort by gross amount, created at
+	StartDate string `form:"startDate"` // optional, format: YYYY-MM-DD
+	EndDate   string `form:"endDate"`   // optional, format: YYYY-MM-DD
 	pkg.PaginationParams
 }
 

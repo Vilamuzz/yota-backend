@@ -43,6 +43,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 		admin.GET("/transactions/:id", h.GetDonationProgramTransactionByID)
 		admin.POST("/:id/transactions", h.CreateOfflineDonationProgramTransaction)
 		admin.POST("/transactions/:id/cancel", h.CancelOfflineDonationProgramTransaction)
+		admin.GET("/:id/transactions/export", h.ExportDonationProgramTransactionCSV)
 	}
 }
 
@@ -58,6 +59,10 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 // @Param limit query int false "Items per page"
 // @Param next_cursor query string false "Cursor for next page"
 // @Param prev_cursor query string false "Cursor for previous page"
+// @Param sortBy query string false "Sort order (e.g. gross_amount desc, created_at asc)"
+// @Param startDate query string false "Filter start date (YYYY-MM-DD)"
+// @Param endDate query string false "Filter end date (YYYY-MM-DD)"
+// @Param search query string false "Search by donor name, email, or order ID"
 // @Success 200 {object} pkg.Response{data=DonationProgramTransactionListResponse}
 // @Router /api/admin/donation-programs/{id}/transactions [get]
 func (h *handler) GetDonationProgramTransactionList(c *gin.Context) {
@@ -84,6 +89,10 @@ func (h *handler) GetDonationProgramTransactionList(c *gin.Context) {
 // @Param limit query int false "Items per page"
 // @Param next_cursor query string false "Cursor for next page"
 // @Param prev_cursor query string false "Cursor for previous page"
+// @Param sortBy query string false "Sort order (e.g. gross_amount desc, created_at asc)"
+// @Param startDate query string false "Filter start date (YYYY-MM-DD)"
+// @Param endDate query string false "Filter end date (YYYY-MM-DD)"
+// @Param search query string false "Search by donor name, email, or order ID"
 // @Success 200 {object} pkg.Response{data=DonationProgramTransactionListResponse}
 // @Router /api/donation-programs/{slug}/transactions [get]
 func (h *handler) GetPublicDonationProgramTransactionList(c *gin.Context) {
@@ -194,6 +203,10 @@ func (h *handler) CancelOfflineDonationProgramTransaction(c *gin.Context) {
 // @Param limit query int false "Items per page"
 // @Param next_cursor query string false "Cursor for next page"
 // @Param prev_cursor query string false "Cursor for previous page"
+// @Param sortBy query string false "Sort order (e.g. gross_amount desc, created_at asc)"
+// @Param startDate query string false "Filter start date (YYYY-MM-DD)"
+// @Param endDate query string false "Filter end date (YYYY-MM-DD)"
+// @Param search query string false "Search by donor name, email, or order ID"
 // @Success 200 {object} pkg.Response{data=DonationProgramTransactionListResponse}
 // @Router /api/me/donation-programs/transactions [get]
 func (h *handler) GetMyDonationProgramTransactionList(c *gin.Context) {
@@ -253,4 +266,37 @@ func (h *handler) GetDonationTransactionMonthlyIncome(c *gin.Context) {
 
 	res := h.service.GetDonationTransactionMonthlyIncome(ctx, id, params)
 	c.JSON(res.Status, res)
+}
+
+// ExportDonationProgramTransactionCSV
+//
+// @Summary Export Donation Program Transaction as CSV
+// @Description Export all transactions for a specific donation program as a CSV file (publicly accessible)
+// @Tags Donation Programs
+// @Produce text/csv
+// @Param id path string true "Donation Program ID"
+// @Param startDate query string false "Filter start date (YYYY-MM-DD, inclusive)"
+// @Param endDate query string false "Filter end date (YYYY-MM-DD, inclusive)"
+// @Success 200 {file} binary "CSV file"
+// @Router /api/admin/donation-programs/{id}/transactions/export [get]
+func (h *handler) ExportDonationProgramTransactionCSV(c *gin.Context) {
+	ctx := c.Request.Context()
+	donationProgramID := c.Param("id")
+
+	var params DonationProgramTransactionQueryParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
+		return
+	}
+
+	csvBytes, filename, err := h.service.ExportDonationProgramTransactionCSV(ctx, donationProgramID, params)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
+		return
+	}
+
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Type", "text/csv; charset=utf-8")
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Data(http.StatusOK, "text/csv; charset=utf-8", csvBytes)
 }

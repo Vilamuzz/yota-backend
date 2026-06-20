@@ -1,8 +1,10 @@
 package donation_program_transaction
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha512"
+	"encoding/csv"
 	"fmt"
 	"net/http"
 	"time"
@@ -27,13 +29,14 @@ type Service interface {
 	CreateOfflineDonationProgramTransaction(ctx context.Context, accountID, donationProgramID string, payload CreateDonationProgramTransactionRequest) pkg.Response
 	CreateDonationProgramTransaction(ctx context.Context, accountID, donationSlug string, payload CreateDonationProgramTransactionRequest) pkg.Response
 	CancelOfflineDonationProgramTransaction(ctx context.Context, transactionID string) pkg.Response
+	GetDonationTransactionMonthlyIncome(ctx context.Context, donationProgramID string, params MonthlyIncomeQueryParams) pkg.Response
+	ExportDonationProgramTransactionCSV(ctx context.Context, donationProgramID string, params DonationProgramTransactionQueryParams) ([]byte, string, error)
 
 	HandleNotification(ctx context.Context, payload payment_pkg.MidtransNotificationRequest) pkg.Response
 
 	GetMyDonationProgramTransactionList(ctx context.Context, accountID string, params DonationProgramTransactionQueryParams) pkg.Response
 	GetMyDonationProgramTransactionByID(ctx context.Context, donationProgramTransactionID, accountID string) pkg.Response
 	GetPublicDonationProgramTransactionList(ctx context.Context, slug string, params DonationProgramTransactionQueryParams) pkg.Response
-	GetDonationTransactionMonthlyIncome(ctx context.Context, donationProgramID string, params MonthlyIncomeQueryParams) pkg.Response
 }
 
 type service struct {
@@ -71,17 +74,44 @@ func (s *service) GetDonationProgramTransactionList(ctx context.Context, account
 		params.Limit = 100
 	}
 
+	errValidation := make(map[string]string)
+	if params.StartDate != "" {
+		if _, err := time.Parse("2006-01-02", params.StartDate); err != nil {
+			errValidation["startDate"] = "Format tanggal tidak valid (gunakan YYYY-MM-DD)"
+		}
+	}
+	if params.EndDate != "" {
+		if _, err := time.Parse("2006-01-02", params.EndDate); err != nil {
+			errValidation["endDate"] = "Format tanggal tidak valid (gunakan YYYY-MM-DD)"
+		}
+	}
+	if len(errValidation) > 0 {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
+	}
+
 	options := map[string]interface{}{
 		"limit": params.Limit,
-	}
-	if params.Status != "" {
-		options["status"] = params.Status
 	}
 	if donationProgramID != "" {
 		options["donation_program_id"] = donationProgramID
 	}
 	if accountID != "" {
 		options["account_id"] = accountID
+	}
+	if params.Status != "" {
+		options["status"] = params.Status
+	}
+	if params.Search != "" {
+		options["search"] = params.Search
+	}
+	if params.SortBy != "" {
+		options["sort_by"] = params.SortBy
+	}
+	if params.StartDate != "" {
+		options["start_date"] = params.StartDate
+	}
+	if params.EndDate != "" {
+		options["end_date"] = params.EndDate
 	}
 	if params.NextCursor != "" {
 		options["next_cursor"] = params.NextCursor
@@ -561,4 +591,87 @@ func (s *service) GetDonationTransactionMonthlyIncome(ctx context.Context, donat
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, incomeRecord)
+}
+
+func (s *service) ExportDonationProgramTransactionCSV(ctx context.Context, donationProgramID string, params DonationProgramTransactionQueryParams) ([]byte, string, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	program, err := s.donationRepo.FindOneDonationProgram(ctx, map[string]interface{}{"id": donationProgramID})
+	if err != nil {
+		return nil, "", fmt.Errorf("program donasi tidak ditemukan")
+	}
+	donationProgramID = program.ID.String()
+
+	if params.StartDate != "" {
+		if _, err := time.Parse("2006-01-02", params.StartDate); err != nil {
+			return nil, "", fmt.Errorf("format start_date tidak valid (gunakan YYYY-MM-DD)")
+		}
+	}
+	if params.EndDate != "" {
+		if _, err := time.Parse("2006-01-02", params.EndDate); err != nil {
+			return nil, "", fmt.Errorf("format end_date tidak valid (gunakan YYYY-MM-DD)")
+		}
+	}
+
+	transactions, err := s.repo.FindAllDonationProgramTransactionsForExport(ctx, donationProgramID, params)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":           "donation_program_transaction.service",
+			"donation_program_id": donationProgramID,
+		}).WithError(err).Error("failed to fetch transactions for export")
+		return nil, "", fmt.Errorf("gagal mengambil data transaksi")
+	}
+
+	var buf bytes.Buffer
+	w := csv.NewWriter(&buf)
+
+	header := []string{"No", "Order ID", "Nama Donatur", "Email Donatur", "Tipe Transaksi", "Jumlah (Rp)", "Metode Pembayaran", "Status Transaksi", "Tanggal Bayar", "Tanggal Dibuat"}
+	if err := w.Write(header); err != nil {
+		return nil, "", fmt.Errorf("gagal menulis header CSV")
+	}
+
+	for i, tx := range transactions {
+		typeStr := "Offline"
+		if tx.IsOnline {
+			typeStr = "Online"
+		}
+
+		paidAtStr := "-"
+		if tx.PaidAt != nil {
+			paidAtStr = tx.PaidAt.Format("2006-01-02 15:04:05")
+		}
+
+		row := []string{
+			fmt.Sprintf("%d", i+1),
+			tx.OrderID,
+			tx.DonorName,
+			tx.DonorEmail,
+			typeStr,
+			fmt.Sprintf("%.2f", tx.GrossAmount),
+			tx.Provider,
+			tx.TransactionStatus,
+			paidAtStr,
+			tx.CreatedAt.Format("2006-01-02 15:04:05"),
+		}
+		if err := w.Write(row); err != nil {
+			return nil, "", fmt.Errorf("gagal menulis baris CSV")
+		}
+	}
+
+	w.Flush()
+	if err := w.Error(); err != nil {
+		return nil, "", fmt.Errorf("gagal menyelesaikan penulisan CSV")
+	}
+
+	periodPart := "all"
+	if params.StartDate != "" && params.EndDate != "" {
+		periodPart = params.StartDate + "_to_" + params.EndDate
+	} else if params.StartDate != "" {
+		periodPart = "from_" + params.StartDate
+	} else if params.EndDate != "" {
+		periodPart = "until_" + params.EndDate
+	}
+	filename := fmt.Sprintf("donation_program_transactions_%s_%s_%s.csv", donationProgramID, periodPart, time.Now().Format("20060102_150405"))
+	return buf.Bytes(), filename, nil
 }

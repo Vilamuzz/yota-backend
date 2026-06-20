@@ -37,6 +37,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 		admin.GET("/expenses/:id", h.GetDonationProgramExpenseByID)
 		admin.POST("/:id/expenses", h.CreateDonationProgramExpense)
 		admin.DELETE("/expenses/:id", h.DeleteDonationProgramExpense)
+		admin.GET("/:id/expenses/export", h.ExportDonationProgramExpenseCSV)
 	}
 }
 
@@ -171,25 +172,32 @@ func (h *handler) DeleteDonationProgramExpense(c *gin.Context) {
 // ExportDonationProgramExpenseCSV
 //
 // @Summary Export Donation Program Expense as CSV
-// @Description Export all expenses for a specific donation program as a CSV file (publicly accessible)
+// @Description Export all expenses for a specific donation program as a CSV file
 // @Tags Donation Programs
 // @Produce text/csv
-// @Param slug path string true "Donation Program Slug"
+// @Param slug path string false "Donation Program Slug"
+// @Param id path string false "Donation Program ID"
 // @Param startDate query string false "Filter start date (YYYY-MM-DD, inclusive)"
 // @Param endDate query string false "Filter end date (YYYY-MM-DD, inclusive)"
+// @Param sortBy query string false "Sort order (e.g. title asc, amount desc)"
+// @Param search query string false "Search pattern"
 // @Success 200 {file} binary "CSV file"
 // @Router /api/donation-programs/{slug}/expenses/export [get]
+// @Router /api/admin/donation-programs/{id}/expenses/export [get]
 func (h *handler) ExportDonationProgramExpenseCSV(c *gin.Context) {
 	ctx := c.Request.Context()
-	donationProgramSlug := c.Param("slug")
+	donationProgramIdentifier := c.Param("slug")
+	if donationProgramIdentifier == "" {
+		donationProgramIdentifier = c.Param("id")
+	}
 
-	var params DonationProgramExpenseExportParams
+	var params DonationProgramExpenseQueryParams
 	if err := c.ShouldBindQuery(&params); err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
 		return
 	}
 
-	csvBytes, filename, err := h.service.ExportDonationProgramExpenseCSV(ctx, donationProgramSlug, params)
+	csvBytes, filename, err := h.service.ExportDonationProgramExpenseCSV(ctx, donationProgramIdentifier, params)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
 		return
