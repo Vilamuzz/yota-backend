@@ -46,32 +46,41 @@ func NewClient(minioClient *minio.Client) Client {
 		protocol = "https"
 	}
 
-	ctx := context.Background()
-	err := minioClient.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{})
-	if err != nil {
-		exists, errBucketExists := minioClient.BucketExists(ctx, bucketName)
-		if errBucketExists == nil && exists {
-		} else {
-			fmt.Printf("Failed to create or verify bucket %s: %v\n", bucketName, err)
-		}
-	}
+	// Skip bucket creation and bucket policy setting if using Cloudflare R2,
+	// as R2 doesn't support S3 bucket policies and bucket creation is typically
+	// restricted/managed via the Cloudflare dashboard/API.
+	isR2 := strings.Contains(endpoint, "r2.cloudflarestorage.com")
 
-	// Set bucket policy to public read
-	policy := fmt.Sprintf(`{
-		"Version": "2012-10-17",
-		"Statement": [
-			{
-				"Effect": "Allow",
-				"Principal": {"AWS": ["*"]},
-				"Action": ["s3:GetObject"],
-				"Resource": ["arn:aws:s3:::%s/*"]
+	if !isR2 {
+		ctx := context.Background()
+		err := minioClient.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{})
+		if err != nil {
+			exists, errBucketExists := minioClient.BucketExists(ctx, bucketName)
+			if errBucketExists == nil && exists {
+			} else {
+				fmt.Printf("Failed to create or verify bucket %s: %v\n", bucketName, err)
 			}
-		]
-	}`, bucketName)
+		}
 
-	err = minioClient.SetBucketPolicy(ctx, bucketName, policy)
-	if err != nil {
-		fmt.Printf("Failed to set bucket policy: %v\n", err)
+		// Set bucket policy to public read
+		policy := fmt.Sprintf(`{
+			"Version": "2012-10-17",
+			"Statement": [
+				{
+					"Effect": "Allow",
+					"Principal": {"AWS": ["*"]},
+					"Action": ["s3:GetObject"],
+					"Resource": ["arn:aws:s3:::%s/*"]
+				}
+			]
+		}`, bucketName)
+
+		err = minioClient.SetBucketPolicy(ctx, bucketName, policy)
+		if err != nil {
+			fmt.Printf("Failed to set bucket policy: %v\n", err)
+		}
+	} else {
+		fmt.Printf("Detected Cloudflare R2 endpoint. Skipping bucket creation and S3 policy configuration.\n")
 	}
 
 	return &client{
