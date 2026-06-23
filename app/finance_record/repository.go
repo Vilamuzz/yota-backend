@@ -50,7 +50,7 @@ func (r *repo) FindAll(ctx context.Context, options map[string]interface{}) ([]F
 		order = "created_at DESC, id DESC"
 	}
 
-	query := r.Conn.WithContext(ctx).Order(order).Limit(limit + 1)
+	query := r.Conn.WithContext(ctx).Where("deleted_at IS NULL").Order(order).Limit(limit + 1)
 
 	if options["fund_id"] != "" {
 		query = query.Where("fund_id = ?", options["fund_id"])
@@ -84,6 +84,7 @@ func (r *repo) Summary(ctx context.Context, isAdmin bool) (FinanceRecordSummary,
 
 	err := r.Conn.WithContext(ctx).
 		Model(&FinanceRecord{}).
+		Where("deleted_at IS NULL").
 		Select("fund_type, source_type, sum(amount) as total").
 		Group("fund_type, source_type").
 		Scan(&results).Error
@@ -156,6 +157,7 @@ func (r *repo) MonthlyTrend(ctx context.Context, params MonthlyTrendQueryParams)
 
 	query := r.Conn.WithContext(ctx).
 		Model(&FinanceRecord{}).
+		Where("deleted_at IS NULL").
 		Select("CAST(EXTRACT(MONTH FROM transaction_date) AS INTEGER) as month_num, "+
 			"SUM(CASE WHEN source_type = ? THEN amount ELSE 0 END) as income, "+
 			"SUM(CASE WHEN source_type = ? THEN amount ELSE 0 END) as expense",
