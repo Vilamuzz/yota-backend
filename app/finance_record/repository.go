@@ -18,7 +18,6 @@ type Repository interface {
 	FindAll(ctx context.Context, options map[string]interface{}) ([]FinanceRecord, error)
 	Summary(ctx context.Context, isAdmin bool) (FinanceRecordSummary, error)
 	MonthlyTrend(ctx context.Context, params MonthlyTrendQueryParams) (FinanceMonthlyTrendResponse, error)
-	Delete(ctx context.Context, id string) error
 }
 
 type repo struct {
@@ -132,10 +131,6 @@ func (r *repo) Summary(ctx context.Context, isAdmin bool) (FinanceRecordSummary,
 		}
 	}
 	return summary, nil
-}
-
-func (r *repo) Delete(ctx context.Context, id string) error {
-	return r.Conn.WithContext(ctx).Where("id = ?", id).Delete(&FinanceRecord{}).Error
 }
 
 func (r *repo) MonthlyTrend(ctx context.Context, params MonthlyTrendQueryParams) (FinanceMonthlyTrendResponse, error) {

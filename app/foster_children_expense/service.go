@@ -366,9 +366,6 @@ func (s *service) DeleteFosterChildrenExpense(ctx context.Context, accountID, fo
 		}
 	}
 
-	// Auto-delete finance record (outflow)
-	_ = s.financeRepo.Delete(ctx, fosterChildrenExpenseID)
-
 	s.logService.CreateLog(ctx, &accountID, "DELETE", "foster_children_expense", fosterChildrenExpenseID, expense.toFosterChildrenExpenseDetailResponse(), nil)
 
 	return pkg.NewResponse(http.StatusOK, "Pengeluaran berhasil dihapus", nil, nil)

@@ -40,8 +40,8 @@ func SeedSocialProgramInvoices(db *gorm.DB) error {
 			dueDate := time.Date(billingMonth.Year(), billingMonth.Month(), billingDay, 23, 59, 59, 0, time.UTC)
 
 			status := social_program_invoice.InvoiceStatusPending
-			// Make the first invoice (oldest one, i.e. i == 0) paid
-			if i == 0 {
+			// Make the first 8 invoices (oldest ones, i.e. i < 8) paid to ensure income >= expense
+			if i < 8 {
 				status = social_program_invoice.InvoiceStatusPaid
 			} else if dueDate.Before(now) {
 				// Past invoices that are not paid can be overdue

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
@@ -34,7 +35,7 @@ var allowedSocialProgramExpenseSortColumns = map[string]string{
 
 func (r *repository) FindAllSocialProgramExpenses(ctx context.Context, options map[string]interface{}) ([]SocialProgramExpense, error) {
 	var expenses []SocialProgramExpense
-	query := r.Conn.WithContext(ctx)
+	query := r.Conn.WithContext(ctx).Where("deleted_at IS NULL")
 
 	if socialProgramID, ok := options["social_program_id"]; ok && socialProgramID.(string) != "" {
 		query = query.Where("social_program_id = ?", socialProgramID.(string))
@@ -95,7 +96,7 @@ func (r *repository) FindAllSocialProgramExpenses(ctx context.Context, options m
 
 func (r *repository) FindAllSocialProgramExpensesForExport(ctx context.Context, socialProgramID string, params SocialProgramExpenseExportParams) ([]SocialProgramExpense, error) {
 	var expenses []SocialProgramExpense
-	query := r.Conn.WithContext(ctx).Order("expense_date ASC, created_at ASC")
+	query := r.Conn.WithContext(ctx).Order("expense_date ASC, created_at ASC").Where("deleted_at IS NULL")
 	if socialProgramID != "" {
 		query = query.Where("social_program_id = ?", socialProgramID)
 	}
@@ -112,7 +113,7 @@ func (r *repository) FindAllSocialProgramExpensesForExport(ctx context.Context, 
 func (r *repository) FindOneSocialProgramExpense(ctx context.Context, options map[string]interface{}) (*SocialProgramExpense, error) {
 	var expense SocialProgramExpense
 	if id, ok := options["id"]; ok && id.(string) != "" {
-		err := r.Conn.WithContext(ctx).Where("id = ?", id.(string)).First(&expense).Error
+		err := r.Conn.WithContext(ctx).Where("id = ? AND deleted_at IS NULL", id.(string)).First(&expense).Error
 		return &expense, err
 	}
 	return nil, gorm.ErrRecordNotFound
@@ -123,5 +124,15 @@ func (r *repository) CreateSocialProgramExpense(ctx context.Context, socialProgr
 }
 
 func (r *repository) DeleteSocialProgramExpense(ctx context.Context, socialProgramExpenseID string) error {
-	return r.Conn.WithContext(ctx).Where("id = ?", socialProgramExpenseID).Delete(&SocialProgramExpense{}).Error
+	return r.Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&SocialProgramExpense{}).Where("id = ?", socialProgramExpenseID).Update("deleted_at", time.Now()).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Table("finance_records").Where("source_id = ? AND source_type = ?", socialProgramExpenseID, "expense").Update("deleted_at", time.Now()).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }

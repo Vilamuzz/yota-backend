@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
@@ -36,7 +37,7 @@ var allowedFosterChildrenExpenseSortColumns = map[string]string{
 func (r *repo) FindAllFosterChildrenExpenses(ctx context.Context, options map[string]interface{}) ([]FosterChildrenExpense, error) {
 	var expenses []FosterChildrenExpense
 
-	query := r.Conn.WithContext(ctx)
+	query := r.Conn.WithContext(ctx).Where("foster_children_expenses.deleted_at IS NULL")
 
 	if fosterChildrenID, ok := options["foster_children_id"]; ok && fosterChildrenID.(string) != "" {
 		query = query.Where("foster_children_expenses.foster_children_id = ?", fosterChildrenID.(string))
@@ -100,7 +101,8 @@ func (r *repo) FindAllFosterChildrenExpenses(ctx context.Context, options map[st
 
 func (r *repo) FindAllFosterChildrenExpensesForExport(ctx context.Context, fosterChildrenSlug string, params FosterChildrenExpenseExportParams) ([]FosterChildrenExpense, error) {
 	var expenses []FosterChildrenExpense
-	query := r.Conn.WithContext(ctx).Order("foster_children_expenses.expense_date ASC, foster_children_expenses.created_at ASC")
+	query := r.Conn.WithContext(ctx).Order("foster_children_expenses.expense_date ASC, foster_children_expenses.created_at ASC").
+		Where("foster_children_expenses.deleted_at IS NULL")
 	if fosterChildrenSlug != "" {
 		query = query.Joins("JOIN foster_childrens ON foster_childrens.id = foster_children_expenses.foster_children_id").
 			Where("foster_childrens.slug = ?", fosterChildrenSlug)
@@ -118,11 +120,11 @@ func (r *repo) FindAllFosterChildrenExpensesForExport(ctx context.Context, foste
 func (r *repo) FindOneFosterChildrenExpense(ctx context.Context, options map[string]interface{}) (*FosterChildrenExpense, error) {
 	var expense FosterChildrenExpense
 	if id, ok := options["id"]; ok && id != "" {
-		err := r.Conn.WithContext(ctx).Where("id = ?", id).First(&expense).Error
+		err := r.Conn.WithContext(ctx).Where("id = ? AND deleted_at IS NULL", id).First(&expense).Error
 		return &expense, err
 	}
 	if fosterChildrenID, ok := options["foster_children_id"]; ok && fosterChildrenID.(string) != "" {
-		err := r.Conn.WithContext(ctx).Where("foster_children_id = ?", fosterChildrenID.(string)).First(&expense).Error
+		err := r.Conn.WithContext(ctx).Where("foster_children_id = ? AND deleted_at IS NULL", fosterChildrenID.(string)).First(&expense).Error
 		return &expense, err
 	}
 	return nil, gorm.ErrRecordNotFound
@@ -133,7 +135,17 @@ func (r *repo) CreateFosterChildrenExpense(ctx context.Context, expense *FosterC
 }
 
 func (r *repo) DeleteFosterChildrenExpense(ctx context.Context, fosterChildrenExpenseID string) error {
-	return r.Conn.WithContext(ctx).Where("id = ?", fosterChildrenExpenseID).Delete(&FosterChildrenExpense{}).Error
+	return r.Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&FosterChildrenExpense{}).Where("id = ?", fosterChildrenExpenseID).Update("deleted_at", time.Now()).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Table("finance_records").Where("source_id = ? AND source_type = ?", fosterChildrenExpenseID, "expense").Update("deleted_at", time.Now()).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (r *repo) GetTotalExpenseByFosterChildrenID(ctx context.Context, fosterChildrenID string) (float64, error) {
