@@ -16,8 +16,9 @@ type FosterChildrenExpense struct {
 	Note             string    `json:"note" gorm:"not null"`
 	ProofFile        string    `json:"proofFile"`
 	CreatedBy        uuid.UUID `json:"createdBy" gorm:"not null"`
-	CreatedAt        time.Time `json:"createdAt"`
-	UpdatedAt        time.Time `json:"updatedAt"`
+	CreatedAt        time.Time  `json:"createdAt"`
+	UpdatedAt        time.Time  `json:"updatedAt"`
+	DeletedAt        *time.Time `json:"deletedAt"`
 
 	Account *account.Account `gorm:"foreignKey:CreatedBy;references:ID"`
 }

@@ -34,7 +34,7 @@ type Service interface {
 }
 
 func NewService(repo Repository, minioClient *minio.Client, timeout time.Duration) Service {
-	bucketName := os.Getenv("RUSTFS_BUCKET_NAME")
+	bucketName := os.Getenv("S3_BUCKET_NAME")
 	if bucketName == "" {
 		bucketName = "default-bucket"
 	}

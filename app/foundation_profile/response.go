@@ -1,6 +1,10 @@
 package foundation_profile
 
-import "time"
+import (
+	"time"
+
+	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
+)
 
 type FoundationProfileResponse struct {
 	ID                    string    `json:"id"`
@@ -29,7 +33,7 @@ func (f *FoundationProfile) toFoundationProfileResponse() FoundationProfileRespo
 	return FoundationProfileResponse{
 		ID:                    f.ID.String(),
 		FoundationName:        f.FoundationName,
-		FounderPicture:        f.FounderPicture,
+		FounderPicture:        s3_pkg.GetCDNURL(f.FounderPicture),
 		FounderName:           f.FounderName,
 		FoundationAddress:     f.FoundationAddress,
 		FoundationPhone:       f.FoundationPhone,
@@ -38,13 +42,13 @@ func (f *FoundationProfile) toFoundationProfileResponse() FoundationProfileRespo
 		FoundationFacebook:    f.FoundationFacebook,
 		FoundationTwitter:     f.FoundationTwitter,
 		EmbeddedAddress:       f.EmbeddedAddress,
-		Logo:                  f.Logo,
-		Icon:                  f.Icon,
-		OrganizationStructure: f.OrganizationStructure,
-		HeroImageOne:          f.HeroImageOne,
-		HeroImageTwo:          f.HeroImageTwo,
-		HeroImageThree:        f.HeroImageThree,
-		HeroImageFour:         f.HeroImageFour,
+		Logo:                  s3_pkg.GetCDNURL(f.Logo),
+		Icon:                  s3_pkg.GetCDNURL(f.Icon),
+		OrganizationStructure: s3_pkg.GetCDNURL(f.OrganizationStructure),
+		HeroImageOne:          s3_pkg.GetCDNURL(f.HeroImageOne),
+		HeroImageTwo:          s3_pkg.GetCDNURL(f.HeroImageTwo),
+		HeroImageThree:        s3_pkg.GetCDNURL(f.HeroImageThree),
+		HeroImageFour:         s3_pkg.GetCDNURL(f.HeroImageFour),
 		CreatedAt:             f.CreatedAt,
 		UpdatedAt:             f.UpdatedAt,
 	}

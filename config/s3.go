@@ -11,14 +11,14 @@ import (
 
 func ConnectS3() *minio.Client {
 	// Read RustFS (S3-compatible) configuration
-	endpoint := os.Getenv("RUSTFS_ENDPOINT")
-	accessKeyID := os.Getenv("RUSTFS_ACCESS_KEY")
-	secretAccessKey := os.Getenv("RUSTFS_SECRET_KEY")
-	useSSLStr := os.Getenv("RUSTFS_USE_SSL")
-	region := os.Getenv("RUSTFS_REGION")
+	endpoint := os.Getenv("S3_ENDPOINT")
+	accessKeyID := os.Getenv("S3_ACCESS_KEY")
+	secretAccessKey := os.Getenv("S3_SECRET_KEY")
+	useSSLStr := os.Getenv("S3_USE_SSL")
+	region := os.Getenv("S3_REGION")
 
 	if endpoint == "" || accessKeyID == "" || secretAccessKey == "" {
-		log.Fatal("RustFS configuration (RUSTFS_ENDPOINT, RUSTFS_ACCESS_KEY, RUSTFS_SECRET_KEY) is not set")
+		log.Fatal("RustFS configuration (S3_ENDPOINT, S3_ACCESS_KEY, S3_SECRET_KEY) is not set")
 	}
 
 	// Default region if not specified
@@ -31,7 +31,7 @@ func ConnectS3() *minio.Client {
 		var err error
 		useSSL, err = strconv.ParseBool(useSSLStr)
 		if err != nil {
-			log.Fatalf("Invalid RUSTFS_USE_SSL value: %v", err)
+			log.Fatalf("Invalid S3_USE_SSL value: %v", err)
 		}
 	}
 

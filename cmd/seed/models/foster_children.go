@@ -19,7 +19,7 @@ func SeedFosterChildren(db *gorm.DB) error {
 		{
 			ID:             uuid.New(),
 			Name:           "Ahmad Fadillah",
-			ProfilePicture: "https://images.unsplash.com/photo-1595454233719-743cc1eb3602?auto=format&fit=crop&w=800&q=80",
+			ProfilePicture: "https://images.unsplash.com/photo-1761638344047-de8170f7cc7f?w=600&auto=format&fit=crop&w=800&q=80",
 			Gender:         foster_children.Male,
 			IsGraduated:    false,
 			Category:       foster_children.CategoryOrphan,
@@ -36,7 +36,7 @@ func SeedFosterChildren(db *gorm.DB) error {
 		{
 			ID:             uuid.New(),
 			Name:           "Siti Aminah",
-			ProfilePicture: "https://images.unsplash.com/photo-1544640808-32cb4fba5901?auto=format&fit=crop&w=800&q=80",
+			ProfilePicture: "https://plus.unsplash.com/premium_photo-1726826637082-16602bf15ba8?w=600&auto=format&fit=crop&w=800&q=80",
 			Gender:         foster_children.Female,
 			IsGraduated:    false,
 			Category:       foster_children.CategoryFatherless,
@@ -53,7 +53,7 @@ func SeedFosterChildren(db *gorm.DB) error {
 		{
 			ID:             uuid.New(),
 			Name:           "Budi Santoso",
-			ProfilePicture: "https://images.unsplash.com/photo-1508344928928-7157b83d1667?auto=format&fit=crop&w=800&q=80",
+			ProfilePicture: "https://images.unsplash.com/photo-1648851280857-5ca540251130?w=600&auto=format&fit=crop&w=800&q=80",
 			Gender:         foster_children.Male,
 			IsGraduated:    false,
 			Category:       foster_children.CategoryMotherless,
@@ -70,7 +70,7 @@ func SeedFosterChildren(db *gorm.DB) error {
 		{
 			ID:             uuid.New(),
 			Name:           "Nurul Hidayati",
-			ProfilePicture: "https://images.unsplash.com/photo-1621360064228-4ce6da55787f?auto=format&fit=crop&w=800&q=80",
+			ProfilePicture: "https://images.unsplash.com/photo-1635146914900-4e58ad412f1f?q=80&w=880&auto=format&fit=crop&w=800&q=80",
 			Gender:         foster_children.Female,
 			IsGraduated:    false,
 			Category:       foster_children.CategoryOrphan,
@@ -87,7 +87,7 @@ func SeedFosterChildren(db *gorm.DB) error {
 		{
 			ID:             uuid.New(),
 			Name:           "Rizky Maulana",
-			ProfilePicture: "https://images.unsplash.com/photo-1581452902341-b845fec0d53c?auto=format&fit=crop&w=800&q=80",
+			ProfilePicture: "https://plus.unsplash.com/premium_photo-1769871805454-c5759d918a99?q=80&w=880&auto=format&fit=crop&w=800&q=80",
 			Gender:         foster_children.Male,
 			IsGraduated:    false,
 			Category:       foster_children.CategoryFatherless,
@@ -104,7 +104,7 @@ func SeedFosterChildren(db *gorm.DB) error {
 		{
 			ID:             uuid.New(),
 			Name:           "Aulia Rahman",
-			ProfilePicture: "https://images.unsplash.com/photo-1580129994689-d4ff51a56112?auto=format&fit=crop&w=800&q=80",
+			ProfilePicture: "https://images.unsplash.com/photo-1762077656275-4514300d7da8?w=600&auto=format&fit=crop&w=800&q=80",
 			Gender:         foster_children.Female,
 			IsGraduated:    true,
 			Category:       foster_children.CategoryOrphan,
@@ -138,7 +138,7 @@ func SeedFosterChildren(db *gorm.DB) error {
 		{
 			ID:             uuid.New(),
 			Name:           "Nadia Salsabila",
-			ProfilePicture: "https://images.unsplash.com/photo-1517855325881-22e6b7d5a57d?auto=format&fit=crop&w=800&q=80",
+			ProfilePicture: "https://images.unsplash.com/photo-1693009025862-f2330446d2b6?w=600&auto=format&fit=crop&w=800&q=80",
 			Gender:         foster_children.Female,
 			IsGraduated:    false,
 			Category:       foster_children.CategoryFatherless,
@@ -155,7 +155,7 @@ func SeedFosterChildren(db *gorm.DB) error {
 		{
 			ID:             uuid.New(),
 			Name:           "Ilham Pratama",
-			ProfilePicture: "https://images.unsplash.com/photo-1629813296837-7756e01a89ea?auto=format&fit=crop&w=800&q=80",
+			ProfilePicture: "https://images.unsplash.com/photo-1658460029652-90b33eb1c682?w=600&auto=format&fit=crop&w=800&q=80",
 			Gender:         foster_children.Male,
 			IsGraduated:    false,
 			Category:       foster_children.CategoryOrphan,
@@ -172,7 +172,7 @@ func SeedFosterChildren(db *gorm.DB) error {
 		{
 			ID:             uuid.New(),
 			Name:           "Dewi Lestari",
-			ProfilePicture: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80",
+			ProfilePicture: "https://images.unsplash.com/photo-1673602557002-ba863312909b?q=80&w=881&auto=format&fit=crop&w=800&q=80",
 			Gender:         foster_children.Female,
 			IsGraduated:    true,
 			Category:       foster_children.CategoryFatherless,

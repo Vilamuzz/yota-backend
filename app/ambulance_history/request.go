@@ -11,10 +11,12 @@ type CreateAmbulanceHistoryRequest struct {
 
 type UpdateAmbulanceHistoryRequest struct {
 	ServiceCategory ServiceCategory `json:"serviceCategory"`
+	Note            string          `json:"note"`
 }
 
 type AmbulanceHistoryQueryParams struct {
 	AmbulanceID     string `form:"ambulanceId"`
+	DriverID        string `form:"-"`
 	ServiceCategory string `form:"serviceCategory"`
 	pkg.PaginationParams
 }
@@ -22,4 +24,8 @@ type AmbulanceHistoryQueryParams struct {
 type AmbulanceSummaryQueryParams struct {
 	StartDate string `form:"startDate"`
 	EndDate   string `form:"endDate"`
+}
+
+type MonthlyTrendQueryParams struct {
+	Year string `form:"year"`
 }

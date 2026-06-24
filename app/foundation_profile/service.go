@@ -76,7 +76,6 @@ func (s *service) CreateFoundationProfile(ctx context.Context, payload Foundatio
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
-	// Check if a profile already exists (singleton pattern)
 	existing, _ := s.repo.FindFoundationProfile(ctx, map[string]interface{}{})
 	if existing != nil {
 		errValidation["foundation_name"] = "Profil yayasan sudah ada. Hanya boleh ada 1 profil yayasan."

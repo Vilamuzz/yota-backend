@@ -12,11 +12,12 @@ import (
 
 type Repository interface {
 	FindAllDonationProgramExpenses(ctx context.Context, options map[string]interface{}) ([]DonationProgramExpense, error)
-	FindAllDonationProgramExpensesForExport(ctx context.Context, donationProgramID string, params DonationProgramExpenseExportParams) ([]DonationProgramExpense, error)
+	FindAllDonationProgramExpensesForExport(ctx context.Context, donationProgramID string, params DonationProgramExpenseQueryParams) ([]DonationProgramExpense, error)
 	FindOneDonationProgramExpense(ctx context.Context, options map[string]interface{}) (*DonationProgramExpense, error)
 	GetTotalExpenseByDonationProgramID(ctx context.Context, donationProgramID string) (float64, error)
 	CreateDonationProgramExpense(ctx context.Context, donationProgramExpense *DonationProgramExpense) error
 	DeleteDonationProgramExpense(ctx context.Context, donationProgramExpenseID string) error
+	GetMonthlyExpenseByProgram(ctx context.Context, donationProgramID string, year int) (*MonthlyExpenseRecord, error)
 }
 
 type repo struct {
@@ -36,7 +37,7 @@ var allowedDonationProgramExpenseSortColumns = map[string]string{
 
 func (r *repo) FindAllDonationProgramExpenses(ctx context.Context, options map[string]interface{}) ([]DonationProgramExpense, error) {
 	var expenses []DonationProgramExpense
-	query := r.Conn.WithContext(ctx)
+	query := r.Conn.WithContext(ctx).Where("deleted_at IS NULL")
 
 	if donationProgramID, ok := options["donation_program_id"]; ok && donationProgramID.(string) != "" {
 		query = query.Where("donation_program_id = ?", donationProgramID.(string))
@@ -95,9 +96,9 @@ func (r *repo) FindAllDonationProgramExpenses(ctx context.Context, options map[s
 	return expenses, err
 }
 
-func (r *repo) FindAllDonationProgramExpensesForExport(ctx context.Context, donationProgramID string, params DonationProgramExpenseExportParams) ([]DonationProgramExpense, error) {
+func (r *repo) FindAllDonationProgramExpensesForExport(ctx context.Context, donationProgramID string, params DonationProgramExpenseQueryParams) ([]DonationProgramExpense, error) {
 	var expenses []DonationProgramExpense
-	query := r.Conn.WithContext(ctx).Order("expense_date ASC, created_at ASC")
+	query := r.Conn.WithContext(ctx)
 	if donationProgramID != "" {
 		query = query.Where("donation_program_id = ?", donationProgramID)
 	}
@@ -107,6 +108,22 @@ func (r *repo) FindAllDonationProgramExpensesForExport(ctx context.Context, dona
 	if params.EndDate != "" {
 		query = query.Where("expense_date <= ?", params.EndDate)
 	}
+
+	orderClause := "expense_date ASC, created_at ASC"
+	if params.SortBy != "" {
+		parts := strings.Fields(strings.ToLower(params.SortBy))
+		if len(parts) >= 1 {
+			if col, valid := allowedDonationProgramExpenseSortColumns[parts[0]]; valid {
+				dir := "ASC"
+				if len(parts) == 2 && parts[1] == "desc" {
+					dir = "DESC"
+				}
+				orderClause = fmt.Sprintf("%s %s, id DESC", col, dir)
+			}
+		}
+	}
+	query = query.Order(orderClause)
+
 	err := query.Find(&expenses).Error
 	return expenses, err
 }
@@ -130,7 +147,7 @@ func (r *repo) CreateDonationProgramExpense(ctx context.Context, expense *Donati
 
 func (r *repo) DeleteDonationProgramExpense(ctx context.Context, donationProgramExpenseID string) error {
 	return r.Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("id = ?", donationProgramExpenseID).Delete(&DonationProgramExpense{}).Error; err != nil {
+		if err := tx.Model(&DonationProgramExpense{}).Where("id = ?", donationProgramExpenseID).Update("deleted_at", time.Now()).Error; err != nil {
 			return err
 		}
 
@@ -150,4 +167,51 @@ func (r *repo) GetTotalExpenseByDonationProgramID(ctx context.Context, donationP
 		Select("COALESCE(SUM(amount), 0)").
 		Scan(&total).Error
 	return total, err
+}
+
+func (r *repo) GetMonthlyExpenseByProgram(ctx context.Context, donationProgramID string, year int) (*MonthlyExpenseRecord, error) {
+	type dbMonthlyExpense struct {
+		MonthNum int     `gorm:"column:month_num"`
+		Expense  float64 `gorm:"column:expense"`
+	}
+
+	var dbResults []dbMonthlyExpense
+
+	err := r.Conn.WithContext(ctx).
+		Model(&DonationProgramExpense{}).
+		Select("CAST(EXTRACT(MONTH FROM expense_date) AS INTEGER) as month_num, SUM(amount) as expense").
+		Where("donation_program_id = ?", donationProgramID).
+		Where("EXTRACT(YEAR FROM expense_date) = ?", year).
+		Where("deleted_at IS NULL").
+		Group("month_num").
+		Order("month_num ASC").
+		Scan(&dbResults).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	dbMap := make(map[int]float64)
+	for _, res := range dbResults {
+		dbMap[res.MonthNum] = res.Expense
+	}
+
+	record := &MonthlyExpenseRecord{
+		DonationProgramID: donationProgramID,
+		Items:             make([]MonthlyExpenseResponse, 12),
+	}
+
+	for i := 1; i <= 12; i++ {
+		monthStr := fmt.Sprintf("%d-%02d", year, i)
+		expenseVal := 0.0
+		if val, exists := dbMap[i]; exists {
+			expenseVal = val
+		}
+		record.Items[i-1] = MonthlyExpenseResponse{
+			Month:   monthStr,
+			Expense: expenseVal,
+		}
+	}
+
+	return record, nil
 }

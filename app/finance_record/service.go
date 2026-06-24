@@ -11,7 +11,8 @@ import (
 
 type Service interface {
 	CreateRecord(ctx context.Context, record *FinanceRecord) error
-	GetSummary(ctx context.Context) pkg.Response
+	GetSummary(ctx context.Context, isAdmin bool) pkg.Response
+	GetMonthlyTrend(ctx context.Context, params MonthlyTrendQueryParams) pkg.Response
 }
 
 type service struct {
@@ -39,14 +40,26 @@ func (s *service) CreateRecord(ctx context.Context, record *FinanceRecord) error
 	return s.repo.Create(ctx, record)
 }
 
-func (s *service) GetSummary(ctx context.Context) pkg.Response {
+func (s *service) GetSummary(ctx context.Context, isAdmin bool) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	summary, err := s.repo.Summary(ctx)
+	summary, err := s.repo.Summary(ctx, isAdmin)
 	if err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to get finance summary", nil, err.Error())
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data ringkasan keuangan", nil, err.Error())
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Finance summary retrieved successfully", nil, summary)
+	return pkg.NewResponse(http.StatusOK, "Berhasil mengambil data ringkasan keuangan", nil, summary)
+}
+
+func (s *service) GetMonthlyTrend(ctx context.Context, params MonthlyTrendQueryParams) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	trend, err := s.repo.MonthlyTrend(ctx, params)
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data tren bulanan", nil, err.Error())
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Berhasil mengambil data tren bulanan", nil, trend)
 }

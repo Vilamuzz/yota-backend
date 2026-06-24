@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
+	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 )
 
 type UserProfileResponse struct {
@@ -14,6 +15,7 @@ type UserProfileResponse struct {
 	ProfilePicture string                 `json:"profilePicture"`
 	Phone          string                 `json:"phone"`
 	Address        string                 `json:"address"`
+	CreatedAt      time.Time              `json:"createdAt"`
 }
 
 type AccountResponse struct {
@@ -75,7 +77,8 @@ func (a *Account) toUserProfileResponse() UserProfileResponse {
 		Roles:          toAccountRolesResponse(a.AccountRoles),
 		Phone:          phone,
 		Address:        a.UserProfile.Address,
-		ProfilePicture: a.UserProfile.ProfilePicture,
+		ProfilePicture: s3_pkg.GetCDNURL(a.UserProfile.ProfilePicture),
+		CreatedAt:      a.CreatedAt,
 	}
 }
 

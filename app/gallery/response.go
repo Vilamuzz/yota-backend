@@ -5,6 +5,7 @@ import (
 
 	"github.com/Vilamuzz/yota-backend/app/media"
 	"github.com/Vilamuzz/yota-backend/pkg"
+	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 )
 
 type GalleryResponse struct {
@@ -44,7 +45,7 @@ func (g *Gallery) toGalleryResponse() GalleryResponse {
 			ID:        m.ID.String(),
 			GalleryID: m.GalleryID.String(),
 			Type:      string(m.Type),
-			URL:       m.URL,
+			URL:       s3_pkg.GetCDNURL(m.URL),
 			Alt:       m.Alt,
 			Order:     m.Order,
 		})
@@ -54,7 +55,7 @@ func (g *Gallery) toGalleryResponse() GalleryResponse {
 		ID:          g.ID.String(),
 		Title:       g.Title,
 		Slug:        g.Slug,
-		CoverImage:  g.CoverImage,
+		CoverImage:  s3_pkg.GetCDNURL(g.CoverImage),
 		Category:    g.Category,
 		Description: g.Description,
 		Media:       mediaResponses,
@@ -69,7 +70,7 @@ func (g *Gallery) toGalleryListResponseItem() GalleryListResponseItem {
 		ID:          g.ID.String(),
 		Title:       g.Title,
 		Slug:        g.Slug,
-		CoverImage:  g.CoverImage,
+		CoverImage:  s3_pkg.GetCDNURL(g.CoverImage),
 		Category:    g.Category,
 		Description: g.Description,
 		Views:       g.Views,

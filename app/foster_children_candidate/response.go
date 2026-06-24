@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
+	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 )
 
 type FosterChildrenCandidateResponse struct {
@@ -50,7 +51,7 @@ func (c *FosterChildrenCandidate) ToFosterChildrenCandidateResponse() FosterChil
 	return FosterChildrenCandidateResponse{
 		ID:               c.ID.String(),
 		Name:             c.Name,
-		ProfilePicture:   c.ProfilePicture,
+		ProfilePicture:   s3_pkg.GetCDNURL(c.ProfilePicture),
 		Gender:           string(c.Gender),
 		Category:         string(c.Category),
 		BirthDate:        c.BirthDate.Format("2006-01-02"),
@@ -58,12 +59,12 @@ func (c *FosterChildrenCandidate) ToFosterChildrenCandidateResponse() FosterChil
 		Address:          c.Address,
 		SchoolName:       c.SchoolName,
 		EducationLevel:   c.EducationLevel,
-		FamilyCard:       c.FamilyCard,
-		SKTM:             c.SKTM,
+		FamilyCard:       s3_pkg.GetCDNURL(c.FamilyCard),
+		SKTM:             s3_pkg.GetCDNURL(c.SKTM),
 		SubmitterName:    c.SubmitterName,
 		SubmitterPhone:   c.SubmitterPhone,
 		SubmitterAddress: c.SubmitterAddress,
-		SubmitterIDCard:  c.SubmitterIDCard,
+		SubmitterIDCard:  s3_pkg.GetCDNURL(c.SubmitterIDCard),
 		SubmittedBy:      c.SubmittedBy.String(),
 		Status:           string(c.Status),
 		RejectionReason:  c.RejectionReason,

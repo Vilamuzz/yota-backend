@@ -39,6 +39,11 @@ func SeedMockUsers(db *gorm.DB) error {
 		{"user2", "user2@yota.com", 1, true, true},
 		{"user3", "user3@yota.com", 1, true, false},
 		{"banned_user", "banned@yota.com", 1, false, true},
+		{"driver1", "driver1@yota.com", 7, true, true},
+		{"driver2", "driver2@yota.com", 7, true, true},
+		{"driver3", "driver3@yota.com", 7, true, true},
+		{"driver4", "driver4@yota.com", 7, true, true},
+		{"driver5", "driver5@yota.com", 7, true, true},
 	}
 
 	for _, u := range users {

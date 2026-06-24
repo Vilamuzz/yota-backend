@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
+	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 )
 
 type AchievementResponse struct {
@@ -51,7 +52,7 @@ func (f *FosterChildren) ToFosterChildrenDetailResponse() FosterChildrenDetailRe
 	for _, a := range f.Achivements {
 		achievements = append(achievements, AchievementResponse{
 			ID:  a.ID.String(),
-			URL: a.URL,
+			URL: s3_pkg.GetCDNURL(a.URL),
 		})
 	}
 	if achievements == nil {
@@ -62,7 +63,7 @@ func (f *FosterChildren) ToFosterChildrenDetailResponse() FosterChildrenDetailRe
 		ID:             f.ID.String(),
 		Slug:           f.Slug,
 		Name:           f.Name,
-		ProfilePicture: f.ProfilePicture,
+		ProfilePicture: s3_pkg.GetCDNURL(f.ProfilePicture),
 		Gender:         f.Gender,
 		IsGraduated:    f.IsGraduated,
 		Category:       f.Category,
@@ -82,7 +83,7 @@ func (f *FosterChildren) ToFosterChildrenListItemResponse() FosterChildrenListIt
 		ID:             f.ID.String(),
 		Slug:           f.Slug,
 		Name:           f.Name,
-		ProfilePicture: f.ProfilePicture,
+		ProfilePicture: s3_pkg.GetCDNURL(f.ProfilePicture),
 		BirthDate:      f.BirthDate.Format("2006-01-02"),
 		Gender:         f.Gender,
 		IsGraduated:    f.IsGraduated,
@@ -132,8 +133,8 @@ type AdminFosterChildrenListResponse struct {
 func (a *FosterChildren) ToAdminFosterChildrenDetailResponse() AdminFosterChildrenDetailResponse {
 	return AdminFosterChildrenDetailResponse{
 		FosterChildrenDetailResponse: a.ToFosterChildrenDetailResponse(),
-		FamilyCard:                   a.FamilyCard,
-		SKTM:                         a.SKTM,
+		FamilyCard:                   s3_pkg.GetCDNURL(a.FamilyCard),
+		SKTM:                         s3_pkg.GetCDNURL(a.SKTM),
 		CollectedFund:                a.CollectedFund,
 	}
 }
@@ -142,7 +143,7 @@ func (a *FosterChildren) ToAdminFosterChildrenListItemResponse() AdminFosterChil
 	return AdminFosterChildrenListItemResponse{
 		ID:             a.ID.String(),
 		Name:           a.Name,
-		ProfilePicture: a.ProfilePicture,
+		ProfilePicture: s3_pkg.GetCDNURL(a.ProfilePicture),
 		Gender:         a.Gender,
 		IsGraduated:    a.IsGraduated,
 		Category:       a.Category,

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
+	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 )
 
 type DonationProgramResponse struct {
@@ -38,7 +39,7 @@ type AdminDonationProgramResponse struct {
 
 type AdminDonationProgramListResponse struct {
 	DonationPrograms []AdminDonationProgramResponse `json:"donationPrograms"`
-	Pagination       pkg.OffsetPagination         `json:"pagination"`
+	Pagination       pkg.OffsetPagination           `json:"pagination"`
 }
 
 type DonationProgramListResponse struct {
@@ -51,7 +52,7 @@ func (d *DonationProgram) toAdminDonationProgramResponse() AdminDonationProgramR
 		ID:            d.ID.String(),
 		Title:         d.Title,
 		Description:   d.Description,
-		CoverImage:    d.CoverImage,
+		CoverImage:    s3_pkg.GetCDNURL(d.CoverImage),
 		Category:      d.Category,
 		FundTarget:    d.FundTarget,
 		CollectedFund: d.CollectedFund,
@@ -69,7 +70,7 @@ func (d *DonationProgram) toDonationProgramResponse() DonationProgramResponse {
 		Title:         d.Title,
 		Slug:          d.Slug,
 		Description:   d.Description,
-		CoverImage:    d.CoverImage,
+		CoverImage:    s3_pkg.GetCDNURL(d.CoverImage),
 		Category:      d.Category,
 		FundTarget:    d.FundTarget,
 		CollectedFund: d.CollectedFund,
@@ -101,9 +102,11 @@ func toDonationProgramListResponse(donations []DonationProgram, pagination pkg.O
 	for _, d := range donations {
 		responses = append(responses, d.toDonationProgramResponse())
 	}
+
 	if responses == nil {
 		responses = []DonationProgramResponse{}
 	}
+
 	return DonationProgramListResponse{
 		DonationPrograms: responses,
 		Pagination:       pagination,

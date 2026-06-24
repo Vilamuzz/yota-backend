@@ -19,17 +19,17 @@ import (
 type Service interface {
 	ListAmbulanceServiceRequest(ctx context.Context, queryParams AmbulanceServiceRequestAdminQueryParams) pkg.Response
 	ListMyAmbulanceServiceRequests(ctx context.Context, accountID string, queryParams AmbulanceServiceRequestQueryParams) pkg.Response
-	ListAssignedAmbulanceServiceRequests(ctx context.Context, driverAccountID string, ambulanceID string, queryParams AmbulanceServiceRequestQueryParams) pkg.Response
+	ListAssignedAmbulanceServiceRequests(ctx context.Context, driverAccountID string, queryParams AmbulanceServiceRequestQueryParams) pkg.Response
 	GetAmbulanceServiceRequestByID(ctx context.Context, id string) pkg.Response
 	GetMyAmbulanceServiceRequestByID(ctx context.Context, accountID string, id string) pkg.Response
-	GetAssignedAmbulanceServiceRequestByID(ctx context.Context, ambulanceID string, id string) pkg.Response
+	GetAssignedAmbulanceServiceRequestByID(ctx context.Context, driverAccountID string, id string) pkg.Response
 	CreateAmbulanceServiceRequest(ctx context.Context, payload CreateAmbulanceServiceRequest) pkg.Response
-	UpdateAmbulanceServiceRequest(ctx context.Context, id string, payload UpdateAmbulanceServiceRequest) pkg.Response
 	AcceptAmbulanceServiceRequest(ctx context.Context, id string, role enum.RoleName, payload AcceptAmbulanceServiceRequestPayload) pkg.Response
 	RejectAmbulanceServiceRequest(ctx context.Context, id string, req RejectAmbulanceServiceRequest) pkg.Response
 	CancelAmbulanceServiceRequest(ctx context.Context, accountID string, id string) pkg.Response
-	StartAmbulanceServiceRequest(ctx context.Context, driverAccountID string, ambulanceID string, id string) pkg.Response
-	CompleteAmbulanceServiceRequest(ctx context.Context, driverAccountID string, ambulanceID string, id string) pkg.Response
+	DriverCancelAmbulanceServiceRequest(ctx context.Context, driverAccountID string, id string, payload CancelAmbulanceServiceRequestPayload) pkg.Response
+	StartAmbulanceServiceRequest(ctx context.Context, driverAccountID string, id string) pkg.Response
+	CompleteAmbulanceServiceRequest(ctx context.Context, driverAccountID string, id string) pkg.Response
 }
 
 type service struct {
@@ -168,20 +168,16 @@ func (s *service) ListMyAmbulanceServiceRequests(ctx context.Context, accountID 
 	}))
 }
 
-func (s *service) ListAssignedAmbulanceServiceRequests(ctx context.Context, driverAccountID string, ambulanceID string, queryParams AmbulanceServiceRequestQueryParams) pkg.Response {
+func (s *service) ListAssignedAmbulanceServiceRequests(ctx context.Context, driverAccountID string, queryParams AmbulanceServiceRequestQueryParams) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	ambulanceRecord, err := s.ambulanceRepo.FindOneAmbulance(ctx, map[string]interface{}{"id": ambulanceID})
+	ambulanceRecord, err := s.ambulanceRepo.FindOneAmbulance(ctx, map[string]interface{}{"driver_id": driverAccountID})
 	if err != nil {
 		if err.Error() == gorm.ErrRecordNotFound.Error() {
-			return pkg.NewResponse(http.StatusNotFound, "Ambulans tidak ditemukan", nil, nil)
+			return pkg.NewResponse(http.StatusNotFound, "Tidak ada ambulans yang ditugaskan ke supir ini", nil, nil)
 		}
-		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menemukan ambulans", nil, nil)
-	}
-
-	if ambulanceRecord.DriverID.String() != driverAccountID {
-		return pkg.NewResponse(http.StatusForbidden, "Anda tidak memiliki akses ke ambulans ini", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menemukan ambulans supir ini", nil, nil)
 	}
 
 	if queryParams.Limit == 0 {
@@ -189,7 +185,7 @@ func (s *service) ListAssignedAmbulanceServiceRequests(ctx context.Context, driv
 	}
 	options := map[string]interface{}{
 		"limit":        queryParams.Limit,
-		"ambulance_id": ambulanceID,
+		"ambulance_id": ambulanceRecord.ID.String(),
 	}
 	if queryParams.Status != "" {
 		options["status"] = queryParams.Status
@@ -238,7 +234,7 @@ func (s *service) ListAssignedAmbulanceServiceRequests(ctx context.Context, driv
 	}))
 }
 
-func (s *service) GetAssignedAmbulanceServiceRequestByID(ctx context.Context, ambulanceID string, id string) pkg.Response {
+func (s *service) GetAssignedAmbulanceServiceRequestByID(ctx context.Context, driverAccountID string, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -246,7 +242,7 @@ func (s *service) GetAssignedAmbulanceServiceRequestByID(ctx context.Context, am
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID permintaan ambulans tidak valid"}, nil)
 	}
 
-	ambulanceRecord, err := s.ambulanceRepo.FindOneAmbulance(ctx, map[string]interface{}{"id": ambulanceID})
+	ambulanceRecord, err := s.ambulanceRepo.FindOneAmbulance(ctx, map[string]interface{}{"driver_id": driverAccountID})
 	if err != nil {
 		if err.Error() == gorm.ErrRecordNotFound.Error() {
 			return pkg.NewResponse(http.StatusNotFound, "Tidak ada ambulans yang ditugaskan ke supir ini", nil, nil)
@@ -367,48 +363,6 @@ func (s *service) CreateAmbulanceServiceRequest(ctx context.Context, payload Cre
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat permintaan ambulans", nil, nil)
 	}
 	return pkg.NewResponse(http.StatusOK, "Permintaan ambulans berhasil dibuat", nil, nil)
-}
-
-func (s *service) UpdateAmbulanceServiceRequest(ctx context.Context, id string, payload UpdateAmbulanceServiceRequest) pkg.Response {
-	ctx, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	if _, err := uuid.Parse(id); err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID permintaan ambulans tidak valid"}, nil)
-	}
-
-	_, err := s.repo.FindByID(ctx, id)
-	if err != nil {
-		if err.Error() == gorm.ErrRecordNotFound.Error() {
-			return pkg.NewResponse(http.StatusNotFound, "Permintaan ambulans tidak ditemukan", nil, nil)
-		}
-		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memuat permintaan ambulans", nil, nil)
-	}
-
-	errValidation := make(map[string]string)
-	updateData := make(map[string]interface{})
-	if payload.Status != "" && payload.Status != string(StatusPending) && payload.Status != string(StatusAccepted) && payload.Status != string(StatusRejected) {
-		errValidation["status"] = "Nilai status tidak valid"
-	} else if payload.Status != "" {
-		updateData["status"] = payload.Status
-	}
-	if payload.Status == string(StatusRejected) && payload.RejectionReason == "" {
-		errValidation["rejectionReason"] = "Alasan penolakan wajib diisi bila status ditolak"
-	} else if payload.Status == string(StatusRejected) {
-		updateData["rejection_reason"] = payload.RejectionReason
-	}
-
-	if len(errValidation) > 0 {
-		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
-	}
-	if len(updateData) == 0 {
-		return pkg.NewResponse(http.StatusBadRequest, "Tidak ada data untuk diperbarui", nil, nil)
-	}
-
-	if err := s.repo.Update(ctx, id, updateData); err != nil {
-		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui permintaan ambulans", nil, nil)
-	}
-	return pkg.NewResponse(http.StatusOK, "Permintaan ambulans berhasil diperbarui", nil, nil)
 }
 
 func (s *service) GetMyAmbulanceServiceRequestByID(ctx context.Context, accountID string, id string) pkg.Response {
@@ -581,27 +535,24 @@ func (s *service) CancelAmbulanceServiceRequest(ctx context.Context, accountID s
 	return pkg.NewResponse(http.StatusOK, "Permintaan ambulans berhasil dibatalkan", nil, nil)
 }
 
-func (s *service) StartAmbulanceServiceRequest(ctx context.Context, driverAccountID string, ambulanceID string, id string) pkg.Response {
+func (s *service) DriverCancelAmbulanceServiceRequest(ctx context.Context, driverAccountID string, id string, payload CancelAmbulanceServiceRequestPayload) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	if err := uuid.Validate(id); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID permintaan ambulans tidak valid"}, nil)
 	}
-	if err := uuid.Validate(ambulanceID); err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"ambulanceId": "Format ID ambulans tidak valid"}, nil)
+
+	if payload.CancelationReason == "" {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"cancelationReason": "Alasan pembatalan wajib diisi"}, nil)
 	}
 
-	ambulanceRecord, err := s.ambulanceRepo.FindOneAmbulance(ctx, map[string]interface{}{"id": ambulanceID})
+	ambulanceRecord, err := s.ambulanceRepo.FindOneAmbulance(ctx, map[string]interface{}{"driver_id": driverAccountID})
 	if err != nil {
 		if err.Error() == gorm.ErrRecordNotFound.Error() {
-			return pkg.NewResponse(http.StatusNotFound, "Ambulans tidak ditemukan", nil, nil)
+			return pkg.NewResponse(http.StatusNotFound, "Tidak ada ambulans yang ditugaskan ke supir ini", nil, nil)
 		}
-		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengecek data ambulans", nil, nil)
-	}
-
-	if ambulanceRecord.DriverID.String() != driverAccountID {
-		return pkg.NewResponse(http.StatusForbidden, "Anda tidak memiliki akses ke ambulans ini", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menemukan ambulans supir ini", nil, nil)
 	}
 
 	existing, err := s.repo.FindByID(ctx, id)
@@ -612,7 +563,57 @@ func (s *service) StartAmbulanceServiceRequest(ctx context.Context, driverAccoun
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memuat permintaan ambulans", nil, nil)
 	}
 
-	if existing.AmbulanceID == nil || existing.AmbulanceID.String() != ambulanceID {
+	if existing.AmbulanceID == nil || existing.AmbulanceID.String() != ambulanceRecord.ID.String() {
+		return pkg.NewResponse(http.StatusForbidden, "Ambulans ini tidak ditugaskan untuk permintaan ini", nil, nil)
+	}
+
+	if existing.Status != StatusAccepted && existing.Status != StatusInService {
+		return pkg.NewResponse(http.StatusBadRequest, "Hanya permintaan dengan status disetujui atau dalam pelayanan yang dapat dibatalkan", nil, nil)
+	}
+
+	updateData := map[string]interface{}{
+		"status":             StatusCancelled,
+		"cancelation_reason": payload.CancelationReason,
+		"updated_at":         time.Now(),
+	}
+
+	if err := s.repo.Update(ctx, id, updateData); err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membatalkan permintaan ambulans", nil, nil)
+	}
+
+	_ = s.ambulanceRepo.UpdateAmbulance(ctx, ambulanceRecord.ID.String(), map[string]interface{}{
+		"status":     ambulance.AmbulanceStatusAvailable,
+		"updated_at": time.Now(),
+	})
+
+	return pkg.NewResponse(http.StatusOK, "Permintaan ambulans berhasil dibatalkan oleh supir", nil, nil)
+}
+
+func (s *service) StartAmbulanceServiceRequest(ctx context.Context, driverAccountID string, id string) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	if err := uuid.Validate(id); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID permintaan ambulans tidak valid"}, nil)
+	}
+
+	ambulanceRecord, err := s.ambulanceRepo.FindOneAmbulance(ctx, map[string]interface{}{"driver_id": driverAccountID})
+	if err != nil {
+		if err.Error() == gorm.ErrRecordNotFound.Error() {
+			return pkg.NewResponse(http.StatusNotFound, "Tidak ada ambulans yang ditugaskan ke supir ini", nil, nil)
+		}
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menemukan ambulans supir ini", nil, nil)
+	}
+
+	existing, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		if err.Error() == gorm.ErrRecordNotFound.Error() {
+			return pkg.NewResponse(http.StatusNotFound, "Permintaan ambulans tidak ditemukan", nil, nil)
+		}
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memuat permintaan ambulans", nil, nil)
+	}
+
+	if existing.AmbulanceID == nil || existing.AmbulanceID.String() != ambulanceRecord.ID.String() {
 		return pkg.NewResponse(http.StatusForbidden, "Ambulans ini tidak ditugaskan untuk permintaan ini", nil, nil)
 	}
 
@@ -629,8 +630,7 @@ func (s *service) StartAmbulanceServiceRequest(ctx context.Context, driverAccoun
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui status permintaan ambulans", nil, nil)
 	}
 
-	// Update ambulance status to "in use"
-	_ = s.ambulanceRepo.UpdateAmbulance(ctx, ambulanceID, map[string]interface{}{
+	_ = s.ambulanceRepo.UpdateAmbulance(ctx, ambulanceRecord.ID.String(), map[string]interface{}{
 		"status":     ambulance.AmbulanceStatusInUse,
 		"updated_at": time.Now(),
 	})
@@ -638,27 +638,20 @@ func (s *service) StartAmbulanceServiceRequest(ctx context.Context, driverAccoun
 	return pkg.NewResponse(http.StatusOK, "Layanan ambulans berhasil dimulai", nil, nil)
 }
 
-func (s *service) CompleteAmbulanceServiceRequest(ctx context.Context, driverAccountID string, ambulanceID string, id string) pkg.Response {
+func (s *service) CompleteAmbulanceServiceRequest(ctx context.Context, driverAccountID string, id string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	if err := uuid.Validate(id); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID permintaan ambulans tidak valid"}, nil)
 	}
-	if err := uuid.Validate(ambulanceID); err != nil {
-		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"ambulanceId": "Format ID ambulans tidak valid"}, nil)
-	}
 
-	ambulanceRecord, err := s.ambulanceRepo.FindOneAmbulance(ctx, map[string]interface{}{"id": ambulanceID})
+	ambulanceRecord, err := s.ambulanceRepo.FindOneAmbulance(ctx, map[string]interface{}{"driver_id": driverAccountID})
 	if err != nil {
 		if err.Error() == gorm.ErrRecordNotFound.Error() {
-			return pkg.NewResponse(http.StatusNotFound, "Ambulans tidak ditemukan", nil, nil)
+			return pkg.NewResponse(http.StatusNotFound, "Tidak ada ambulans yang ditugaskan ke supir ini", nil, nil)
 		}
-		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengecek data ambulans", nil, nil)
-	}
-
-	if ambulanceRecord.DriverID.String() != driverAccountID {
-		return pkg.NewResponse(http.StatusForbidden, "Anda tidak memiliki akses ke ambulans ini", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengecek data ambulans supir ini", nil, nil)
 	}
 
 	existing, err := s.repo.FindByID(ctx, id)
@@ -669,7 +662,7 @@ func (s *service) CompleteAmbulanceServiceRequest(ctx context.Context, driverAcc
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memuat permintaan ambulans", nil, nil)
 	}
 
-	if existing.AmbulanceID == nil || existing.AmbulanceID.String() != ambulanceID {
+	if existing.AmbulanceID == nil || existing.AmbulanceID.String() != ambulanceRecord.ID.String() {
 		return pkg.NewResponse(http.StatusForbidden, "Ambulans ini tidak ditugaskan untuk permintaan ini", nil, nil)
 	}
 
@@ -686,7 +679,7 @@ func (s *service) CompleteAmbulanceServiceRequest(ctx context.Context, driverAcc
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui status permintaan ambulans", nil, nil)
 	}
 
-	_ = s.ambulanceRepo.UpdateAmbulance(ctx, ambulanceID, map[string]interface{}{
+	_ = s.ambulanceRepo.UpdateAmbulance(ctx, ambulanceRecord.ID.String(), map[string]interface{}{
 		"status":     ambulance.AmbulanceStatusAvailable,
 		"updated_at": time.Now(),
 	})

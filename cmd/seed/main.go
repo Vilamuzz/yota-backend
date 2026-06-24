@@ -50,8 +50,29 @@ func main() {
 		if err := models.SeedDonationPrograms(db); err != nil {
 			log.Fatalf("Failed to seed donation programs: %v", err)
 		}
+		if err := models.SeedDonationTransactions(db); err != nil {
+			log.Fatalf("Failed to seed donation transactions: %v", err)
+		}
+		if err := models.SeedDonationExpenses(db); err != nil {
+			log.Fatalf("Failed to seed donation expenses: %v", err)
+		}
+		if err := models.SeedPrayers(db); err != nil {
+			log.Fatalf("Failed to seed prayers: %v", err)
+		}
 		if err := models.SeedSocialPrograms(db); err != nil {
 			log.Fatalf("Failed to seed social programs: %v", err)
+		}
+		if err := models.SeedSocialProgramSubscriptions(db); err != nil {
+			log.Fatalf("Failed to seed social program subscriptions: %v", err)
+		}
+		if err := models.SeedSocialProgramInvoices(db); err != nil {
+			log.Fatalf("Failed to seed social program invoices: %v", err)
+		}
+		if err := models.SeedSocialProgramTransactions(db); err != nil {
+			log.Fatalf("Failed to seed social program transactions: %v", err)
+		}
+		if err := models.SeedSocialProgramExpenses(db); err != nil {
+			log.Fatalf("Failed to seed social program expenses: %v", err)
 		}
 		if err := models.SeedNews(db); err != nil {
 			log.Fatalf("Failed to seed news: %v", err)
@@ -61,6 +82,24 @@ func main() {
 		}
 		if err := models.SeedFosterChildren(db); err != nil {
 			log.Fatalf("Failed to seed foster children: %v", err)
+		}
+		if err := models.SeedFosterChildrenTransactions(db); err != nil {
+			log.Fatalf("Failed to seed foster children transactions: %v", err)
+		}
+		if err := models.SeedFosterChildrenExpenses(db); err != nil {
+			log.Fatalf("Failed to seed foster children expenses: %v", err)
+		}
+		if err := models.SeedFosterChildrenCandidates(db); err != nil {
+			log.Fatalf("Failed to seed foster children candidates: %v", err)
+		}
+		if err := models.SeedAmbulances(db); err != nil {
+			log.Fatalf("Failed to seed ambulances: %v", err)
+		}
+		if err := models.SeedAmbulanceServiceRequests(db); err != nil {
+			log.Fatalf("Failed to seed ambulance service requests: %v", err)
+		}
+		if err := models.SeedAmbulanceHistories(db); err != nil {
+			log.Fatalf("Failed to seed ambulance histories: %v", err)
 		}
 	}
 

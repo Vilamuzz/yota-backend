@@ -54,3 +54,13 @@ func toDonationTransactionListResponse(transactions []DonationProgramTransaction
 		Pagination:   pagination,
 	}
 }
+
+type TransactionMonthlyIncomeItem struct {
+	Month  string  `json:"month"`
+	Income float64 `json:"income"`
+}
+
+type TransactionMonthlyIncomeRecord struct {
+	DonationProgramID string                         `json:"donationProgramId"`
+	Items             []TransactionMonthlyIncomeItem `json:"items"`
+}

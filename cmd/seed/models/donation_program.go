@@ -45,7 +45,7 @@ func SeedDonationPrograms(db *gorm.DB) error {
 		{
 			ID:          uuid.New(),
 			Title:       "Pembangunan Sumur Air Bersih di Gunung Kidul",
-			CoverImage:  "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?auto=format&fit=crop&w=800&q=80",
+			CoverImage:  "https://plus.unsplash.com/premium_photo-1695914233513-6f9ca230abdb?q=80&w=1470&auto=format&fit=crop&w=800&q=80",
 			Category:    donation_program.CategorySocial,
 			Description: "Penyediaan infrastruktur air bersih berupa pembuatan sumur bor dalam dan instalasi pipanisasi ke rumah-rumah warga yang terdampak kekeringan panjang.",
 			FundTarget:  50000000,
@@ -84,7 +84,7 @@ func SeedDonationPrograms(db *gorm.DB) error {
 		{
 			ID:          uuid.New(),
 			Title:       "Pondok Lansia Sehat & Mandiri",
-			CoverImage:  "https://images.unsplash.com/photo-1508847154043-be12a26c86c1?auto=format&fit=crop&w=800&q=80",
+			CoverImage:  "https://images.unsplash.com/photo-1575467678930-c7acd65d6470?q=80&w=1470&auto=format&fit=crop&w=800&q=80",
 			Category:    donation_program.CategoryHumanity,
 			Description: "Dukungan operasional dan penyediaan layanan kesehatan gratis serta pemenuhan pangan bergizi sehari-hari untuk lansia terlantar agar mereka dapat hidup layak.",
 			FundTarget:  40000000,
@@ -97,7 +97,7 @@ func SeedDonationPrograms(db *gorm.DB) error {
 		{
 			ID:          uuid.New(),
 			Title:       "Perbaikan Jembatan Desa Tertinggal",
-			CoverImage:  "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=800&q=80",
+			CoverImage:  "https://images.unsplash.com/photo-1597859050939-bb2c91a7479e?q=80&w=1470&auto=format&fit=crop&w=800&q=80",
 			Category:    donation_program.CategoryOther,
 			Description: "Renovasi dan pembangunan jembatan penyeberangan sungai desa yang rusak parah agar akses transportasi warga, petani, dan anak sekolah kembali aman.",
 			FundTarget:  45000000,
@@ -110,7 +110,7 @@ func SeedDonationPrograms(db *gorm.DB) error {
 		{
 			ID:          uuid.New(),
 			Title:       "Renovasi Perpustakaan Sekolah Terpencil",
-			CoverImage:  "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=800&q=80",
+			CoverImage:  "https://images.unsplash.com/photo-1660568704661-8f11a707784b?q=80&w=1374&auto=format&fit=crop&w=800&q=80",
 			Category:    donation_program.CategoryEducation,
 			Description: "Merenovasi gedung perpustakaan sekolah yang bocor dan melengkapinya dengan ratusan buku bacaan baru serta meja belajar yang layak bagi siswa.",
 			FundTarget:  25000000,
@@ -123,7 +123,7 @@ func SeedDonationPrograms(db *gorm.DB) error {
 		{
 			ID:          uuid.New(),
 			Title:       "Operasi Katarak Gratis untuk Lansia Kurang Mampu",
-			CoverImage:  "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=800&q=80",
+			CoverImage:  "https://images.unsplash.com/photo-1494869042583-f6c911f04b4c?q=80&w=1470&auto=format&fit=crop&w=800&q=80",
 			Category:    donation_program.CategoryHealth,
 			Description: "Penyelenggaraan operasi katarak gratis bagi lansia yang memiliki gangguan penglihatan namun memiliki keterbatasan ekonomi untuk berobat.",
 			FundTarget:  60000000,
@@ -136,7 +136,7 @@ func SeedDonationPrograms(db *gorm.DB) error {
 		{
 			ID:          uuid.New(),
 			Title:       "Bantuan Sembako untuk Pekerja Harian",
-			CoverImage:  "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?auto=format&fit=crop&w=800&q=80",
+			CoverImage:  "https://images.unsplash.com/photo-1498837167922-ddd27525d352?q=80&w=1470&auto=format&fit=crop&w=800&q=80",
 			Category:    donation_program.CategorySocial,
 			Description: "Penyaluran paket sembako gratis untuk meringankan beban ekonomi keluarga pekerja harian lepas, buruh cuci, dan buruh tani.",
 			FundTarget:  15000000,

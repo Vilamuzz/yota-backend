@@ -281,9 +281,6 @@ func (s *service) DeleteSocialProgramExpense(ctx context.Context, accountID, soc
 		}
 	}
 
-	// Auto-delete finance record (outflow)
-	_ = s.financeRepo.Delete(ctx, socialProgramExpenseID)
-
 	accountID = expense.CreatedBy.String()
 	s.logService.CreateLog(ctx, &accountID, "DELETE", "social_program_expense", socialProgramExpenseID, expense.toSocialProgramExpenseDetailResponse(), nil)
 

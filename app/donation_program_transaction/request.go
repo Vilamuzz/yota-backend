@@ -10,15 +10,14 @@ type CreateDonationProgramTransactionRequest struct {
 }
 
 type DonationProgramTransactionQueryParams struct {
-	Status string `form:"status"`
+	Search    string `form:"search"`
+	Status    string `form:"status"`
+	SortBy    string `form:"sortBy"`    // sort by gross amount, created at
+	StartDate string `form:"startDate"` // optional, format: YYYY-MM-DD
+	EndDate   string `form:"endDate"`   // optional, format: YYYY-MM-DD
 	pkg.PaginationParams
 }
 
-type PrayerQueryParams struct {
-	Reported bool `form:"reported"`
-	pkg.PaginationParams
-}
-
-type ReportPrayerRequest struct {
-	Reason string `json:"reason"`
+type MonthlyIncomeQueryParams struct {
+	Year string `form:"year"`
 }

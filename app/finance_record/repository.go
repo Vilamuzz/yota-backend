@@ -2,6 +2,8 @@ package finance_record
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
@@ -14,8 +16,8 @@ import (
 type Repository interface {
 	Create(ctx context.Context, record *FinanceRecord) error
 	FindAll(ctx context.Context, options map[string]interface{}) ([]FinanceRecord, error)
-	Summary(ctx context.Context) (FinanceRecordSummary, error)
-	Delete(ctx context.Context, id string) error
+	Summary(ctx context.Context, isAdmin bool) (FinanceRecordSummary, error)
+	MonthlyTrend(ctx context.Context, params MonthlyTrendQueryParams) (FinanceMonthlyTrendResponse, error)
 }
 
 type repo struct {
@@ -47,7 +49,7 @@ func (r *repo) FindAll(ctx context.Context, options map[string]interface{}) ([]F
 		order = "created_at DESC, id DESC"
 	}
 
-	query := r.Conn.WithContext(ctx).Order(order).Limit(limit + 1)
+	query := r.Conn.WithContext(ctx).Where("deleted_at IS NULL").Order(order).Limit(limit + 1)
 
 	if options["fund_id"] != "" {
 		query = query.Where("fund_id = ?", options["fund_id"])
@@ -72,7 +74,7 @@ func (r *repo) FindAll(ctx context.Context, options map[string]interface{}) ([]F
 	return records, err
 }
 
-func (r *repo) Summary(ctx context.Context) (FinanceRecordSummary, error) {
+func (r *repo) Summary(ctx context.Context, isAdmin bool) (FinanceRecordSummary, error) {
 	var results []struct {
 		FundType   string
 		SourceType string
@@ -81,6 +83,7 @@ func (r *repo) Summary(ctx context.Context) (FinanceRecordSummary, error) {
 
 	err := r.Conn.WithContext(ctx).
 		Model(&FinanceRecord{}).
+		Where("deleted_at IS NULL").
 		Select("fund_type, source_type, sum(amount) as total").
 		Group("fund_type, source_type").
 		Scan(&results).Error
@@ -116,11 +119,80 @@ func (r *repo) Summary(ctx context.Context) (FinanceRecordSummary, error) {
 			case FundTypeFosterChildren:
 				summary.TotalFosterChildrenExpense = res.Total
 			}
+		} else if isAdmin && res.SourceType == SourceTypeTransaction {
+			switch res.FundType {
+			case FundTypeDonation:
+				summary.TotalDonationProgramIncome = res.Total
+			case FundTypeSocialProgram:
+				summary.TotalSocialProgramIncome = res.Total
+			case FundTypeFosterChildren:
+				summary.TotalFosterChildrenIncome = res.Total
+			}
 		}
 	}
 	return summary, nil
 }
 
-func (r *repo) Delete(ctx context.Context, id string) error {
-	return r.Conn.WithContext(ctx).Where("id = ?", id).Delete(&FinanceRecord{}).Error
+func (r *repo) MonthlyTrend(ctx context.Context, params MonthlyTrendQueryParams) (FinanceMonthlyTrendResponse, error) {
+	var response FinanceMonthlyTrendResponse
+	response.Module = params.Module
+
+	year := params.Year
+	if year <= 0 {
+		year = time.Now().Year()
+	}
+
+	type dbMonthlyTrend struct {
+		MonthNum int     `gorm:"column:month_num"`
+		Income   float64 `gorm:"column:income"`
+		Expense  float64 `gorm:"column:expense"`
+	}
+
+	var dbResults []dbMonthlyTrend
+
+	query := r.Conn.WithContext(ctx).
+		Model(&FinanceRecord{}).
+		Where("deleted_at IS NULL").
+		Select("CAST(EXTRACT(MONTH FROM transaction_date) AS INTEGER) as month_num, "+
+			"SUM(CASE WHEN source_type = ? THEN amount ELSE 0 END) as income, "+
+			"SUM(CASE WHEN source_type = ? THEN amount ELSE 0 END) as expense",
+			SourceTypeTransaction, SourceTypeExpense).
+		Where("EXTRACT(YEAR FROM transaction_date) = ?", year)
+
+	if params.Module != "" {
+		query = query.Where("fund_type = ?", params.Module)
+	}
+
+	err := query.
+		Group("month_num").
+		Order("month_num ASC").
+		Scan(&dbResults).Error
+
+	if err != nil {
+		return response, err
+	}
+
+	dbMap := make(map[int]dbMonthlyTrend)
+	for _, res := range dbResults {
+		dbMap[res.MonthNum] = res
+	}
+
+	response.Items = make([]FinanceMonthlyTrendItem, 12)
+	for i := 1; i <= 12; i++ {
+		monthStr := fmt.Sprintf("%d-%02d", year, i)
+		item := FinanceMonthlyTrendItem{
+			Month:   monthStr,
+			Income:  0,
+			Expense: 0,
+		}
+
+		if dbRes, exists := dbMap[i]; exists {
+			item.Income = dbRes.Income
+			item.Expense = dbRes.Expense
+		}
+
+		response.Items[i-1] = item
+	}
+
+	return response, nil
 }

@@ -23,7 +23,8 @@ type Service interface {
 	GetDonationProgramExpenseByID(ctx context.Context, donationProgramExpenseID string) pkg.Response
 	CreateDonationProgramExpense(ctx context.Context, accountID, donationProgramID string, payload *DonationProgramExpenseRequest) pkg.Response
 	DeleteDonationProgramExpense(ctx context.Context, accountID, donationProgramExpenseID string) pkg.Response
-	ExportDonationProgramExpenseCSV(ctx context.Context, donationProgramSlug string, params DonationProgramExpenseExportParams) ([]byte, string, error)
+	ExportDonationProgramExpenseCSV(ctx context.Context, donationProgramIdentifier string, params DonationProgramExpenseQueryParams) ([]byte, string, error)
+	GetDonationExpenseMonthlyExpense(ctx context.Context, donationProgramID string, params MonthlyExpenseQueryParams) pkg.Response
 }
 
 type service struct {
@@ -263,11 +264,18 @@ func (s *service) CreateDonationProgramExpense(ctx context.Context, accountID, d
 	return pkg.NewResponse(http.StatusCreated, "Pengeluaran berhasil dibuat", nil, nil)
 }
 
-func (s *service) ExportDonationProgramExpenseCSV(ctx context.Context, donationProgramSlug string, params DonationProgramExpenseExportParams) ([]byte, string, error) {
+func (s *service) ExportDonationProgramExpenseCSV(ctx context.Context, donationProgramIdentifier string, params DonationProgramExpenseQueryParams) ([]byte, string, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	program, err := s.donationRepo.FindOneDonationProgram(ctx, map[string]interface{}{"slug": donationProgramSlug})
+	filter := map[string]interface{}{}
+	if err := uuid.Validate(donationProgramIdentifier); err == nil {
+		filter["id"] = donationProgramIdentifier
+	} else {
+		filter["slug"] = donationProgramIdentifier
+	}
+
+	program, err := s.donationRepo.FindOneDonationProgram(ctx, filter)
 	if err != nil {
 		return nil, "", fmt.Errorf("program donasi tidak ditemukan")
 	}
@@ -362,4 +370,33 @@ func (s *service) DeleteDonationProgramExpense(ctx context.Context, accountID, d
 	s.logService.CreateLog(ctx, &accountID, "DELETE", "donation_program_expense", donationProgramExpenseID, expense.toDonationProgramExpenseDetailResponse(), nil)
 
 	return pkg.NewResponse(http.StatusOK, "Pengeluaran berhasil dihapus", nil, nil)
+}
+
+func (s *service) GetDonationExpenseMonthlyExpense(ctx context.Context, donationProgramID string, params MonthlyExpenseQueryParams) pkg.Response {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	if err := uuid.Validate(donationProgramID); err != nil {
+		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID program donasi tidak valid"}, nil)
+	}
+
+	yearVal := time.Now().Year()
+	if params.Year != "" {
+		var parseYear int
+		if _, err := fmt.Sscanf(params.Year, "%d", &parseYear); err == nil && parseYear > 0 {
+			yearVal = parseYear
+		}
+	}
+
+	expenseRecord, err := s.repo.GetMonthlyExpenseByProgram(ctx, donationProgramID, yearVal)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":           "donation_program_expense.service",
+			"donation_program_id": donationProgramID,
+		}).WithError(err).Error("failed to get monthly expense")
+
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data pengeluaran bulanan", nil, nil)
+	}
+
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, expenseRecord)
 }

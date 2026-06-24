@@ -22,7 +22,6 @@ type DonationProgramExpenseQueryParams struct {
 	pkg.PaginationParams
 }
 
-type DonationProgramExpenseExportParams struct {
-	StartDate string `form:"startDate"` // optional, format: YYYY-MM-DD
-	EndDate   string `form:"endDate"`   // optional, format: YYYY-MM-DD
+type MonthlyExpenseQueryParams struct {
+	Year string `form:"year"`
 }

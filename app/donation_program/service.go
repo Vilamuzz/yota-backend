@@ -71,12 +71,20 @@ func (s *service) GetDonationProgramList(ctx context.Context, params DonationPro
 
 	if !isAdmin {
 		if params.Status != "" {
-			options["status"] = params.Status
+			if params.Status.IsValid() && params.Status != StatusDraft && params.Status != StatusArchived {
+				options["status"] = params.Status
+			} else {
+				return pkg.NewResponse(http.StatusBadRequest, "Status tidak valid", nil, nil)
+			}
 		} else {
-			options["status"] = []string{string(StatusActive), string(StatusExpired), string(StatusCompleted)}
+			options["status"] = []Status{StatusActive, StatusExpired, StatusCompleted}
 		}
 	} else if params.Status != "" {
-		options["status"] = params.Status
+		if params.Status.IsValid() {
+			options["status"] = params.Status
+		} else {
+			return pkg.NewResponse(http.StatusBadRequest, "Status tidak valid", nil, nil)
+		}
 	}
 
 	total, err := s.repo.CountDonationPrograms(ctx, options)

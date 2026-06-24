@@ -32,9 +32,8 @@ type RejectAmbulanceServiceRequest struct {
 	RejectionReason string `json:"rejectionReason"`
 }
 
-type UpdateAmbulanceServiceRequest struct {
-	Status          string `json:"status"`
-	RejectionReason string `json:"rejectionReason"`
+type CancelAmbulanceServiceRequestPayload struct {
+	CancelationReason string `json:"cancelationReason"`
 }
 
 type AmbulanceServiceRequestQueryParams struct {

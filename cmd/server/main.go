@@ -6,11 +6,13 @@ import (
 
 	"github.com/Vilamuzz/yota-backend/internal/app"
 	"github.com/Vilamuzz/yota-backend/pkg/oauth"
+	s3_pkg "github.com/Vilamuzz/yota-backend/pkg/s3"
 	"github.com/joho/godotenv"
 )
 
 func init() {
 	_ = godotenv.Load()
+	s3_pkg.InitCDN()
 }
 
 // @securityDefinitions.apikey	BearerAuth

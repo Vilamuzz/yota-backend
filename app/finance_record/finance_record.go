@@ -4,7 +4,7 @@ import "time"
 
 // FundType identifies what fund the record belongs to
 const (
-	FundTypeDonation       = "donation"
+	FundTypeDonation       = "donation_program"
 	FundTypeFosterChildren = "foster_children"
 	FundTypeSocialProgram  = "social_program"
 )
