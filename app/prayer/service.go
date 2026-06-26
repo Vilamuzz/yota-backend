@@ -101,10 +101,6 @@ func (s *service) CreateReportPrayer(ctx context.Context, prayerID, accountID st
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menemukan doa", nil, nil)
 	}
 
-	if prayer.Reported != nil && !*prayer.Reported {
-		return pkg.NewResponse(http.StatusOK, "Doa berhasil dilaporkan", nil, nil)
-	}
-
 	_, err = s.repo.FindReport(ctx, map[string]interface{}{
 		"prayer_id":  prayerID,
 		"account_id": accountID,
