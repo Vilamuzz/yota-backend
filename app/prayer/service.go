@@ -93,7 +93,8 @@ func (s *service) CreateReportPrayer(ctx context.Context, prayerID, accountID st
 	if err := uuid.Validate(accountID); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"account_id": "Format ID akun tidak valid"}, nil)
 	}
-	prayer, err := s.repo.FindOnePrayer(ctx, map[string]interface{}{"id": prayerID})
+
+	_, err := s.repo.FindOnePrayer(ctx, map[string]interface{}{"id": prayerID})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return pkg.NewResponse(http.StatusNotFound, "Doa tidak ditemukan", nil, nil)
