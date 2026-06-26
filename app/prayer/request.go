@@ -7,6 +7,3 @@ type PrayerQueryParams struct {
 	Limit        int    `form:"limit"`
 	SortBy       string `form:"sortBy"`
 }
-
-type ReportPrayerRequest struct {
-}

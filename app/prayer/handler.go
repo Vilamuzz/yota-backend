@@ -69,20 +69,14 @@ func (h *handler) CreateAmenPrayer(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path string true "Prayer ID"
-// @Param body body ReportPrayerRequest true "Report Prayer Payload"
 // @Success 200 {object} pkg.Response
 // @Router /api/prayers/{id}/report [post]
 func (h *handler) CreateReportPrayer(c *gin.Context) {
 	ctx := c.Request.Context()
 	claims := c.MustGet("user_data").(jwt_pkg.UserJWTClaims)
 	accountID := claims.AccountID
-	var payload ReportPrayerRequest
-	if err := c.ShouldBindJSON(&payload); err != nil {
-		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, "Invalid request body", nil, nil))
-		return
-	}
 	prayerID := c.Param("id")
-	res := h.service.CreateReportPrayer(ctx, prayerID, accountID, payload)
+	res := h.service.CreateReportPrayer(ctx, prayerID, accountID)
 	c.JSON(res.Status, res)
 }
 

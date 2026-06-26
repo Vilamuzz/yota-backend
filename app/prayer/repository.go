@@ -41,6 +41,10 @@ func (r *repository) FindOnePrayer(ctx context.Context, options map[string]inter
 		delete(options, "account_id")
 	}
 
+	if _, ok := options["donation_program_transaction_id"]; !ok {
+		query = query.Where("prayers.is_published = ?", true)
+	}
+
 	if err := query.Where(options).First(&prayer).Error; err != nil {
 		return nil, err
 	}
@@ -58,7 +62,7 @@ var allowedPrayerSortColumns = map[string]string{
 
 func (r *repository) FindAllPrayers(ctx context.Context, options map[string]interface{}) ([]Prayer, error) {
 	var prayers []Prayer
-	query := r.Conn.WithContext(ctx).Preload("DonationProgramTransaction")
+	query := r.Conn.WithContext(ctx).Preload("DonationProgramTransaction").Where("prayers.is_published = ?", true)
 
 	if donationProgramID, ok := options["donation_program_id"]; ok {
 		query = query.Joins("JOIN donation_program_transactions ON donation_program_transactions.id = prayers.donation_program_transaction_id").
@@ -115,7 +119,7 @@ func (r *repository) FindAllPrayers(ctx context.Context, options map[string]inte
 
 func (r *repository) CountPrayers(ctx context.Context, options map[string]interface{}) (int64, error) {
 	var total int64
-	query := r.Conn.WithContext(ctx).Model(&Prayer{})
+	query := r.Conn.WithContext(ctx).Model(&Prayer{}).Where("prayers.is_published = ?", true)
 
 	if donationProgramID, ok := options["donation_program_id"]; ok {
 		query = query.Joins("JOIN donation_program_transactions ON donation_program_transactions.id = prayers.donation_program_transaction_id").

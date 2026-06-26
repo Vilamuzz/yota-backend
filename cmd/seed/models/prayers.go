@@ -19,7 +19,7 @@ func SeedPrayers(db *gorm.DB) error {
 	}
 
 	prayerContents := []string{
-		"Semoga bantuan ini bermanfaat dan membawa berkah bagi sesama. Aamiin.",
+		"Semoga bantuan ini bermanfaat dan membawa berkah bagi sesama. Amin.",
 		"Semoga berkah, berkah untuk donatur, berkah untuk penerima manfaat.",
 		"Semoga lekas sembuh untuk adik-adik yang sedang berjuang melawan penyakit.",
 		"Bismillah, semoga dilancarkan segala urusan bagi kita semua.",

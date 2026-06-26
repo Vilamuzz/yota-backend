@@ -17,7 +17,7 @@ type Service interface {
 	GetPrayerByID(ctx context.Context, prayerID, accountID string) pkg.Response
 	DeletePrayer(ctx context.Context, prayerID string) pkg.Response
 	CreatePrayerAmen(ctx context.Context, prayerID, accountID string) pkg.Response
-	CreateReportPrayer(ctx context.Context, prayerID, accountID string, payload ReportPrayerRequest) pkg.Response
+	CreateReportPrayer(ctx context.Context, prayerID, accountID string) pkg.Response
 	AllowPrayer(ctx context.Context, prayerID string) pkg.Response
 }
 
@@ -61,7 +61,7 @@ func (s *service) CreatePrayerAmen(ctx context.Context, prayerID, accountID stri
 	}
 
 	if rowsAffected > 0 {
-		return pkg.NewResponse(http.StatusOK, "Aamiin berhasil dihapus", nil, map[string]interface{}{
+		return pkg.NewResponse(http.StatusOK, "Amin berhasil dihapus", nil, map[string]interface{}{
 			"isAmen": false,
 		})
 	}
@@ -76,14 +76,14 @@ func (s *service) CreatePrayerAmen(ctx context.Context, prayerID, accountID stri
 			"prayer_id":  prayerID,
 			"account_id": accountID,
 		}).WithError(err).Error("failed to create amen")
-		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menambahkan Aamiin", nil, nil)
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menambahkan Amin", nil, nil)
 	}
-	return pkg.NewResponse(http.StatusOK, "Aamiin berhasil ditambahkan", nil, map[string]interface{}{
+	return pkg.NewResponse(http.StatusOK, "Amin berhasil ditambahkan", nil, map[string]interface{}{
 		"isAmen": true,
 	})
 }
 
-func (s *service) CreateReportPrayer(ctx context.Context, prayerID, accountID string, payload ReportPrayerRequest) pkg.Response {
+func (s *service) CreateReportPrayer(ctx context.Context, prayerID, accountID string) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
