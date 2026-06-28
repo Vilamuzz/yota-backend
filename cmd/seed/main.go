@@ -122,7 +122,7 @@ func seedSuperAdmin(db *gorm.DB) error {
 		UpdatedAt:     time.Now(),
 		UserProfile: account.UserProfile{
 			ID:        uuid.New(),
-			Username:  "superadmin",
+			Username:  "Isna Nur Laily",
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},

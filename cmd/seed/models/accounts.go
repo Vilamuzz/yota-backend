@@ -30,20 +30,20 @@ func SeedMockUsers(db *gorm.DB) error {
 	}
 
 	users := []seedUser{
-		{"chairman", "chairman@yota.com", 2, true, true},
-		{"social_manager", "social@yota.com", 3, true, true},
-		{"finance", "finance@yota.com", 4, true, true},
-		{"ambulance_manager", "ambulance@yota.com", 5, true, true},
-		{"publication_manager", "publication@yota.com", 6, true, true},
-		{"user1", "user1@yota.com", 1, true, true},
-		{"user2", "user2@yota.com", 1, true, true},
-		{"user3", "user3@yota.com", 1, true, false},
-		{"banned_user", "banned@yota.com", 1, false, true},
-		{"driver1", "driver1@yota.com", 7, true, true},
-		{"driver2", "driver2@yota.com", 7, true, true},
-		{"driver3", "driver3@yota.com", 7, true, true},
-		{"driver4", "driver4@yota.com", 7, true, true},
-		{"driver5", "driver5@yota.com", 7, true, true},
+		{"Mulyadi Dwi Haryanto", "chairman@yota.com", 2, true, true},
+		{"Muhammad Sugiyanto", "social@yota.com", 3, true, true},
+		{"Yulianti Ulfa", "finance@yota.com", 4, true, true},
+		{"Rahman Yulianto", "ambulance@yota.com", 5, true, true},
+		{"Ilham Wijaya", "publication@yota.com", 6, true, true},
+		{"Andy", "user1@yota.com", 1, true, true},
+		{"Laras", "user2@yota.com", 1, true, true},
+		{"Aulia", "user3@yota.com", 1, true, false},
+		{"Budi", "banned@yota.com", 1, false, true},
+		{"Nico Avianto", "driver1@yota.com", 7, true, true},
+		{"Paskah Wahyu", "driver2@yota.com", 7, true, true},
+		{"Maulana Ilham", "driver3@yota.com", 7, true, true},
+		{"Eka Dwi Saputra", "driver4@yota.com", 7, true, true},
+		{"Ammar", "driver5@yota.com", 7, true, true},
 	}
 
 	for _, u := range users {
