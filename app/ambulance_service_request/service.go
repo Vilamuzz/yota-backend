@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/Vilamuzz/yota-backend/app/ambulance"
@@ -175,7 +177,7 @@ func (s *service) ListAssignedAmbulanceServiceRequests(ctx context.Context, driv
 	ambulanceRecord, err := s.ambulanceRepo.FindOneAmbulance(ctx, map[string]interface{}{"driver_id": driverAccountID})
 	if err != nil {
 		if err.Error() == gorm.ErrRecordNotFound.Error() {
-			return pkg.NewResponse(http.StatusNotFound, "Tidak ada ambulans yang ditugaskan ke supir ini", nil, nil)
+			return pkg.NewResponse(http.StatusOK, "Tidak ada ambulans yang ditugaskan pada supir ini", nil, []AmbulanceServiceRequestResponse{})
 		}
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menemukan ambulans supir ini", nil, nil)
 	}
@@ -283,30 +285,29 @@ func (s *service) CreateAmbulanceServiceRequest(ctx context.Context, payload Cre
 	defer cancel()
 
 	errValidation := make(map[string]string)
-	if payload.SubmitterName == "" {
-		errValidation["submitterName"] = "Nama pengirim wajib diisi"
+
+	isEmergency := payload.ServiceCategory == string(ambulance_history.EmergencyService)
+	isSocial := payload.ServiceCategory == string(ambulance_history.SocialService)
+	isMortuary := payload.ServiceCategory == string(ambulance_history.MortuaryService)
+
+	if strings.TrimSpace(payload.SubmitterName) == "" {
+		errValidation["submitterName"] = "Nama pengaju wajib diisi"
 	}
-	if payload.SubmitterPhone == "" {
-		errValidation["submitterPhone"] = "Nomor telepon pengirim wajib diisi"
+
+	phoneTrim := strings.TrimSpace(payload.SubmitterPhone)
+	if phoneTrim == "" {
+		errValidation["submitterPhone"] = "Nomor telepon pengaju wajib diisi"
+	} else {
+		matched, _ := regexp.MatchString("^[0-9]{8,15}$", phoneTrim)
+		if !matched {
+			errValidation["submitterPhone"] = "Nomor telepon tidak valid"
+		}
 	}
+
 	if payload.SubmitterIDCard == nil {
-		errValidation["submitterIdCard"] = "KTP pengirim wajib diisi"
+		errValidation["submitterIdCard"] = "Unggah foto KTP pengaju wajib diisi"
 	}
-	if payload.PatientName == "" {
-		errValidation["patientName"] = "Nama pasien wajib diisi"
-	}
-	if payload.PatientAddress == "" {
-		errValidation["patientAddress"] = "Alamat pasien wajib diisi"
-	}
-	if payload.PickupDate == "" {
-		errValidation["pickupDate"] = "Tanggal penjemputan wajib diisi"
-	}
-	if payload.PickupTime == "" {
-		errValidation["pickupTime"] = "Jam penjemputan wajib diisi"
-	}
-	if payload.Destination == "" {
-		errValidation["destination"] = "Tujuan wajib diisi"
-	}
+
 	if payload.ServiceCategory == "" {
 		errValidation["serviceCategory"] = "Kategori layanan wajib diisi"
 	} else {
@@ -319,8 +320,68 @@ func (s *service) CreateAmbulanceServiceRequest(ctx context.Context, payload Cre
 			errValidation["serviceCategory"] = "Kategori layanan tidak valid"
 		}
 	}
+
+	if !isEmergency && strings.TrimSpace(payload.PatientName) == "" {
+		if isSocial {
+			errValidation["patientName"] = "Nama lembaga wajib diisi"
+		} else if isMortuary {
+			errValidation["patientName"] = "Nama almarhum wajib diisi"
+		} else {
+			errValidation["patientName"] = "Nama pasien wajib diisi"
+		}
+	}
+
+	if isEmergency && strings.TrimSpace(payload.PatientAddress) == "" {
+		errValidation["patientAddress"] = "Alamat penjemputan wajib diisi"
+	}
+
+	if !isEmergency && strings.TrimSpace(payload.PickupDate) == "" {
+		if isSocial {
+			errValidation["pickupDate"] = "Tanggal acara wajib diisi"
+		} else {
+			errValidation["pickupDate"] = "Tanggal penjemputan wajib diisi"
+		}
+	}
+
+	if !isEmergency && strings.TrimSpace(payload.PickupTime) == "" {
+		if isSocial {
+			errValidation["pickupTime"] = "Waktu acara wajib diisi"
+		} else {
+			errValidation["pickupTime"] = "Waktu penjemputan wajib diisi"
+		}
+	}
+
+	if !isSocial && !isEmergency && strings.TrimSpace(payload.Destination) == "" {
+		errValidation["destination"] = "Tujuan wajib diisi"
+	}
+
+	if isSocial && strings.TrimSpace(payload.Note) == "" {
+		errValidation["note"] = "Detail acara wajib diisi untuk menjelaskan acara"
+	}
+
 	if len(errValidation) > 0 {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
+	}
+
+	patientAge := payload.PatientAge
+	if isSocial || isEmergency {
+		patientAge = 0
+	}
+
+	destination := payload.Destination
+	if isSocial {
+		destination = "Layanan Sosial / Acara"
+	} else if isEmergency {
+		destination = "Layanan Darurat"
+	}
+
+	if isEmergency {
+		if payload.PickupDate == "" {
+			payload.PickupDate = time.Now().Format("2006-01-02")
+		}
+		if payload.PickupTime == "" {
+			payload.PickupTime = time.Now().Format("15:04")
+		}
 	}
 
 	pickupDate, err := time.Parse("2006-01-02", payload.PickupDate)
@@ -345,13 +406,13 @@ func (s *service) CreateAmbulanceServiceRequest(ctx context.Context, payload Cre
 		SubmitterIDCard: submitterIDCardURL,
 		PatientName:     payload.PatientName,
 		PatientAddress:  payload.PatientAddress,
-		PatientAge:      payload.PatientAge,
+		PatientAge:      patientAge,
 		IsInfectious:    payload.IsInfectious,
 		Disease:         payload.Disease,
 		IsAbleToSit:     payload.IsAbleToSit,
 		PickupDate:      pickupDate,
 		PickupTime:      pickupTime,
-		Destination:     payload.Destination,
+		Destination:     destination,
 		Note:            payload.Note,
 		Status:          StatusPending,
 		ServiceCategory: ambulance_history.ServiceCategory(payload.ServiceCategory),
@@ -619,6 +680,17 @@ func (s *service) StartAmbulanceServiceRequest(ctx context.Context, driverAccoun
 
 	if existing.Status != StatusAccepted {
 		return pkg.NewResponse(http.StatusBadRequest, "Hanya permintaan dengan status disetujui yang dapat dimulai", nil, nil)
+	}
+
+	activeRequests, err := s.repo.FindAll(ctx, map[string]interface{}{
+		"ambulance_id": ambulanceRecord.ID.String(),
+		"status":       string(StatusInService),
+	})
+	if err != nil {
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memverifikasi status permintaan aktif", nil, nil)
+	}
+	if len(activeRequests) > 0 {
+		return pkg.NewResponse(http.StatusBadRequest, "Supir masih memiliki permintaan aktif yang belum diselesaikan", nil, nil)
 	}
 
 	updateData := map[string]interface{}{
