@@ -24,8 +24,8 @@ func NewHandler(r *gin.RouterGroup, s Service, m middleware.AppMiddleware) {
 
 func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	r.GET("/finance-records/summary", h.SummaryFinanceRecord)
-	r.GET("/admin/finance-records/summary", h.middleware.RequireRoles(enum.RoleFinance), h.AdminSummaryFinanceRecord)
-	r.GET("/admin/finance-records/monthly-trend", h.middleware.RequireRoles(enum.RoleFinance), h.MonthlyTrend)
+	r.GET("/admin/finance-records/summary", h.middleware.RequireRoles(enum.RoleFinance, enum.RoleSocialManager), h.AdminSummaryFinanceRecord)
+	r.GET("/admin/finance-records/monthly-trend", h.middleware.RequireRoles(enum.RoleFinance, enum.RoleSocialManager), h.MonthlyTrend)
 }
 
 func (h *handler) SummaryFinanceRecord(c *gin.Context) {
