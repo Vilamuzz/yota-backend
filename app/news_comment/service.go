@@ -106,6 +106,8 @@ func (s *service) CreateNewsComment(ctx context.Context, newsSlug, accountID str
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	payload.Content = pkg.SanitizeStrict(payload.Content)
+
 	if err := uuid.Validate(accountID); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"account_id": "Format ID akun tidak valid"}, nil)
 	}
@@ -211,6 +213,7 @@ func (s *service) GetNewsCommentList(ctx context.Context, isAdmin bool, params N
 
 	if isAdmin {
 		options["reported"] = true
+		options["sort_by"] = "report_count desc"
 	}
 
 	if params.NewsSlug != "" {

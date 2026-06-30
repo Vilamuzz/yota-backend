@@ -62,6 +62,8 @@ definitions:
     properties:
       address:
         type: string
+      createdAt:
+        type: string
       email:
         type: string
       id:
@@ -77,6 +79,13 @@ definitions:
       username:
         type: string
     type: object
+  app_ambulance_history.CategoryCount:
+    properties:
+      category:
+        $ref: '#/definitions/app_ambulance_history.ServiceCategory'
+      count:
+        type: integer
+    type: object
   app_ambulance_history.CreateAmbulanceHistoryRequest:
     properties:
       ambulanceId:
@@ -87,6 +96,30 @@ definitions:
         type: string
       serviceCategory:
         $ref: '#/definitions/app_ambulance_history.ServiceCategory'
+    type: object
+  app_ambulance_history.HistoryMonthlyTrendItem:
+    properties:
+      emergencyService:
+        type: integer
+      month:
+        type: string
+      mortuaryService:
+        type: integer
+      otherService:
+        type: integer
+      patientService:
+        type: integer
+      socialService:
+        type: integer
+    type: object
+  app_ambulance_history.HistoryMonthlyTrendRecord:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/app_ambulance_history.HistoryMonthlyTrendItem'
+        type: array
+      year:
+        type: string
     type: object
   app_ambulance_history.ServiceCategory:
     enum:
@@ -102,8 +135,23 @@ definitions:
     - PatientService
     - EmergencyService
     - OtherService
+  app_ambulance_history.SummaryResponse:
+    properties:
+      categories:
+        items:
+          $ref: '#/definitions/app_ambulance_history.CategoryCount'
+        type: array
+      endDate:
+        type: string
+      startDate:
+        type: string
+      total:
+        type: integer
+    type: object
   app_ambulance_history.UpdateAmbulanceHistoryRequest:
     properties:
+      note:
+        type: string
       serviceCategory:
         $ref: '#/definitions/app_ambulance_history.ServiceCategory'
     type: object
@@ -112,21 +160,9 @@ definitions:
       ambulanceId:
         type: string
     type: object
-  app_ambulance_service_request.CreateAmbulanceServiceRequest:
+  app_ambulance_service_request.CancelAmbulanceServiceRequestPayload:
     properties:
-      accountId:
-        type: string
-      applicantAddress:
-        type: string
-      applicantName:
-        type: string
-      applicantPhone:
-        type: string
-      requestDate:
-        type: string
-      requestReason:
-        type: string
-      serviceCategory:
+      cancelationReason:
         type: string
     type: object
   app_ambulance_service_request.RejectAmbulanceServiceRequest:
@@ -177,6 +213,22 @@ definitions:
       token:
         type: string
     type: object
+  app_donation_program_expense.MonthlyExpenseRecord:
+    properties:
+      donationProgramId:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/app_donation_program_expense.MonthlyExpenseResponse'
+        type: array
+    type: object
+  app_donation_program_expense.MonthlyExpenseResponse:
+    properties:
+      expense:
+        type: number
+      month:
+        type: string
+    type: object
   app_donation_program_transaction.CreateDonationProgramTransactionRequest:
     properties:
       donorEmail:
@@ -221,6 +273,22 @@ definitions:
         type: string
       transactionStatus:
         type: string
+    type: object
+  app_donation_program_transaction.TransactionMonthlyIncomeItem:
+    properties:
+      income:
+        type: number
+      month:
+        type: string
+    type: object
+  app_donation_program_transaction.TransactionMonthlyIncomeRecord:
+    properties:
+      donationProgramId:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/app_donation_program_transaction.TransactionMonthlyIncomeItem'
+        type: array
     type: object
   app_foster_children.Category:
     enum:
@@ -472,7 +540,7 @@ definitions:
           $ref: '#/definitions/app_news_comment.AdminNewsCommentResponse'
         type: array
       pagination:
-        $ref: '#/definitions/pkg.CursorPagination'
+        $ref: '#/definitions/pkg.OffsetPagination'
     type: object
   app_news_comment.AdminNewsCommentResponse:
     properties:
@@ -487,6 +555,13 @@ definitions:
       username:
         type: string
     type: object
+  app_news_comment.CreateNewsCommentRequest:
+    properties:
+      content:
+        type: string
+      parentCommentId:
+        type: string
+    type: object
   app_news_comment.NewsCommentListResponse:
     properties:
       comments:
@@ -494,7 +569,7 @@ definitions:
           $ref: '#/definitions/app_news_comment.NewsCommentResponse'
         type: array
       pagination:
-        $ref: '#/definitions/pkg.CursorPagination'
+        $ref: '#/definitions/pkg.OffsetPagination'
     type: object
   app_news_comment.NewsCommentResponse:
     properties:
@@ -512,14 +587,11 @@ definitions:
         type: string
     type: object
   app_news_comment.ReportNewsCommentRequest:
-    properties:
-      reason:
-        type: string
     type: object
   app_prayer.PrayerListResponse:
     properties:
       pagination:
-        $ref: '#/definitions/pkg.CursorPagination'
+        $ref: '#/definitions/pkg.OffsetPagination'
       prayers:
         items:
           $ref: '#/definitions/app_prayer.PrayerResponse'
@@ -538,11 +610,6 @@ definitions:
       isAmen:
         type: boolean
       username:
-        type: string
-    type: object
-  app_prayer.ReportPrayerRequest:
-    properties:
-      reason:
         type: string
     type: object
   app_social_program.RejectSocialProgramRequest:
@@ -647,6 +714,16 @@ definitions:
     - MediaStatusDraft
     - MediaStatusPublished
     - MediaStatusArchived
+  multipart.FileHeader:
+    properties:
+      filename:
+        type: string
+      header:
+        $ref: '#/definitions/textproto.MIMEHeader'
+      size:
+        format: int64
+        type: integer
+    type: object
   pkg.CursorPagination:
     properties:
       limit:
@@ -679,9 +756,260 @@ definitions:
           type: string
         type: object
     type: object
+  textproto.MIMEHeader:
+    additionalProperties:
+      items:
+        type: string
+      type: array
+    type: object
 info:
   contact: {}
 paths:
+  /admin/ambulances/history/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of ambulance history records with pagination for admin
+      parameters:
+      - description: Ambulance ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Filter by service category
+        in: query
+        name: service_category
+        type: string
+      - description: Number of items to return
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for next page
+        in: query
+        name: next_cursor
+        type: string
+      - description: Cursor for previous page
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List ambulance history for admin
+      tags:
+      - Ambulance History
+  /admin/ambulances/history/driver:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of ambulance history records with pagination for driver
+      parameters:
+      - description: Filter by service category
+        in: query
+        name: service_category
+        type: string
+      - description: Number of items to return
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for next page
+        in: query
+        name: next_cursor
+        type: string
+      - description: Cursor for previous page
+        in: query
+        name: prev_cursor
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List ambulance history for driver
+      tags:
+      - Ambulance History
+  /admin/ambulances/history/driver/monthly-trend:
+    get:
+      description: Retrieve aggregated monthly trend of ambulance history for a given
+        year for the authenticated driver.
+      parameters:
+      - description: Filter by year
+        in: query
+        name: year
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/app_ambulance_history.HistoryMonthlyTrendRecord'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get driver's own ambulance history monthly trend
+      tags:
+      - Ambulance History
+  /admin/ambulances/history/driver/summary:
+    get:
+      consumes:
+      - application/json
+      description: Returns total service counts grouped by category for the authenticated
+        driver.
+      parameters:
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: startDate
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: endDate
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/app_ambulance_history.SummaryResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get driver's own ambulance history summary
+      tags:
+      - Ambulance History
+  /admin/ambulances/history/monthly-trend:
+    get:
+      description: Retrieve aggregated monthly trend of ambulance history (social_service,
+        mortuary_service, patient_service, emergency_service, other_service) for a
+        given year (admin only)
+      parameters:
+      - description: Filter by year
+        in: query
+        name: year
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/app_ambulance_history.HistoryMonthlyTrendRecord'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get ambulance history monthly trend
+      tags:
+      - Ambulance History
+  /admin/ambulances/history/summary:
+    get:
+      consumes:
+      - application/json
+      description: Returns total service counts grouped by category for all ambulances.
+      parameters:
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: startDate
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: endDate
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/app_ambulance_history.SummaryResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get all ambulance history summary for admin
+      tags:
+      - Ambulance History
   /admin/ambulances/requests/{id}/accept:
     patch:
       consumes:
@@ -766,7 +1094,53 @@ paths:
       summary: List assigned ambulance requests (driver)
       tags:
       - Ambulance Service Requests
-  /admin/ambulances/requests/assigned/{ambulanceId}/detail/{id}:
+  /admin/ambulances/requests/assigned/{id}/cancel:
+    patch:
+      consumes:
+      - application/json
+      description: Cancel an ambulance service request assigned to the authenticated
+        driver with a cancellation reason.
+      parameters:
+      - description: Ambulance Request ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Cancellation Reason
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/app_ambulance_service_request.CancelAmbulanceServiceRequestPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Cancel assigned ambulance service request (driver)
+      tags:
+      - Ambulance Service Requests
+  /admin/ambulances/requests/assigned/detail/{id}:
     get:
       consumes:
       - application/json
@@ -1141,15 +1515,56 @@ paths:
       - Ambulance Service Requests
     post:
       consumes:
-      - application/json
+      - multipart/form-data
       description: Create a new ambulance service request with the provided details
       parameters:
-      - description: Ambulance service request details
-        in: body
-        name: ambulance_service_request
+      - in: formData
+        name: '-'
+        type: string
+      - in: formData
+        name: destination
+        type: string
+      - in: formData
+        name: disease
+        type: string
+      - in: formData
+        name: isAbleToSit
+        type: boolean
+      - in: formData
+        name: isInfectious
+        type: boolean
+      - in: formData
+        name: note
+        type: string
+      - in: formData
+        name: patientAddress
+        type: string
+      - in: formData
+        name: patientAge
+        type: integer
+      - in: formData
+        name: patientName
+        type: string
+      - in: formData
+        name: pickupDate
+        type: string
+      - in: formData
+        name: pickupTime
+        type: string
+      - in: formData
+        name: serviceCategory
+        type: string
+      - in: formData
+        name: submitterName
+        type: string
+      - in: formData
+        name: submitterPhone
+        type: string
+      - description: Submitter ID Card Image
+        in: formData
+        name: submitterIdCard
         required: true
-        schema:
-          $ref: '#/definitions/app_ambulance_service_request.CreateAmbulanceServiceRequest'
+        type: file
       produces:
       - application/json
       responses:
@@ -1704,6 +2119,134 @@ paths:
       summary: Update an existing ambulance
       tags:
       - Ambulances
+  /api/admin/backups:
+    get:
+      description: List all database backups stored in database metadata
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: List all backups
+      tags:
+      - Backup
+    post:
+      description: Create an immediate backup of the database and store in S3 and
+        register in metadata db
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create database backup
+      tags:
+      - Backup
+  /api/admin/backups/{id}:
+    delete:
+      description: Delete a backup from S3 and metadata database
+      parameters:
+      - description: Backup ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete backup
+      tags:
+      - Backup
+  /api/admin/backups/{id}/download:
+    get:
+      description: Get presigned URL for downloading a backup
+      parameters:
+      - description: Backup ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Get backup download URL
+      tags:
+      - Backup
+  /api/admin/backups/cleanup:
+    post:
+      description: Manually trigger cleanup of backups older than specified days
+      parameters:
+      - description: 'Retention days (default: 7)'
+        in: query
+        name: retention
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Cleanup old backups
+      tags:
+      - Backup
   /api/admin/donation-programs:
     get:
       consumes:
@@ -2033,6 +2576,71 @@ paths:
       summary: Create Donation Program Expense
       tags:
       - Donation Programs
+  /api/admin/donation-programs/{id}/expenses/export:
+    get:
+      description: Export all expenses for a specific donation program as a CSV file
+      parameters:
+      - description: Donation Program ID
+        in: path
+        name: id
+        type: string
+      - description: Filter start date (YYYY-MM-DD, inclusive)
+        in: query
+        name: startDate
+        type: string
+      - description: Filter end date (YYYY-MM-DD, inclusive)
+        in: query
+        name: endDate
+        type: string
+      - description: Sort order (e.g. title asc, amount desc)
+        in: query
+        name: sortBy
+        type: string
+      - description: Search pattern
+        in: query
+        name: search
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: CSV file
+          schema:
+            type: file
+      summary: Export Donation Program Expense as CSV
+      tags:
+      - Donation Programs
+  /api/admin/donation-programs/{id}/expenses/monthly-expense:
+    get:
+      description: Retrieve aggregated monthly expenses of a specific donation program
+        for a given year (admin only)
+      parameters:
+      - description: Donation Program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Filter by year
+        in: query
+        name: year
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/app_donation_program_expense.MonthlyExpenseRecord'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get Donation Program Monthly Expense
+      tags:
+      - Donation Programs
   /api/admin/donation-programs/{id}/transactions:
     get:
       description: Retrieve a paginated list of donation transactions (admin only)
@@ -2057,6 +2665,22 @@ paths:
       - description: Cursor for previous page
         in: query
         name: prev_cursor
+        type: string
+      - description: Sort order (e.g. gross_amount desc, created_at asc)
+        in: query
+        name: sortBy
+        type: string
+      - description: Filter start date (YYYY-MM-DD)
+        in: query
+        name: startDate
+        type: string
+      - description: Filter end date (YYYY-MM-DD)
+        in: query
+        name: endDate
+        type: string
+      - description: Search by donor name, email, or order ID
+        in: query
+        name: search
         type: string
       produces:
       - application/json
@@ -2102,6 +2726,65 @@ paths:
       security:
       - BearerAuth: []
       summary: Create Offline Donation Program Transaction
+      tags:
+      - Donation Programs
+  /api/admin/donation-programs/{id}/transactions/export:
+    get:
+      description: Export all transactions for a specific donation program as a CSV
+        file (publicly accessible)
+      parameters:
+      - description: Donation Program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Filter start date (YYYY-MM-DD, inclusive)
+        in: query
+        name: startDate
+        type: string
+      - description: Filter end date (YYYY-MM-DD, inclusive)
+        in: query
+        name: endDate
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: CSV file
+          schema:
+            type: file
+      summary: Export Donation Program Transaction as CSV
+      tags:
+      - Donation Programs
+  /api/admin/donation-programs/{id}/transactions/monthly-income:
+    get:
+      description: Retrieve aggregated monthly incomes of a specific donation program
+        for a given year (admin only)
+      parameters:
+      - description: Donation Program ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Filter by year
+        in: query
+        name: year
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/app_donation_program_transaction.TransactionMonthlyIncomeRecord'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get Donation Program Monthly Income
       tags:
       - Donation Programs
   /api/admin/donation-programs/expenses/{id}:
@@ -3198,17 +3881,17 @@ paths:
       - application/json
       description: Get a list of reported news comments
       parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
       - description: Pagination limit
         in: query
         name: limit
         type: integer
-      - description: Pagination cursor (next page)
+      - description: Sort by field
         in: query
-        name: next_cursor
-        type: string
-      - description: Pagination cursor (prev page)
-        in: query
-        name: prev_cursor
+        name: sortBy
         type: string
       produces:
       - application/json
@@ -3248,6 +3931,29 @@ paths:
       security:
       - BearerAuth: []
       summary: Delete News Comment
+      tags:
+      - News Comments
+  /api/admin/news/comments/{id}/allow:
+    patch:
+      consumes:
+      - application/json
+      description: Allow a news comment
+      parameters:
+      - description: Comment ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Allow News Comment
       tags:
       - News Comments
   /api/admin/prayers:
@@ -4272,12 +4978,10 @@ paths:
   /api/donation-programs/{slug}/expenses/export:
     get:
       description: Export all expenses for a specific donation program as a CSV file
-        (publicly accessible)
       parameters:
       - description: Donation Program Slug
         in: path
         name: slug
-        required: true
         type: string
       - description: Filter start date (YYYY-MM-DD, inclusive)
         in: query
@@ -4286,6 +4990,14 @@ paths:
       - description: Filter end date (YYYY-MM-DD, inclusive)
         in: query
         name: endDate
+        type: string
+      - description: Sort order (e.g. title asc, amount desc)
+        in: query
+        name: sortBy
+        type: string
+      - description: Search pattern
+        in: query
+        name: search
         type: string
       produces:
       - text/csv
@@ -4336,6 +5048,58 @@ paths:
       tags:
       - Prayer
   /api/donation-programs/{slug}/transactions:
+    get:
+      description: Retrieve a paginated list of successful donation transactions for
+        a specific donation program by slug
+      parameters:
+      - description: Donation Program Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Cursor for next page
+        in: query
+        name: next_cursor
+        type: string
+      - description: Cursor for previous page
+        in: query
+        name: prev_cursor
+        type: string
+      - description: Sort order (e.g. gross_amount desc, created_at asc)
+        in: query
+        name: sortBy
+        type: string
+      - description: Filter start date (YYYY-MM-DD)
+        in: query
+        name: startDate
+        type: string
+      - description: Filter end date (YYYY-MM-DD)
+        in: query
+        name: endDate
+        type: string
+      - description: Search by donor name, email, or order ID
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/pkg.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/app_donation_program_transaction.DonationProgramTransactionListResponse'
+              type: object
+      summary: List Public Donation Program Transactions
+      tags:
+      - Donation Programs
     post:
       consumes:
       - application/json
@@ -4955,6 +5719,10 @@ paths:
         in: query
         name: action
         type: string
+      - description: Filter by entity type or action (case-insensitive search)
+        in: query
+        name: search
+        type: string
       - description: Items per page (max 100)
         in: query
         name: limit
@@ -5017,6 +5785,22 @@ paths:
       - description: Cursor for previous page
         in: query
         name: prev_cursor
+        type: string
+      - description: Sort order (e.g. gross_amount desc, created_at asc)
+        in: query
+        name: sortBy
+        type: string
+      - description: Filter start date (YYYY-MM-DD)
+        in: query
+        name: startDate
+        type: string
+      - description: Filter end date (YYYY-MM-DD)
+        in: query
+        name: endDate
+        type: string
+      - description: Search by donor name, email, or order ID
+        in: query
+        name: search
         type: string
       produces:
       - application/json
@@ -5364,17 +6148,17 @@ paths:
         name: slug
         required: true
         type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
       - description: Pagination limit
         in: query
         name: limit
         type: integer
-      - description: Pagination cursor (next page)
+      - description: Sort by field
         in: query
-        name: next_cursor
-        type: string
-      - description: Pagination cursor (prev page)
-        in: query
-        name: prev_cursor
+        name: sortBy
         type: string
       produces:
       - application/json
@@ -5389,6 +6173,34 @@ paths:
                   $ref: '#/definitions/app_news_comment.NewsCommentListResponse'
               type: object
       summary: List News Comments
+      tags:
+      - News Comments
+    post:
+      consumes:
+      - application/json
+      description: Create a news comment
+      parameters:
+      - description: News Slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Create News Comment Payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/app_news_comment.CreateNewsCommentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.Response'
+      security:
+      - BearerAuth: []
+      summary: Create News Comment
       tags:
       - News Comments
   /api/news/comments/{id}:
@@ -5506,12 +6318,6 @@ paths:
         name: id
         required: true
         type: string
-      - description: Report Prayer Payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/app_prayer.ReportPrayerRequest'
       produces:
       - application/json
       responses:
