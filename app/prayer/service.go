@@ -195,6 +195,7 @@ func (s *service) GetPrayerList(ctx context.Context, isAdmin bool, params Prayer
 
 	if isAdmin {
 		options["reported"] = true
+		options["sort_by"] = "report_count desc"
 	}
 
 	if params.DonationSlug != "" {

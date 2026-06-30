@@ -193,6 +193,10 @@ func (s *service) GetDonationProgramTransactionByID(ctx context.Context, donatio
 func (s *service) CreateOfflineDonationProgramTransaction(ctx context.Context, accountID, donationProgramID string, payload CreateDonationProgramTransactionRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
+
+	payload.DonorName = pkg.SanitizeStrict(payload.DonorName)
+	payload.DonorEmail = pkg.SanitizeStrict(payload.DonorEmail)
+
 	errValidation := make(map[string]string)
 
 	var donationProg *donation_program.DonationProgram
@@ -278,6 +282,10 @@ func (s *service) CreateOfflineDonationProgramTransaction(ctx context.Context, a
 func (s *service) CreateDonationProgramTransaction(ctx context.Context, accountID string, donationSlug string, payload CreateDonationProgramTransactionRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
+
+	payload.DonorName = pkg.SanitizeStrict(payload.DonorName)
+	payload.DonorEmail = pkg.SanitizeStrict(payload.DonorEmail)
+	payload.PrayerContent = pkg.SanitizeStrict(payload.PrayerContent)
 
 	errValidation := make(map[string]string)
 	var donationProgramID string

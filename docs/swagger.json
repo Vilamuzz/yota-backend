@@ -4,6 +4,403 @@
         "contact": {}
     },
     "paths": {
+        "/admin/ambulances/history/driver": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a list of ambulance history records with pagination for driver",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulance History"
+                ],
+                "summary": "List ambulance history for driver",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by service category",
+                        "name": "service_category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of items to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for next page",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for previous page",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/ambulances/history/driver/monthly-trend": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve aggregated monthly trend of ambulance history for a given year for the authenticated driver.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulance History"
+                ],
+                "summary": "Get driver's own ambulance history monthly trend",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by year",
+                        "name": "year",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_ambulance_history.HistoryMonthlyTrendRecord"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/ambulances/history/driver/summary": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns total service counts grouped by category for the authenticated driver.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulance History"
+                ],
+                "summary": "Get driver's own ambulance history summary",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start date (YYYY-MM-DD)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (YYYY-MM-DD)",
+                        "name": "endDate",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_ambulance_history.SummaryResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/ambulances/history/monthly-trend": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve aggregated monthly trend of ambulance history (social_service, mortuary_service, patient_service, emergency_service, other_service) for a given year (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulance History"
+                ],
+                "summary": "Get ambulance history monthly trend",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by year",
+                        "name": "year",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_ambulance_history.HistoryMonthlyTrendRecord"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/ambulances/history/summary": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns total service counts grouped by category for all ambulances.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulance History"
+                ],
+                "summary": "Get all ambulance history summary for admin",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start date (YYYY-MM-DD)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (YYYY-MM-DD)",
+                        "name": "endDate",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_ambulance_history.SummaryResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/ambulances/history/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a list of ambulance history records with pagination for admin",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulance History"
+                ],
+                "summary": "List ambulance history for admin",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ambulance ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by service category",
+                        "name": "service_category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of items to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for next page",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for previous page",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/ambulances/requests/assigned": {
             "get": {
                 "security": [
@@ -88,7 +485,7 @@
                 }
             }
         },
-        "/admin/ambulances/requests/assigned/{ambulanceId}/detail/{id}": {
+        "/admin/ambulances/requests/assigned/detail/{id}": {
             "get": {
                 "security": [
                     {
@@ -113,6 +510,76 @@
                         "name": "id",
                         "in": "path",
                         "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/ambulances/requests/assigned/{id}/cancel": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cancel an ambulance service request assigned to the authenticated driver with a cancellation reason.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ambulance Service Requests"
+                ],
+                "summary": "Cancel assigned ambulance service request (driver)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Ambulance Request ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Cancellation Reason",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/app_ambulance_service_request.CancelAmbulanceServiceRequestPayload"
+                        }
                     }
                 ],
                 "responses": {
@@ -611,7 +1078,7 @@
                 ],
                 "description": "Create a new ambulance service request with the provided details",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -622,13 +1089,81 @@
                 "summary": "Create a new ambulance service request",
                 "parameters": [
                     {
-                        "description": "Ambulance service request details",
-                        "name": "ambulance_service_request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/app_ambulance_service_request.CreateAmbulanceServiceRequest"
-                        }
+                        "type": "string",
+                        "name": "-",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "destination",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "disease",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "name": "isAbleToSit",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "name": "isInfectious",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "note",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "patientAddress",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "patientAge",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "patientName",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "pickupDate",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "pickupTime",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "serviceCategory",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "submitterName",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "submitterPhone",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Submitter ID Card Image",
+                        "name": "submitterIdCard",
+                        "in": "formData",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -1618,6 +2153,209 @@
                 }
             }
         },
+        "/api/admin/backups": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "List all database backups stored in database metadata",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Backup"
+                ],
+                "summary": "List all backups",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create an immediate backup of the database and store in S3 and register in metadata db",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Backup"
+                ],
+                "summary": "Create database backup",
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/backups/cleanup": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Manually trigger cleanup of backups older than specified days",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Backup"
+                ],
+                "summary": "Cleanup old backups",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Retention days (default: 7)",
+                        "name": "retention",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/backups/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a backup from S3 and metadata database",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Backup"
+                ],
+                "summary": "Delete backup",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Backup ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/backups/{id}/download": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get presigned URL for downloading a backup",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Backup"
+                ],
+                "summary": "Get backup download URL",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Backup ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/donation-programs": {
             "get": {
                 "security": [
@@ -2222,6 +2960,110 @@
                 }
             }
         },
+        "/api/admin/donation-programs/{id}/expenses/export": {
+            "get": {
+                "description": "Export all expenses for a specific donation program as a CSV file",
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Export Donation Program Expense as CSV",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Donation Program ID",
+                        "name": "id",
+                        "in": "path"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter start date (YYYY-MM-DD, inclusive)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date (YYYY-MM-DD, inclusive)",
+                        "name": "endDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort order (e.g. title asc, amount desc)",
+                        "name": "sortBy",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search pattern",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CSV file",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/donation-programs/{id}/expenses/monthly-expense": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve aggregated monthly expenses of a specific donation program for a given year (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Get Donation Program Monthly Expense",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Donation Program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by year",
+                        "name": "year",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_donation_program_expense.MonthlyExpenseRecord"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/donation-programs/{id}/transactions": {
             "get": {
                 "security": [
@@ -2267,6 +3109,30 @@
                         "type": "string",
                         "description": "Cursor for previous page",
                         "name": "prev_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort order (e.g. gross_amount desc, created_at asc)",
+                        "name": "sortBy",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter start date (YYYY-MM-DD)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date (YYYY-MM-DD)",
+                        "name": "endDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by donor name, email, or order ID",
+                        "name": "search",
                         "in": "query"
                     }
                 ],
@@ -2331,6 +3197,99 @@
                         "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/donation-programs/{id}/transactions/export": {
+            "get": {
+                "description": "Export all transactions for a specific donation program as a CSV file (publicly accessible)",
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Export Donation Program Transaction as CSV",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Donation Program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter start date (YYYY-MM-DD, inclusive)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date (YYYY-MM-DD, inclusive)",
+                        "name": "endDate",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CSV file",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/donation-programs/{id}/transactions/monthly-income": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve aggregated monthly incomes of a specific donation program for a given year (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "Get Donation Program Monthly Income",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Donation Program ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by year",
+                        "name": "year",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_donation_program_transaction.TransactionMonthlyIncomeRecord"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -3702,20 +4661,20 @@
                 "parameters": [
                     {
                         "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
                         "description": "Pagination limit",
                         "name": "limit",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Pagination cursor (next page)",
-                        "name": "next_cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (prev page)",
-                        "name": "prev_cursor",
+                        "description": "Sort by field",
+                        "name": "sortBy",
                         "in": "query"
                     }
                 ],
@@ -3759,6 +4718,43 @@
                     "News Comments"
                 ],
                 "summary": "Delete News Comment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/news/comments/{id}/allow": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allow a news comment",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News Comments"
+                ],
+                "summary": "Allow News Comment",
                 "parameters": [
                     {
                         "type": "string",
@@ -5606,7 +6602,7 @@
         },
         "/api/donation-programs/{slug}/expenses/export": {
             "get": {
-                "description": "Export all expenses for a specific donation program as a CSV file (publicly accessible)",
+                "description": "Export all expenses for a specific donation program as a CSV file",
                 "produces": [
                     "text/csv"
                 ],
@@ -5619,8 +6615,7 @@
                         "type": "string",
                         "description": "Donation Program Slug",
                         "name": "slug",
-                        "in": "path",
-                        "required": true
+                        "in": "path"
                     },
                     {
                         "type": "string",
@@ -5632,6 +6627,18 @@
                         "type": "string",
                         "description": "Filter end date (YYYY-MM-DD, inclusive)",
                         "name": "endDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort order (e.g. title asc, amount desc)",
+                        "name": "sortBy",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search pattern",
+                        "name": "search",
                         "in": "query"
                     }
                 ],
@@ -5708,6 +6715,87 @@
             }
         },
         "/api/donation-programs/{slug}/transactions": {
+            "get": {
+                "description": "Retrieve a paginated list of successful donation transactions for a specific donation program by slug",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Donation Programs"
+                ],
+                "summary": "List Public Donation Program Transactions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Donation Program Slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for next page",
+                        "name": "next_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cursor for previous page",
+                        "name": "prev_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort order (e.g. gross_amount desc, created_at asc)",
+                        "name": "sortBy",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter start date (YYYY-MM-DD)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date (YYYY-MM-DD)",
+                        "name": "endDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by donor name, email, or order ID",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/pkg.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/app_donation_program_transaction.DonationProgramTransactionListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
             "post": {
                 "description": "Initiate a Midtrans Snap payment for a donation",
                 "consumes": [
@@ -6680,6 +7768,12 @@
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "description": "Filter by entity type or action (case-insensitive search)",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "description": "Items per page (max 100)",
                         "name": "limit",
@@ -6780,6 +7874,30 @@
                         "type": "string",
                         "description": "Cursor for previous page",
                         "name": "prev_cursor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort order (e.g. gross_amount desc, created_at asc)",
+                        "name": "sortBy",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter start date (YYYY-MM-DD)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter end date (YYYY-MM-DD)",
+                        "name": "endDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by donor name, email, or order ID",
+                        "name": "search",
                         "in": "query"
                     }
                 ],
@@ -7424,20 +8542,20 @@
                     },
                     {
                         "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
                         "description": "Pagination limit",
                         "name": "limit",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Pagination cursor (next page)",
-                        "name": "next_cursor",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Pagination cursor (prev page)",
-                        "name": "prev_cursor",
+                        "description": "Sort by field",
+                        "name": "sortBy",
                         "in": "query"
                     }
                 ],
@@ -7458,6 +8576,50 @@
                                     }
                                 }
                             ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a news comment",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "News Comments"
+                ],
+                "summary": "Create News Comment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "News Slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Create News Comment Payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/app_news_comment.CreateNewsCommentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.Response"
                         }
                     }
                 }
@@ -7569,15 +8731,6 @@
                         "name": "id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "description": "Report Prayer Payload",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/app_prayer.ReportPrayerRequest"
-                        }
                     }
                 ],
                 "responses": {
@@ -8246,6 +9399,9 @@
                 "address": {
                     "type": "string"
                 },
+                "createdAt": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 },
@@ -8269,6 +9425,17 @@
                 }
             }
         },
+        "app_ambulance_history.CategoryCount": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "$ref": "#/definitions/app_ambulance_history.ServiceCategory"
+                },
+                "count": {
+                    "type": "integer"
+                }
+            }
+        },
         "app_ambulance_history.CreateAmbulanceHistoryRequest": {
             "type": "object",
             "properties": {
@@ -8283,6 +9450,43 @@
                 },
                 "serviceCategory": {
                     "$ref": "#/definitions/app_ambulance_history.ServiceCategory"
+                }
+            }
+        },
+        "app_ambulance_history.HistoryMonthlyTrendItem": {
+            "type": "object",
+            "properties": {
+                "emergencyService": {
+                    "type": "integer"
+                },
+                "month": {
+                    "type": "string"
+                },
+                "mortuaryService": {
+                    "type": "integer"
+                },
+                "otherService": {
+                    "type": "integer"
+                },
+                "patientService": {
+                    "type": "integer"
+                },
+                "socialService": {
+                    "type": "integer"
+                }
+            }
+        },
+        "app_ambulance_history.HistoryMonthlyTrendRecord": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/app_ambulance_history.HistoryMonthlyTrendItem"
+                    }
+                },
+                "year": {
+                    "type": "string"
                 }
             }
         },
@@ -8303,9 +9507,32 @@
                 "OtherService"
             ]
         },
+        "app_ambulance_history.SummaryResponse": {
+            "type": "object",
+            "properties": {
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/app_ambulance_history.CategoryCount"
+                    }
+                },
+                "endDate": {
+                    "type": "string"
+                },
+                "startDate": {
+                    "type": "string"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "app_ambulance_history.UpdateAmbulanceHistoryRequest": {
             "type": "object",
             "properties": {
+                "note": {
+                    "type": "string"
+                },
                 "serviceCategory": {
                     "$ref": "#/definitions/app_ambulance_history.ServiceCategory"
                 }
@@ -8319,28 +9546,10 @@
                 }
             }
         },
-        "app_ambulance_service_request.CreateAmbulanceServiceRequest": {
+        "app_ambulance_service_request.CancelAmbulanceServiceRequestPayload": {
             "type": "object",
             "properties": {
-                "accountId": {
-                    "type": "string"
-                },
-                "applicantAddress": {
-                    "type": "string"
-                },
-                "applicantName": {
-                    "type": "string"
-                },
-                "applicantPhone": {
-                    "type": "string"
-                },
-                "requestDate": {
-                    "type": "string"
-                },
-                "requestReason": {
-                    "type": "string"
-                },
-                "serviceCategory": {
+                "cancelationReason": {
                     "type": "string"
                 }
             }
@@ -8421,6 +9630,31 @@
                 }
             }
         },
+        "app_donation_program_expense.MonthlyExpenseRecord": {
+            "type": "object",
+            "properties": {
+                "donationProgramId": {
+                    "type": "string"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/app_donation_program_expense.MonthlyExpenseResponse"
+                    }
+                }
+            }
+        },
+        "app_donation_program_expense.MonthlyExpenseResponse": {
+            "type": "object",
+            "properties": {
+                "expense": {
+                    "type": "number"
+                },
+                "month": {
+                    "type": "string"
+                }
+            }
+        },
         "app_donation_program_transaction.CreateDonationProgramTransactionRequest": {
             "type": "object",
             "properties": {
@@ -8487,6 +9721,31 @@
                 },
                 "transactionStatus": {
                     "type": "string"
+                }
+            }
+        },
+        "app_donation_program_transaction.TransactionMonthlyIncomeItem": {
+            "type": "object",
+            "properties": {
+                "income": {
+                    "type": "number"
+                },
+                "month": {
+                    "type": "string"
+                }
+            }
+        },
+        "app_donation_program_transaction.TransactionMonthlyIncomeRecord": {
+            "type": "object",
+            "properties": {
+                "donationProgramId": {
+                    "type": "string"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/app_donation_program_transaction.TransactionMonthlyIncomeItem"
+                    }
                 }
             }
         },
@@ -8864,7 +10123,7 @@
                     }
                 },
                 "pagination": {
-                    "$ref": "#/definitions/pkg.CursorPagination"
+                    "$ref": "#/definitions/pkg.OffsetPagination"
                 }
             }
         },
@@ -8888,6 +10147,17 @@
                 }
             }
         },
+        "app_news_comment.CreateNewsCommentRequest": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "parentCommentId": {
+                    "type": "string"
+                }
+            }
+        },
         "app_news_comment.NewsCommentListResponse": {
             "type": "object",
             "properties": {
@@ -8898,7 +10168,7 @@
                     }
                 },
                 "pagination": {
-                    "$ref": "#/definitions/pkg.CursorPagination"
+                    "$ref": "#/definitions/pkg.OffsetPagination"
                 }
             }
         },
@@ -8926,18 +10196,13 @@
             }
         },
         "app_news_comment.ReportNewsCommentRequest": {
-            "type": "object",
-            "properties": {
-                "reason": {
-                    "type": "string"
-                }
-            }
+            "type": "object"
         },
         "app_prayer.PrayerListResponse": {
             "type": "object",
             "properties": {
                 "pagination": {
-                    "$ref": "#/definitions/pkg.CursorPagination"
+                    "$ref": "#/definitions/pkg.OffsetPagination"
                 },
                 "prayers": {
                     "type": "array",
@@ -8966,14 +10231,6 @@
                     "type": "boolean"
                 },
                 "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "app_prayer.ReportPrayerRequest": {
-            "type": "object",
-            "properties": {
-                "reason": {
                     "type": "string"
                 }
             }
@@ -9129,6 +10386,21 @@
                 "MediaStatusArchived"
             ]
         },
+        "multipart.FileHeader": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string"
+                },
+                "header": {
+                    "$ref": "#/definitions/textproto.MIMEHeader"
+                },
+                "size": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
         "pkg.CursorPagination": {
             "type": "object",
             "properties": {
@@ -9175,6 +10447,15 @@
                     "additionalProperties": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "textproto.MIMEHeader": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "array",
+                "items": {
+                    "type": "string"
                 }
             }
         }

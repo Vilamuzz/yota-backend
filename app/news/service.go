@@ -138,6 +138,9 @@ func (s *service) CreateNews(ctx context.Context, payload NewsCreateRequest) pkg
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	payload.Title = pkg.SanitizeStrict(payload.Title)
+	payload.Content = pkg.SanitizeHTML(payload.Content)
+
 	errValidation := make(map[string]string)
 
 	status := media.MediaStatusDraft
@@ -269,6 +272,13 @@ func (s *service) UpdateNews(ctx context.Context, id string, payload NewsUpdateR
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	if payload.Title != "" {
+		payload.Title = pkg.SanitizeStrict(payload.Title)
+	}
+	if payload.Content != "" {
+		payload.Content = pkg.SanitizeHTML(payload.Content)
+	}
+
 	if err := uuid.Validate(id); err != nil {
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID berita tidak valid"}, nil)
 	}
@@ -328,10 +338,6 @@ func (s *service) UpdateNews(ctx context.Context, id string, payload NewsUpdateR
 
 		if finalCategory == "" {
 			errValidation["category"] = "Kategori wajib diisi"
-		}
-
-		if len(payload.MediaFiles) == 0 && len(existingNews.Media) == 0 {
-			errValidation["media"] = "Minimal satu file media wajib diisi untuk publikasi"
 		}
 
 		if payload.CoverImage == nil && existingNews.CoverImage == "" {
@@ -557,10 +563,6 @@ func (s *service) UpdatePublishNews(ctx context.Context, id string) pkg.Response
 
 	if news.Category == "" {
 		errValidation["category"] = "Kategori wajib diisi"
-	}
-
-	if len(news.Media) == 0 {
-		errValidation["media"] = "Minimal satu file media wajib diisi untuk publikasi"
 	}
 
 	if news.CoverImage == "" {
