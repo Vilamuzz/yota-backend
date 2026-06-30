@@ -249,6 +249,7 @@ func (s *service) CreateSocialProgramTransaction(ctx context.Context, accountID 
 	return pkg.NewResponse(http.StatusCreated, "Transaksi berhasil dibuat", nil, transaction.toSocialProgramTransactionResponse())
 }
 
+// HandleNotification processes payment notifications from Midtrans and updates transaction status accordingly
 func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.MidtransNotificationRequest) pkg.Response {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
