@@ -30,7 +30,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 
 	// Admin routes
 	admin := r.Group("/admin/social-programs")
-	admin.Use(h.middleware.RequireRoles(enum.RoleSocialManager))
+	admin.Use(h.middleware.RequireRoles(enum.RoleSocialManager, enum.RoleFinance))
 	{
 		admin.GET("/subscribers", h.GetSubscribers)
 		admin.GET("/subscribers/:id", h.GetSubscriberByID)

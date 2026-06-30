@@ -32,7 +32,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	}
 
 	admin := r.Group("/admin/social-programs/subscriptions/invoices")
-	admin.Use(h.middleware.RequireRoles(enum.RoleSocialManager))
+	admin.Use(h.middleware.RequireRoles(enum.RoleSocialManager, enum.RoleFinance))
 	{
 		admin.GET("", h.GetSocialProgramInvoiceList)
 		admin.GET("/subscription/:id", h.GetSocialProgramInvoiceListBySubscriptionID)
