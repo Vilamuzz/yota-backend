@@ -10,6 +10,7 @@ import (
 type FosterChildrenCandidate struct {
 	ID               uuid.UUID `json:"id" gorm:"primaryKey"`
 	Name             string    `json:"name" gorm:"not null"`
+	Nik              string    `json:"nik"`
 	ProfilePicture   string    `json:"profilePicture" gorm:"not null"`
 	Gender           Gender    `json:"gender" gorm:"not null"`
 	Category         Category  `json:"category"`
