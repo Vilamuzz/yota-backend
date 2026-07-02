@@ -10,6 +10,7 @@ type FosterChildren struct {
 	ID             uuid.UUID  `json:"id" gorm:"primaryKey"`
 	Slug           string     `json:"slug" gorm:"not null"`
 	Name           string     `json:"name" gorm:"not null"`
+	Nik            string     `json:"nik"`
 	ProfilePicture string     `json:"profilePicture" gorm:"not null"`
 	Gender         Gender     `json:"gender" gorm:"not null"`
 	IsGraduated    bool       `json:"isGraduated" gorm:"not null"`
@@ -53,4 +54,3 @@ const (
 	CategoryMotherless Category = "piatu"
 	CategoryOrphan     Category = "yatim piatu"
 )
-
