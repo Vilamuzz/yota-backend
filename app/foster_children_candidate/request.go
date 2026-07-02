@@ -8,6 +8,7 @@ import (
 
 type CreateFosterChildrenCandidateRequest struct {
 	Name             string                `form:"name"`
+	Nik              string                `form:"nik"`
 	Gender           Gender                `form:"gender"`
 	Category         Category              `form:"category"`
 	BirthDate        string                `form:"birthDate"`
