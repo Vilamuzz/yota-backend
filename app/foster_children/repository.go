@@ -11,7 +11,6 @@ import (
 	"gorm.io/gorm"
 )
 
-
 type Repository interface {
 	FindAllFosterChildren(ctx context.Context, options map[string]interface{}) ([]FosterChildren, error)
 	CountFosterChildren(ctx context.Context, options map[string]interface{}) (int64, error)
@@ -23,7 +22,7 @@ type Repository interface {
 	DeleteAchievementByID(ctx context.Context, id string) error
 	UpdateAchievement(ctx context.Context, id string, updateData map[string]interface{}) error
 	CreateAchievements(ctx context.Context, achievements []Achivement) error
-	CreateFosterChildrenFromCandidate(ctx context.Context, candidateID, name, profilePicture, familyCard, sktm, birthPlace, schoolName, address string, gender string, category string, educationLevel int, birthDate time.Time) error
+	CreateFosterChildrenFromCandidate(ctx context.Context, candidateID, name, nik, profilePicture, familyCard, sktm, birthPlace, schoolName, address string, gender string, category string, educationLevel int, birthDate time.Time) error
 }
 
 type repository struct {
@@ -178,12 +177,13 @@ func (r *repository) CreateAchievements(ctx context.Context, achievements []Achi
 	return r.Conn.WithContext(ctx).Create(&achievements).Error
 }
 
-func (r *repository) CreateFosterChildrenFromCandidate(ctx context.Context, candidateID, name, profilePicture, familyCard, sktm, birthPlace, schoolName, address string, gender string, category string, educationLevel int, birthDate time.Time) error {
+func (r *repository) CreateFosterChildrenFromCandidate(ctx context.Context, candidateID, name, nik, profilePicture, familyCard, sktm, birthPlace, schoolName, address string, gender string, category string, educationLevel int, birthDate time.Time) error {
 	now := time.Now()
 	fc := &FosterChildren{
 		ID:             uuid.New(),
 		Slug:           fmt.Sprintf("%s-%s", pkg.Slugify(name), uuid.New().String()[:5]),
 		Name:           name,
+		Nik:            nik,
 		ProfilePicture: profilePicture,
 		Gender:         Gender(gender),
 		IsGraduated:    false,
