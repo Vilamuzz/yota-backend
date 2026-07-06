@@ -2,6 +2,8 @@ package account
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"time"
@@ -29,16 +31,18 @@ type Service interface {
 }
 
 type service struct {
-	repo     Repository
-	timeout  time.Duration
-	s3Client s3_pkg.Client
+	repo         Repository
+	timeout      time.Duration
+	s3Client     s3_pkg.Client
+	emailService *pkg.EmailService
 }
 
 func NewService(r Repository, timeout time.Duration, s3Client s3_pkg.Client) Service {
 	return &service{
-		repo:     r,
-		timeout:  timeout,
-		s3Client: s3Client,
+		repo:         r,
+		timeout:      timeout,
+		s3Client:     s3Client,
+		emailService: pkg.NewEmailService(),
 	}
 }
 
@@ -310,6 +314,18 @@ func (s *service) UpdateUserProfile(ctx context.Context, accountID string, paylo
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	existingAccount, err := s.repo.FindOneAccount(ctx, map[string]interface{}{"id": accountID})
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return pkg.NewResponse(http.StatusNotFound, "Akun tidak ditemukan", nil, nil)
+		}
+		logrus.WithFields(logrus.Fields{
+			"component":  "account.service",
+			"account_id": accountID,
+		}).WithError(err).Error("failed to retrieve account for profile update")
+		return pkg.NewResponse(http.StatusInternalServerError, "Terjadi kesalahan pada server", nil, nil)
+	}
+
 	errValidation := make(map[string]string)
 	updateProfileMap := make(map[string]interface{})
 	updateAccountMap := make(map[string]interface{})
@@ -331,7 +347,11 @@ func (s *service) UpdateUserProfile(ctx context.Context, accountID string, paylo
 			}
 		}
 	}
-	if payload.Email != "" {
+
+	var sendVerificationEmail bool
+	var targetEmail string
+
+	if payload.Email != "" && payload.Email != existingAccount.Email {
 		if !pkg.IsValidEmail(payload.Email) {
 			errValidation["email"] = "Format email tidak valid"
 		} else {
@@ -342,10 +362,12 @@ func (s *service) UpdateUserProfile(ctx context.Context, accountID string, paylo
 			if err == nil && existing.ID.String() != accountID {
 				errValidation["email"] = "Email sudah digunakan"
 			} else {
-				updateAccountMap["email"] = payload.Email
+				sendVerificationEmail = true
+				targetEmail = payload.Email
 			}
 		}
 	}
+
 	if payload.Phone != "" {
 		if !pkg.IsValidPhoneNumber(payload.Phone) {
 			errValidation["phone"] = "Format nomor telepon tidak valid"
@@ -401,19 +423,15 @@ func (s *service) UpdateUserProfile(ctx context.Context, accountID string, paylo
 	var oldProfilePicture string
 
 	if payload.ProfilePicture != nil {
-		existing, err := s.repo.FindOneAccount(ctx, map[string]interface{}{"id": accountID})
-		if err != nil {
-			return pkg.NewResponse(http.StatusNotFound, "Akun tidak ditemukan", nil, nil)
-		}
+		oldProfilePicture = s3_pkg.ExtractObjectNameFromURL(existingAccount.UserProfile.ProfilePicture)
 
-		oldProfilePicture = s3_pkg.ExtractObjectNameFromURL(existing.UserProfile.ProfilePicture)
-
-		uploadedURL, err = s.s3Client.UploadFile(ctx, payload.ProfilePicture, "accounts")
-		if err != nil {
+		var errUpload error
+		uploadedURL, errUpload = s.s3Client.UploadFile(ctx, payload.ProfilePicture, "accounts")
+		if errUpload != nil {
 			logrus.WithFields(logrus.Fields{
 				"component":  "account.service",
 				"account_id": accountID,
-			}).WithError(err).Error("failed to upload profile picture")
+			}).WithError(errUpload).Error("failed to upload profile picture")
 			return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah gambar profil", nil, nil)
 		}
 		updateProfileMap["profile_picture"] = uploadedURL
@@ -442,6 +460,47 @@ func (s *service) UpdateUserProfile(ctx context.Context, accountID string, paylo
 		if deleteErr := s.s3Client.DeleteFile(ctx, oldProfilePicture); deleteErr != nil {
 			logrus.WithError(deleteErr).Warnf("failed to delete orphaned S3 image: %s", oldProfilePicture)
 		}
+	}
+
+	if sendVerificationEmail {
+		tokenBytes := make([]byte, 32)
+		if _, err := rand.Read(tokenBytes); err != nil {
+			logrus.WithFields(logrus.Fields{
+				"component":  "account.service",
+				"account_id": accountID,
+			}).WithError(err).Error("failed to generate verification token for email change")
+			return pkg.NewResponse(http.StatusInternalServerError, "Gagal memproses verifikasi email baru", nil, nil)
+		}
+		verificationToken := hex.EncodeToString(tokenBytes)
+
+		tokenData := map[string]interface{}{
+			"id":         uuid.New(),
+			"account_id": accountID,
+			"new_email":  targetEmail,
+			"token":      verificationToken,
+			"expired_at": time.Now().Add(24 * time.Hour),
+			"is_used":    false,
+			"created_at": time.Now(),
+		}
+
+		if err := s.repo.CreateEmailVerificationToken(ctx, tokenData); err != nil {
+			logrus.WithFields(logrus.Fields{
+				"component":  "account.service",
+				"account_id": accountID,
+			}).WithError(err).Error("failed to create email verification token for change email")
+			return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat token verifikasi email baru", nil, nil)
+		}
+
+		go func(email, username, token string) {
+			if err := s.emailService.SendEmailVerification(email, username, token); err != nil {
+				logrus.WithFields(logrus.Fields{
+					"component": "account.service",
+					"email":     email,
+				}).WithError(err).Error("failed to send verification email asynchronously during email change")
+			}
+		}(targetEmail, existingAccount.UserProfile.Username, verificationToken)
+
+		return pkg.NewResponse(http.StatusOK, "Profil berhasil diperbarui. Silakan periksa email baru Anda untuk memverifikasi perubahan email.", nil, nil)
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Profil berhasil diperbarui", nil, nil)

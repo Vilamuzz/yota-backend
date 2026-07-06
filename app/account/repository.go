@@ -24,6 +24,7 @@ type Repository interface {
 	FindAllRoles(ctx context.Context) ([]Role, error)
 	FindOneRole(ctx context.Context, roleID int) (*Role, error)
 	UpdateFullProfile(ctx context.Context, accountID string, updateAccount, updateProfile map[string]interface{}, defaultRoleID int) error
+	CreateEmailVerificationToken(ctx context.Context, tokenData map[string]interface{}) error
 }
 
 type repository struct {
@@ -220,3 +221,8 @@ func (r *repository) UpdateFullProfile(ctx context.Context, accountID string, up
 		return nil
 	})
 }
+
+func (r *repository) CreateEmailVerificationToken(ctx context.Context, tokenData map[string]interface{}) error {
+	return r.Conn.WithContext(ctx).Table("email_verification_tokens").Create(tokenData).Error
+}
+

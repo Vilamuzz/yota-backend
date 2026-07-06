@@ -303,12 +303,38 @@ func (s *service) VerifyEmail(ctx context.Context, token string) pkg.Response {
 		return pkg.NewResponse(http.StatusBadRequest, "Validation error", errValidation, nil)
 	}
 
-	if err := s.accountRepo.UpdateAccount(ctx, verificationToken.AccountID.String(), map[string]interface{}{"email_verified": true}); err != nil {
-		logrus.WithFields(logrus.Fields{
-			"component":  "auth.service",
-			"account_id": verificationToken.AccountID.String(),
-		}).WithError(err).Error("failed to update account email_verified status")
-		return pkg.NewResponse(http.StatusInternalServerError, "Failed to verify email", nil, nil)
+	if verificationToken.NewEmail != "" {
+		existing, err := s.accountRepo.FindOneAccount(ctx, map[string]interface{}{"email": verificationToken.NewEmail})
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			logrus.WithFields(logrus.Fields{
+				"component": "auth.service",
+				"email":     verificationToken.NewEmail,
+			}).WithError(err).Error("failed to check email availability during verification")
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to verify email", nil, nil)
+		}
+		if err == nil && existing != nil && existing.ID != verificationToken.AccountID {
+			return pkg.NewResponse(http.StatusBadRequest, "Validation error", map[string]string{"email": "Email is already registered"}, nil)
+		}
+
+		updateData := map[string]interface{}{
+			"email":          verificationToken.NewEmail,
+			"email_verified": true,
+		}
+		if err := s.accountRepo.UpdateAccount(ctx, verificationToken.AccountID.String(), updateData); err != nil {
+			logrus.WithFields(logrus.Fields{
+				"component":  "auth.service",
+				"account_id": verificationToken.AccountID.String(),
+			}).WithError(err).Error("failed to update account email and email_verified status")
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to verify email", nil, nil)
+		}
+	} else {
+		if err := s.accountRepo.UpdateAccount(ctx, verificationToken.AccountID.String(), map[string]interface{}{"email_verified": true}); err != nil {
+			logrus.WithFields(logrus.Fields{
+				"component":  "auth.service",
+				"account_id": verificationToken.AccountID.String(),
+			}).WithError(err).Error("failed to update account email_verified status")
+			return pkg.NewResponse(http.StatusInternalServerError, "Failed to verify email", nil, nil)
+		}
 	}
 
 	verificationToken.IsUsed = true
