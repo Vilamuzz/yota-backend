@@ -10,6 +10,7 @@ import (
 type FosterChildrenCandidateResponse struct {
 	ID               string    `json:"id"`
 	Name             string    `json:"name"`
+	Nik              string    `json:"nik"`
 	ProfilePicture   string    `json:"profilePicture"`
 	Gender           string    `json:"gender"`
 	Category         string    `json:"category"`

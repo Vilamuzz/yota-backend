@@ -30,7 +30,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 	public.GET("/:slug/expenses/export", h.ExportSocialProgramExpenseCSV)
 
 	admin := r.Group("/admin/social-programs")
-	admin.Use(h.middleware.RequireRoles(enum.RoleFinance))
+	admin.Use(h.middleware.RequireRoles(enum.RoleFinance, enum.RoleSocialManager))
 	{
 		admin.GET("/:id/expenses", h.GetSocialProgramExpenseList)
 		admin.GET("/expenses/:id", h.GetSocialProgramExpenseByID)

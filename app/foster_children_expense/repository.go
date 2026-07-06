@@ -13,6 +13,7 @@ import (
 type Repository interface {
 	FindAllFosterChildrenExpenses(ctx context.Context, options map[string]interface{}) ([]FosterChildrenExpense, error)
 	FindAllFosterChildrenExpensesForExport(ctx context.Context, fosterChildrenSlug string, params FosterChildrenExpenseExportParams) ([]FosterChildrenExpense, error)
+	FindAllAdminFosterChildrenExpensesForExport(ctx context.Context, fosterChildrenID string, params FosterChildrenExpenseExportParams) ([]FosterChildrenExpense, error)
 	FindOneFosterChildrenExpense(ctx context.Context, options map[string]interface{}) (*FosterChildrenExpense, error)
 	GetTotalExpenseByFosterChildrenID(ctx context.Context, fosterChildrenID string) (float64, error)
 	CreateFosterChildrenExpense(ctx context.Context, fosterChildrenExpense *FosterChildrenExpense) error
@@ -106,6 +107,23 @@ func (r *repo) FindAllFosterChildrenExpensesForExport(ctx context.Context, foste
 	if fosterChildrenSlug != "" {
 		query = query.Joins("JOIN foster_childrens ON foster_childrens.id = foster_children_expenses.foster_children_id").
 			Where("foster_childrens.slug = ?", fosterChildrenSlug)
+	}
+	if params.StartDate != "" {
+		query = query.Where("expense_date >= ?", params.StartDate)
+	}
+	if params.EndDate != "" {
+		query = query.Where("expense_date <= ?", params.EndDate)
+	}
+	err := query.Find(&expenses).Error
+	return expenses, err
+}
+
+func (r *repo) FindAllAdminFosterChildrenExpensesForExport(ctx context.Context, fosterChildrenID string, params FosterChildrenExpenseExportParams) ([]FosterChildrenExpense, error) {
+	var expenses []FosterChildrenExpense
+	query := r.Conn.WithContext(ctx).Order("foster_children_expenses.expense_date ASC, foster_children_expenses.created_at ASC").
+		Where("foster_children_expenses.deleted_at IS NULL")
+	if fosterChildrenID != "" {
+		query = query.Where("foster_children_expenses.foster_children_id = ?", fosterChildrenID)
 	}
 	if params.StartDate != "" {
 		query = query.Where("expense_date >= ?", params.StartDate)

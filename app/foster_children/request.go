@@ -6,6 +6,7 @@ import (
 
 type CreateFosterChildrenRequest struct {
 	Name            string                  `form:"name"`
+	Nik             string                  `form:"nik"`
 	Gender          Gender                  `form:"gender"`
 	IsGraduated     bool                    `form:"isGraduated"`
 	Category        Category                `form:"category"`
@@ -23,6 +24,7 @@ type CreateFosterChildrenRequest struct {
 
 type UpdateFosterChildrenRequest struct {
 	Name                  string                  `form:"name"`
+	Nik                   string                  `form:"nik"`
 	Gender                Gender                  `form:"gender"`
 	IsGraduated           *bool                   `form:"isGraduated"`
 	Category              Category                `form:"category"`
@@ -41,12 +43,11 @@ type UpdateFosterChildrenRequest struct {
 }
 
 type FosterChildrenQueryParams struct {
-	Search         string   `form:"search"`
-	Category       Category `form:"category"`
-	Gender         Gender   `form:"gender"`
-	IsGraduated    *bool    `form:"isGraduated"`
-	SortBy         string   `form:"sortBy"` // e.g. "name asc", "education_level desc", "created_at desc"
-	Page           int      `form:"page"`
-	Limit          int      `form:"limit"`
+	Search      string   `form:"search"`
+	Category    Category `form:"category"`
+	Gender      Gender   `form:"gender"`
+	IsGraduated *bool    `form:"isGraduated"`
+	SortBy      string   `form:"sortBy"` // e.g. "name asc", "education_level desc", "created_at desc"
+	Page        int      `form:"page"`
+	Limit       int      `form:"limit"`
 }
-

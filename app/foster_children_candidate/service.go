@@ -16,7 +16,7 @@ import (
 // FosterChildrenCreator is a minimal interface to create a foster children record
 // after a candidate is fully accepted, avoiding a circular import.
 type FosterChildrenCreator interface {
-	CreateFosterChildrenFromCandidate(ctx context.Context, candidateID, name, profilePicture, familyCard, sktm, birthPlace, schoolName, address string, gender string, category string, educationLevel int, birthDate time.Time) error
+	CreateFosterChildrenFromCandidate(ctx context.Context, candidateID, name, nik, profilePicture, familyCard, sktm, birthPlace, schoolName, address string, gender string, category string, educationLevel int, birthDate time.Time) error
 }
 
 type Service interface {
@@ -224,6 +224,9 @@ func (s *service) CreateFosterChildrenCandidate(ctx context.Context, accountID s
 	if req.Name == "" {
 		errValidation["name"] = "Nama wajib diisi"
 	}
+	if req.Nik == "" {
+		errValidation["nik"] = "NIK wajib diisi"
+	}
 	if req.Gender == "" {
 		errValidation["gender"] = "Jenis kelamin wajib diisi"
 	}
@@ -300,6 +303,7 @@ func (s *service) CreateFosterChildrenCandidate(ctx context.Context, accountID s
 	candidate := &FosterChildrenCandidate{
 		ID:               uuid.New(),
 		Name:             req.Name,
+		Nik:              req.Nik,
 		ProfilePicture:   profilePictureURL,
 		Gender:           req.Gender,
 		Category:         req.Category,
@@ -376,6 +380,7 @@ func (s *service) AcceptFosterChildrenCandidate(ctx context.Context, id string, 
 			ctx,
 			existing.ID.String(),
 			existing.Name,
+			existing.Nik,
 			existing.ProfilePicture,
 			existing.FamilyCard,
 			existing.SKTM,

@@ -16,6 +16,7 @@ type FosterChildrenDetailResponse struct {
 	ID             string                `json:"id"`
 	Slug           string                `json:"slug"`
 	Name           string                `json:"name"`
+	Nik            string                `json:"nik"`
 	ProfilePicture string                `json:"profilePicture"`
 	Gender         Gender                `json:"gender"`
 	IsGraduated    bool                  `json:"isGraduated"`
@@ -166,4 +167,3 @@ func ToAdminFosterChildrenListResponse(fosterChildren []FosterChildren, paginati
 		Pagination:          pagination,
 	}
 }
-

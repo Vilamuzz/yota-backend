@@ -139,6 +139,9 @@ func (s *service) CreateFosterChildren(ctx context.Context, req CreateFosterChil
 	if req.Name == "" {
 		errValidation["name"] = "Nama wajib diisi"
 	}
+	if req.Nik == "" {
+		errValidation["nik"] = "NIK wajib diisi"
+	}
 	if req.Gender == "" {
 		errValidation["gender"] = "Jenis kelamin wajib diisi"
 	} else if req.Gender != Male && req.Gender != Female {
@@ -209,6 +212,7 @@ func (s *service) CreateFosterChildren(ctx context.Context, req CreateFosterChil
 		ID:             fosterChildrenID,
 		Slug:           slug,
 		Name:           req.Name,
+		Nik:            req.Nik,
 		ProfilePicture: profilePictureURL,
 		Gender:         req.Gender,
 		IsGraduated:    req.IsGraduated,
@@ -281,6 +285,9 @@ func (s *service) UpdateFosterChildren(ctx context.Context, id string, req Updat
 
 	if req.Name != "" {
 		updateData["name"] = req.Name
+	}
+	if req.Nik != "" {
+		updateData["nik"] = req.Nik
 	}
 	if req.Gender != "" {
 		if req.Gender != Male && req.Gender != Female {
