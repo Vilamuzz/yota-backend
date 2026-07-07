@@ -25,6 +25,7 @@ type FoundationProfile struct {
 	HeroImageTwo          string    `json:"heroImageTwo"`
 	HeroImageThree        string    `json:"heroImageThree"`
 	HeroImageFour         string    `json:"heroImageFour"`
+	PpnPercentage         float64   `json:"ppnPercentage" gorm:"type:numeric;default:11"`
 	CreatedAt             time.Time `json:"createdAt"`
 	UpdatedAt             time.Time `json:"updatedAt"`
 }

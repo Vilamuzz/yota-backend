@@ -42,8 +42,13 @@ var allowedSortColumns = map[string]string{
 }
 
 func buildDonationProgramBaseQuery(conn *gorm.DB, ctx context.Context, options map[string]interface{}) *gorm.DB {
+	sumCol := "gross_amount"
+	if isAdmin, ok := options["is_admin"]; ok && isAdmin.(bool) {
+		sumCol = "net_amount"
+	}
+
 	dptSubquery := conn.Table("donation_program_transactions").
-		Select("donation_program_id, COALESCE(SUM(gross_amount), 0) as collected_fund").
+		Select("donation_program_id, COALESCE(SUM(" + sumCol + "), 0) as collected_fund").
 		Where("transaction_status = 'settlement'").
 		Group("donation_program_id")
 
@@ -142,22 +147,7 @@ func (r *repository) CountDonationPrograms(ctx context.Context, options map[stri
 
 func (r *repository) FindOneDonationProgram(ctx context.Context, options map[string]interface{}) (*DonationProgram, error) {
 	var donationProgram DonationProgram
-	dptSubquery := r.Conn.Table("donation_program_transactions").
-		Select("donation_program_id, COALESCE(SUM(gross_amount), 0) as collected_fund").
-		Where("transaction_status = 'settlement'").
-		Group("donation_program_id")
-
-	dpeSubquery := r.Conn.Table("donation_program_expenses").
-		Select("donation_program_id, COALESCE(SUM(amount), 0) as total_expense").
-		Where("deleted_at IS NULL").
-		Group("donation_program_id")
-
-	query := r.Conn.WithContext(ctx).
-		Table("donation_programs dp").
-		Joins("LEFT JOIN (?) dpt ON dpt.donation_program_id = dp.id", dptSubquery).
-		Joins("LEFT JOIN (?) dpe ON dpe.donation_program_id = dp.id", dpeSubquery).
-		Where("dp.deleted_at IS NULL").
-		Select("dp.*, COALESCE(dpt.collected_fund, 0) as collected_fund, COALESCE(dpe.total_expense, 0) as total_expense")
+	query := buildDonationProgramBaseQuery(r.Conn, ctx, options)
 
 	if id, ok := options["id"]; ok && id != "" {
 		query = query.Where("dp.id = ?", id)

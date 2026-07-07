@@ -38,6 +38,10 @@ func main() {
 		log.Fatalf("Failed to seed roles: %v", err)
 	}
 
+	if err := models.SeedPaymentMethods(db); err != nil {
+		log.Fatalf("Failed to seed payment methods: %v", err)
+	}
+
 	if err := seedSuperAdmin(db); err != nil {
 		log.Fatalf("Failed to seed super admin: %v", err)
 	}

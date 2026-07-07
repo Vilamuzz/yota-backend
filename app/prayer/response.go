@@ -107,7 +107,7 @@ type PrayerReportedListResponse struct {
 func (p *Prayer) toPrayerReportedResponse() PrayerReportedResponse {
 	username := p.DonationProgramTransaction.DonorName
 	if username == "" {
-		username = "Anonymous"
+		username = "Hamba Allah"
 	}
 
 	return PrayerReportedResponse{

@@ -14,6 +14,10 @@ type DonationProgramTransactionResponse struct {
 	DonorEmail           string     `json:"donorEmail"`
 	IsOnline             bool       `json:"isOnline"`
 	GrossAmount          float64    `json:"grossAmount"`
+	Fee                  float64    `json:"fee"`
+	NetAmount            float64    `json:"netAmount"`
+	PpnPercentage        float64    `json:"ppnPercentage"`
+	PpnAmount            float64    `json:"ppnAmount"`
 	TransactionStatus    string     `json:"transactionStatus"`
 	SnapToken            string     `json:"snapToken"`
 	PaidAt               *time.Time `json:"paidAt"`
@@ -34,6 +38,10 @@ func (tx *DonationProgramTransaction) toDonationProgramTransactionResponse() Don
 		DonorEmail:           tx.DonorEmail,
 		IsOnline:             tx.IsOnline,
 		GrossAmount:          tx.GrossAmount,
+		Fee:                  tx.Fee,
+		NetAmount:            tx.NetAmount,
+		PpnPercentage:        tx.PpnPercentage,
+		PpnAmount:            tx.PpnAmount,
 		TransactionStatus:    tx.TransactionStatus,
 		SnapToken:            tx.SnapToken,
 		PaidAt:               tx.PaidAt,

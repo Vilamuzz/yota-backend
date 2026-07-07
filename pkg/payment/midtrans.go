@@ -48,6 +48,7 @@ func (m *midtransClient) CreateSnapTransaction(req *snap.Request) (*snap.Respons
 func (m *midtransClient) GetServerKey() string {
 	return m.serverKey
 }
+
 // MidtransNotificationRequest represents the notification payload from Midtrans.
 type MidtransNotificationRequest struct {
 	OrderID           string `json:"order_id"`
@@ -58,4 +59,48 @@ type MidtransNotificationRequest struct {
 	FraudStatus       string `json:"fraud_status"`
 	PaymentType       string `json:"payment_type"`
 	TransactionID     string `json:"transaction_id"`
+	VANumbers         []struct {
+		Bank     string `json:"bank"`
+		VANumber string `json:"va_number"`
+	} `json:"va_numbers"`
+	PermataVANumber string `json:"permata_va_number"`
+}
+
+// GetPaymentMethodCode resolves a Midtrans notification payload to an internal
+// payment method code used to look up fee configuration.
+func GetPaymentMethodCode(payload MidtransNotificationRequest) string {
+	switch payload.PaymentType {
+	case "gopay":
+		return "gopay"
+	case "qris":
+		return "qris"
+	case "shopeepay":
+		return "shopeepay"
+	case "echannel":
+		return "mandiri_va"
+	case "bank_transfer":
+		if len(payload.VANumbers) > 0 {
+			bank := payload.VANumbers[0].Bank
+			switch bank {
+			case "bca":
+				return "bca_va"
+			case "bri":
+				return "bri_va"
+			case "bni":
+				return "bni_va"
+			case "cimb":
+				return "cimb_va"
+			}
+		}
+		if payload.PermataVANumber != "" {
+			return "permata_va"
+		}
+	case "permata":
+		return "permata_va"
+	case "dana":
+		return "dana"
+	case "ovo":
+		return "ovo"
+	}
+	return ""
 }

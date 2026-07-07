@@ -177,7 +177,7 @@ func (s *service) CreateOfflineFosterChildrenTransaction(ctx context.Context, ac
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
-	donorName := "anonymous"
+	donorName := "Hamba Allah"
 	if payload.DonorName != "" {
 		donorName = payload.DonorName
 	}
@@ -199,6 +199,8 @@ func (s *service) CreateOfflineFosterChildrenTransaction(ctx context.Context, ac
 		FraudStatus:       "accept",
 		TransactionStatus: "settlement",
 		Provider:          "offline",
+		Fee:               0,
+		NetAmount:         payload.GrossAmount,
 		PaidAt:            &now,
 		CreatedAt:         now,
 		UpdatedAt:         now,
@@ -218,7 +220,7 @@ func (s *service) CreateOfflineFosterChildrenTransaction(ctx context.Context, ac
 		FundID:          transaction.FosterChildrenID.String(),
 		SourceType:      finance_record.SourceTypeTransaction,
 		SourceID:        transaction.ID.String(),
-		Amount:          transaction.GrossAmount,
+		Amount:          transaction.NetAmount,
 		TransactionDate: now,
 		CreatedAt:       now,
 	}); err != nil {
@@ -269,7 +271,7 @@ func (s *service) CreateFosterChildrenTransaction(ctx context.Context, accountID
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
-	donorName := "anonymous"
+	donorName := "Hamba Allah"
 	if payload.DonorName != "" {
 		donorName = payload.DonorName
 	}
@@ -374,8 +376,51 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 	}
 	isSettled := payload.TransactionStatus == "settlement" ||
 		(payload.TransactionStatus == "capture" && payload.FraudStatus != "challenge")
+
+	var baseFee float64
+	var ppnPercentage float64
+	var ppnAmount float64
+	var netAmount float64 = transaction.GrossAmount
 	if isSettled {
 		updates["paid_at"] = time.Now()
+
+		ppnPercentage, _ = s.repo.GetPpnPercentage(ctx)
+
+		pmCode := payment_pkg.GetPaymentMethodCode(payload)
+		if pmCode != "" {
+			pm, err := s.repo.FindPaymentMethodByCode(ctx, pmCode)
+			if err == nil {
+				switch pm.FeeType {
+				case "flat":
+					baseFee = pm.FeeValue
+				case "percentage":
+					baseFee = transaction.GrossAmount * pm.FeeValue
+				}
+				ppnAmount = baseFee * (ppnPercentage / 100.0)
+				netAmount = transaction.GrossAmount - (baseFee + ppnAmount)
+				if netAmount < 0 {
+					netAmount = 0
+				}
+			} else {
+				logrus.WithFields(logrus.Fields{
+					"component":      "foster_children_transaction.service",
+					"transaction_id": transaction.ID,
+					"payment_type":   payload.PaymentType,
+					"pm_code":        pmCode,
+				}).WithError(err).Warn("failed to fetch payment method configuration, applying zero fee")
+			}
+		} else {
+			logrus.WithFields(logrus.Fields{
+				"component":      "foster_children_transaction.service",
+				"transaction_id": transaction.ID,
+				"payment_type":   payload.PaymentType,
+			}).Warn("unknown payment type, applying zero fee")
+		}
+
+		updates["fee"] = baseFee
+		updates["ppn_percentage"] = ppnPercentage
+		updates["ppn_amount"] = ppnAmount
+		updates["net_amount"] = netAmount
 	}
 
 	if err := s.repo.UpdateFosterChildrenTransaction(ctx, payload.OrderID, updates); err != nil {
@@ -395,7 +440,7 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 			FundID:          transaction.FosterChildrenID.String(),
 			SourceType:      finance_record.SourceTypeTransaction,
 			SourceID:        transaction.ID.String(),
-			Amount:          transaction.GrossAmount,
+			Amount:          netAmount,
 			TransactionDate: now,
 			CreatedAt:       now,
 		}); err != nil {
@@ -411,6 +456,9 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 			"order_id":           payload.OrderID,
 			"foster_children_id": transaction.FosterChildrenID,
 			"amount":             transaction.GrossAmount,
+			"fee":                baseFee,
+			"ppn_amount":         ppnAmount,
+			"net_amount":         netAmount,
 		}).Info("transaction settled")
 	}
 

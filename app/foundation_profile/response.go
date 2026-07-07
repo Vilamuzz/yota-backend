@@ -25,6 +25,7 @@ type FoundationProfileResponse struct {
 	HeroImageTwo          string    `json:"heroImageTwo"`
 	HeroImageThree        string    `json:"heroImageThree"`
 	HeroImageFour         string    `json:"heroImageFour"`
+	PpnPercentage         float64   `json:"ppnPercentage"`
 	CreatedAt             time.Time `json:"createdAt"`
 	UpdatedAt             time.Time `json:"updatedAt"`
 }
@@ -49,6 +50,7 @@ func (f *FoundationProfile) toFoundationProfileResponse() FoundationProfileRespo
 		HeroImageTwo:          s3_pkg.GetCDNURL(f.HeroImageTwo),
 		HeroImageThree:        s3_pkg.GetCDNURL(f.HeroImageThree),
 		HeroImageFour:         s3_pkg.GetCDNURL(f.HeroImageFour),
+		PpnPercentage:         f.PpnPercentage,
 		CreatedAt:             f.CreatedAt,
 		UpdatedAt:             f.UpdatedAt,
 	}

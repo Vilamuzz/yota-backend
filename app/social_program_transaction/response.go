@@ -13,6 +13,10 @@ type SocialProgramTransactionResponse struct {
 	AccountID              string     `json:"accountId"`
 	IsOnline               bool       `json:"isOnline"`
 	GrossAmount            float64    `json:"grossAmount"`
+	Fee                    float64    `json:"fee"`
+	NetAmount              float64    `json:"netAmount"`
+	PpnPercentage          float64    `json:"ppnPercentage"`
+	PpnAmount              float64    `json:"ppnAmount"`
 	TransactionStatus      string     `json:"transactionStatus"`
 	Provider               string     `json:"provider"`
 	TransactionID          string     `json:"transactionId"`
@@ -34,6 +38,10 @@ func (tx *SocialProgramTransaction) toSocialProgramTransactionResponse() SocialP
 		AccountID:              tx.AccountID.String(),
 		IsOnline:               tx.IsOnline,
 		GrossAmount:            tx.GrossAmount,
+		Fee:                    tx.Fee,
+		NetAmount:              tx.NetAmount,
+		PpnPercentage:          tx.PpnPercentage,
+		PpnAmount:              tx.PpnAmount,
 		TransactionStatus:      tx.TransactionStatus,
 		Provider:               tx.Provider,
 		TransactionID:          tx.TransactionID,

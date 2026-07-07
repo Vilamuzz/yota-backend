@@ -244,6 +244,8 @@ func (s *service) CreateOfflineDonationProgramTransaction(ctx context.Context, a
 		FraudStatus:       "accept",
 		TransactionStatus: "settlement",
 		Provider:          "offline",
+		Fee:               0,
+		NetAmount:         payload.GrossAmount,
 		PaidAt:            &now,
 		CreatedAt:         now,
 		UpdatedAt:         now,
@@ -322,7 +324,7 @@ func (s *service) CreateDonationProgramTransaction(ctx context.Context, accountI
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
-	donorName := "anonymous"
+	donorName := "Hamba Allah"
 	if payload.DonorName != "" {
 		donorName = payload.DonorName
 	}
@@ -462,8 +464,51 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 	}
 	isSettled := payload.TransactionStatus == "settlement" ||
 		(payload.TransactionStatus == "capture" && payload.FraudStatus != "challenge")
+
+	var baseFee float64
+	var ppnPercentage float64
+	var ppnAmount float64
+	var netAmount float64 = transaction.GrossAmount
 	if isSettled {
 		updates["paid_at"] = time.Now()
+
+		ppnPercentage, _ = s.repo.GetPpnPercentage(ctx)
+
+		pmCode := payment_pkg.GetPaymentMethodCode(payload)
+		if pmCode != "" {
+			pm, err := s.repo.FindPaymentMethodByCode(ctx, pmCode)
+			if err == nil {
+				switch pm.FeeType {
+				case "flat":
+					baseFee = pm.FeeValue
+				case "percentage":
+					baseFee = transaction.GrossAmount * pm.FeeValue
+				}
+				ppnAmount = baseFee * (ppnPercentage / 100.0)
+				netAmount = transaction.GrossAmount - (baseFee + ppnAmount)
+				if netAmount < 0 {
+					netAmount = 0
+				}
+			} else {
+				logrus.WithFields(logrus.Fields{
+					"component":      "donation_program_transaction.service",
+					"transaction_id": transaction.ID,
+					"payment_type":   payload.PaymentType,
+					"pm_code":        pmCode,
+				}).WithError(err).Warn("failed to fetch payment method configuration, applying zero fee")
+			}
+		} else {
+			logrus.WithFields(logrus.Fields{
+				"component":      "donation_program_transaction.service",
+				"transaction_id": transaction.ID,
+				"payment_type":   payload.PaymentType,
+			}).Warn("unknown payment type, applying zero fee")
+		}
+
+		updates["fee"] = baseFee
+		updates["ppn_percentage"] = ppnPercentage
+		updates["ppn_amount"] = ppnAmount
+		updates["net_amount"] = netAmount
 	}
 
 	if err := s.repo.UpdateDonationProgramTransaction(ctx, payload.OrderID, updates); err != nil {
@@ -500,7 +545,7 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 			FundID:          transaction.DonationProgramID.String(),
 			SourceType:      finance_record.SourceTypeTransaction,
 			SourceID:        transaction.ID.String(),
-			Amount:          transaction.GrossAmount,
+			Amount:          netAmount,
 			TransactionDate: now,
 			CreatedAt:       now,
 		}); err != nil {
@@ -516,11 +561,15 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 			"order_id":            payload.OrderID,
 			"donation_program_id": transaction.DonationProgramID,
 			"amount":              transaction.GrossAmount,
+			"fee":                 baseFee,
+			"ppn_amount":          ppnAmount,
+			"net_amount":          netAmount,
 		}).Info("transaction settled")
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Notifikasi berhasil ditangani", nil, nil)
 }
+
 
 func (s *service) GetMyDonationProgramTransactionList(ctx context.Context, accountID string, params DonationProgramTransactionQueryParams) pkg.Response {
 	return s.GetDonationProgramTransactionList(ctx, accountID, "", params)
@@ -634,7 +683,7 @@ func (s *service) ExportDonationProgramTransactionCSV(ctx context.Context, donat
 	var buf bytes.Buffer
 	w := csv.NewWriter(&buf)
 
-	header := []string{"No", "Order ID", "Nama Donatur", "Email Donatur", "Tipe Transaksi", "Jumlah (Rp)", "Metode Pembayaran", "Status Transaksi", "Tanggal Bayar", "Tanggal Dibuat"}
+	header := []string{"No", "Order ID", "Nama Donatur", "Email Donatur", "Tipe Transaksi", "Jumlah Kotor (Rp)", "Biaya Admin (Rp)", "Jumlah Bersih (Rp)", "Metode Pembayaran", "Status Transaksi", "Tanggal Bayar", "Tanggal Dibuat"}
 	if err := w.Write(header); err != nil {
 		return nil, "", fmt.Errorf("gagal menulis header CSV")
 	}
@@ -657,6 +706,8 @@ func (s *service) ExportDonationProgramTransactionCSV(ctx context.Context, donat
 			tx.DonorEmail,
 			typeStr,
 			fmt.Sprintf("%.2f", tx.GrossAmount),
+			fmt.Sprintf("%.2f", tx.Fee),
+			fmt.Sprintf("%.2f", tx.NetAmount),
 			tx.Provider,
 			tx.TransactionStatus,
 			paidAtStr,

@@ -39,6 +39,22 @@ func SeedSocialProgramTransactions(db *gorm.DB) error {
 			provider = "offline"
 		}
 
+		var fee, netAmount float64
+		var ppnPercentage, ppnAmount float64
+		if isOnline {
+			ppnPercentage = 11.0
+			baseFee := 2000.0
+			ppnAmount = baseFee * (ppnPercentage / 100.0)
+			fee = baseFee
+			netAmount = inv.MinimumAmount - (baseFee + ppnAmount)
+			if netAmount < 0 {
+				netAmount = 0
+			}
+		} else {
+			fee = 0
+			netAmount = inv.MinimumAmount
+		}
+
 		tx := social_program_transaction.SocialProgramTransaction{
 			ID:                     txID,
 			SocialProgramInvoiceID: inv.ID,
@@ -52,6 +68,10 @@ func SeedSocialProgramTransactions(db *gorm.DB) error {
 			TransactionID:          uuid.New().String(),
 			SnapToken:              snapToken,
 			SnapRedirectURL:        snapRedirect,
+			Fee:                    fee,
+			NetAmount:              netAmount,
+			PpnPercentage:          ppnPercentage,
+			PpnAmount:              ppnAmount,
 			PaidAt:                 &paidAtTime,
 			CreatedAt:              paidAtTime,
 			UpdatedAt:              paidAtTime,
@@ -74,7 +94,7 @@ func SeedSocialProgramTransactions(db *gorm.DB) error {
 					FundID:          tx.SocialProgramInvoiceID.String(),
 					SourceType:      finance_record.SourceTypeTransaction,
 					SourceID:        tx.ID.String(),
-					Amount:          tx.GrossAmount,
+					Amount:          tx.NetAmount,
 					TransactionDate: *tx.PaidAt,
 					CreatedAt:       tx.CreatedAt,
 				}

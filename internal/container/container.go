@@ -81,6 +81,8 @@ type Container struct {
 	SocialProgramSubscriptionRepo social_program_subscription.Repository
 	SocialProgramTransactionRepo  social_program_transaction.Repository
 	LogRepo                       app_log.Repository
+	BackupRepo                       backup.Repository
+	PaymentRepo                   payment.Repository
 
 	// Services
 	AuthService                      auth.Service
@@ -109,7 +111,7 @@ type Container struct {
 	SocialProgramTransactionService  social_program_transaction.Service
 	LogService                       app_log.Service
 	BackupService                    backup.Service
-	BackupRepo                       backup.Repository
+	PaymentService                   payment.Service
 
 	// Middleware
 	Middleware *middleware.AppMiddleware
@@ -217,6 +219,7 @@ func (c *Container) initRepositories() {
 	c.SocialProgramTransactionRepo = social_program_transaction.NewRepository(c.DB)
 	c.LogRepo = app_log.NewRepository(c.DB)
 	c.BackupRepo = backup.NewRepository(c.DB)
+	c.PaymentRepo = payment.NewRepository(c.DB)
 }
 
 func (c *Container) initServices() {
@@ -246,6 +249,7 @@ func (c *Container) initServices() {
 	c.SocialProgramSubscriptionService = social_program_subscription.NewService(c.SocialProgramSubscriptionRepo, c.SocialProgramRepo, c.Timeout)
 	c.SocialProgramTransactionService = social_program_transaction.NewService(c.SocialProgramTransactionRepo, c.AccountRepo, c.SocialProgramSubscriptionRepo, c.SocialProgramInvoiceRepo, c.FinanceRecordRepo, c.MidtransClient, c.LogService, c.Timeout)
 	c.BackupService = backup.NewService(c.BackupRepo, c.MinioClient, c.Timeout)
+	c.PaymentService = payment.NewService(c.PaymentRepo, c.Timeout)
 }
 
 func (c *Container) initMiddleware() {
@@ -320,7 +324,6 @@ func (c *Container) RegisterHandlers(router *gin.RouterGroup) {
 	app_log.NewHandler(router, c.LogService, *c.Middleware)
 	backup.NewHandler(router, c.BackupService, *c.Middleware)
 
-	// Payment Webhooks
-	paymentGroup := router.Group("/webhooks")
-	payment.NewHandler(paymentGroup, c.TransactionDonationService, c.SocialProgramTransactionService, c.FosterChildrenTransactionService)
+	// Payment Webhooks & Admin endpoints
+	payment.NewHandler(router, c.TransactionDonationService, c.SocialProgramTransactionService, c.FosterChildrenTransactionService, c.PaymentService, *c.Middleware)
 }

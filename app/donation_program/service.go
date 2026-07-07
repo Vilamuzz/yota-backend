@@ -56,8 +56,9 @@ func (s *service) GetDonationProgramList(ctx context.Context, params DonationPro
 	}
 
 	options := map[string]interface{}{
-		"limit": params.Limit,
-		"page":  params.Page,
+		"limit":    params.Limit,
+		"page":     params.Page,
+		"is_admin": isAdmin,
 	}
 	if params.Search != "" {
 		options["search"] = params.Search
@@ -135,7 +136,7 @@ func (s *service) GetDonationProgramByID(ctx context.Context, id string) pkg.Res
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", map[string]string{"id": "Format ID donasi tidak valid"}, nil)
 	}
 
-	donation, err := s.repo.FindOneDonationProgram(ctx, map[string]interface{}{"id": id})
+	donation, err := s.repo.FindOneDonationProgram(ctx, map[string]interface{}{"id": id, "is_admin": true})
 	if err != nil {
 		return pkg.NewResponse(http.StatusNotFound, "Donasi tidak ditemukan", nil, nil)
 	}

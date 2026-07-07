@@ -23,6 +23,10 @@ type DonationProgramTransaction struct {
 	TransactionID     string     `json:"transactionId"`
 	SnapToken         string     `json:"snapToken"`
 	SnapRedirectURL   string     `json:"snapRedirectUrl"`
+	Fee               float64    `json:"fee" gorm:"default:0"`
+	NetAmount         float64    `json:"netAmount" gorm:"default:0"`
+	PpnPercentage     float64    `json:"ppnPercentage" gorm:"type:numeric;default:0"`
+	PpnAmount         float64    `json:"ppnAmount" gorm:"type:numeric;default:0"`
 	PaidAt            *time.Time `json:"paidAt"`
 	CreatedAt         time.Time  `json:"createdAt"`
 	UpdatedAt         time.Time  `json:"updatedAt"`

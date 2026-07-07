@@ -20,6 +20,7 @@ type FoundationProfileCreateRequest struct {
 	HeroImageTwo          *multipart.FileHeader `form:"heroImageTwo" swaggerignore:"true"`
 	HeroImageThree        *multipart.FileHeader `form:"heroImageThree" swaggerignore:"true"`
 	HeroImageFour         *multipart.FileHeader `form:"heroImageFour" swaggerignore:"true"`
+	PpnPercentage         *float64              `form:"ppnPercentage" json:"ppnPercentage"`
 }
 
 type FoundationProfileUpdateRequest struct {
@@ -40,4 +41,5 @@ type FoundationProfileUpdateRequest struct {
 	HeroImageTwo          *multipart.FileHeader `form:"heroImageTwo" swaggerignore:"true"`
 	HeroImageThree        *multipart.FileHeader `form:"heroImageThree" swaggerignore:"true"`
 	HeroImageFour         *multipart.FileHeader `form:"heroImageFour" swaggerignore:"true"`
+	PpnPercentage         *float64              `form:"ppnPercentage" json:"ppnPercentage"`
 }

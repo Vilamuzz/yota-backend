@@ -18,6 +18,8 @@ type Repository interface {
 	UpdateDonationProgramTransaction(ctx context.Context, orderID string, updates map[string]interface{}) error
 	CancelDonationProgramTransaction(ctx context.Context, orderID string) error
 	GetMonthlyIncomeByProgram(ctx context.Context, donationProgramID string, year int) (*TransactionMonthlyIncomeRecord, error)
+	FindPaymentMethodByCode(ctx context.Context, code string) (*PaymentMethod, error)
+	GetPpnPercentage(ctx context.Context) (float64, error)
 }
 
 type repository struct {
@@ -163,7 +165,7 @@ func (r *repository) GetMonthlyIncomeByProgram(ctx context.Context, donationProg
 
 	err := r.Conn.WithContext(ctx).
 		Model(&DonationProgramTransaction{}).
-		Select("CAST(EXTRACT(MONTH FROM paid_at) AS INTEGER) as month_num, SUM(gross_amount) as income").
+		Select("CAST(EXTRACT(MONTH FROM paid_at) AS INTEGER) as month_num, SUM(net_amount) as income").
 		Where("donation_program_id = ?", donationProgramID).
 		Where("EXTRACT(YEAR FROM paid_at) = ?", year).
 		Where("transaction_status = ? OR (transaction_status = ? AND fraud_status != ?)", "settlement", "capture", "challenge").
@@ -217,4 +219,35 @@ func (r *repository) FindAllDonationProgramTransactionsForExport(ctx context.Con
 	}
 	err := query.Find(&transactions).Error
 	return transactions, err
+}
+
+type PaymentMethod struct {
+	ID       int     `gorm:"primaryKey"`
+	Code     string  `gorm:"not null"`
+	Name     string  `gorm:"not null"`
+	FeeType  string  `gorm:"not null"`
+	FeeValue float64 `gorm:"not null"`
+	IsActive bool    `gorm:"not null"`
+}
+
+func (PaymentMethod) TableName() string {
+	return "payment_methods"
+}
+
+func (r *repository) FindPaymentMethodByCode(ctx context.Context, code string) (*PaymentMethod, error) {
+	var pm PaymentMethod
+	err := r.Conn.WithContext(ctx).Where("code = ? AND is_active = ?", code, true).First(&pm).Error
+	if err != nil {
+		return nil, err
+	}
+	return &pm, nil
+}
+
+func (r *repository) GetPpnPercentage(ctx context.Context) (float64, error) {
+	var ppn float64
+	err := r.Conn.WithContext(ctx).Table("foundation_profiles").Select("ppn_percentage").Row().Scan(&ppn)
+	if err != nil {
+		return 11.0, nil // default to 11% but return nil error since we fall back safely
+	}
+	return ppn, nil
 }

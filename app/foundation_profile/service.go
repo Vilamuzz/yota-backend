@@ -97,6 +97,11 @@ func (s *service) CreateFoundationProfile(ctx context.Context, payload Foundatio
 		CreatedAt:           timeNow,
 		UpdatedAt:           timeNow,
 	}
+	if payload.PpnPercentage != nil {
+		profile.PpnPercentage = *payload.PpnPercentage
+	} else {
+		profile.PpnPercentage = 11.0
+	}
 
 	var (
 		founderPictureURL        string
@@ -302,6 +307,10 @@ func (s *service) UpdateFoundationProfile(ctx context.Context, id string, payloa
 
 	if payload.EmbeddedAddress != "" {
 		updateData["embedded_address"] = payload.EmbeddedAddress
+	}
+
+	if payload.PpnPercentage != nil {
+		updateData["ppn_percentage"] = payload.PpnPercentage
 	}
 
 	var (

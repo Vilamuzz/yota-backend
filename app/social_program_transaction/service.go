@@ -184,7 +184,7 @@ func (s *service) CreateSocialProgramTransaction(ctx context.Context, accountID 
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
-	donorName := "anonymous"
+	donorName := "Hamba Allah"
 	donorEmail := "anonymous@example.com"
 	if account != nil {
 		if account.UserProfile.Username != "" {
@@ -280,9 +280,52 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 	}
 	isSettled := payload.TransactionStatus == "settlement" ||
 		(payload.TransactionStatus == "capture" && payload.FraudStatus != "challenge")
+
+	var baseFee float64
+	var ppnPercentage float64
+	var ppnAmount float64
+	var netAmount float64 = transaction.GrossAmount
 	if isSettled {
 		now := time.Now()
 		updates["paid_at"] = now
+
+		ppnPercentage, _ = s.repo.GetPpnPercentage(ctx)
+
+		pmCode := payment_pkg.GetPaymentMethodCode(payload)
+		if pmCode != "" {
+			pm, err := s.repo.FindPaymentMethodByCode(ctx, pmCode)
+			if err == nil {
+				switch pm.FeeType {
+				case "flat":
+					baseFee = pm.FeeValue
+				case "percentage":
+					baseFee = transaction.GrossAmount * pm.FeeValue
+				}
+				ppnAmount = baseFee * (ppnPercentage / 100.0)
+				netAmount = transaction.GrossAmount - (baseFee + ppnAmount)
+				if netAmount < 0 {
+					netAmount = 0
+				}
+			} else {
+				logrus.WithFields(logrus.Fields{
+					"component":      "social_program_transaction.service",
+					"transaction_id": transaction.ID,
+					"payment_type":   payload.PaymentType,
+					"pm_code":        pmCode,
+				}).WithError(err).Warn("failed to fetch payment method configuration, applying zero fee")
+			}
+		} else {
+			logrus.WithFields(logrus.Fields{
+				"component":      "social_program_transaction.service",
+				"transaction_id": transaction.ID,
+				"payment_type":   payload.PaymentType,
+			}).Warn("unknown payment type, applying zero fee")
+		}
+
+		updates["fee"] = baseFee
+		updates["ppn_percentage"] = ppnPercentage
+		updates["ppn_amount"] = ppnAmount
+		updates["net_amount"] = netAmount
 
 		_ = s.invoiceRepo.UpdateSocialProgramInvoice(ctx, transaction.SocialProgramInvoiceID.String(), map[string]interface{}{
 			"status":     "paid",
@@ -327,7 +370,7 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 			FundID:          transaction.SocialProgramInvoiceID.String(),
 			SourceType:      finance_record.SourceTypeTransaction,
 			SourceID:        transaction.ID.String(),
-			Amount:          transaction.GrossAmount,
+			Amount:          netAmount,
 			TransactionDate: now,
 			CreatedAt:       now,
 		}); err != nil {
@@ -337,6 +380,15 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 				"order_id":       payload.OrderID,
 			}).WithError(err).Warn("failed to create finance record after settlement")
 		}
+		logrus.WithFields(logrus.Fields{
+			"component":      "social_program_transaction.service",
+			"transaction_id": transaction.ID,
+			"order_id":       payload.OrderID,
+			"amount":         transaction.GrossAmount,
+			"fee":            baseFee,
+			"ppn_amount":     ppnAmount,
+			"net_amount":     netAmount,
+		}).Info("transaction settled")
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Notifikasi berhasil ditangani", nil, nil)
@@ -388,13 +440,15 @@ func (s *service) CreateOfflineSocialProgramTransaction(ctx context.Context, inv
 	transaction := &SocialProgramTransaction{
 		ID:                     uuid.New(),
 		SocialProgramInvoiceID: invoice.ID,
-		AccountID:              invoice.Subscription.AccountID, // Assuming preloaded or we can get it from invoice.Subscription
+		AccountID:              invoice.Subscription.AccountID,
 		OrderID:                orderID,
 		IsOnline:               false,
 		GrossAmount:            payload.GrossAmount,
 		FraudStatus:            "accept",
 		TransactionStatus:      "settlement",
 		Provider:               "offline",
+		Fee:                    0,
+		NetAmount:              payload.GrossAmount,
 		PaidAt:                 &now,
 		CreatedAt:              now,
 		UpdatedAt:              now,
@@ -426,7 +480,7 @@ func (s *service) CreateOfflineSocialProgramTransaction(ctx context.Context, inv
 			FundID:          invoice.ID.String(),
 			SourceType:      finance_record.SourceTypeTransaction,
 			SourceID:        transaction.ID.String(),
-			Amount:          transaction.GrossAmount,
+			Amount:          transaction.NetAmount,
 			TransactionDate: now,
 			CreatedAt:       now,
 		}); err != nil {

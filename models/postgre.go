@@ -26,6 +26,7 @@ import (
 	"github.com/Vilamuzz/yota-backend/app/social_program_expense"
 	"github.com/Vilamuzz/yota-backend/app/social_program_invoice"
 	"github.com/Vilamuzz/yota-backend/app/social_program_subscription"
+	"github.com/Vilamuzz/yota-backend/app/payment"
 	"github.com/Vilamuzz/yota-backend/app/social_program_transaction"
 )
 
@@ -65,5 +66,6 @@ func GetAllModels() []interface{} {
 		&ambulance_service_request.AmbulanceServiceRequest{},
 		&ambulance_history.AmbulanceHistory{},
 		&backup.Backup{},
+		&payment.PaymentMethods{},
 	}
 }

@@ -78,9 +78,10 @@ func SeedDonationTransactions(db *gorm.DB) error {
 
 			// Vary the statuses: 8 settlement, 1 pending, 1 expire
 			status := "settlement"
-			if i == 8 {
+			switch i {
+			case 8:
 				status = "pending"
-			} else if i == 9 {
+			case 9:
 				status = "expire"
 			}
 
@@ -88,9 +89,24 @@ func SeedDonationTransactions(db *gorm.DB) error {
 			updatedAt := createdAt
 
 			var paidAt *time.Time
+			var fee, netAmount float64
+			var ppnPercentage, ppnAmount float64
 			if status == "settlement" {
 				paidTime := createdAt.Add(time.Minute * 15)
 				paidAt = &paidTime
+				if isOnline {
+					ppnPercentage = 11.0
+					baseFee := 2000.0
+					ppnAmount = baseFee * (ppnPercentage / 100.0)
+					fee = baseFee
+					netAmount = amounts[i%len(amounts)] - (baseFee + ppnAmount)
+					if netAmount < 0 {
+						netAmount = 0
+					}
+				} else {
+					fee = 0
+					netAmount = amounts[i%len(amounts)]
+				}
 			}
 
 			tx := donation_program_transaction.DonationProgramTransaction{
@@ -107,6 +123,10 @@ func SeedDonationTransactions(db *gorm.DB) error {
 				Provider:          provider,
 				SnapToken:         snapToken,
 				SnapRedirectURL:   snapRedirect,
+				Fee:               fee,
+				NetAmount:         netAmount,
+				PpnPercentage:     ppnPercentage,
+				PpnAmount:         ppnAmount,
 				PaidAt:            paidAt,
 				CreatedAt:         createdAt,
 				UpdatedAt:         updatedAt,
@@ -130,7 +150,7 @@ func SeedDonationTransactions(db *gorm.DB) error {
 							FundID:          tx.DonationProgramID.String(),
 							SourceType:      finance_record.SourceTypeTransaction,
 							SourceID:        tx.ID.String(),
-							Amount:          tx.GrossAmount,
+							Amount:          tx.NetAmount,
 							TransactionDate: *tx.PaidAt,
 							CreatedAt:       tx.CreatedAt,
 						}

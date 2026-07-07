@@ -13,6 +13,8 @@ type Repository interface {
 	CreateSocialProgramTransaction(ctx context.Context, transaction *SocialProgramTransaction) error
 	UpdateSocialProgramTransaction(ctx context.Context, orderID string, updates map[string]interface{}) error
 	WithTransaction(ctx context.Context, fn func(repo Repository) error) error
+	FindPaymentMethodByCode(ctx context.Context, code string) (*PaymentMethod, error)
+	GetPpnPercentage(ctx context.Context) (float64, error)
 }
 
 type repository struct {
@@ -97,4 +99,35 @@ func (r *repository) WithTransaction(ctx context.Context, fn func(repo Repositor
 	return r.Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return fn(&repository{Conn: tx})
 	})
+}
+
+type PaymentMethod struct {
+	ID       int     `gorm:"primaryKey"`
+	Code     string  `gorm:"not null"`
+	Name     string  `gorm:"not null"`
+	FeeType  string  `gorm:"not null"`
+	FeeValue float64 `gorm:"not null"`
+	IsActive bool    `gorm:"not null"`
+}
+
+func (PaymentMethod) TableName() string {
+	return "payment_methods"
+}
+
+func (r *repository) FindPaymentMethodByCode(ctx context.Context, code string) (*PaymentMethod, error) {
+	var pm PaymentMethod
+	err := r.Conn.WithContext(ctx).Where("code = ? AND is_active = ?", code, true).First(&pm).Error
+	if err != nil {
+		return nil, err
+	}
+	return &pm, nil
+}
+
+func (r *repository) GetPpnPercentage(ctx context.Context) (float64, error) {
+	var ppn float64
+	err := r.Conn.WithContext(ctx).Table("foundation_profiles").Select("ppn_percentage").Row().Scan(&ppn)
+	if err != nil {
+		return 11.0, nil // default to 11% but return nil error since we fall back safely
+	}
+	return ppn, nil
 }
