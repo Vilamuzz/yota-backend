@@ -267,7 +267,7 @@ func (c *Container) initScheduler() {
 	})
 
 	// Generate monthly invoices for social programs every midnight
-	c.Scheduler.Add("0 0 * * *", "generate-monthly-invoices", func() {
+	c.Scheduler.Add("@every 1m", "generate-monthly-invoices", func() {
 		if err := c.SocialProgramInvoiceService.GenerateMonthlyInvoices(context.Background()); err != nil {
 			_ = err
 		}
