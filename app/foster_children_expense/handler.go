@@ -36,6 +36,7 @@ func (h *handler) RegisterRoutes(r *gin.RouterGroup) {
 		admin.GET("/expenses/:id", h.GetFosterChildrenExpenseByID)
 		admin.POST("/:id/expenses", h.CreateFosterChildrenExpense)
 		admin.DELETE("/expenses/:id", h.DeleteFosterChildrenExpense)
+		admin.GET("/:id/expenses/export", h.ExportAdminFosterChildrenExpenseCSV)
 	}
 }
 
@@ -187,6 +188,28 @@ func (h *handler) ExportFosterChildrenExpenseCSV(c *gin.Context) {
 	}
 
 	csvBytes, filename, err := h.service.ExportFosterChildrenExpenseCSV(ctx, fosterChildrenSlug, params)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
+		return
+	}
+
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Type", "text/csv; charset=utf-8")
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Data(http.StatusOK, "text/csv; charset=utf-8", csvBytes)
+}
+
+func (h *handler) ExportAdminFosterChildrenExpenseCSV(c *gin.Context) {
+	ctx := c.Request.Context()
+	fosterChildrenID := c.Param("id")
+
+	var params FosterChildrenExpenseExportParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
+		return
+	}
+
+	csvBytes, filename, err := h.service.ExportAdminFosterChildrenExpenseCSV(ctx, fosterChildrenID, params)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, pkg.NewResponse(http.StatusBadRequest, err.Error(), nil, nil))
 		return
