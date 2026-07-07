@@ -178,6 +178,8 @@ func (r *repository) FindSubscriptionsDueForBilling(ctx context.Context, billing
 		Where("social_programs.status = ?", "active").
 		Where("social_programs.billing_day = ?", billingDay).
 		Preload("SocialProgram").
+		Preload("Account").
+		Preload("Account.UserProfile").
 		Find(&subscriptions).Error
 	return subscriptions, err
 }

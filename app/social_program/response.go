@@ -19,6 +19,7 @@ type SocialProgramDetailResponse struct {
 	BillingDay       int     `json:"billingDay"`
 	CreatedAt        string  `json:"createdAt"`
 	TotalExpense     float64 `json:"totalExpense"`
+	RejectionReason  string  `json:"rejectionReason"`
 }
 
 type SocialProgramListItemResponse struct {
@@ -55,6 +56,7 @@ func (r *SocialProgram) ToSocialProgramDetailResponse() SocialProgramDetailRespo
 		BillingDay:       r.BillingDay,
 		CreatedAt:        r.CreatedAt.Format("2006-01-02 15:04:05"),
 		TotalExpense:     r.TotalExpense,
+		RejectionReason:  r.RejectionReason,
 	}
 }
 
