@@ -2,6 +2,7 @@ package social_program_invoice
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -22,6 +23,7 @@ type Service interface {
 type service struct {
 	repo             Repository
 	subscriptionRepo social_program_subscription.Repository
+	emailService     *pkg.EmailService
 	timeout          time.Duration
 }
 
@@ -29,6 +31,7 @@ func NewService(repo Repository, subscriptionRepo social_program_subscription.Re
 	return &service{
 		repo:             repo,
 		subscriptionRepo: subscriptionRepo,
+		emailService:     pkg.NewEmailService(),
 		timeout:          timeout,
 	}
 }
@@ -191,15 +194,39 @@ func (s *service) GenerateMonthlyInvoices(ctx context.Context) error {
 					"subscription_id": sub.ID,
 					"error":           err,
 				}).Error("Failed to create monthly invoice")
-			} else {
-				logrus.WithFields(logrus.Fields{
-					"invoice_id":      invoice.ID,
-					"subscription_id": sub.ID,
-				}).Info("Monthly invoice generated")
-			}
+				} else {
+					logrus.WithFields(logrus.Fields{
+						"invoice_id":      invoice.ID,
+						"subscription_id": sub.ID,
+					}).Info("Monthly invoice generated")
+
+					// Kirim notifikasi email ke pelanggan
+					if sub.Account != nil && sub.Account.Email != "" {
+						username := sub.Account.Email
+						if sub.Account.UserProfile.Username != "" {
+							username = sub.Account.UserProfile.Username
+						}
+						billingPeriodStr := billingPeriod.Format("Januari 2006")
+						minimumAmountStr := fmt.Sprintf("Rp %.0f", invoice.MinimumAmount)
+						dueDateStr := dueDate.Format("02 January 2006")
+
+						if err := s.emailService.SendSocialProgramInvoiceEmail(
+							sub.Account.Email,
+							username,
+							sub.SocialProgram.Title,
+							billingPeriodStr,
+							minimumAmountStr,
+							dueDateStr,
+						); err != nil {
+							logrus.WithFields(logrus.Fields{
+								"invoice_id": invoice.ID,
+								"email":      sub.Account.Email,
+							}).WithError(err).Warn("Failed to send invoice email notification")
+						}
+					}
+				}
 		}
 	}
-
 	return nil
 }
 

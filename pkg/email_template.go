@@ -398,3 +398,71 @@ func AmbulanceServiceRequestRejectedTemplate(recipientName, submitterName, rejec
             </body>
         </html>`, recipientName, submitterName, rejectionReason)
 }
+
+// SocialProgramInvoiceTemplate generates the HTML body for a social program invoice notification email.
+func SocialProgramInvoiceTemplate(recipientName, programTitle, billingPeriod, minimumAmount, dueDate, loginURL string) string {
+	return fmt.Sprintf(`
+	<!DOCTYPE html>
+	<html lang="id">
+	    <head>
+	      <meta charset="UTF-8" />
+	      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	      <title>Tagihan Program Berkelanjutan</title>
+	      <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+	    </head>
+	    <body style="margin:0; padding:0; background-color:#f4f6f8;">
+	      <table width="100%%" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#f4f6f8;">
+	        <tr>
+	          <td align="center" style="padding:40px 16px;">
+	            <table width="100%%" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px; background-color:#ffffff; border-radius:8px; padding:32px; font-family:'Poppins', Arial, sans-serif; text-align:center; color:#333333;">
+	              <tr>
+	                <td style="font-size:22px; font-weight:600; padding-bottom:16px; color:#0E733B;">
+	                  Tagihan Program Berkelanjutan
+	                </td>
+	              </tr>
+	              <tr>
+	                <td style="font-size:15px; padding-bottom:12px;">
+	                  Hai, <strong>%s</strong>
+	                </td>
+	              </tr>
+	              <tr>
+	                <td style="font-size:14px; line-height:1.6; padding-bottom:20px;">
+	                  Tagihan bulanan untuk program <strong>%s</strong> telah diterbitkan.
+	                  Berikut adalah rincian tagihan Anda:
+	                </td>
+	              </tr>
+	              <tr>
+	                <td align="left" style="background-color:#f0fdf4; border-left:4px solid #0E733B; padding:16px; margin-bottom:24px; font-size:14px; border-radius:4px; line-height:1.8;">
+	                  <strong>Periode:</strong> %s<br/>
+	                  <strong>Nominal Minimal:</strong> %s<br/>
+	                  <strong>Jatuh Tempo:</strong> %s
+	                </td>
+	              </tr>
+                <tr>
+                <td style="padding:20px 0;">
+                  <a href="%s"
+                     style="display:inline-block; background-color:#0E733B; color:#ffffff; text-decoration:none; font-size:14px; font-weight:500; padding:14px 96px; border-radius:6px;">
+                    Buka Sistem
+                  </a>
+                </td>
+              </tr>
+	              <tr>
+	                <td style="font-size:14px; line-height:1.6; padding-bottom:24px; color:#555555;">
+	                  Silakan lakukan pembayaran sebelum tanggal jatuh tempo untuk menghindari keterlambatan.
+	                  Anda dapat melakukan pembayaran melalui sistem Yayasan Orang Tua Asuh.
+	                </td>
+	              </tr>
+	              <tr>
+	                <td style="font-size:14px; border-top:1px solid #eeeeee; padding-top:24px;">
+	                  Terima kasih,
+	                  <br />
+	                  <strong>Yayasan Orang Tua Asuh</strong>
+	                </td>
+	              </tr>
+	            </table>
+	          </td>
+	        </tr>
+	      </table>
+	    </body>
+	</html>`, recipientName, programTitle, billingPeriod, minimumAmount, dueDate, loginURL)
+}

@@ -33,6 +33,7 @@ var allowedSocialProgramSortColumns = map[string]string{
 	"billing_day":       "billing_day",
 	"status":            "status",
 	"created_at":        "created_at",
+	"updated_at":        "updated_at",
 	"total_subscribers": "total_subscribers",
 }
 
