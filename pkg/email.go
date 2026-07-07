@@ -122,7 +122,7 @@ func (e *EmailService) SendAmbulanceServiceRequestRejectedEmail(to, recipientNam
 }
 
 func (e *EmailService) SendSocialProgramInvoiceEmail(to, recipientName, programTitle, billingPeriod, minimumAmount, dueDate string) error {
-    loginURL := os.Getenv("FE_URL") + "/login"
+    loginURL := os.Getenv("FE_URL") + "/login?redirect=/invoices"
     subject := "Tagihan Program Berkelanjutan - " + programTitle
     body := SocialProgramInvoiceTemplate(recipientName, programTitle, billingPeriod, minimumAmount, dueDate, loginURL)
     return e.SendEmail(to, subject, body)
