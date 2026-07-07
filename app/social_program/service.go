@@ -407,8 +407,8 @@ func (s *service) DeleteSocialProgram(ctx context.Context, socialProgramID strin
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data program sosial", nil, nil)
 	}
 
-	if socialProgram.Status != StatusPending {
-		return pkg.NewResponse(http.StatusBadRequest, "Program sosial aktif, selesai, atau ditolak dan tidak dapat dihapus", nil, nil)
+	if socialProgram.Status != StatusPending && socialProgram.Status != StatusRejected {
+		return pkg.NewResponse(http.StatusBadRequest, "Hanya program sosial dengan status pending atau ditolak yang dapat dihapus", nil, nil)
 	}
 
 	if err := s.repo.DeleteSocialProgram(ctx, socialProgramID); err != nil {
