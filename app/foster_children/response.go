@@ -64,6 +64,7 @@ func (f *FosterChildren) ToFosterChildrenDetailResponse() FosterChildrenDetailRe
 		ID:             f.ID.String(),
 		Slug:           f.Slug,
 		Name:           f.Name,
+		Nik:            f.Nik,
 		ProfilePicture: s3_pkg.GetCDNURL(f.ProfilePicture),
 		Gender:         f.Gender,
 		IsGraduated:    f.IsGraduated,
