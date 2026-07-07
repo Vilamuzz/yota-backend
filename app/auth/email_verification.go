@@ -9,6 +9,7 @@ import (
 type EmailVerificationToken struct {
 	ID        uuid.UUID `json:"id" gorm:"primaryKey"`
 	AccountID uuid.UUID `json:"accountId" gorm:"not null"`
+	NewEmail  string    `json:"newEmail" gorm:"default:''"`
 	Token     string    `json:"token" gorm:"unique;not null"`
 	ExpiredAt time.Time `json:"expiredAt" gorm:"not null"`
 	IsUsed    bool      `json:"isUsed" gorm:"default:false"`
