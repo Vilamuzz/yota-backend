@@ -19,6 +19,7 @@ func SeedFosterChildren(db *gorm.DB) error {
 		{
 			ID:             uuid.New(),
 			Name:           "Ahmad Fadillah",
+			Nik:            "3172012501120001",
 			ProfilePicture: "https://images.unsplash.com/photo-1761638344047-de8170f7cc7f?w=600&auto=format&fit=crop&w=800&q=80",
 			Gender:         foster_children.Male,
 			IsGraduated:    false,
@@ -36,6 +37,7 @@ func SeedFosterChildren(db *gorm.DB) error {
 		{
 			ID:             uuid.New(),
 			Name:           "Siti Aminah",
+			Nik:            "3273082508140002",
 			ProfilePicture: "https://plus.unsplash.com/premium_photo-1726826637082-16602bf15ba8?w=600&auto=format&fit=crop&w=800&q=80",
 			Gender:         foster_children.Female,
 			IsGraduated:    false,
@@ -53,6 +55,7 @@ func SeedFosterChildren(db *gorm.DB) error {
 		{
 			ID:             uuid.New(),
 			Name:           "Budi Santoso",
+			Nik:            "3372012509120003",
 			ProfilePicture: "https://images.unsplash.com/photo-1648851280857-5ca540251130?w=600&auto=format&fit=crop&w=800&q=80",
 			Gender:         foster_children.Male,
 			IsGraduated:    false,
@@ -70,6 +73,7 @@ func SeedFosterChildren(db *gorm.DB) error {
 		{
 			ID:             uuid.New(),
 			Name:           "Nurul Hidayati",
+			Nik:            "3472012503120004",
 			ProfilePicture: "https://images.unsplash.com/photo-1635146914900-4e58ad412f1f?q=80&w=880&auto=format&fit=crop&w=800&q=80",
 			Gender:         foster_children.Female,
 			IsGraduated:    false,
@@ -87,6 +91,7 @@ func SeedFosterChildren(db *gorm.DB) error {
 		{
 			ID:             uuid.New(),
 			Name:           "Rizky Maulana",
+			Nik:            "3572012505120004",
 			ProfilePicture: "https://plus.unsplash.com/premium_photo-1769871805454-c5759d918a99?q=80&w=880&auto=format&fit=crop&w=800&q=80",
 			Gender:         foster_children.Male,
 			IsGraduated:    false,
@@ -104,6 +109,7 @@ func SeedFosterChildren(db *gorm.DB) error {
 		{
 			ID:             uuid.New(),
 			Name:           "Aulia Rahman",
+			Nik:            "3672012507120003",
 			ProfilePicture: "https://images.unsplash.com/photo-1762077656275-4514300d7da8?w=600&auto=format&fit=crop&w=800&q=80",
 			Gender:         foster_children.Female,
 			IsGraduated:    true,
@@ -121,6 +127,7 @@ func SeedFosterChildren(db *gorm.DB) error {
 		{
 			ID:             uuid.New(),
 			Name:           "Fikri Hakim",
+			Nik:            "3772012509120002",
 			ProfilePicture: "https://images.unsplash.com/photo-1542385151-efd9000785a0?auto=format&fit=crop&w=800&q=80",
 			Gender:         foster_children.Male,
 			IsGraduated:    false,
@@ -138,6 +145,7 @@ func SeedFosterChildren(db *gorm.DB) error {
 		{
 			ID:             uuid.New(),
 			Name:           "Nadia Salsabila",
+			Nik:            "3872012502120001",
 			ProfilePicture: "https://images.unsplash.com/photo-1693009025862-f2330446d2b6?w=600&auto=format&fit=crop&w=800&q=80",
 			Gender:         foster_children.Female,
 			IsGraduated:    false,
@@ -155,6 +163,7 @@ func SeedFosterChildren(db *gorm.DB) error {
 		{
 			ID:             uuid.New(),
 			Name:           "Ilham Pratama",
+			Nik:            "3972012505120002",
 			ProfilePicture: "https://images.unsplash.com/photo-1658460029652-90b33eb1c682?w=600&auto=format&fit=crop&w=800&q=80",
 			Gender:         foster_children.Male,
 			IsGraduated:    false,
@@ -172,6 +181,7 @@ func SeedFosterChildren(db *gorm.DB) error {
 		{
 			ID:             uuid.New(),
 			Name:           "Dewi Lestari",
+			Nik:            "4072012508120003",
 			ProfilePicture: "https://images.unsplash.com/photo-1673602557002-ba863312909b?q=80&w=881&auto=format&fit=crop&w=800&q=80",
 			Gender:         foster_children.Female,
 			IsGraduated:    true,
@@ -189,11 +199,22 @@ func SeedFosterChildren(db *gorm.DB) error {
 	}
 
 	for _, child := range children {
+		var existing foster_children.FosterChildren
+		err := db.Where("nik = ?", child.Nik).First(&existing).Error
+		if err == nil {
+			fmt.Printf("⚠ Foster child with NIK %s already exists, skipping...\n", child.Nik)
+			continue
+		}
+		if err != gorm.ErrRecordNotFound {
+			return fmt.Errorf("failed to check existing foster child %s: %w", child.Name, err)
+		}
+
 		slug := fmt.Sprintf("%s-%s", pkg.Slugify(child.Name), child.ID.String()[:5])
 		child.Slug = slug
-		if err := db.Where("slug = ?", child.Slug).FirstOrCreate(&child).Error; err != nil {
+		if err := db.Create(&child).Error; err != nil {
 			return fmt.Errorf("failed to seed foster child %s: %w", child.Name, err)
 		}
+		fmt.Printf("✅ Foster child %s seeded\n", child.Name)
 	}
 
 	fmt.Println("✅ Foster children seeded successfully!")

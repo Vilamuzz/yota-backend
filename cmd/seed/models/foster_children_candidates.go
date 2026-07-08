@@ -28,6 +28,32 @@ func SeedFosterChildrenCandidates(db *gorm.DB) error {
 		"Hadi Pranoto", "Yanti Rosmiati",
 	}
 
+	niks := []string{
+		"3172012501120001",
+		"3273082508140002",
+		"3578110209100003",
+		"3374011712130004",
+		"3404303006110005",
+		"3573121504090006",
+		"1271070718080007",
+		"1371012211070008",
+		"1671101003120009",
+		"5171080619110010",
+	}
+
+	profilePictures := []string{
+		"https://images.unsplash.com/photo-1580489944761-15a19d654956?w=600&auto=format&fit=crop&q=80",
+		"https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&auto=format&fit=crop&q=80",
+		"https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&auto=format&fit=crop&q=80",
+		"https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600&auto=format&fit=crop&q=80",
+		"https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=600&auto=format&fit=crop&q=80",
+		"https://images.unsplash.com/photo-1544725176-7c40e5a71c5e?w=600&auto=format&fit=crop&q=80",
+		"https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=600&auto=format&fit=crop&q=80",
+		"https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=600&auto=format&fit=crop&q=80",
+		"https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600&auto=format&fit=crop&q=80",
+		"https://images.unsplash.com/photo-1595152772835-219674b2a8a6?w=600&auto=format&fit=crop&q=80",
+	}
+
 	genders := []foster_children_candidate.Gender{
 		foster_children_candidate.Male,
 		foster_children_candidate.Female,
@@ -105,7 +131,8 @@ func SeedFosterChildrenCandidates(db *gorm.DB) error {
 		cand := foster_children_candidate.FosterChildrenCandidate{
 			ID:               candidateID,
 			Name:             names[i],
-			ProfilePicture:   "https://images.unsplash.com/photo-1761638344047-de8170f7cc7f?w=600&auto=format&fit=crop&w=800&q=80",
+			Nik:              niks[i],
+			ProfilePicture:   profilePictures[i],
 			Gender:           genders[i],
 			Category:         categories[i],
 			BirthDate:        time.Date(2012+i/3, time.Month(i+1), 5+i*2, 0, 0, 0, 0, time.UTC),
