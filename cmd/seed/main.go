@@ -23,6 +23,7 @@ func init() {
 
 func main() {
 	mockData := flag.Bool("mock-data", false, "Seed the database with mock categories and test users")
+	fosterChildren := flag.Bool("foster-children", false, "Seed the database with foster children data")
 	flag.Parse()
 
 	fmt.Println("Starting database seeder...")
@@ -33,6 +34,23 @@ func main() {
 		log.Fatalf("Failed to get database instance: %v", err)
 	}
 	defer sqlDB.Close()
+
+	if *fosterChildren {
+		if err := models.SeedFosterChildren(db); err != nil {
+			log.Fatalf("Failed to seed foster children: %v", err)
+		}
+		if err := models.SeedFosterChildrenCandidates(db); err != nil {
+			log.Fatalf("Failed to seed foster children candidates: %v", err)
+		}
+		if err := models.SeedFosterChildrenTransactions(db); err != nil {
+			log.Fatalf("Failed to seed foster children transactions: %v", err)
+		}
+		if err := models.SeedFosterChildrenExpenses(db); err != nil {
+			log.Fatalf("Failed to seed foster children expenses: %v", err)
+		}
+		fmt.Println("✅ Foster children and candidates seeded successfully")
+		return
+	}
 
 	if err := models.SeedRoles(db); err != nil {
 		log.Fatalf("Failed to seed roles: %v", err)

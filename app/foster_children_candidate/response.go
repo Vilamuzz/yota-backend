@@ -52,6 +52,7 @@ func (c *FosterChildrenCandidate) ToFosterChildrenCandidateResponse() FosterChil
 	return FosterChildrenCandidateResponse{
 		ID:               c.ID.String(),
 		Name:             c.Name,
+		Nik:              c.Nik,
 		ProfilePicture:   s3_pkg.GetCDNURL(c.ProfilePicture),
 		Gender:           string(c.Gender),
 		Category:         string(c.Category),
