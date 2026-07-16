@@ -22,7 +22,7 @@ type DonationProgramTransactionResponse struct {
 
 type DonationProgramTransactionListResponse struct {
 	Transactions []DonationProgramTransactionResponse `json:"transactions"`
-	Pagination   pkg.CursorPagination                 `json:"pagination"`
+	Pagination   pkg.OffsetPagination                 `json:"pagination"`
 }
 
 func (tx *DonationProgramTransaction) toDonationProgramTransactionResponse() DonationProgramTransactionResponse {
@@ -41,7 +41,7 @@ func (tx *DonationProgramTransaction) toDonationProgramTransactionResponse() Don
 	}
 }
 
-func toDonationTransactionListResponse(transactions []DonationProgramTransaction, pagination pkg.CursorPagination) DonationProgramTransactionListResponse {
+func toDonationTransactionListResponse(transactions []DonationProgramTransaction, pagination pkg.OffsetPagination) DonationProgramTransactionListResponse {
 	var responses []DonationProgramTransactionResponse
 	for _, t := range transactions {
 		responses = append(responses, t.toDonationProgramTransactionResponse())

@@ -32,6 +32,10 @@ type AmbulanceServiceRequest struct {
 	CancelationReason string                            `json:"cancelationReason"`
 	CreatedAt         time.Time                         `json:"createdAt"`
 	UpdatedAt         time.Time                         `json:"updatedAt"`
+	RequestedAt       *time.Time                        `json:"requestedAt" gorm:"type:timestamptz"`
+	PickedUpAt        *time.Time                        `json:"pickedUpAt" gorm:"type:timestamptz"`
+	CompletedAt       *time.Time                        `json:"completedAt" gorm:"type:timestamptz"`
+
 
 	Ambulance *ambulance.Ambulance `json:"ambulance" gorm:"foreignKey:AmbulanceID"`
 	Account   account.Account      `json:"account" gorm:"foreignKey:SubmittedBy"`

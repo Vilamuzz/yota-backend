@@ -398,6 +398,7 @@ func (s *service) CreateAmbulanceServiceRequest(ctx context.Context, payload Cre
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengunggah KTP pengirim", nil, nil)
 	}
 
+	now := time.Now()
 	request := AmbulanceServiceRequest{
 		ID:              uuid.New(),
 		SubmittedBy:     uuid.MustParse(payload.AccountID),
@@ -416,8 +417,9 @@ func (s *service) CreateAmbulanceServiceRequest(ctx context.Context, payload Cre
 		Note:            payload.Note,
 		Status:          StatusPending,
 		ServiceCategory: ambulance_history.ServiceCategory(payload.ServiceCategory),
-		CreatedAt:       time.Now(),
-		UpdatedAt:       time.Now(),
+		RequestedAt:     &now,
+		CreatedAt:       now,
+		UpdatedAt:       now,
 	}
 
 	if err := s.repo.Create(ctx, request); err != nil {
@@ -693,9 +695,11 @@ func (s *service) StartAmbulanceServiceRequest(ctx context.Context, driverAccoun
 		return pkg.NewResponse(http.StatusBadRequest, "Supir masih memiliki permintaan aktif yang belum diselesaikan", nil, nil)
 	}
 
+	now := time.Now()
 	updateData := map[string]interface{}{
-		"status":     StatusInService,
-		"updated_at": time.Now(),
+		"status":       StatusInService,
+		"picked_up_at": now,
+		"updated_at":   now,
 	}
 
 	if err := s.repo.Update(ctx, id, updateData); err != nil {
@@ -742,9 +746,11 @@ func (s *service) CompleteAmbulanceServiceRequest(ctx context.Context, driverAcc
 		return pkg.NewResponse(http.StatusBadRequest, "Hanya permintaan dengan status dalam pelayanan yang dapat diselesaikan", nil, nil)
 	}
 
+	now := time.Now()
 	updateData := map[string]interface{}{
-		"status":     StatusDone,
-		"updated_at": time.Now(),
+		"status":       StatusDone,
+		"completed_at": now,
+		"updated_at":   now,
 	}
 
 	if err := s.repo.Update(ctx, id, updateData); err != nil {
@@ -753,10 +759,9 @@ func (s *service) CompleteAmbulanceServiceRequest(ctx context.Context, driverAcc
 
 	_ = s.ambulanceRepo.UpdateAmbulance(ctx, ambulanceRecord.ID.String(), map[string]interface{}{
 		"status":     ambulance.AmbulanceStatusAvailable,
-		"updated_at": time.Now(),
+		"updated_at": now,
 	})
 
-	now := time.Now()
 	note := fmt.Sprintf("Layanan ambulans selesai untuk permintaan dari %s. Pasien: %s", existing.SubmitterName, existing.PatientName)
 	history := ambulance_history.AmbulanceHistory{
 		ID:              uuid.New(),

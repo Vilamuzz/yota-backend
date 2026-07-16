@@ -1,7 +1,5 @@
 package donation_program_transaction
 
-import "github.com/Vilamuzz/yota-backend/pkg"
-
 type CreateDonationProgramTransactionRequest struct {
 	DonorName     string  `json:"donorName"`
 	DonorEmail    string  `json:"donorEmail"`
@@ -15,7 +13,8 @@ type DonationProgramTransactionQueryParams struct {
 	SortBy    string `form:"sortBy"`    // sort by gross amount, created at
 	StartDate string `form:"startDate"` // optional, format: YYYY-MM-DD
 	EndDate   string `form:"endDate"`   // optional, format: YYYY-MM-DD
-	pkg.PaginationParams
+	Page      int    `form:"page"`
+	Limit     int    `form:"limit"`
 }
 
 type MonthlyIncomeQueryParams struct {

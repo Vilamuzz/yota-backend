@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
 )
 
 type Repository interface {
 	FindAllDonationProgramTransactions(ctx context.Context, options map[string]interface{}) ([]DonationProgramTransaction, error)
+	CountDonationProgramTransactions(ctx context.Context, options map[string]interface{}) (int64, error)
 	FindAllDonationProgramTransactionsForExport(ctx context.Context, donationProgramID string, params DonationProgramTransactionQueryParams) ([]DonationProgramTransaction, error)
 	FindOneDonationProgramTransaction(ctx context.Context, options map[string]interface{}) (*DonationProgramTransaction, error)
 	CreateDonationProgramTransaction(ctx context.Context, tx *DonationProgramTransaction) error
@@ -30,9 +30,7 @@ func NewRepository(conn *gorm.DB) Repository {
 
 var allowedDonationProgramTransactionSortColumns = map[string]string{
 	"gross_amount": "gross_amount",
-	"grossamount":  "gross_amount",
 	"created_at":   "created_at",
-	"createdat":    "created_at",
 }
 
 func (r *repository) FindAllDonationProgramTransactions(ctx context.Context, options map[string]interface{}) ([]DonationProgramTransaction, error) {
@@ -41,47 +39,45 @@ func (r *repository) FindAllDonationProgramTransactions(ctx context.Context, opt
 
 	query = r.applyFilters(query, options)
 
-	if nextCursor, ok := options["next_cursor"]; ok && nextCursor.(string) != "" {
-		cursorData, err := pkg.DecodeCursor(nextCursor.(string))
-		if err == nil {
-			query = query.Where("(created_at, id) < (?, ?)", cursorData.CreatedAt, cursorData.ID)
-		}
-	} else if prevCursor, ok := options["prev_cursor"]; ok && prevCursor.(string) != "" {
-		cursorData, err := pkg.DecodeCursor(prevCursor.(string))
-		if err == nil {
-			query = query.Where("(created_at, id) > (?, ?)", cursorData.CreatedAt, cursorData.ID)
-		}
-	}
-
-	if _, isPrev := options["prev_cursor"]; isPrev {
-		query = query.Order("created_at ASC, id ASC")
-	} else {
-		orderClause := "created_at DESC, id DESC"
-		if sortBy, ok := options["sort_by"]; ok && sortBy.(string) != "" {
-			parts := strings.Fields(strings.ToLower(sortBy.(string)))
-			if len(parts) >= 1 {
-				if col, valid := allowedDonationProgramTransactionSortColumns[parts[0]]; valid {
-					dir := "ASC"
-					if len(parts) == 2 && parts[1] == "desc" {
-						dir = "DESC"
-					}
-					orderClause = fmt.Sprintf("%s %s, id DESC", col, dir)
+	orderClause := "created_at DESC, id DESC"
+	if sortBy, ok := options["sort_by"]; ok && sortBy.(string) != "" {
+		parts := strings.Fields(strings.ToLower(sortBy.(string)))
+		if len(parts) >= 1 {
+			if col, valid := allowedDonationProgramTransactionSortColumns[parts[0]]; valid {
+				dir := "ASC"
+				if len(parts) == 2 && parts[1] == "desc" {
+					dir = "DESC"
 				}
+				orderClause = fmt.Sprintf("%s %s, id DESC", col, dir)
 			}
 		}
-		query = query.Order(orderClause)
 	}
+	query = query.Order(orderClause)
 
 	limit := 10
 	if l, ok := options["limit"]; ok && l.(int) > 0 {
 		limit = l.(int)
 	}
+	offset := 0
+	if page, ok := options["page"]; ok && page.(int) > 1 {
+		offset = (page.(int) - 1) * limit
+	}
 
-	query = query.Limit(limit + 1)
+	query = query.Limit(limit).Offset(offset)
 	if err := query.Find(&transactions).Error; err != nil {
 		return nil, err
 	}
 	return transactions, nil
+}
+
+func (r *repository) CountDonationProgramTransactions(ctx context.Context, options map[string]interface{}) (int64, error) {
+	var total int64
+	query := r.Conn.WithContext(ctx).Model(&DonationProgramTransaction{})
+	query = r.applyFilters(query, options)
+	if err := query.Count(&total).Error; err != nil {
+		return 0, err
+	}
+	return total, nil
 }
 
 func (r *repository) applyFilters(query *gorm.DB, options map[string]interface{}) *gorm.DB {
@@ -96,7 +92,8 @@ func (r *repository) applyFilters(query *gorm.DB, options map[string]interface{}
 	}
 	if search, ok := options["search"]; ok && search.(string) != "" {
 		searchPattern := "%" + search.(string) + "%"
-		query = query.Where("donor_name ILIKE ? OR donor_email ILIKE ? OR order_id ILIKE ?", searchPattern, searchPattern, searchPattern)
+		query = query.Joins("LEFT JOIN donation_programs ON donation_programs.id = donation_program_transactions.donation_program_id").
+			Where("donation_program_transactions.donor_name ILIKE ? OR donation_program_transactions.donor_email ILIKE ? OR donation_program_transactions.order_id ILIKE ? OR donation_programs.title ILIKE ?", searchPattern, searchPattern, searchPattern, searchPattern)
 	}
 	if startDate, ok := options["start_date"]; ok && startDate.(string) != "" {
 		query = query.Where("created_at >= ?", startDate.(string))

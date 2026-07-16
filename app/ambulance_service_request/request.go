@@ -10,7 +10,7 @@ type CreateAmbulanceServiceRequest struct {
 	AccountID       string                `form:"-"`
 	SubmitterName   string                `form:"submitterName"`
 	SubmitterPhone  string                `form:"submitterPhone"`
-	SubmitterIDCard *multipart.FileHeader `form:"submitterIdCard"`
+	SubmitterIDCard *multipart.FileHeader `form:"submitterIdCard" swaggerignore:"true"`
 	PatientName     string                `form:"patientName"`
 	PatientAddress  string                `form:"patientAddress"`
 	PatientAge      int                   `form:"patientAge"`

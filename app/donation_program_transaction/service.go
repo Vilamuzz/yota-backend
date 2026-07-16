@@ -89,8 +89,13 @@ func (s *service) GetDonationProgramTransactionList(ctx context.Context, account
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
+	if params.Page < 1 {
+		params.Page = 1
+	}
+
 	options := map[string]interface{}{
 		"limit": params.Limit,
+		"page":  params.Page,
 	}
 	if donationProgramID != "" {
 		options["donation_program_id"] = donationProgramID
@@ -113,12 +118,6 @@ func (s *service) GetDonationProgramTransactionList(ctx context.Context, account
 	if params.EndDate != "" {
 		options["end_date"] = params.EndDate
 	}
-	if params.NextCursor != "" {
-		options["next_cursor"] = params.NextCursor
-	}
-	if params.PrevCursor != "" {
-		options["prev_cursor"] = params.PrevCursor
-	}
 
 	transactions, err := s.repo.FindAllDonationProgramTransactions(ctx, options)
 	if err != nil {
@@ -129,40 +128,24 @@ func (s *service) GetDonationProgramTransactionList(ctx context.Context, account
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal mengambil data transaksi", nil, nil)
 	}
 
-	var hasNext, hasPrev bool
-	if params.PrevCursor != "" {
-		hasPrev = len(transactions) > params.Limit
-		hasNext = true
-		if len(transactions) > params.Limit {
-			transactions = transactions[:params.Limit]
-		}
-		for i, j := 0, len(transactions)-1; i < j; i, j = i+1, j-1 {
-			transactions[i], transactions[j] = transactions[j], transactions[i]
-		}
-	} else {
-		hasNext = len(transactions) > params.Limit
-		hasPrev = params.NextCursor != ""
-		if hasNext {
-			transactions = transactions[:params.Limit]
-		}
+	total, err := s.repo.CountDonationProgramTransactions(ctx, options)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component": "donation_program_transaction.service",
+		}).WithError(err).Error("failed to count transactions")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menghitung data transaksi", nil, nil)
 	}
 
-	var nextCursor, prevCursor string
-	if len(transactions) > 0 {
-		first := transactions[0]
-		last := transactions[len(transactions)-1]
-		if hasNext {
-			nextCursor = pkg.EncodeCursor(last.CreatedAt, last.ID.String())
-		}
-		if hasPrev {
-			prevCursor = pkg.EncodeCursor(first.CreatedAt, first.ID.String())
-		}
+	totalPages := int(total) / params.Limit
+	if int(total)%params.Limit > 0 {
+		totalPages++
 	}
 
-	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, toDonationTransactionListResponse(transactions, pkg.CursorPagination{
-		NextCursor: nextCursor,
-		PrevCursor: prevCursor,
+	return pkg.NewResponse(http.StatusOK, "Berhasil", nil, toDonationTransactionListResponse(transactions, pkg.OffsetPagination{
+		Page:       params.Page,
 		Limit:      params.Limit,
+		Total:      total,
+		TotalPages: totalPages,
 	}))
 }
 
@@ -322,11 +305,11 @@ func (s *service) CreateDonationProgramTransaction(ctx context.Context, accountI
 		return pkg.NewResponse(http.StatusBadRequest, "Kesalahan validasi", errValidation, nil)
 	}
 
-	donorName := "anonymous"
+	donorName := "Hamba Allah"
 	if payload.DonorName != "" {
 		donorName = payload.DonorName
 	}
-	donorEmail := "anonymous@example.com"
+	donorEmail := "orangbaik@example.com"
 	if payload.DonorEmail != "" {
 		donorEmail = payload.DonorEmail
 	}

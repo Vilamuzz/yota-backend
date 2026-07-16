@@ -29,6 +29,9 @@ type AmbulanceServiceRequestResponse struct {
 	CancelationReason string                            `json:"cancelationReason"`
 	AssignedAmbulance *ambulance.AmbulanceResponse      `json:"assignedAmbulance"`
 	CreatedAt         string                            `json:"createdAt"`
+	RequestedAt       *string                           `json:"requestedAt"`
+	PickedUpAt        *string                           `json:"pickedUpAt"`
+	CompletedAt       *string                           `json:"completedAt"`
 }
 
 type AmbulanceServiceRequestListResponse struct {
@@ -37,6 +40,22 @@ type AmbulanceServiceRequestListResponse struct {
 }
 
 func (a *AmbulanceServiceRequest) toAmbulanceServiceRequestResponse() AmbulanceServiceRequestResponse {
+	var requestedAt *string
+	if a.RequestedAt != nil {
+		s := a.RequestedAt.Format("2006-01-02 15:04:05")
+		requestedAt = &s
+	}
+	var pickedUpAt *string
+	if a.PickedUpAt != nil {
+		s := a.PickedUpAt.Format("2006-01-02 15:04:05")
+		pickedUpAt = &s
+	}
+	var completedAt *string
+	if a.CompletedAt != nil {
+		s := a.CompletedAt.Format("2006-01-02 15:04:05")
+		completedAt = &s
+	}
+
 	resp := AmbulanceServiceRequestResponse{
 		ID:                a.ID.String(),
 		SubmittedBy:       a.SubmittedBy.String(),
@@ -58,6 +77,9 @@ func (a *AmbulanceServiceRequest) toAmbulanceServiceRequestResponse() AmbulanceS
 		RejectionReason:   a.RejectionReason,
 		CancelationReason: a.CancelationReason,
 		CreatedAt:         a.CreatedAt.Format("2006-01-02 15:04:05"),
+		RequestedAt:       requestedAt,
+		PickedUpAt:        pickedUpAt,
+		CompletedAt:       completedAt,
 	}
 
 	if a.Ambulance != nil {

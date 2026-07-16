@@ -105,7 +105,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_ambulance_history.HistoryMonthlyTrendRecord"
+                                            "$ref": "#/definitions/ambulance_history.HistoryMonthlyTrendRecord"
                                         }
                                     }
                                 }
@@ -177,7 +177,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_ambulance_history.SummaryResponse"
+                                            "$ref": "#/definitions/ambulance_history.SummaryResponse"
                                         }
                                     }
                                 }
@@ -240,7 +240,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_ambulance_history.HistoryMonthlyTrendRecord"
+                                            "$ref": "#/definitions/ambulance_history.HistoryMonthlyTrendRecord"
                                         }
                                     }
                                 }
@@ -306,7 +306,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_ambulance_history.SummaryResponse"
+                                            "$ref": "#/definitions/ambulance_history.SummaryResponse"
                                         }
                                     }
                                 }
@@ -578,7 +578,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_ambulance_service_request.CancelAmbulanceServiceRequestPayload"
+                            "$ref": "#/definitions/ambulance_service_request.CancelAmbulanceServiceRequestPayload"
                         }
                     }
                 ],
@@ -648,7 +648,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_ambulance_service_request.AcceptAmbulanceServiceRequestPayload"
+                            "$ref": "#/definitions/ambulance_service_request.AcceptAmbulanceServiceRequestPayload"
                         }
                     }
                 ],
@@ -752,7 +752,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_ambulance_history.CreateAmbulanceHistoryRequest"
+                            "$ref": "#/definitions/ambulance_history.CreateAmbulanceHistoryRequest"
                         }
                     }
                 ],
@@ -810,7 +810,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_ambulance_history.UpdateAmbulanceHistoryRequest"
+                            "$ref": "#/definitions/ambulance_history.UpdateAmbulanceHistoryRequest"
                         }
                     }
                 ],
@@ -1332,7 +1332,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_ambulance_service_request.RejectAmbulanceServiceRequest"
+                            "$ref": "#/definitions/ambulance_service_request.RejectAmbulanceServiceRequest"
                         }
                     }
                 ],
@@ -1533,7 +1533,7 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/app_account.AccountResponse"
+                                                "$ref": "#/definitions/account.AccountResponse"
                                             }
                                         }
                                     }
@@ -1620,7 +1620,7 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/app_account.AccountResponse"
+                                                "$ref": "#/definitions/account.AccountResponse"
                                             }
                                         }
                                     }
@@ -1701,7 +1701,7 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/app_account.AccountResponse"
+                                                "$ref": "#/definitions/account.AccountResponse"
                                             }
                                         }
                                     }
@@ -1782,7 +1782,7 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/app_account.AccountResponse"
+                                                "$ref": "#/definitions/account.AccountResponse"
                                             }
                                         }
                                     }
@@ -1823,7 +1823,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_account.RolesResponse"
+                                            "$ref": "#/definitions/account.RolesResponse"
                                         }
                                     }
                                 }
@@ -1872,7 +1872,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_account.AccountResponse"
+                                            "$ref": "#/definitions/account.AccountResponse"
                                         }
                                     }
                                 }
@@ -1914,7 +1914,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_account.SetAccountBanStatusRequest"
+                            "$ref": "#/definitions/account.SetAccountBanStatusRequest"
                         }
                     }
                 ],
@@ -2009,7 +2009,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_account.UpdateAccountRoleRequest"
+                            "$ref": "#/definitions/account.UpdateAccountRoleRequest"
                         }
                     }
                 ],
@@ -3054,7 +3054,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_donation_program_expense.MonthlyExpenseRecord"
+                                            "$ref": "#/definitions/donation_program_expense.MonthlyExpenseRecord"
                                         }
                                     }
                                 }
@@ -3148,7 +3148,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_donation_program_transaction.DonationProgramTransactionListResponse"
+                                            "$ref": "#/definitions/donation_program_transaction.DonationProgramTransactionListResponse"
                                         }
                                     }
                                 }
@@ -3188,7 +3188,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_donation_program_transaction.CreateDonationProgramTransactionRequest"
+                            "$ref": "#/definitions/donation_program_transaction.CreateDonationProgramTransactionRequest"
                         }
                     }
                 ],
@@ -3285,7 +3285,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_donation_program_transaction.TransactionMonthlyIncomeRecord"
+                                            "$ref": "#/definitions/donation_program_transaction.TransactionMonthlyIncomeRecord"
                                         }
                                     }
                                 }
@@ -3379,6 +3379,11 @@
                     {
                         "type": "string",
                         "name": "name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "nik",
                         "in": "formData"
                     },
                     {
@@ -3609,7 +3614,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_foster_children_candidate.RejectFosterChildrenCandidateRequest"
+                            "$ref": "#/definitions/foster_children_candidate.RejectFosterChildrenCandidateRequest"
                         }
                     }
                 ],
@@ -3794,6 +3799,11 @@
                     {
                         "type": "string",
                         "name": "name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "nik",
                         "in": "formData"
                     },
                     {
@@ -4062,7 +4072,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_foster_children_transaction.FosterChildrenTransactionListResponse"
+                                            "$ref": "#/definitions/foster_children_transaction.FosterChildrenTransactionListResponse"
                                         }
                                     }
                                 }
@@ -4102,7 +4112,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_foster_children_transaction.CreateFosterChildrenTransactionRequest"
+                            "$ref": "#/definitions/foster_children_transaction.CreateFosterChildrenTransactionRequest"
                         }
                     }
                 ],
@@ -4251,7 +4261,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_foundation_profile.FoundationProfileResponse"
+                                            "$ref": "#/definitions/foundation_profile.FoundationProfileResponse"
                                         }
                                     }
                                 }
@@ -4552,7 +4562,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_news.NewsResponse"
+                                            "$ref": "#/definitions/news.NewsResponse"
                                         }
                                     }
                                 }
@@ -4630,7 +4640,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_news.NewsListResponse"
+                                            "$ref": "#/definitions/news.NewsListResponse"
                                         }
                                     }
                                 }
@@ -4690,7 +4700,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_news_comment.AdminNewsCommentListResponse"
+                                            "$ref": "#/definitions/news_comment.AdminNewsCommentListResponse"
                                         }
                                     }
                                 }
@@ -4813,7 +4823,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_news.NewsResponse"
+                                            "$ref": "#/definitions/news.NewsResponse"
                                         }
                                     }
                                 }
@@ -5059,7 +5069,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_prayer.PrayerListResponse"
+                                            "$ref": "#/definitions/prayer.PrayerListResponse"
                                         }
                                     }
                                 }
@@ -5677,7 +5687,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_social_program_transaction.CreateOfflineTransactionRequest"
+                            "$ref": "#/definitions/social_program_transaction.CreateOfflineTransactionRequest"
                         }
                     }
                 ],
@@ -6027,7 +6037,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_social_program.RejectSocialProgramRequest"
+                            "$ref": "#/definitions/social_program.RejectSocialProgramRequest"
                         }
                     }
                 ],
@@ -6137,7 +6147,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_social_program_subscription.CreateSocialProgramSubscriptionOfflineRequest"
+                            "$ref": "#/definitions/social_program_subscription.CreateSocialProgramSubscriptionOfflineRequest"
                         }
                     }
                 ],
@@ -6171,7 +6181,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_auth.ForgetPasswordRequest"
+                            "$ref": "#/definitions/auth.ForgetPasswordRequest"
                         }
                     }
                 ],
@@ -6205,7 +6215,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_auth.LoginRequest"
+                            "$ref": "#/definitions/auth.LoginRequest"
                         }
                     }
                 ],
@@ -6296,7 +6306,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_auth.RegisterRequest"
+                            "$ref": "#/definitions/auth.RegisterRequest"
                         }
                     }
                 ],
@@ -6330,7 +6340,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_auth.ResendVerificationRequest"
+                            "$ref": "#/definitions/auth.ResendVerificationRequest"
                         }
                     }
                 ],
@@ -6364,7 +6374,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_auth.ResetPasswordRequest"
+                            "$ref": "#/definitions/auth.ResetPasswordRequest"
                         }
                     }
                 ],
@@ -6403,7 +6413,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_auth.SwitchRoleRequest"
+                            "$ref": "#/definitions/auth.SwitchRoleRequest"
                         }
                     }
                 ],
@@ -6437,7 +6447,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_auth.VerifyEmailRequest"
+                            "$ref": "#/definitions/auth.VerifyEmailRequest"
                         }
                     }
                 ],
@@ -6704,7 +6714,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_prayer.PrayerListResponse"
+                                            "$ref": "#/definitions/prayer.PrayerListResponse"
                                         }
                                     }
                                 }
@@ -6787,7 +6797,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_donation_program_transaction.DonationProgramTransactionListResponse"
+                                            "$ref": "#/definitions/donation_program_transaction.DonationProgramTransactionListResponse"
                                         }
                                     }
                                 }
@@ -6822,7 +6832,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_donation_program_transaction.CreateDonationProgramTransactionRequest"
+                            "$ref": "#/definitions/donation_program_transaction.CreateDonationProgramTransactionRequest"
                         }
                     }
                 ],
@@ -7028,6 +7038,11 @@
                     {
                         "type": "string",
                         "name": "name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "nik",
                         "in": "formData"
                     },
                     {
@@ -7353,7 +7368,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_foster_children_transaction.CreateFosterChildrenTransactionRequest"
+                            "$ref": "#/definitions/foster_children_transaction.CreateFosterChildrenTransactionRequest"
                         }
                     }
                 ],
@@ -7392,7 +7407,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_foundation_profile.FoundationProfileResponse"
+                                            "$ref": "#/definitions/foundation_profile.FoundationProfileResponse"
                                         }
                                     }
                                 }
@@ -7470,7 +7485,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_gallery.GalleryListResponse"
+                                            "$ref": "#/definitions/gallery.GalleryListResponse"
                                         }
                                     }
                                 }
@@ -7556,7 +7571,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_gallery.GalleryResponse"
+                                            "$ref": "#/definitions/gallery.GalleryResponse"
                                         }
                                     }
                                 }
@@ -7605,7 +7620,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_gallery.GalleryResponse"
+                                            "$ref": "#/definitions/gallery.GalleryResponse"
                                         }
                                     }
                                 }
@@ -7768,12 +7783,6 @@
                         "in": "query"
                     },
                     {
-                        "type": "string",
-                        "description": "Filter by entity type or action (case-insensitive search)",
-                        "name": "search",
-                        "in": "query"
-                    },
-                    {
                         "type": "integer",
                         "description": "Items per page (max 100)",
                         "name": "limit",
@@ -7826,7 +7835,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_account.UserProfileResponse"
+                                            "$ref": "#/definitions/account.UserProfileResponse"
                                         }
                                     }
                                 }
@@ -7913,7 +7922,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_donation_program_transaction.DonationProgramTransactionListResponse"
+                                            "$ref": "#/definitions/donation_program_transaction.DonationProgramTransactionListResponse"
                                         }
                                     }
                                 }
@@ -8010,7 +8019,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_foster_children_transaction.FosterChildrenTransactionListResponse"
+                                            "$ref": "#/definitions/foster_children_transaction.FosterChildrenTransactionListResponse"
                                         }
                                     }
                                 }
@@ -8079,7 +8088,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_account.UpdatePasswordRequest"
+                            "$ref": "#/definitions/account.UpdatePasswordRequest"
                         }
                     }
                 ],
@@ -8375,7 +8384,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_news.NewsListResponse"
+                                            "$ref": "#/definitions/news.NewsListResponse"
                                         }
                                     }
                                 }
@@ -8419,7 +8428,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_news_comment.NewsCommentResponse"
+                                            "$ref": "#/definitions/news_comment.NewsCommentResponse"
                                         }
                                     }
                                 }
@@ -8461,7 +8470,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_news_comment.ReportNewsCommentRequest"
+                            "$ref": "#/definitions/news_comment.ReportNewsCommentRequest"
                         }
                     }
                 ],
@@ -8509,7 +8518,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_news.NewsResponse"
+                                            "$ref": "#/definitions/news.NewsResponse"
                                         }
                                     }
                                 }
@@ -8571,7 +8580,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_news_comment.NewsCommentListResponse"
+                                            "$ref": "#/definitions/news_comment.NewsCommentListResponse"
                                         }
                                     }
                                 }
@@ -8611,7 +8620,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_news_comment.CreateNewsCommentRequest"
+                            "$ref": "#/definitions/news_comment.CreateNewsCommentRequest"
                         }
                     }
                 ],
@@ -8659,7 +8668,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_prayer.PrayerResponse"
+                                            "$ref": "#/definitions/prayer.PrayerResponse"
                                         }
                                     }
                                 }
@@ -8800,7 +8809,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_gallery.GalleryListResponse"
+                                            "$ref": "#/definitions/gallery.GalleryListResponse"
                                         }
                                     }
                                 }
@@ -8844,7 +8853,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_gallery.GalleryResponse"
+                                            "$ref": "#/definitions/gallery.GalleryResponse"
                                         }
                                     }
                                 }
@@ -8955,7 +8964,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_social_program_expense.SocialProgramExpenseDetailResponse"
+                                            "$ref": "#/definitions/social_program_expense.SocialProgramExpenseDetailResponse"
                                         }
                                     }
                                 }
@@ -8985,7 +8994,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_social_program_transaction.CreateTransactionRequest"
+                            "$ref": "#/definitions/social_program_transaction.CreateTransactionRequest"
                         }
                     }
                 ],
@@ -9063,7 +9072,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/app_social_program_expense.SocialProgramExpenseListResponse"
+                                            "$ref": "#/definitions/social_program_expense.SocialProgramExpenseListResponse"
                                         }
                                     }
                                 }
@@ -9301,7 +9310,7 @@
         }
     },
     "definitions": {
-        "app_account.AccountResponse": {
+        "account.AccountResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -9319,7 +9328,7 @@
                 "roles": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/app_account.AccountRolesResponse"
+                        "$ref": "#/definitions/account.AccountRolesResponse"
                     }
                 },
                 "username": {
@@ -9327,7 +9336,7 @@
                 }
             }
         },
-        "app_account.AccountRolesResponse": {
+        "account.AccountRolesResponse": {
             "type": "object",
             "properties": {
                 "isActive": {
@@ -9344,7 +9353,7 @@
                 }
             }
         },
-        "app_account.RoleResponse": {
+        "account.RoleResponse": {
             "type": "object",
             "properties": {
                 "id": {
@@ -9355,18 +9364,18 @@
                 }
             }
         },
-        "app_account.RolesResponse": {
+        "account.RolesResponse": {
             "type": "object",
             "properties": {
                 "roles": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/app_account.RoleResponse"
+                        "$ref": "#/definitions/account.RoleResponse"
                     }
                 }
             }
         },
-        "app_account.SetAccountBanStatusRequest": {
+        "account.SetAccountBanStatusRequest": {
             "type": "object",
             "properties": {
                 "banStatus": {
@@ -9374,7 +9383,7 @@
                 }
             }
         },
-        "app_account.UpdateAccountRoleRequest": {
+        "account.UpdateAccountRoleRequest": {
             "type": "object",
             "properties": {
                 "isActive": {
@@ -9382,7 +9391,7 @@
                 }
             }
         },
-        "app_account.UpdatePasswordRequest": {
+        "account.UpdatePasswordRequest": {
             "type": "object",
             "properties": {
                 "currentPassword": {
@@ -9393,7 +9402,7 @@
                 }
             }
         },
-        "app_account.UserProfileResponse": {
+        "account.UserProfileResponse": {
             "type": "object",
             "properties": {
                 "address": {
@@ -9417,7 +9426,7 @@
                 "roles": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/app_account.AccountRolesResponse"
+                        "$ref": "#/definitions/account.AccountRolesResponse"
                     }
                 },
                 "username": {
@@ -9425,18 +9434,18 @@
                 }
             }
         },
-        "app_ambulance_history.CategoryCount": {
+        "ambulance_history.CategoryCount": {
             "type": "object",
             "properties": {
                 "category": {
-                    "$ref": "#/definitions/app_ambulance_history.ServiceCategory"
+                    "$ref": "#/definitions/ambulance_history.ServiceCategory"
                 },
                 "count": {
                     "type": "integer"
                 }
             }
         },
-        "app_ambulance_history.CreateAmbulanceHistoryRequest": {
+        "ambulance_history.CreateAmbulanceHistoryRequest": {
             "type": "object",
             "properties": {
                 "ambulanceId": {
@@ -9449,11 +9458,11 @@
                     "type": "string"
                 },
                 "serviceCategory": {
-                    "$ref": "#/definitions/app_ambulance_history.ServiceCategory"
+                    "$ref": "#/definitions/ambulance_history.ServiceCategory"
                 }
             }
         },
-        "app_ambulance_history.HistoryMonthlyTrendItem": {
+        "ambulance_history.HistoryMonthlyTrendItem": {
             "type": "object",
             "properties": {
                 "emergencyService": {
@@ -9476,13 +9485,13 @@
                 }
             }
         },
-        "app_ambulance_history.HistoryMonthlyTrendRecord": {
+        "ambulance_history.HistoryMonthlyTrendRecord": {
             "type": "object",
             "properties": {
                 "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/app_ambulance_history.HistoryMonthlyTrendItem"
+                        "$ref": "#/definitions/ambulance_history.HistoryMonthlyTrendItem"
                     }
                 },
                 "year": {
@@ -9490,7 +9499,7 @@
                 }
             }
         },
-        "app_ambulance_history.ServiceCategory": {
+        "ambulance_history.ServiceCategory": {
             "type": "string",
             "enum": [
                 "social_service",
@@ -9507,13 +9516,13 @@
                 "OtherService"
             ]
         },
-        "app_ambulance_history.SummaryResponse": {
+        "ambulance_history.SummaryResponse": {
             "type": "object",
             "properties": {
                 "categories": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/app_ambulance_history.CategoryCount"
+                        "$ref": "#/definitions/ambulance_history.CategoryCount"
                     }
                 },
                 "endDate": {
@@ -9527,18 +9536,18 @@
                 }
             }
         },
-        "app_ambulance_history.UpdateAmbulanceHistoryRequest": {
+        "ambulance_history.UpdateAmbulanceHistoryRequest": {
             "type": "object",
             "properties": {
                 "note": {
                     "type": "string"
                 },
                 "serviceCategory": {
-                    "$ref": "#/definitions/app_ambulance_history.ServiceCategory"
+                    "$ref": "#/definitions/ambulance_history.ServiceCategory"
                 }
             }
         },
-        "app_ambulance_service_request.AcceptAmbulanceServiceRequestPayload": {
+        "ambulance_service_request.AcceptAmbulanceServiceRequestPayload": {
             "type": "object",
             "properties": {
                 "ambulanceId": {
@@ -9546,7 +9555,7 @@
                 }
             }
         },
-        "app_ambulance_service_request.CancelAmbulanceServiceRequestPayload": {
+        "ambulance_service_request.CancelAmbulanceServiceRequestPayload": {
             "type": "object",
             "properties": {
                 "cancelationReason": {
@@ -9554,7 +9563,7 @@
                 }
             }
         },
-        "app_ambulance_service_request.RejectAmbulanceServiceRequest": {
+        "ambulance_service_request.RejectAmbulanceServiceRequest": {
             "type": "object",
             "properties": {
                 "rejectionReason": {
@@ -9562,7 +9571,7 @@
                 }
             }
         },
-        "app_auth.ForgetPasswordRequest": {
+        "auth.ForgetPasswordRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -9570,7 +9579,7 @@
                 }
             }
         },
-        "app_auth.LoginRequest": {
+        "auth.LoginRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -9581,7 +9590,7 @@
                 }
             }
         },
-        "app_auth.RegisterRequest": {
+        "auth.RegisterRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -9595,7 +9604,7 @@
                 }
             }
         },
-        "app_auth.ResendVerificationRequest": {
+        "auth.ResendVerificationRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -9603,7 +9612,7 @@
                 }
             }
         },
-        "app_auth.ResetPasswordRequest": {
+        "auth.ResetPasswordRequest": {
             "type": "object",
             "properties": {
                 "newPassword": {
@@ -9614,7 +9623,7 @@
                 }
             }
         },
-        "app_auth.SwitchRoleRequest": {
+        "auth.SwitchRoleRequest": {
             "type": "object",
             "properties": {
                 "role": {
@@ -9622,7 +9631,7 @@
                 }
             }
         },
-        "app_auth.VerifyEmailRequest": {
+        "auth.VerifyEmailRequest": {
             "type": "object",
             "properties": {
                 "token": {
@@ -9630,7 +9639,7 @@
                 }
             }
         },
-        "app_donation_program_expense.MonthlyExpenseRecord": {
+        "donation_program_expense.MonthlyExpenseRecord": {
             "type": "object",
             "properties": {
                 "donationProgramId": {
@@ -9639,12 +9648,12 @@
                 "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/app_donation_program_expense.MonthlyExpenseResponse"
+                        "$ref": "#/definitions/donation_program_expense.MonthlyExpenseResponse"
                     }
                 }
             }
         },
-        "app_donation_program_expense.MonthlyExpenseResponse": {
+        "donation_program_expense.MonthlyExpenseResponse": {
             "type": "object",
             "properties": {
                 "expense": {
@@ -9655,7 +9664,7 @@
                 }
             }
         },
-        "app_donation_program_transaction.CreateDonationProgramTransactionRequest": {
+        "donation_program_transaction.CreateDonationProgramTransactionRequest": {
             "type": "object",
             "properties": {
                 "donorEmail": {
@@ -9672,7 +9681,7 @@
                 }
             }
         },
-        "app_donation_program_transaction.DonationProgramTransactionListResponse": {
+        "donation_program_transaction.DonationProgramTransactionListResponse": {
             "type": "object",
             "properties": {
                 "pagination": {
@@ -9681,12 +9690,12 @@
                 "transactions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/app_donation_program_transaction.DonationProgramTransactionResponse"
+                        "$ref": "#/definitions/donation_program_transaction.DonationProgramTransactionResponse"
                     }
                 }
             }
         },
-        "app_donation_program_transaction.DonationProgramTransactionResponse": {
+        "donation_program_transaction.DonationProgramTransactionResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -9724,7 +9733,7 @@
                 }
             }
         },
-        "app_donation_program_transaction.TransactionMonthlyIncomeItem": {
+        "donation_program_transaction.TransactionMonthlyIncomeItem": {
             "type": "object",
             "properties": {
                 "income": {
@@ -9735,7 +9744,7 @@
                 }
             }
         },
-        "app_donation_program_transaction.TransactionMonthlyIncomeRecord": {
+        "donation_program_transaction.TransactionMonthlyIncomeRecord": {
             "type": "object",
             "properties": {
                 "donationProgramId": {
@@ -9744,12 +9753,12 @@
                 "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/app_donation_program_transaction.TransactionMonthlyIncomeItem"
+                        "$ref": "#/definitions/donation_program_transaction.TransactionMonthlyIncomeItem"
                     }
                 }
             }
         },
-        "app_foster_children.Category": {
+        "foster_children.Category": {
             "type": "string",
             "enum": [
                 "yatim",
@@ -9762,7 +9771,7 @@
                 "CategoryOrphan"
             ]
         },
-        "app_foster_children.Gender": {
+        "foster_children.Gender": {
             "type": "string",
             "enum": [
                 "laki-laki",
@@ -9773,7 +9782,7 @@
                 "Female"
             ]
         },
-        "app_foster_children_candidate.Category": {
+        "foster_children_candidate.Category": {
             "type": "string",
             "enum": [
                 "yatim",
@@ -9786,7 +9795,7 @@
                 "CategoryOrphan"
             ]
         },
-        "app_foster_children_candidate.Gender": {
+        "foster_children_candidate.Gender": {
             "type": "string",
             "enum": [
                 "laki-laki",
@@ -9797,7 +9806,7 @@
                 "Female"
             ]
         },
-        "app_foster_children_candidate.RejectFosterChildrenCandidateRequest": {
+        "foster_children_candidate.RejectFosterChildrenCandidateRequest": {
             "type": "object",
             "properties": {
                 "rejectionReason": {
@@ -9805,7 +9814,7 @@
                 }
             }
         },
-        "app_foster_children_transaction.CreateFosterChildrenTransactionRequest": {
+        "foster_children_transaction.CreateFosterChildrenTransactionRequest": {
             "type": "object",
             "properties": {
                 "donorEmail": {
@@ -9819,7 +9828,7 @@
                 }
             }
         },
-        "app_foster_children_transaction.FosterChildrenTransactionListResponse": {
+        "foster_children_transaction.FosterChildrenTransactionListResponse": {
             "type": "object",
             "properties": {
                 "pagination": {
@@ -9828,12 +9837,12 @@
                 "transactions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/app_foster_children_transaction.FosterChildrenTransactionResponse"
+                        "$ref": "#/definitions/foster_children_transaction.FosterChildrenTransactionResponse"
                     }
                 }
             }
         },
-        "app_foster_children_transaction.FosterChildrenTransactionResponse": {
+        "foster_children_transaction.FosterChildrenTransactionResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -9874,7 +9883,7 @@
                 }
             }
         },
-        "app_foundation_profile.FoundationProfileResponse": {
+        "foundation_profile.FoundationProfileResponse": {
             "type": "object",
             "properties": {
                 "createdAt": {
@@ -9939,13 +9948,13 @@
                 }
             }
         },
-        "app_gallery.GalleryListResponse": {
+        "gallery.GalleryListResponse": {
             "type": "object",
             "properties": {
                 "galleries": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/app_gallery.GalleryListResponseItem"
+                        "$ref": "#/definitions/gallery.GalleryListResponseItem"
                     }
                 },
                 "pagination": {
@@ -9953,11 +9962,11 @@
                 }
             }
         },
-        "app_gallery.GalleryListResponseItem": {
+        "gallery.GalleryListResponseItem": {
             "type": "object",
             "properties": {
                 "category": {
-                    "$ref": "#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaCategory"
+                    "$ref": "#/definitions/media.MediaCategory"
                 },
                 "coverImage": {
                     "type": "string"
@@ -9975,7 +9984,7 @@
                     "type": "string"
                 },
                 "status": {
-                    "$ref": "#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaStatus"
+                    "$ref": "#/definitions/media.MediaStatus"
                 },
                 "title": {
                     "type": "string"
@@ -9985,11 +9994,11 @@
                 }
             }
         },
-        "app_gallery.GalleryResponse": {
+        "gallery.GalleryResponse": {
             "type": "object",
             "properties": {
                 "category": {
-                    "$ref": "#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaCategory"
+                    "$ref": "#/definitions/media.MediaCategory"
                 },
                 "coverImage": {
                     "type": "string"
@@ -10006,14 +10015,14 @@
                 "media": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaResponse"
+                        "$ref": "#/definitions/media.MediaResponse"
                     }
                 },
                 "slug": {
                     "type": "string"
                 },
                 "status": {
-                    "$ref": "#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaStatus"
+                    "$ref": "#/definitions/media.MediaStatus"
                 },
                 "title": {
                     "type": "string"
@@ -10023,314 +10032,7 @@
                 }
             }
         },
-        "app_news.NewsListResponse": {
-            "type": "object",
-            "properties": {
-                "news": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/app_news.NewsListResponseItem"
-                    }
-                },
-                "pagination": {
-                    "$ref": "#/definitions/pkg.OffsetPagination"
-                }
-            }
-        },
-        "app_news.NewsListResponseItem": {
-            "type": "object",
-            "properties": {
-                "category": {
-                    "$ref": "#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaCategory"
-                },
-                "coverImage": {
-                    "type": "string"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "publishedAt": {
-                    "type": "string"
-                },
-                "slug": {
-                    "type": "string"
-                },
-                "status": {
-                    "$ref": "#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaStatus"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "views": {
-                    "type": "integer"
-                }
-            }
-        },
-        "app_news.NewsResponse": {
-            "type": "object",
-            "properties": {
-                "category": {
-                    "$ref": "#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaCategory"
-                },
-                "content": {
-                    "type": "string"
-                },
-                "coverImage": {
-                    "type": "string"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "media": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaResponse"
-                    }
-                },
-                "publishedAt": {
-                    "type": "string"
-                },
-                "slug": {
-                    "type": "string"
-                },
-                "status": {
-                    "$ref": "#/definitions/github_com_Vilamuzz_yota-backend_app_media.MediaStatus"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "updatedAt": {
-                    "type": "string"
-                },
-                "views": {
-                    "type": "integer"
-                }
-            }
-        },
-        "app_news_comment.AdminNewsCommentListResponse": {
-            "type": "object",
-            "properties": {
-                "comments": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/app_news_comment.AdminNewsCommentResponse"
-                    }
-                },
-                "pagination": {
-                    "$ref": "#/definitions/pkg.OffsetPagination"
-                }
-            }
-        },
-        "app_news_comment.AdminNewsCommentResponse": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "reportCount": {
-                    "type": "integer"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "app_news_comment.CreateNewsCommentRequest": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                },
-                "parentCommentId": {
-                    "type": "string"
-                }
-            }
-        },
-        "app_news_comment.NewsCommentListResponse": {
-            "type": "object",
-            "properties": {
-                "comments": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/app_news_comment.NewsCommentResponse"
-                    }
-                },
-                "pagination": {
-                    "$ref": "#/definitions/pkg.OffsetPagination"
-                }
-            }
-        },
-        "app_news_comment.NewsCommentResponse": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "replies": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/app_news_comment.NewsCommentResponse"
-                    }
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "app_news_comment.ReportNewsCommentRequest": {
-            "type": "object"
-        },
-        "app_prayer.PrayerListResponse": {
-            "type": "object",
-            "properties": {
-                "pagination": {
-                    "$ref": "#/definitions/pkg.OffsetPagination"
-                },
-                "prayers": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/app_prayer.PrayerResponse"
-                    }
-                }
-            }
-        },
-        "app_prayer.PrayerResponse": {
-            "type": "object",
-            "properties": {
-                "amenCount": {
-                    "type": "integer"
-                },
-                "content": {
-                    "type": "string"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "isAmen": {
-                    "type": "boolean"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "app_social_program.RejectSocialProgramRequest": {
-            "type": "object",
-            "properties": {
-                "reason": {
-                    "type": "string"
-                }
-            }
-        },
-        "app_social_program_expense.SocialProgramExpenseDetailResponse": {
-            "type": "object",
-            "properties": {
-                "amount": {
-                    "type": "number"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "expenseDate": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "note": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "app_social_program_expense.SocialProgramExpenseListResponse": {
-            "type": "object",
-            "properties": {
-                "expenses": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/app_social_program_expense.SocialProgramExpenseResponse"
-                    }
-                },
-                "pagination": {
-                    "$ref": "#/definitions/pkg.CursorPagination"
-                }
-            }
-        },
-        "app_social_program_expense.SocialProgramExpenseResponse": {
-            "type": "object",
-            "properties": {
-                "amount": {
-                    "type": "number"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "expenseDate": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "proofFile": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "app_social_program_subscription.CreateSocialProgramSubscriptionOfflineRequest": {
-            "type": "object",
-            "properties": {
-                "accountId": {
-                    "type": "string"
-                }
-            }
-        },
-        "app_social_program_transaction.CreateOfflineTransactionRequest": {
-            "type": "object",
-            "required": [
-                "grossAmount"
-            ],
-            "properties": {
-                "grossAmount": {
-                    "type": "number"
-                }
-            }
-        },
-        "app_social_program_transaction.CreateTransactionRequest": {
-            "type": "object",
-            "properties": {
-                "grossAmount": {
-                    "type": "number"
-                }
-            }
-        },
-        "github_com_Vilamuzz_yota-backend_app_media.MediaCategory": {
+        "media.MediaCategory": {
             "type": "string",
             "enum": [
                 "kegiatan sosial",
@@ -10347,7 +10049,7 @@
                 "Others"
             ]
         },
-        "github_com_Vilamuzz_yota-backend_app_media.MediaResponse": {
+        "media.MediaResponse": {
             "type": "object",
             "properties": {
                 "alt": {
@@ -10373,7 +10075,7 @@
                 }
             }
         },
-        "github_com_Vilamuzz_yota-backend_app_media.MediaStatus": {
+        "media.MediaStatus": {
             "type": "string",
             "enum": [
                 "draft",
@@ -10386,20 +10088,180 @@
                 "MediaStatusArchived"
             ]
         },
-        "multipart.FileHeader": {
+        "news.NewsListResponse": {
             "type": "object",
             "properties": {
-                "filename": {
-                    "type": "string"
+                "news": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/news.NewsListResponseItem"
+                    }
                 },
-                "header": {
-                    "$ref": "#/definitions/textproto.MIMEHeader"
-                },
-                "size": {
-                    "type": "integer",
-                    "format": "int64"
+                "pagination": {
+                    "$ref": "#/definitions/pkg.OffsetPagination"
                 }
             }
+        },
+        "news.NewsListResponseItem": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "$ref": "#/definitions/media.MediaCategory"
+                },
+                "coverImage": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "publishedAt": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/media.MediaStatus"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "views": {
+                    "type": "integer"
+                }
+            }
+        },
+        "news.NewsResponse": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "$ref": "#/definitions/media.MediaCategory"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "coverImage": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "media": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/media.MediaResponse"
+                    }
+                },
+                "publishedAt": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/media.MediaStatus"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "views": {
+                    "type": "integer"
+                }
+            }
+        },
+        "news_comment.AdminNewsCommentListResponse": {
+            "type": "object",
+            "properties": {
+                "comments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/news_comment.AdminNewsCommentResponse"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/pkg.OffsetPagination"
+                }
+            }
+        },
+        "news_comment.AdminNewsCommentResponse": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "reportCount": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "news_comment.CreateNewsCommentRequest": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "parentCommentId": {
+                    "type": "string"
+                }
+            }
+        },
+        "news_comment.NewsCommentListResponse": {
+            "type": "object",
+            "properties": {
+                "comments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/news_comment.NewsCommentResponse"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/pkg.OffsetPagination"
+                }
+            }
+        },
+        "news_comment.NewsCommentResponse": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "replies": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/news_comment.NewsCommentResponse"
+                    }
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "news_comment.ReportNewsCommentRequest": {
+            "type": "object"
         },
         "pkg.CursorPagination": {
             "type": "object",
@@ -10450,12 +10312,135 @@
                 }
             }
         },
-        "textproto.MIMEHeader": {
+        "prayer.PrayerListResponse": {
             "type": "object",
-            "additionalProperties": {
-                "type": "array",
-                "items": {
+            "properties": {
+                "pagination": {
+                    "$ref": "#/definitions/pkg.OffsetPagination"
+                },
+                "prayers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/prayer.PrayerResponse"
+                    }
+                }
+            }
+        },
+        "prayer.PrayerResponse": {
+            "type": "object",
+            "properties": {
+                "amenCount": {
+                    "type": "integer"
+                },
+                "content": {
                     "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isAmen": {
+                    "type": "boolean"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "social_program.RejectSocialProgramRequest": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "social_program_expense.SocialProgramExpenseDetailResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "expenseDate": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "note": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "social_program_expense.SocialProgramExpenseListResponse": {
+            "type": "object",
+            "properties": {
+                "expenses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/social_program_expense.SocialProgramExpenseResponse"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/pkg.CursorPagination"
+                }
+            }
+        },
+        "social_program_expense.SocialProgramExpenseResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "expenseDate": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "proofFile": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "social_program_subscription.CreateSocialProgramSubscriptionOfflineRequest": {
+            "type": "object",
+            "properties": {
+                "accountId": {
+                    "type": "string"
+                }
+            }
+        },
+        "social_program_transaction.CreateOfflineTransactionRequest": {
+            "type": "object",
+            "required": [
+                "grossAmount"
+            ],
+            "properties": {
+                "grossAmount": {
+                    "type": "number"
+                }
+            }
+        },
+        "social_program_transaction.CreateTransactionRequest": {
+            "type": "object",
+            "properties": {
+                "grossAmount": {
+                    "type": "number"
                 }
             }
         }
