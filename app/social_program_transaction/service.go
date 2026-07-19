@@ -278,35 +278,43 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 	if payload.TransactionID != "" {
 		updates["transaction_id"] = payload.TransactionID
 	}
+
 	isSettled := payload.TransactionStatus == "settlement" ||
 		(payload.TransactionStatus == "capture" && payload.FraudStatus != "challenge")
+
 	if isSettled {
+		invoiceBefore, errBefore := s.invoiceRepo.FindOneSocialProgramInvoice(ctx, map[string]interface{}{
+			"id": transaction.SocialProgramInvoiceID.String(),
+		})
+		alreadyPaid := errBefore == nil && invoiceBefore.Status == "paid"
+
 		now := time.Now()
 		updates["paid_at"] = now
-
 		_ = s.invoiceRepo.UpdateSocialProgramInvoice(ctx, transaction.SocialProgramInvoiceID.String(), map[string]interface{}{
 			"status":     "paid",
 			"updated_at": now,
 		})
 
-		invoice, err := s.invoiceRepo.FindOneSocialProgramInvoice(ctx, map[string]interface{}{
-			"id": transaction.SocialProgramInvoiceID.String(),
-		})
-		if err == nil {
-			if err := s.subscriptionRepo.UpdateSocialProgramSubscription(ctx, invoice.SubscriptionID.String(), map[string]interface{}{
-				"total_paid_periods": gorm.Expr("total_paid_periods + 1"),
-				"updated_at":         now,
-			}); err != nil {
+		if !alreadyPaid {
+			invoice, err := s.invoiceRepo.FindOneSocialProgramInvoice(ctx, map[string]interface{}{
+				"id": transaction.SocialProgramInvoiceID.String(),
+			})
+			if err == nil {
+				if err := s.subscriptionRepo.UpdateSocialProgramSubscription(ctx, invoice.SubscriptionID.String(), map[string]interface{}{
+					"total_paid_periods": gorm.Expr("total_paid_periods + 1"),
+					"updated_at":         now,
+				}); err != nil {
+					logrus.WithFields(logrus.Fields{
+						"component":       "social_program_transaction.service",
+						"subscription_id": invoice.SubscriptionID,
+					}).WithError(err).Error("failed to update subscription paid periods")
+				}
+			} else {
 				logrus.WithFields(logrus.Fields{
-					"component":       "social_program_transaction.service",
-					"subscription_id": invoice.SubscriptionID,
-				}).WithError(err).Error("failed to update subscription paid periods")
+					"component":  "social_program_transaction.service",
+					"invoice_id": transaction.SocialProgramInvoiceID,
+				}).WithError(err).Error("failed to find invoice for subscription update")
 			}
-		} else {
-			logrus.WithFields(logrus.Fields{
-				"component":  "social_program_transaction.service",
-				"invoice_id": transaction.SocialProgramInvoiceID,
-			}).WithError(err).Error("failed to find invoice for subscription update")
 		}
 	}
 
@@ -390,6 +398,7 @@ func (s *service) CreateOfflineSocialProgramTransaction(ctx context.Context, inv
 		SocialProgramInvoiceID: invoice.ID,
 		AccountID:              invoice.Subscription.AccountID, // Assuming preloaded or we can get it from invoice.Subscription
 		OrderID:                orderID,
+		TransactionID:       	orderID, // For offline, we can use orderID as transactionID
 		IsOnline:               false,
 		GrossAmount:            payload.GrossAmount,
 		FraudStatus:            "accept",
