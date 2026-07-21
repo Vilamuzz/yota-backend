@@ -51,7 +51,7 @@ func (r *repository) FindAllSocialPrograms(ctx context.Context, options map[stri
 
 	totalExpenseSubquery := r.Conn.Table("social_program_expenses").
 		Select("COALESCE(SUM(amount), 0)").
-		Where("social_program_id = social_programs.id")
+		Where("social_program_id = social_programs.id AND deleted_at IS NULL")
 
 	query := r.Conn.WithContext(ctx).
 		Select("social_programs.*, (?) as total_subscribers, (?) as collected_fund, (?) as total_expense", subscribersSubquery, collectedFundSubquery, totalExpenseSubquery).
@@ -178,7 +178,7 @@ func (r *repository) FindOneSocialProgram(ctx context.Context, options map[strin
 
 	totalExpenseSubquery := r.Conn.Table("social_program_expenses").
 		Select("COALESCE(SUM(amount), 0)").
-		Where("social_program_id = social_programs.id")
+		Where("social_program_id = social_programs.id AND deleted_at IS NULL")
 
 	query := r.Conn.WithContext(ctx).
 		Select("social_programs.*, (?) as total_subscribers, (?) as collected_fund, (?) as total_expense", subscribersSubquery, collectedFundSubquery, totalExpenseSubquery).
