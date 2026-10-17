@@ -37,7 +37,7 @@ func SeedMockUsers(db *gorm.DB) error {
 		{"Ilham Wijaya", "publication@yota.com", 6, true, true},
 		{"Andy", "user1@yota.com", 1, true, true},
 		{"Laras", "user2@yota.com", 1, true, true},
-		{"Aulia", "user3@yota.com", 1, true, false},
+		{"Aulia", "user3@yota.com", 1, true, true},
 		{"Budi", "banned@yota.com", 1, false, true},
 		{"Nico Avianto", "driver1@yota.com", 7, true, true},
 		{"Paskah Wahyu", "driver2@yota.com", 7, true, true},
