@@ -118,7 +118,6 @@ services:
       S3_ROOT_PASSWORD: ${S3_ROOT_PASSWORD:-minioadmin}
     volumes:
       - rustfs_data:/data
-    command: server /data --console-address ":9001"
     networks:
       - yota-network
     healthcheck:
