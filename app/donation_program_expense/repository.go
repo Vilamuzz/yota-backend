@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Vilamuzz/yota-backend/app/finance_record"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
 )
@@ -16,6 +17,7 @@ type Repository interface {
 	FindOneDonationProgramExpense(ctx context.Context, options map[string]interface{}) (*DonationProgramExpense, error)
 	GetTotalExpenseByDonationProgramID(ctx context.Context, donationProgramID string) (float64, error)
 	CreateDonationProgramExpense(ctx context.Context, donationProgramExpense *DonationProgramExpense) error
+	CreateDonationProgramExpenseWithFinance(ctx context.Context, expense *DonationProgramExpense, record *finance_record.FinanceRecord) error
 	DeleteDonationProgramExpense(ctx context.Context, donationProgramExpenseID string) error
 	GetMonthlyExpenseByProgram(ctx context.Context, donationProgramID string, year int) (*MonthlyExpenseRecord, error)
 }
@@ -143,6 +145,20 @@ func (r *repo) FindOneDonationProgramExpense(ctx context.Context, options map[st
 
 func (r *repo) CreateDonationProgramExpense(ctx context.Context, expense *DonationProgramExpense) error {
 	return r.Conn.WithContext(ctx).Create(expense).Error
+}
+
+func (r *repo) CreateDonationProgramExpenseWithFinance(ctx context.Context, expense *DonationProgramExpense, record *finance_record.FinanceRecord) error {
+	return r.Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(expense).Error; err != nil {
+			return err
+		}
+		if record != nil {
+			if err := finance_record.CreateIdempotent(tx, record); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (r *repo) DeleteDonationProgramExpense(ctx context.Context, donationProgramExpenseID string) error {

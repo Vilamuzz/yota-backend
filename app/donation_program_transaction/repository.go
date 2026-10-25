@@ -6,7 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Vilamuzz/yota-backend/app/finance_record"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type Repository interface {
@@ -15,7 +17,9 @@ type Repository interface {
 	FindAllDonationProgramTransactionsForExport(ctx context.Context, donationProgramID string, params DonationProgramTransactionQueryParams) ([]DonationProgramTransaction, error)
 	FindOneDonationProgramTransaction(ctx context.Context, options map[string]interface{}) (*DonationProgramTransaction, error)
 	CreateDonationProgramTransaction(ctx context.Context, tx *DonationProgramTransaction) error
+	CreateDonationProgramTransactionWithFinance(ctx context.Context, tx *DonationProgramTransaction, record *finance_record.FinanceRecord) error
 	UpdateDonationProgramTransaction(ctx context.Context, orderID string, updates map[string]interface{}) error
+	ApplyNotification(ctx context.Context, orderID, newStatus string, updates map[string]interface{}, record *finance_record.FinanceRecord) (bool, error)
 	CancelDonationProgramTransaction(ctx context.Context, orderID string) error
 	GetMonthlyIncomeByProgram(ctx context.Context, donationProgramID string, year int) (*TransactionMonthlyIncomeRecord, error)
 }
@@ -128,6 +132,52 @@ func (r *repository) FindOneDonationProgramTransaction(ctx context.Context, opti
 
 func (r *repository) CreateDonationProgramTransaction(ctx context.Context, tx *DonationProgramTransaction) error {
 	return r.Conn.WithContext(ctx).Create(tx).Error
+}
+
+func (r *repository) CreateDonationProgramTransactionWithFinance(ctx context.Context, transaction *DonationProgramTransaction, record *finance_record.FinanceRecord) error {
+	return r.Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(transaction).Error; err != nil {
+			return err
+		}
+		if record != nil {
+			if err := finance_record.CreateIdempotent(tx, record); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func (r *repository) ApplyNotification(ctx context.Context, orderID, newStatus string, updates map[string]interface{}, record *finance_record.FinanceRecord) (bool, error) {
+	applied := false
+	err := r.Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var transaction DonationProgramTransaction
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("order_id = ?", orderID).First(&transaction).Error; err != nil {
+			return err
+		}
+
+		if transaction.TransactionStatus == newStatus {
+			return nil
+		}
+
+		if err := tx.Model(&transaction).Updates(updates).Error; err != nil {
+			return err
+		}
+
+		if record != nil {
+			if err := finance_record.CreateIdempotent(tx, record); err != nil {
+				return err
+			}
+		}
+
+		applied = true
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+	return applied, nil
 }
 
 func (r *repository) UpdateDonationProgramTransaction(ctx context.Context, orderID string, updates map[string]interface{}) error {

@@ -21,8 +21,8 @@ type FinanceRecord struct {
 	ID              string     `json:"id" gorm:"primaryKey"`
 	FundType        string     `json:"fundType"`
 	FundID          string     `json:"fundId"`
-	SourceType      string     `json:"sourceType"`
-	SourceID        string     `json:"sourceId"`
+	SourceType      string     `json:"sourceType" gorm:"uniqueIndex:uni_finance_records_source"`
+	SourceID        string     `json:"sourceId" gorm:"uniqueIndex:uni_finance_records_source"`
 	Amount          float64    `json:"amount"`
 	TransactionDate time.Time  `json:"transactionDate"`
 	CreatedAt       time.Time  `json:"createdAt"`

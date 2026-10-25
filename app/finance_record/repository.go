@@ -7,6 +7,7 @@ import (
 
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/Vilamuzz/yota-backend/app/donation_program"
 	"github.com/Vilamuzz/yota-backend/app/foster_children"
@@ -30,6 +31,15 @@ func NewRepository(conn *gorm.DB) Repository {
 
 func (r *repo) Create(ctx context.Context, record *FinanceRecord) error {
 	return r.Conn.WithContext(ctx).Create(record).Error
+}
+
+// CreateIdempotent inserts a finance record on the provided transaction,
+// ignoring duplicates for the same (source_type, source_id).
+func CreateIdempotent(tx *gorm.DB, record *FinanceRecord) error {
+	return tx.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "source_type"}, {Name: "source_id"}},
+		DoNothing: true,
+	}).Create(record).Error
 }
 
 func (r *repo) FindAll(ctx context.Context, options map[string]interface{}) ([]FinanceRecord, error) {

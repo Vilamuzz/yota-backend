@@ -229,16 +229,7 @@ func (s *service) CreateSocialProgramExpense(ctx context.Context, accountID stri
 		CreatedAt:       now,
 	}
 
-	if err := s.repo.CreateSocialProgramExpense(ctx, expense); err != nil {
-		logrus.WithFields(logrus.Fields{
-			"component":  "social_program_expense.service",
-			"expense_id": expense.ID,
-		}).WithError(err).Error("failed to create expense")
-		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat pengeluaran", nil, nil)
-	}
-
-	// Auto-create finance record (outflow)
-	_ = s.financeRepo.Create(ctx, &finance_record.FinanceRecord{
+	record := &finance_record.FinanceRecord{
 		ID:              uuid.New().String(),
 		FundType:        finance_record.FundTypeSocialProgram,
 		FundID:          expense.SocialProgramID.String(),
@@ -247,7 +238,14 @@ func (s *service) CreateSocialProgramExpense(ctx context.Context, accountID stri
 		Amount:          expense.Amount,
 		TransactionDate: expense.ExpenseDate,
 		CreatedAt:       now,
-	})
+	}
+	if err := s.repo.CreateSocialProgramExpenseWithFinance(ctx, expense, record); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":  "social_program_expense.service",
+			"expense_id": expense.ID,
+		}).WithError(err).Error("failed to create expense")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat pengeluaran", nil, nil)
+	}
 
 	s.logService.CreateLog(ctx, &accountID, "CREATE", "social_program_expense", expense.ID.String(), nil, expense.toSocialProgramExpenseDetailResponse())
 

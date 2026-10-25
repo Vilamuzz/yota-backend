@@ -203,16 +203,7 @@ func (s *service) CreateOfflineFosterChildrenTransaction(ctx context.Context, ac
 		CreatedAt:         now,
 		UpdatedAt:         now,
 	}
-	if err := s.repo.CreateFosterChildrenTransaction(ctx, transaction); err != nil {
-		logrus.WithFields(logrus.Fields{
-			"component":          "foster_children_transaction.service",
-			"foster_children_id": fosterChildrenID,
-		}).WithError(err).Error("failed to save offline transaction")
-		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menyimpan transaksi offline", nil, nil)
-	}
-
-	// Auto-create finance record (income)
-	if err := s.financeRepo.Create(ctx, &finance_record.FinanceRecord{
+	record := &finance_record.FinanceRecord{
 		ID:              uuid.New().String(),
 		FundType:        finance_record.FundTypeFosterChildren,
 		FundID:          transaction.FosterChildrenID.String(),
@@ -221,11 +212,14 @@ func (s *service) CreateOfflineFosterChildrenTransaction(ctx context.Context, ac
 		Amount:          transaction.GrossAmount,
 		TransactionDate: now,
 		CreatedAt:       now,
-	}); err != nil {
+	}
+	if err := s.repo.CreateFosterChildrenTransactionWithFinance(ctx, transaction, record); err != nil {
 		logrus.WithFields(logrus.Fields{
-			"component":      "foster_children_transaction.service",
-			"transaction_id": transaction.ID,
-		}).WithError(err).Warn("failed to create finance record for offline transaction")
+			"component":          "foster_children_transaction.service",
+			"foster_children_id": fosterChildrenID,
+			"transaction_id":     transaction.ID,
+		}).WithError(err).Error("failed to save offline transaction")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menyimpan transaksi offline", nil, nil)
 	}
 
 	transaction.FosterChildren = fosterChild
@@ -374,22 +368,12 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 	}
 	isSettled := payload.TransactionStatus == "settlement" ||
 		(payload.TransactionStatus == "capture" && payload.FraudStatus != "challenge")
-	if isSettled {
-		updates["paid_at"] = time.Now()
-	}
 
-	if err := s.repo.UpdateFosterChildrenTransaction(ctx, payload.OrderID, updates); err != nil {
-		logrus.WithFields(logrus.Fields{
-			"component":      "foster_children_transaction.service",
-			"transaction_id": transaction.ID,
-			"order_id":       payload.OrderID,
-		}).WithError(err).Error("failed to update transaction")
-		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui transaksi", nil, nil)
-	}
-
+	var record *finance_record.FinanceRecord
 	if isSettled {
 		now := time.Now()
-		if err := s.financeRepo.Create(ctx, &finance_record.FinanceRecord{
+		updates["paid_at"] = now
+		record = &finance_record.FinanceRecord{
 			ID:              uuid.New().String(),
 			FundType:        finance_record.FundTypeFosterChildren,
 			FundID:          transaction.FosterChildrenID.String(),
@@ -398,13 +382,20 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 			Amount:          transaction.GrossAmount,
 			TransactionDate: now,
 			CreatedAt:       now,
-		}); err != nil {
-			logrus.WithFields(logrus.Fields{
-				"component":      "foster_children_transaction.service",
-				"transaction_id": transaction.ID,
-				"order_id":       payload.OrderID,
-			}).WithError(err).Warn("failed to create finance record after settlement")
 		}
+	}
+
+	applied, err := s.repo.ApplyNotification(ctx, payload.OrderID, payload.TransactionStatus, updates, record)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":      "foster_children_transaction.service",
+			"transaction_id": transaction.ID,
+			"order_id":       payload.OrderID,
+		}).WithError(err).Error("failed to apply notification")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui transaksi", nil, nil)
+	}
+
+	if applied && isSettled {
 		logrus.WithFields(logrus.Fields{
 			"component":          "foster_children_transaction.service",
 			"transaction_id":     transaction.ID,

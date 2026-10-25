@@ -315,16 +315,7 @@ func (s *service) CreateFosterChildrenExpense(ctx context.Context, accountID, fo
 		UpdatedAt:        now,
 	}
 
-	if err := s.repo.CreateFosterChildrenExpense(ctx, expense); err != nil {
-		logrus.WithFields(logrus.Fields{
-			"component":  "foster_children_expense.service",
-			"expense_id": expense.ID,
-		}).WithError(err).Error("failed to create expense")
-		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat pengeluaran", nil, nil)
-	}
-
-	// Auto-create finance record (outflow)
-	_ = s.financeRepo.Create(ctx, &finance_record.FinanceRecord{
+	record := &finance_record.FinanceRecord{
 		ID:              uuid.New().String(),
 		FundType:        finance_record.FundTypeFosterChildren,
 		FundID:          expense.FosterChildrenID.String(),
@@ -333,7 +324,14 @@ func (s *service) CreateFosterChildrenExpense(ctx context.Context, accountID, fo
 		Amount:          expense.Amount,
 		TransactionDate: expense.ExpenseDate,
 		CreatedAt:       now,
-	})
+	}
+	if err := s.repo.CreateFosterChildrenExpenseWithFinance(ctx, expense, record); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":  "foster_children_expense.service",
+			"expense_id": expense.ID,
+		}).WithError(err).Error("failed to create expense")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat pengeluaran", nil, nil)
+	}
 
 	s.logService.CreateLog(ctx, &accountID, "CREATE", "foster_children_expense", expense.ID.String(), nil, expense.toFosterChildrenExpenseDetailResponse())
 

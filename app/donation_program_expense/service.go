@@ -240,15 +240,7 @@ func (s *service) CreateDonationProgramExpense(ctx context.Context, accountID, d
 		UpdatedAt:         now,
 	}
 
-	if err := s.repo.CreateDonationProgramExpense(ctx, expense); err != nil {
-		logrus.WithFields(logrus.Fields{
-			"component":  "donation_program_expense.service",
-			"expense_id": expense.ID,
-		}).WithError(err).Error("failed to create expense")
-		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat pengeluaran", nil, nil)
-	}
-
-	_ = s.financeRepo.Create(ctx, &finance_record.FinanceRecord{
+	record := &finance_record.FinanceRecord{
 		ID:              uuid.New().String(),
 		FundType:        finance_record.FundTypeDonation,
 		FundID:          expense.DonationProgramID.String(),
@@ -257,7 +249,14 @@ func (s *service) CreateDonationProgramExpense(ctx context.Context, accountID, d
 		Amount:          expense.Amount,
 		TransactionDate: expense.ExpenseDate,
 		CreatedAt:       now,
-	})
+	}
+	if err := s.repo.CreateDonationProgramExpenseWithFinance(ctx, expense, record); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":  "donation_program_expense.service",
+			"expense_id": expense.ID,
+		}).WithError(err).Error("failed to create expense")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal membuat pengeluaran", nil, nil)
+	}
 
 	s.logService.CreateLog(ctx, &accountID, "CREATE", "donation_program_expense", expense.ID.String(), nil, expense.toDonationProgramExpenseDetailResponse())
 

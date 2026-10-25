@@ -2,16 +2,23 @@ package social_program_transaction
 
 import (
 	"context"
+	"time"
 
+	"github.com/Vilamuzz/yota-backend/app/finance_record"
+	"github.com/Vilamuzz/yota-backend/app/social_program_invoice"
+	"github.com/Vilamuzz/yota-backend/app/social_program_subscription"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type Repository interface {
 	FindAllSocialProgramTransactions(ctx context.Context, options map[string]interface{}) ([]SocialProgramTransaction, error)
 	FindOneSocialProgramTransaction(ctx context.Context, options map[string]interface{}) (*SocialProgramTransaction, error)
 	CreateSocialProgramTransaction(ctx context.Context, transaction *SocialProgramTransaction) error
+	CreateOfflinePayment(ctx context.Context, transaction *SocialProgramTransaction, record *finance_record.FinanceRecord) error
 	UpdateSocialProgramTransaction(ctx context.Context, orderID string, updates map[string]interface{}) error
+	ApplyNotification(ctx context.Context, orderID, newStatus string, updates map[string]interface{}, record *finance_record.FinanceRecord) (bool, error)
 	WithTransaction(ctx context.Context, fn func(repo Repository) error) error
 }
 
@@ -85,6 +92,94 @@ func (r *repository) FindOneSocialProgramTransaction(ctx context.Context, option
 
 func (r *repository) CreateSocialProgramTransaction(ctx context.Context, transaction *SocialProgramTransaction) error {
 	return r.Conn.WithContext(ctx).Create(transaction).Error
+}
+
+func (r *repository) CreateOfflinePayment(ctx context.Context, transaction *SocialProgramTransaction, record *finance_record.FinanceRecord) error {
+	return r.Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(transaction).Error; err != nil {
+			return err
+		}
+
+		var invoice social_program_invoice.SocialProgramInvoice
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id = ?", transaction.SocialProgramInvoiceID).First(&invoice).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&invoice).Updates(map[string]interface{}{
+			"status":     social_program_invoice.InvoiceStatusPaid,
+			"updated_at": time.Now(),
+		}).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&social_program_subscription.SocialProgramSubscription{}).
+			Where("id = ?", invoice.SubscriptionID).
+			UpdateColumns(map[string]interface{}{
+				"total_paid_periods": gorm.Expr("total_paid_periods + 1"),
+				"updated_at":         time.Now(),
+			}).Error; err != nil {
+			return err
+		}
+
+		if record != nil {
+			if err := finance_record.CreateIdempotent(tx, record); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func (r *repository) ApplyNotification(ctx context.Context, orderID, newStatus string, updates map[string]interface{}, record *finance_record.FinanceRecord) (bool, error) {
+	applied := false
+	err := r.Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var transaction SocialProgramTransaction
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("order_id = ?", orderID).First(&transaction).Error; err != nil {
+			return err
+		}
+
+		if transaction.TransactionStatus == newStatus {
+			return nil
+		}
+
+		if err := tx.Model(&transaction).Updates(updates).Error; err != nil {
+			return err
+		}
+
+		if record != nil {
+			var invoice social_program_invoice.SocialProgramInvoice
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+				Where("id = ?", transaction.SocialProgramInvoiceID).First(&invoice).Error; err != nil {
+				return err
+			}
+			if invoice.Status != social_program_invoice.InvoiceStatusPaid {
+				if err := tx.Model(&invoice).Updates(map[string]interface{}{
+					"status":     social_program_invoice.InvoiceStatusPaid,
+					"updated_at": time.Now(),
+				}).Error; err != nil {
+					return err
+				}
+				if err := tx.Model(&social_program_subscription.SocialProgramSubscription{}).
+					Where("id = ?", invoice.SubscriptionID).
+					UpdateColumns(map[string]interface{}{
+						"total_paid_periods": gorm.Expr("total_paid_periods + 1"),
+						"updated_at":         time.Now(),
+					}).Error; err != nil {
+					return err
+				}
+			}
+			if err := finance_record.CreateIdempotent(tx, record); err != nil {
+				return err
+			}
+		}
+
+		applied = true
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+	return applied, nil
 }
 
 func (r *repository) UpdateSocialProgramTransaction(ctx context.Context, orderID string, updates map[string]interface{}) error {

@@ -231,16 +231,7 @@ func (s *service) CreateOfflineDonationProgramTransaction(ctx context.Context, a
 		CreatedAt:         now,
 		UpdatedAt:         now,
 	}
-	if err := s.repo.CreateDonationProgramTransaction(ctx, transaction); err != nil {
-		logrus.WithFields(logrus.Fields{
-			"component":           "donation_program_transaction.service",
-			"donation_program_id": donationProgramID,
-		}).WithError(err).Error("failed to save offline transaction")
-		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menyimpan transaksi offline", nil, nil)
-	}
-
-	// Auto-create finance record (income)
-	if err := s.financeRepo.Create(ctx, &finance_record.FinanceRecord{
+	record := &finance_record.FinanceRecord{
 		ID:              uuid.New().String(),
 		FundType:        finance_record.FundTypeDonation,
 		FundID:          transaction.DonationProgramID.String(),
@@ -249,11 +240,14 @@ func (s *service) CreateOfflineDonationProgramTransaction(ctx context.Context, a
 		Amount:          transaction.GrossAmount,
 		TransactionDate: now,
 		CreatedAt:       now,
-	}); err != nil {
+	}
+	if err := s.repo.CreateDonationProgramTransactionWithFinance(ctx, transaction, record); err != nil {
 		logrus.WithFields(logrus.Fields{
-			"component":      "donation_program_transaction.service",
-			"transaction_id": transaction.ID,
-		}).WithError(err).Warn("failed to create finance record for offline transaction")
+			"component":           "donation_program_transaction.service",
+			"donation_program_id": donationProgramID,
+			"transaction_id":      transaction.ID,
+		}).WithError(err).Error("failed to save offline transaction")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal menyimpan transaksi offline", nil, nil)
 	}
 
 	transaction.DonationProgram = donationProg
@@ -445,20 +439,34 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 	}
 	isSettled := payload.TransactionStatus == "settlement" ||
 		(payload.TransactionStatus == "capture" && payload.FraudStatus != "challenge")
+
+	var record *finance_record.FinanceRecord
 	if isSettled {
-		updates["paid_at"] = time.Now()
+		now := time.Now()
+		updates["paid_at"] = now
+		record = &finance_record.FinanceRecord{
+			ID:              uuid.New().String(),
+			FundType:        finance_record.FundTypeDonation,
+			FundID:          transaction.DonationProgramID.String(),
+			SourceType:      finance_record.SourceTypeTransaction,
+			SourceID:        transaction.ID.String(),
+			Amount:          transaction.GrossAmount,
+			TransactionDate: now,
+			CreatedAt:       now,
+		}
 	}
 
-	if err := s.repo.UpdateDonationProgramTransaction(ctx, payload.OrderID, updates); err != nil {
+	applied, err := s.repo.ApplyNotification(ctx, payload.OrderID, payload.TransactionStatus, updates, record)
+	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"component":      "donation_program_transaction.service",
 			"transaction_id": transaction.ID,
 			"order_id":       payload.OrderID,
-		}).WithError(err).Error("failed to update transaction")
+		}).WithError(err).Error("failed to apply notification")
 		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui transaksi", nil, nil)
 	}
 
-	if isSettled {
+	if applied && isSettled {
 		prayers, err := s.prayerRepo.FindOnePrayer(ctx, map[string]interface{}{
 			"donation_program_transaction_id": transaction.ID,
 		})
@@ -473,26 +481,7 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 				}).WithError(err).Warn("failed to publish prayer after settlement")
 			}
 		}
-	}
 
-	if isSettled {
-		now := time.Now()
-		if err := s.financeRepo.Create(ctx, &finance_record.FinanceRecord{
-			ID:              uuid.New().String(),
-			FundType:        finance_record.FundTypeDonation,
-			FundID:          transaction.DonationProgramID.String(),
-			SourceType:      finance_record.SourceTypeTransaction,
-			SourceID:        transaction.ID.String(),
-			Amount:          transaction.GrossAmount,
-			TransactionDate: now,
-			CreatedAt:       now,
-		}); err != nil {
-			logrus.WithFields(logrus.Fields{
-				"component":      "donation_program_transaction.service",
-				"transaction_id": transaction.ID,
-				"order_id":       payload.OrderID,
-			}).WithError(err).Warn("failed to create finance record after settlement")
-		}
 		logrus.WithFields(logrus.Fields{
 			"component":           "donation_program_transaction.service",
 			"transaction_id":      transaction.ID,

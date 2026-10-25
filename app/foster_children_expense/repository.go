@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Vilamuzz/yota-backend/app/finance_record"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
 )
@@ -17,6 +18,7 @@ type Repository interface {
 	FindOneFosterChildrenExpense(ctx context.Context, options map[string]interface{}) (*FosterChildrenExpense, error)
 	GetTotalExpenseByFosterChildrenID(ctx context.Context, fosterChildrenID string) (float64, error)
 	CreateFosterChildrenExpense(ctx context.Context, fosterChildrenExpense *FosterChildrenExpense) error
+	CreateFosterChildrenExpenseWithFinance(ctx context.Context, expense *FosterChildrenExpense, record *finance_record.FinanceRecord) error
 	DeleteFosterChildrenExpense(ctx context.Context, fosterChildrenExpenseID string) error
 }
 
@@ -150,6 +152,20 @@ func (r *repo) FindOneFosterChildrenExpense(ctx context.Context, options map[str
 
 func (r *repo) CreateFosterChildrenExpense(ctx context.Context, expense *FosterChildrenExpense) error {
 	return r.Conn.WithContext(ctx).Create(expense).Error
+}
+
+func (r *repo) CreateFosterChildrenExpenseWithFinance(ctx context.Context, expense *FosterChildrenExpense, record *finance_record.FinanceRecord) error {
+	return r.Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(expense).Error; err != nil {
+			return err
+		}
+		if record != nil {
+			if err := finance_record.CreateIdempotent(tx, record); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (r *repo) DeleteFosterChildrenExpense(ctx context.Context, fosterChildrenExpenseID string) error {

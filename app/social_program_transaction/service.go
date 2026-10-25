@@ -282,54 +282,11 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 	isSettled := payload.TransactionStatus == "settlement" ||
 		(payload.TransactionStatus == "capture" && payload.FraudStatus != "challenge")
 
+	var record *finance_record.FinanceRecord
 	if isSettled {
-		invoiceBefore, errBefore := s.invoiceRepo.FindOneSocialProgramInvoice(ctx, map[string]interface{}{
-			"id": transaction.SocialProgramInvoiceID.String(),
-		})
-		alreadyPaid := errBefore == nil && invoiceBefore.Status == "paid"
-
 		now := time.Now()
 		updates["paid_at"] = now
-		_ = s.invoiceRepo.UpdateSocialProgramInvoice(ctx, transaction.SocialProgramInvoiceID.String(), map[string]interface{}{
-			"status":     "paid",
-			"updated_at": now,
-		})
-
-		if !alreadyPaid {
-			invoice, err := s.invoiceRepo.FindOneSocialProgramInvoice(ctx, map[string]interface{}{
-				"id": transaction.SocialProgramInvoiceID.String(),
-			})
-			if err == nil {
-				if err := s.subscriptionRepo.UpdateSocialProgramSubscription(ctx, invoice.SubscriptionID.String(), map[string]interface{}{
-					"total_paid_periods": gorm.Expr("total_paid_periods + 1"),
-					"updated_at":         now,
-				}); err != nil {
-					logrus.WithFields(logrus.Fields{
-						"component":       "social_program_transaction.service",
-						"subscription_id": invoice.SubscriptionID,
-					}).WithError(err).Error("failed to update subscription paid periods")
-				}
-			} else {
-				logrus.WithFields(logrus.Fields{
-					"component":  "social_program_transaction.service",
-					"invoice_id": transaction.SocialProgramInvoiceID,
-				}).WithError(err).Error("failed to find invoice for subscription update")
-			}
-		}
-	}
-
-	if err := s.repo.UpdateSocialProgramTransaction(ctx, payload.OrderID, updates); err != nil {
-		logrus.WithFields(logrus.Fields{
-			"component":      "social_program_transaction.service",
-			"transaction_id": transaction.ID,
-			"order_id":       payload.OrderID,
-		}).WithError(err).Error("failed to update transaction")
-		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui transaksi", nil, nil)
-	}
-
-	if isSettled {
-		now := time.Now()
-		if err := s.financeRepo.Create(ctx, &finance_record.FinanceRecord{
+		record = &finance_record.FinanceRecord{
 			ID:              uuid.New().String(),
 			FundType:        finance_record.FundTypeSocialProgram,
 			FundID:          transaction.SocialProgramInvoiceID.String(),
@@ -338,13 +295,27 @@ func (s *service) HandleNotification(ctx context.Context, payload payment_pkg.Mi
 			Amount:          transaction.GrossAmount,
 			TransactionDate: now,
 			CreatedAt:       now,
-		}); err != nil {
-			logrus.WithFields(logrus.Fields{
-				"component":      "social_program_transaction.service",
-				"transaction_id": transaction.ID,
-				"order_id":       payload.OrderID,
-			}).WithError(err).Warn("failed to create finance record after settlement")
 		}
+	}
+
+	applied, err := s.repo.ApplyNotification(ctx, payload.OrderID, payload.TransactionStatus, updates, record)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"component":      "social_program_transaction.service",
+			"transaction_id": transaction.ID,
+			"order_id":       payload.OrderID,
+		}).WithError(err).Error("failed to apply notification")
+		return pkg.NewResponse(http.StatusInternalServerError, "Gagal memperbarui transaksi", nil, nil)
+	}
+
+	if applied && isSettled {
+		logrus.WithFields(logrus.Fields{
+			"component":      "social_program_transaction.service",
+			"transaction_id": transaction.ID,
+			"order_id":       payload.OrderID,
+			"invoice_id":     transaction.SocialProgramInvoiceID,
+			"amount":         transaction.GrossAmount,
+		}).Info("transaction settled")
 	}
 
 	return pkg.NewResponse(http.StatusOK, "Notifikasi berhasil ditangani", nil, nil)
@@ -398,7 +369,7 @@ func (s *service) CreateOfflineSocialProgramTransaction(ctx context.Context, inv
 		SocialProgramInvoiceID: invoice.ID,
 		AccountID:              invoice.Subscription.AccountID, // Assuming preloaded or we can get it from invoice.Subscription
 		OrderID:                orderID,
-		TransactionID:       	orderID, // For offline, we can use orderID as transactionID
+		TransactionID:          orderID, // For offline, we can use orderID as transactionID
 		IsOnline:               false,
 		GrossAmount:            payload.GrossAmount,
 		FraudStatus:            "accept",
@@ -409,41 +380,18 @@ func (s *service) CreateOfflineSocialProgramTransaction(ctx context.Context, inv
 		UpdatedAt:              now,
 	}
 
-	// Start transaction for atomicity
-	err = s.repo.WithTransaction(ctx, func(txRepo Repository) error {
-		if err := txRepo.CreateSocialProgramTransaction(ctx, transaction); err != nil {
-			return err
-		}
+	record := &finance_record.FinanceRecord{
+		ID:              uuid.New().String(),
+		FundType:        finance_record.FundTypeSocialProgram,
+		FundID:          invoice.ID.String(),
+		SourceType:      finance_record.SourceTypeTransaction,
+		SourceID:        transaction.ID.String(),
+		Amount:          transaction.GrossAmount,
+		TransactionDate: now,
+		CreatedAt:       now,
+	}
 
-		if err := s.invoiceRepo.UpdateSocialProgramInvoice(ctx, invoiceID, map[string]interface{}{
-			"status":     social_program_invoice.InvoiceStatusPaid,
-			"updated_at": now,
-		}); err != nil {
-			return err
-		}
-
-		if err := s.subscriptionRepo.UpdateSocialProgramSubscription(ctx, invoice.SubscriptionID.String(), map[string]interface{}{
-			"total_paid_periods": gorm.Expr("total_paid_periods + 1"),
-			"updated_at":         now,
-		}); err != nil {
-			return err
-		}
-
-		if err := s.financeRepo.Create(ctx, &finance_record.FinanceRecord{
-			ID:              uuid.New().String(),
-			FundType:        finance_record.FundTypeSocialProgram,
-			FundID:          invoice.ID.String(),
-			SourceType:      finance_record.SourceTypeTransaction,
-			SourceID:        transaction.ID.String(),
-			Amount:          transaction.GrossAmount,
-			TransactionDate: now,
-			CreatedAt:       now,
-		}); err != nil {
-			return err
-		}
-
-		return nil
-	})
+	err = s.repo.CreateOfflinePayment(ctx, transaction, record)
 
 	if err != nil {
 		logrus.WithFields(logrus.Fields{

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Vilamuzz/yota-backend/app/finance_record"
 	"github.com/Vilamuzz/yota-backend/pkg"
 	"gorm.io/gorm"
 )
@@ -15,6 +16,7 @@ type Repository interface {
 	FindAllSocialProgramExpensesForExport(ctx context.Context, socialProgramID string, params SocialProgramExpenseExportParams) ([]SocialProgramExpense, error)
 	FindOneSocialProgramExpense(ctx context.Context, options map[string]interface{}) (*SocialProgramExpense, error)
 	CreateSocialProgramExpense(ctx context.Context, socialProgramExpense *SocialProgramExpense) error
+	CreateSocialProgramExpenseWithFinance(ctx context.Context, expense *SocialProgramExpense, record *finance_record.FinanceRecord) error
 	DeleteSocialProgramExpense(ctx context.Context, socialProgramExpenseID string) error
 }
 
@@ -121,6 +123,20 @@ func (r *repository) FindOneSocialProgramExpense(ctx context.Context, options ma
 
 func (r *repository) CreateSocialProgramExpense(ctx context.Context, socialProgramExpense *SocialProgramExpense) error {
 	return r.Conn.WithContext(ctx).Create(socialProgramExpense).Error
+}
+
+func (r *repository) CreateSocialProgramExpenseWithFinance(ctx context.Context, expense *SocialProgramExpense, record *finance_record.FinanceRecord) error {
+	return r.Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(expense).Error; err != nil {
+			return err
+		}
+		if record != nil {
+			if err := finance_record.CreateIdempotent(tx, record); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (r *repository) DeleteSocialProgramExpense(ctx context.Context, socialProgramExpenseID string) error {
