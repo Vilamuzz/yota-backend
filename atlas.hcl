@@ -10,7 +10,7 @@ data "external_schema" "gorm" {
 env "gorm" {
   src = data.external_schema.gorm.url
   dev = "postgres://postgres:password@localhost:5432/yota_dev?search_path=public&sslmode=disable"
-  url = "postgres://postgres:password@localhost:5432/yota?search_path=public&sslmode=disable"
+  url = "postgres://postgres:password@localhost:5432/yota_db?sslmode=disable&search_path=public"
   migration {
     dir = "file://migrations"
   }

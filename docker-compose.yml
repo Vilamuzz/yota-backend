@@ -1,138 +1,147 @@
-version: "3.8"
-
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: yota-postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: yota_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - yota-network
+    postgres:
+        image: postgres:16-alpine
+        container_name: yota-postgres
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: ${DB_PASSWORD:?required}
+            POSTGRES_DB: yota_db
+        ports:
+            - "5432:5432"
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U postgres"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        networks:
+            - yota-network
 
-  redis:
-    image: redis:7-alpine
-    container_name: yota-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - yota-network
+    redis:
+        image: redis:7-alpine
+        container_name: yota-redis
+        ports:
+            - "6379:6379"
+        volumes:
+            - redis_data:/data
+        command: redis-server --appendonly yes
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        deploy:
+            resources:
+                limits: { cpus: "0.5", memory: 256m }
+        networks:
+            - yota-network
 
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: yota-backend
-    ports:
-      - "8080:8080"
-    environment:
-      - APP_NAME=Yota Backend
-      - APP_ENV=development
-      - PORT=8080
-      - DEBUG=true
-      - DB=host=postgres user=postgres password=password dbname=yota_db port=5432 sslmode=disable
-      - SWAGGER_HOST=localhost:8080
-      - CORS_ALLOW_ORIGIN=*
-      - FE_URL=http://localhost:3000
-      - JWT_SECRET_KEY=your_secret_key_change_in_production
-      - JWT_TTL=3600
-      - TIMEOUT=5
-      - LOG_TO_STDOUT=true
-      - LOG_LEVEL=info
-      - LOG_FILE=
-      - SMTP_HOST=smtp.gmail.com
-      - SMTP_PORT=587
-      - SMTP_USERNAME=your-email@gmail.com
-      - SMTP_PASSWORD=your-app-password
-      - SMTP_FROM=noreply@yourdomain.com
-      - GOOGLE_CLIENT_ID=your-google-client-id
-      - GOOGLE_CLIENT_SECRET=your-google-client-secret
-      - GOOGLE_CALLBACK_URL=http://localhost:8080/api/auth/oauth/google/callback
-      - SESSION_SECRET=your-session-secret-key
-      - RATE_LIMIT_ENABLED=false
-      - RATE_LIMIT_PER_MINUTE=60
-      - REDIS_ENABLED=true
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=
-      - REDIS_DB=0
-      - S3_ENDPOINT=rustfs:9000
-      - S3_ACCESS_KEY=${S3_ROOT_USER:-minioadmin}
-      - S3_SECRET_KEY=${S3_ROOT_PASSWORD:-minioadmin}
-      - S3_BUCKET_NAME=yota-bucket
-      - S3_USE_SSL=false
-      - S3_REGION=us-east-1
-      - CDN_BASE_URL=http://localhost:9000/yota-bucket
-      - MIDTRANS_SERVER_KEY=
-      - MIDTRANS_CLIENT_KEY=
-      - MIDTRANS_ENVIRONMENT=sandbox
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - yota-network
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--quiet",
-          "--tries=1",
-          "--spider",
-          "http://localhost:8080/health",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+    rustfs:
+        image: rustfs/rustfs:alpha
+        container_name: yota-rustfs
+        ports:
+            - "9000:9000"
+            - "9001:9001"
+        environment:
+            RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY:?required}
+            RUSTFS_SECRET_KEY: ${S3_SECRET_KEY:?required}
+        volumes:
+            - rustfs_data:/data
+        networks:
+            - yota-network
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:9000/health/live"]
+            interval: 30s
+            timeout: 20s
+            retries: 3
+        deploy:
+            resources:
+                limits: { cpus: "0.5", memory: 512m }
 
-  rustfs:
-    image: rustfs/rustfs:alpha
-    container_name: yota-rustfs
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      S3_ROOT_USER: ${S3_ROOT_USER:-minioadmin}
-      S3_ROOT_PASSWORD: ${S3_ROOT_PASSWORD:-minioadmin}
-    volumes:
-      - rustfs_data:/data
-    networks:
-      - yota-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
+    rustfs-init:
+        image: amazon/aws-cli
+        depends_on: [rustfs]
+        environment:
+            AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
+            AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
+            AWS_DEFAULT_REGION: us-east-1
+        entrypoint: >
+            /bin/sh -c "
+            until aws --endpoint-url http://rustfs:9000 s3api head-bucket --bucket yota-bucket 2>/dev/null
+            || aws --endpoint-url http://rustfs:9000 s3 mb s3://yota-bucket; do sleep 2; done"
+        restart: "no"
+        networks: [yota-network]
+
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: yota-backend
+        ports:
+            - "8080:8080"
+        environment:
+            - APP_NAME=Yota Backend
+            - APP_ENV=development
+            - PORT=8080
+            - DEBUG=true
+            - DB=host=postgres user=postgres password=${DB_PASSWORD} dbname=yota_db port=5432 sslmode=disable
+            - SWAGGER_HOST=localhost:8080
+            - CORS_ALLOW_ORIGIN=*
+            - FE_URL=http://localhost:3000
+            - JWT_SECRET_KEY=${JWT_SECRET_KEY:?required}
+            - JWT_TTL=3600
+            - TIMEOUT=5
+            - LOG_TO_STDOUT=true
+            - LOG_LEVEL=info
+            - LOG_FILE=
+            - SMTP_HOST=smtp.gmail.com
+            - SMTP_PORT=587
+            - SMTP_USERNAME=your-email@gmail.com
+            - SMTP_PASSWORD=your-app-password
+            - SMTP_FROM=noreply@yourdomain.com
+            - GOOGLE_CLIENT_ID=your-google-client-id
+            - GOOGLE_CLIENT_SECRET=your-google-client-secret
+            - GOOGLE_CALLBACK_URL=http://localhost:8080/api/auth/oauth/google/callback
+            - SESSION_SECRET=${SESSION_SECRET:?required}
+            - RATE_LIMIT_ENABLED=false
+            - RATE_LIMIT_PER_MINUTE=60
+            - REDIS_ENABLED=true
+            - REDIS_HOST=redis
+            - REDIS_PORT=6379
+            - REDIS_PASSWORD=
+            - REDIS_DB=0
+            - S3_ENDPOINT=rustfs:9000
+            - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+            - S3_SECRET_KEY=${S3_SECRET_KEY}
+            - S3_BUCKET_NAME=yota-bucket
+            - S3_USE_SSL=false
+            - S3_REGION=us-east-1
+            - CDN_BASE_URL=http://localhost:9000/yota-bucket
+            - MIDTRANS_SERVER_KEY=
+            - MIDTRANS_CLIENT_KEY=
+            - MIDTRANS_ENVIRONMENT=sandbox
+        depends_on:
+            postgres: { condition: service_healthy }
+            redis:    { condition: service_healthy }
+            rustfs-init: { condition: service_completed_successfully }
+        restart: unless-stopped
+        deploy:
+            resources:
+                limits: { cpus: "1.0", memory: 512m }
+        networks:
+            - yota-network
+        healthcheck:
+            test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 40s
 
 volumes:
-  postgres_data:
-    driver: local
-  redis_data:
-    driver: local
-  rustfs_data:
+    postgres_data:
+    redis_data:
+    rustfs_data:
 
 networks:
-  yota-network:
-    driver: bridge
+    yota-network:

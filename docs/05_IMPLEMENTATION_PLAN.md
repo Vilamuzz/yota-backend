@@ -20,7 +20,7 @@ The audit identified the following findings. Status reflects the current working
 
 | ID    | Finding                                                                    | Severity | Status                 |
 | :---- | :------------------------------------------------------------------------- | :------- | :--------------------- |
-| DB-01 | `finance_records` lacked DB-level idempotency and webhooks were non-atomic | Critical | Implemented (uncommitted) |
+| DB-01 | `finance_records` lacked DB-level idempotency and webhooks were non-atomic | Critical | Implemented, migration applied (uncommitted) |
 | DB-02 | `prayers.deleted_at` is `NOT NULL time.Time`, so prayer deletion is a hard delete | Critical | Planned                |
 | DB-03 | Missing unique keys: subscription `(account_id, social_program_id)`, all slugs, two `transaction_id` columns | Critical | Planned                |
 | DB-04 | Missing foreign keys on expenses, ambulance histories, auth tokens, amen/report accounts | High     | Planned                |
@@ -40,7 +40,7 @@ The audit identified the following findings. Status reflects the current working
 | DB-18 | Auth token/log tables grow without retention/index support                  | Low      | Planned                |
 | DB-19 | `04_DATABASE_SCHEMA.md` misstates GORM soft-delete and computed-column behavior | Low  | Planned                |
 
-### Already implemented (Phase 0, verify before committing)
+### Already implemented (Phase 0 — migration applied 2026-10-25)
 
 Changes exist in the working tree and are documented in `docs/CHANGELOG.md`:
 
@@ -51,11 +51,17 @@ Changes exist in the working tree and are documented in `docs/CHANGELOG.md`:
 - Social program settlement increments `total_paid_periods` only once.
 - Ledger failures now abort the webhook instead of being logged and ignored.
 
+**Phase 0 progress (2026-10-25)**
+
+- Duplicate pre-flight passed: no conflicting `(source_type, source_id)` rows.
+- `20261025191259.sql` applied without errors; `atlas.sum` verified.
+- `go build ./...`, `go vet ./...`, and `go test ./...` pass.
+
 **Phase 0 exit checklist**
 
-- [ ] Run duplicate pre-flight from the migration header on staging and production.
-- [ ] Apply `20261025191259.sql` and confirm `atlas.sum` checks succeed.
-- [ ] Run `go vet ./... && go build ./...`.
+- [x] Run duplicate pre-flight from the migration header before applying (passed in the environment where the migration was applied).
+- [x] Apply `20261025191259.sql` and confirm `atlas.sum` checks succeed.
+- [x] Run `go vet ./... && go build ./...` (also `go test ./...`).
 - [ ] Replay duplicate Midtrans notifications and confirm no duplicate ledger rows or period increments.
 - [ ] Commit Phase 0 separately before starting Phase 1.
 
@@ -307,7 +313,7 @@ atlas migrate apply --env gorm
 
 Required order:
 
-1. Phase 0 already generated (`20261025191259`) — apply and commit first.
+1. Phase 0 applied (`20261025191259`) — commit before starting Phase 1.
 2. `prayer_soft_delete` — nullable `deleted_at`, normalize zero timestamps.
 3. `unique_constraints` — after duplicate pre-flight cleanup.
 4. `foreign_keys` — after orphan pre-flight cleanup and index creation.

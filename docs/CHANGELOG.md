@@ -25,10 +25,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Migration `20261025191259.sql` adding the `uni_finance_records_source` unique
-  index. Run the duplicate pre-flight check documented in the migration before
-  applying.
+  index. The duplicate pre-flight passed before it was applied.
 
 ### Migration Notes
 
-- If existing `(source_type, source_id)` duplicates exist, clean them up before
-  applying the migration or the unique index creation will fail.
+- The duplicate pre-flight for `(source_type, source_id)` passed and
+  `20261025191259.sql` was applied without errors on 2026-10-25.
+- Keep the pre-flight query in the deploy runbook for other environments; if
+  duplicates are present, clean them up before applying the unique index.
