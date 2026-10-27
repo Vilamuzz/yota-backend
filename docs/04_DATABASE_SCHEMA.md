@@ -15,7 +15,7 @@
 - **Primary Keys:** `uuid.UUID` (`github.com/google/uuid`) in Go. Because most models have no explicit `type:uuid` tag, Atlas emits them as **`text`** columns (only `backups.id` is a native `uuid`). Exceptions: `roles.id` is `bigserial`; `logs.id` and `finance_records.id` are Go `string`.
 - **Currency Columns:** Go `float64` → `numeric` (IDR). No `bigint`.
 - **Naming Conventions:** Plural `snake_case` table names, `snake_case` column names, `PascalCase` Go structs. (Exception: `foster_childrens`, `achivements` — pluralised/spelled as GORM generates them.)
-- **Soft Delete:** Models with a `DeletedAt *time.Time` + `index` column are filtered manually/by GORM; see `deleted_at` columns below.
+- **Soft Delete:** `prayers.deleted_at` uses `gorm.DeletedAt`, so GORM adds the `deleted_at IS NULL` filter automatically. All other soft-delete models use `DeletedAt *time.Time` and filter manually; see `deleted_at` columns below.
 - **Computed (read-only) fields:** Fields tagged `gorm:"->"` (e.g. `collected_fund`, `total_expense`, `total_subscribers`, `is_subscribed`, `subscription_id`, `total_donation`, `snap_token` on invoices) are populated by query joins/aggregations. Atlas still emits nullable columns for them in migration `20260619071303.sql`, but they are not written by the app.
 - **Foreign keys:** All declared FKs use `ON UPDATE NO ACTION ON DELETE NO ACTION`.
 
@@ -187,7 +187,7 @@ Prayers are attached 1:1 to a donation transaction (not directly to an account).
 | `content`                         | text        | not null                                               | Sanitized                  |
 | `is_published`                    | boolean     | default `false`, indexed                               |                            |
 | `created_at`                      | timestamptz | not null                                               |                            |
-| `deleted_at`                      | timestamptz | not null, indexed                                      | As defined by the model    |
+| `deleted_at`                      | timestamptz | nullable, indexed                                      | `gorm.DeletedAt`, auto-filtered |
 | `reported`                        | boolean     | nullable, indexed                                      |                            |
 | `amen_count`                      | bigint      | default `0`                                            |                            |
 | `report_count`                    | bigint      | default `0`                                            |                            |

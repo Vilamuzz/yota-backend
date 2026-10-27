@@ -147,27 +147,7 @@ func (r *repository) UpdatePrayer(ctx context.Context, prayer *Prayer) error {
 }
 
 func (r *repository) DeletePrayer(ctx context.Context, prayerID string) error {
-	tx := r.Conn.WithContext(ctx).Begin()
-	if tx.Error != nil {
-		return tx.Error
-	}
-
-	if err := tx.Where("prayer_id = ?", prayerID).Delete(&PrayerAmen{}).Error; err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	if err := tx.Where("prayer_id = ?", prayerID).Delete(&PrayerReport{}).Error; err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	if err := tx.Where("id = ?", prayerID).Delete(&Prayer{}).Error; err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	return tx.Commit().Error
+	return r.Conn.WithContext(ctx).Where("id = ?", prayerID).Delete(&Prayer{}).Error
 }
 
 func (r *repository) CreateAmen(ctx context.Context, amen *PrayerAmen) error {

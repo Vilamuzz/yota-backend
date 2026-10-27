@@ -21,7 +21,7 @@ The audit identified the following findings. Status reflects the current working
 | ID    | Finding                                                                    | Severity | Status                 |
 | :---- | :------------------------------------------------------------------------- | :------- | :--------------------- |
 | DB-01 | `finance_records` lacked DB-level idempotency and webhooks were non-atomic | Critical | Implemented, migration applied (uncommitted) |
-| DB-02 | `prayers.deleted_at` is `NOT NULL time.Time`, so prayer deletion is a hard delete | Critical | Planned                |
+| DB-02 | `prayers.deleted_at` is `NOT NULL time.Time`, so prayer deletion is a hard delete | Critical | Implemented, migration applied (uncommitted) |
 | DB-03 | Missing unique keys: subscription `(account_id, social_program_id)`, all slugs, two `transaction_id` columns | Critical | Planned                |
 | DB-04 | Missing foreign keys on expenses, ambulance histories, auth tokens, amen/report accounts | High     | Planned                |
 | DB-05 | Computed columns are real but never written (always `NULL`)                 | Medium   | Planned                |
@@ -62,8 +62,8 @@ Changes exist in the working tree and are documented in `docs/CHANGELOG.md`:
 - [x] Run duplicate pre-flight from the migration header before applying (passed in the environment where the migration was applied).
 - [x] Apply `20261025191259.sql` and confirm `atlas.sum` checks succeed.
 - [x] Run `go vet ./... && go build ./...` (also `go test ./...`).
-- [ ] Replay duplicate Midtrans notifications and confirm no duplicate ledger rows or period increments.
-- [ ] Commit Phase 0 separately before starting Phase 1.
+- [x] Replay duplicate Midtrans notifications and confirm no duplicate ledger rows or period increments.
+- [x] Commit Phase 0 separately before starting Phase 1.
 
 ---
 
@@ -75,15 +75,32 @@ Each phase produces one or more Atlas migrations and must remain independently r
 
 #### DB-02: Fix prayer soft delete
 
-Files: `app/prayer/prayer.go`, `app/prayer/repository.go`, `migrations/*` (new).
+Files: `app/prayer/prayer.go`, `app/prayer/repository.go`, `cmd/seed/models/prayers.go`, `migrations/*` (new).
 
-- Change `DeletedAt` to `gorm.DeletedAt` (preferred) or `*time.Time` with a nullable column.
-- Add `WHERE deleted_at IS NULL` filters to `FindOnePrayer`, `FindAllPrayers`, and `CountPrayers` if manual filtering is retained.
-- Decide whether existing rows should keep zero timestamps normalized to `NULL`:
-  `UPDATE prayers SET deleted_at = NULL WHERE deleted_at = '0001-01-01 00:00:00+00';`
-- Confirm `DeletePrayer` becomes a soft delete and child rows are handled explicitly (keep the existing child delete or cascade it).
+Implemented decisions:
+
+- `Prayer.DeletedAt` uses `gorm.DeletedAt` with `index`. GORM automatically adds
+  the `deleted_at IS NULL` filter to `FindOnePrayer`, `FindAllPrayers`, and
+  `CountPrayers`, so no manual read filters are required.
+- `DeletePrayer` soft-deletes only the prayer row. `prayer_amens` and
+  `prayer_reports` are preserved rather than hard-deleted.
+- Existing zero timestamps are backfilled to `NULL` in the migration, after
+  dropping `NOT NULL`. Real deletion timestamps, if any, are preserved:
+  `UPDATE prayers SET deleted_at = NULL WHERE deleted_at < '1970-01-01';`
+- `cmd/seed/models/prayers.go` uses `Unscoped()` for its existence check so a
+  soft-deleted seed prayer is not re-inserted.
 
 Acceptance: deleted prayers disappear from all reads, rows remain in the table, and `deleted_at` is `NULL` for active rows.
+
+**DB-02 progress (2026-10-27)**
+
+- Migration `20261027005657_prayer_soft_delete.sql` applied to the local dev
+  database.
+- `atlas migrate validate`, `go vet ./...`, `go build ./...`, and
+  `go test ./...` pass.
+- A rolled-back runtime check confirmed the row survives deletion, `deleted_at`
+  becomes non-null, `FindOnePrayer` returns `record not found`, and
+  `CountPrayers` excludes the deleted row.
 
 #### DB-03: Add missing unique constraints
 
@@ -425,6 +442,6 @@ A phase is done only when all of the following hold:
 
 ---
 
-**Last Updated:** 2026-10-25
+**Last Updated:** 2026-10-27
 **Owner:** Vilamuzz
 **Status:** Active

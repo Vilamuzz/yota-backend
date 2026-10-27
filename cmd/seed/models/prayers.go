@@ -58,7 +58,7 @@ func SeedPrayers(db *gorm.DB) error {
 
 			// Check if already exists for this transaction
 			var existing prayer.Prayer
-			err := db.Where("donation_program_transaction_id = ?", pr.DonationProgramTransactionID).First(&existing).Error
+			err := db.Unscoped().Where("donation_program_transaction_id = ?", pr.DonationProgramTransactionID).First(&existing).Error
 			if err != nil {
 				if err == gorm.ErrRecordNotFound {
 					if err := db.Create(&pr).Error; err != nil {

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type DonationProgramTransaction struct {
@@ -12,16 +13,16 @@ type DonationProgramTransaction struct {
 }
 
 type Prayer struct {
-	ID                           uuid.UUID `json:"id" gorm:"primaryKey"`
-	DonationProgramTransactionID uuid.UUID `json:"donationProgramTransactionId" gorm:"uniqueIndex;not null"`
-	Content                      string    `json:"content" gorm:"not null"`
-	IsPublished                  bool      `json:"isPublished" gorm:"default:false;index"`
-	CreatedAt                    time.Time `json:"createdAt" gorm:"not null"`
-	DeletedAt                    time.Time `json:"deletedAt" gorm:"index;not null"`
-	Reported                     *bool     `json:"reported" gorm:"index"`
-	AmenCount                    int64     `json:"amenCount" gorm:"default:0"`
-	ReportCount                  int64     `json:"reportCount" gorm:"default:0"`
-	IsAmen                       bool      `json:"isAmen" gorm:"->"`
+	ID                           uuid.UUID      `json:"id" gorm:"primaryKey"`
+	DonationProgramTransactionID uuid.UUID      `json:"donationProgramTransactionId" gorm:"uniqueIndex;not null"`
+	Content                      string         `json:"content" gorm:"not null"`
+	IsPublished                  bool           `json:"isPublished" gorm:"default:false;index"`
+	CreatedAt                    time.Time      `json:"createdAt" gorm:"not null"`
+	DeletedAt                    gorm.DeletedAt `json:"deletedAt" gorm:"index"`
+	Reported                     *bool          `json:"reported" gorm:"index"`
+	AmenCount                    int64          `json:"amenCount" gorm:"default:0"`
+	ReportCount                  int64          `json:"reportCount" gorm:"default:0"`
+	IsAmen                       bool           `json:"isAmen" gorm:"->"`
 
 	DonationProgramTransaction DonationProgramTransaction `json:"-" gorm:"foreignKey:DonationProgramTransactionID"`
 	PrayerAmens                []PrayerAmen               `json:"amens" gorm:"foreignKey:PrayerID;references:ID"`
